@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { participants, classSessions, checkIns } from "@/db/schema";
-import { ilike, or, eq } from "drizzle-orm";
+import { ilike, or, eq, desc } from "drizzle-orm";
 import Link from "next/link";
 import { CheckInPanel } from "./CheckInPanel";
 
@@ -16,21 +16,24 @@ export default async function AdminPage({
     .from(classSessions)
     .orderBy(classSessions.sessionDate);
 
-  const results =
-    q.trim().length > 0
-      ? await db
-          .select()
-          .from(participants)
-          .where(
-            or(
-              ilike(participants.lastName, `%${q}%`),
-              ilike(participants.firstName, `%${q}%`),
-              ilike(participants.mobileNumber, `%${q}%`)
-            )
+  const results = q.trim().length > 0
+    ? await db
+        .select()
+        .from(participants)
+        .where(
+          or(
+            ilike(participants.lastName, `%${q}%`),
+            ilike(participants.firstName, `%${q}%`),
+            ilike(participants.mobileNumber, `%${q}%`)
           )
-          .orderBy(participants.lastName)
-          .limit(30)
-      : [];
+        )
+        .orderBy(participants.lastName)
+        .limit(30)
+    : await db
+        .select()
+        .from(participants)
+        .orderBy(desc(participants.id))
+        .limit(10);
 
   const selectedId = id ? parseInt(id, 10) : null;
 
@@ -93,7 +96,9 @@ export default async function AdminPage({
           {results.length > 0 && (
             <div className="flex flex-col gap-2">
               <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
-                {results.length} result{results.length !== 1 ? "s" : ""} — click to view check-in
+                {q.trim()
+                  ? `${results.length} result${results.length !== 1 ? "s" : ""} — click to view check-in`
+                  : "Recently registered — click to view check-in"}
               </p>
               {results.map((p) => (
                 <Link
@@ -113,9 +118,6 @@ export default async function AdminPage({
               ))}
             </div>
           )}
-          {!q.trim() && (
-            <p className="text-sm text-gray-400">Search for a participant above to get started.</p>
-          )}
         </div>
 
         {/* Detail / check-in panel */}
@@ -128,7 +130,7 @@ export default async function AdminPage({
               hasVictoryDay={hasVictoryDay}
             />
           ) : (
-            q.trim() && results.length > 0 && (
+            results.length > 0 && (
               <div className="flex items-center justify-center h-40 text-sm text-gray-400 bg-white rounded-xl border border-dashed border-gray-200">
                 Select a participant to manage check-in
               </div>

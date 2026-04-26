@@ -11,6 +11,7 @@ export async function checkInParticipant(participantId: number, classSessionId: 
     .values({ participantId, classSessionId })
     .onConflictDoNothing();
   revalidatePath("/admin");
+  revalidatePath("/sessions");
 }
 
 export async function removeCheckIn(participantId: number, classSessionId: number) {
@@ -18,4 +19,5 @@ export async function removeCheckIn(participantId: number, classSessionId: numbe
     .delete(checkIns)
     .where(and(eq(checkIns.participantId, participantId), eq(checkIns.classSessionId, classSessionId)));
   revalidatePath("/admin");
+  revalidatePath("/sessions");
 }

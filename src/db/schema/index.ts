@@ -20,6 +20,18 @@ export const lifestageEnum = pgEnum("lifestage", [
   "Senior",
 ]);
 
+export const disciplers = pgTable(
+  "disciplers",
+  {
+    id: serial("id").primaryKey(),
+    lastName: text("last_name").notNull(),
+    firstName: text("first_name").notNull(),
+    mobileNumber: text("mobile_number").notNull(),
+    messengerName: text("messenger_name"),
+  },
+  (t) => [unique().on(t.lastName, t.firstName, t.mobileNumber)]
+);
+
 export const participants = pgTable("participants", {
   id: serial("id").primaryKey(),
   lastName: text("last_name").notNull(),
@@ -71,3 +83,4 @@ export const checkIns = pgTable(
 export type Participant = typeof participants.$inferSelect;
 export type ClassSession = typeof classSessions.$inferSelect;
 export type CheckIn = typeof checkIns.$inferSelect;
+export type Discipler = typeof disciplers.$inferSelect;

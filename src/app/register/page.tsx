@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { registerParticipant } from "./actions";
 import { Section, Field, inputCls, selectCls, SERVICE_OPTIONS } from "@/components/form";
+import { DisciplerAutocomplete } from "@/components/DisciplerAutocomplete";
+import type { Discipler } from "@/db/schema";
 
 const LIFESTAGES = [
   "Student (JHS/SHS)",
@@ -16,6 +18,11 @@ const LIFESTAGES = [
 
 export default function RegisterPage() {
   const [previousChurch, setPreviousChurch] = useState("Roman Catholic");
+  const [discipler, setDiscipler] = useState({ lastName: "", firstName: "", mobileNumber: "", messengerName: "" });
+
+  function handleDisciplerSelect(d: Discipler) {
+    setDiscipler({ lastName: d.lastName, firstName: d.firstName, mobileNumber: d.mobileNumber, messengerName: d.messengerName ?? "" });
+  }
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -138,17 +145,22 @@ export default function RegisterPage() {
         </Section>
 
         <Section title="One2One Discipler Information">
+          <DisciplerAutocomplete onSelect={handleDisciplerSelect} />
           <Field label="Discipler's Last Name" required>
-            <input name="disciplerLastName" required className={inputCls} />
+            <input name="disciplerLastName" required className={inputCls}
+              value={discipler.lastName} onChange={(e) => setDiscipler((p) => ({ ...p, lastName: e.target.value }))} />
           </Field>
           <Field label="Discipler's First Name" required>
-            <input name="disciplerFirstName" required className={inputCls} />
+            <input name="disciplerFirstName" required className={inputCls}
+              value={discipler.firstName} onChange={(e) => setDiscipler((p) => ({ ...p, firstName: e.target.value }))} />
           </Field>
           <Field label="Discipler's Mobile Number" required>
-            <input name="disciplerMobileNumber" required type="tel" className={inputCls} />
+            <input name="disciplerMobileNumber" required type="tel" className={inputCls}
+              value={discipler.mobileNumber} onChange={(e) => setDiscipler((p) => ({ ...p, mobileNumber: e.target.value }))} />
           </Field>
           <Field label="Discipler's Messenger / Facebook Name">
-            <input name="disciplerMessengerName" className={inputCls} />
+            <input name="disciplerMessengerName" className={inputCls}
+              value={discipler.messengerName} onChange={(e) => setDiscipler((p) => ({ ...p, messengerName: e.target.value }))} />
           </Field>
         </Section>
 

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { participants, type lifestageEnum } from "@/db/schema";
+import { participants, disciplers, type lifestageEnum } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
@@ -13,9 +13,13 @@ export async function updateParticipant(id: number, formData: FormData) {
   const previousChurch =
     previousChurchRaw === "Others" ? previousChurchOther : previousChurchRaw;
 
-  await db
-    .update(participants)
-    .set({
+  const disciplerLastName = formData.get("disciplerLastName") as string;
+  const disciplerFirstName = formData.get("disciplerFirstName") as string;
+  const disciplerMobileNumber = formData.get("disciplerMobileNumber") as string;
+  const disciplerMessengerName = (formData.get("disciplerMessengerName") as string) || null;
+
+  await Promise.all([
+    db.update(participants).set({
       lastName: formData.get("lastName") as string,
       firstName: formData.get("firstName") as string,
       middleInitial: (formData.get("middleInitial") as string) || null,
@@ -29,16 +33,22 @@ export async function updateParticipant(id: number, formData: FormData) {
       willUndergoWaterBaptism: formData.get("willUndergoWaterBaptism") === "yes",
       previousChurch,
       preferredNameOnId: formData.get("preferredNameOnId") as string,
-      disciplerLastName: formData.get("disciplerLastName") as string,
-      disciplerFirstName: formData.get("disciplerFirstName") as string,
-      disciplerMobileNumber: formData.get("disciplerMobileNumber") as string,
-      disciplerMessengerName: (formData.get("disciplerMessengerName") as string) || null,
+      disciplerLastName,
+      disciplerFirstName,
+      disciplerMobileNumber,
+      disciplerMessengerName,
       confirmedReadiness: formData.get("confirmedReadiness") === "on",
       acknowledgementReceiptNumber: formData.get("acknowledgementReceiptNumber") as string,
       registrationFee: formData.get("registrationFee") as string,
       adminVolunteerName: formData.get("adminVolunteerName") as string,
-    })
-    .where(eq(participants.id, id));
+    }).where(eq(participants.id, id)),
+    db.insert(disciplers).values({
+      lastName: disciplerLastName,
+      firstName: disciplerFirstName,
+      mobileNumber: disciplerMobileNumber,
+      messengerName: disciplerMessengerName,
+    }).onConflictDoNothing(),
+  ]);
 
   redirect("/participants");
 }

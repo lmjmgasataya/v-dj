@@ -8,6 +8,8 @@ export default {
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL!,
+    // Use direct (unpooled) connection for migrations — pooler doesn't support DDL
+    url: process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL!,
+    ssl: process.env.NODE_ENV === "production" || !!process.env.DATABASE_URL_UNPOOLED,
   },
 } satisfies Config;

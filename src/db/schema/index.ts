@@ -1,0 +1,73 @@
+import {
+  pgTable,
+  pgEnum,
+  serial,
+  text,
+  boolean,
+  timestamp,
+  date,
+  integer,
+  unique,
+} from "drizzle-orm/pg-core";
+
+export const lifestageEnum = pgEnum("lifestage", [
+  "Student (JHS/SHS)",
+  "Student (College)",
+  "Single",
+  "Married",
+  "Single Parent",
+  "Widow/Widower",
+  "Senior",
+]);
+
+export const participants = pgTable("participants", {
+  id: serial("id").primaryKey(),
+  lastName: text("last_name").notNull(),
+  firstName: text("first_name").notNull(),
+  middleInitial: text("middle_initial"),
+  mobileNumber: text("mobile_number").notNull(),
+  facebookMessengerName: text("facebook_messenger_name"),
+  lifestage: lifestageEnum("lifestage").notNull(),
+  birthday: date("birthday").notNull(),
+  gender: text("gender").notNull(),
+  serviceAttending: text("service_attending").notNull(),
+  completedOne2One: boolean("completed_one2one").notNull(),
+  willUndergoWaterBaptism: boolean("will_undergo_water_baptism").notNull(),
+  previousChurch: text("previous_church").notNull(),
+  preferredNameOnId: text("preferred_name_on_id").notNull(),
+  disciplerLastName: text("discipler_last_name").notNull(),
+  disciplerFirstName: text("discipler_first_name").notNull(),
+  disciplerMobileNumber: text("discipler_mobile_number").notNull(),
+  disciplerMessengerName: text("discipler_messenger_name"),
+  confirmedReadiness: boolean("confirmed_readiness").notNull(),
+  acknowledgementReceiptNumber: text("acknowledgement_receipt_number").notNull(),
+  registrationFee: text("registration_fee").notNull(),
+  adminVolunteerName: text("admin_volunteer_name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const classSessions = pgTable("class_sessions", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  sessionDate: date("session_date").notNull(),
+  isVictoryDay: boolean("is_victory_day").default(false).notNull(),
+});
+
+export const checkIns = pgTable(
+  "check_ins",
+  {
+    id: serial("id").primaryKey(),
+    participantId: integer("participant_id")
+      .references(() => participants.id)
+      .notNull(),
+    classSessionId: integer("class_session_id")
+      .references(() => classSessions.id)
+      .notNull(),
+    checkedInAt: timestamp("checked_in_at").defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.participantId, t.classSessionId)]
+);
+
+export type Participant = typeof participants.$inferSelect;
+export type ClassSession = typeof classSessions.$inferSelect;
+export type CheckIn = typeof checkIns.$inferSelect;

@@ -1,0 +1,68 @@
+import { db } from "@/db";
+import { participants } from "@/db/schema";
+import { ilike, or, desc } from "drizzle-orm";
+import Link from "next/link";
+import { ParticipantTable } from "./ParticipantTable";
+
+export default async function ParticipantsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q = "" } = await searchParams;
+
+  const rows = q.trim()
+    ? await db
+        .select()
+        .from(participants)
+        .where(
+          or(
+            ilike(participants.lastName, `%${q}%`),
+            ilike(participants.firstName, `%${q}%`),
+            ilike(participants.mobileNumber, `%${q}%`)
+          )
+        )
+        .orderBy(participants.lastName)
+    : await db.select().from(participants).orderBy(desc(participants.id));
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Participants</h2>
+          <p className="text-sm text-gray-500 mt-0.5">{rows.length} record{rows.length !== 1 ? "s" : ""}</p>
+        </div>
+        <Link href="/" className="text-sm text-indigo-600 hover:underline">← Home</Link>
+      </div>
+
+      <form method="GET" className="flex gap-2">
+        <input
+          name="q"
+          defaultValue={q}
+          placeholder="Search by name or mobile number..."
+          className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+        />
+        <button
+          type="submit"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
+        >
+          Search
+        </button>
+        {q && (
+          <Link
+            href="/participants"
+            className="bg-white border border-gray-300 text-gray-600 text-sm font-semibold px-4 py-2 rounded-lg hover:bg-gray-50 transition"
+          >
+            Clear
+          </Link>
+        )}
+      </form>
+
+      {rows.length === 0 ? (
+        <p className="text-sm text-gray-400">{q ? `No results for "${q}".` : "No participants registered yet."}</p>
+      ) : (
+        <ParticipantTable rows={rows} />
+      )}
+    </div>
+  );
+}

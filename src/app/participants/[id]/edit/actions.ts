@@ -26,7 +26,7 @@ export async function updateParticipant(id: number, formData: FormData) {
       mobileNumber: formData.get("mobileNumber") as string,
       facebookMessengerName: (formData.get("facebookMessengerName") as string) || null,
       lifestage: formData.get("lifestage") as Lifestage,
-      birthday: formData.get("birthday") as string,
+      age: Number(formData.get("age")),
       gender: formData.get("gender") as string,
       serviceAttending: formData.get("serviceAttending") as string,
       completedOne2One: formData.get("completedOne2One") === "yes",

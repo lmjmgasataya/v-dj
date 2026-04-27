@@ -13,11 +13,12 @@ export const inputCls =
 
 export const selectCls = inputCls;
 
-export function Section({ title, children }: { title: string; children: React.ReactNode }) {
+export function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="bg-indigo-50 border-b border-indigo-100 px-6 py-3">
         <h2 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">{title}</h2>
+        {description && <p className="text-xs text-indigo-500 mt-0.5">{description}</p>}
       </div>
       <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">{children}</div>
     </div>

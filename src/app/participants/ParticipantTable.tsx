@@ -4,14 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import type { Participant } from "@/db/schema";
 
-function getAge(birthday: string): number {
-  const today = new Date();
-  const birth = new Date(birthday + "T00:00:00");
-  let age = today.getFullYear() - birth.getFullYear();
-  const m = today.getMonth() - birth.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-  return age;
-}
 
 function Detail({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -29,9 +21,6 @@ export function ParticipantTable({ rows }: { rows: Participant[] }) {
     <div className="flex flex-col divide-y divide-gray-100 rounded-xl border border-gray-200 shadow-sm bg-white overflow-hidden">
       {rows.map((p) => {
         const isExpanded = expandedId === p.id;
-        const birthdayDisplay = new Date(p.birthday + "T00:00:00").toLocaleDateString("en-PH", {
-          month: "short", day: "numeric", year: "numeric",
-        });
 
         return (
           <div key={p.id}>
@@ -66,7 +55,7 @@ export function ParticipantTable({ rows }: { rows: Participant[] }) {
             {isExpanded && (
               <div className="border-t border-gray-100 bg-gray-50 px-4 py-4 flex flex-col gap-4">
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <Detail label="Birthday" value={`${birthdayDisplay} (age ${getAge(p.birthday)})`} />
+                  <Detail label="Age" value={p.age} />
                   <Detail label="Gender" value={p.gender} />
                   <Detail label="Service" value={p.serviceAttending} />
                   <Detail label="Facebook / Messenger" value={p.facebookMessengerName} />

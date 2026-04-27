@@ -40,7 +40,7 @@ export const participants = pgTable("participants", {
   mobileNumber: text("mobile_number").notNull(),
   facebookMessengerName: text("facebook_messenger_name"),
   lifestage: lifestageEnum("lifestage").notNull(),
-  birthday: date("birthday").notNull(),
+  age: integer("age").notNull(),
   gender: text("gender").notNull(),
   serviceAttending: text("service_attending").notNull(),
   completedOne2One: boolean("completed_one2one").notNull(),

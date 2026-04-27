@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { updateParticipant } from "./actions";
 import { Section, Field, inputCls, selectCls, SERVICE_OPTIONS } from "@/components/form";
-import { DisciplerAutocomplete } from "@/components/DisciplerAutocomplete";
+// import { DisciplerAutocomplete } from "@/components/DisciplerAutocomplete";
 import { SubmitButton } from "@/components/SubmitButton";
 import Link from "next/link";
 import type { Participant, Discipler } from "@/db/schema";
@@ -28,9 +28,9 @@ export function EditForm({ participant }: { participant: Participant }) {
     messengerName: participant.disciplerMessengerName ?? "",
   });
 
-  function handleDisciplerSelect(d: Discipler) {
-    setDiscipler({ lastName: d.lastName, firstName: d.firstName, mobileNumber: d.mobileNumber, messengerName: d.messengerName ?? "" });
-  }
+  // function handleDisciplerSelect(d: Discipler) {
+  //   setDiscipler({ lastName: d.lastName, firstName: d.firstName, mobileNumber: d.mobileNumber, messengerName: d.messengerName ?? "" });
+  // }
 
   const updateAction = updateParticipant.bind(null, participant.id);
 
@@ -60,8 +60,8 @@ export function EditForm({ participant }: { participant: Participant }) {
             ))}
           </select>
         </Field>
-        <Field label="Birthday" required>
-          <input name="birthday" required type="date" defaultValue={participant.birthday} className={inputCls} />
+        <Field label="Age" required>
+          <input name="age" required type="number" min={1} max={120} defaultValue={participant.age} className={inputCls} />
         </Field>
         <Field label="Gender" required>
           <select name="gender" required defaultValue={participant.gender} className={selectCls}>
@@ -76,9 +76,6 @@ export function EditForm({ participant }: { participant: Participant }) {
             {SERVICE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </Field>
-      </Section>
-
-      <Section title="Spiritual Status">
         <Field label="I have completed One2One" required className="sm:col-span-2">
           <div className="flex flex-col gap-2 mt-1">
             <label className="flex items-start gap-2 text-sm text-gray-700">
@@ -148,8 +145,8 @@ export function EditForm({ participant }: { participant: Participant }) {
         </Field>
       </Section>
 
-      <Section title="One2One Discipler Information">
-        <DisciplerAutocomplete onSelect={handleDisciplerSelect} />
+      <Section title="One2One Discipler Information" description="To be filled up by the One2One discipler">
+        {/* <DisciplerAutocomplete onSelect={handleDisciplerSelect} /> */}
         <Field label="Discipler's Last Name" required>
           <input name="disciplerLastName" required className={inputCls}
             value={discipler.lastName} onChange={(e) => setDiscipler((p) => ({ ...p, lastName: e.target.value }))} />
@@ -166,9 +163,6 @@ export function EditForm({ participant }: { participant: Participant }) {
           <input name="disciplerMessengerName" className={inputCls}
             value={discipler.messengerName} onChange={(e) => setDiscipler((p) => ({ ...p, messengerName: e.target.value }))} />
         </Field>
-      </Section>
-
-      <Section title="Confirmation">
         <div className="sm:col-span-2">
           <label className="flex items-start gap-3 cursor-pointer">
             <input

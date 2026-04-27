@@ -11,15 +11,6 @@ interface Props {
   hasVictoryDay: boolean;
 }
 
-function getAge(birthday: string): number {
-  const today = new Date();
-  const birth = new Date(birthday + "T00:00:00");
-  let age = today.getFullYear() - birth.getFullYear();
-  const m = today.getMonth() - birth.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-  return age;
-}
-
 export function CheckInPanel({ participant, sessions, checkIns, hasVictoryDay }: Props) {
   const checkedInIds = new Set(checkIns.map((c) => c.classSessionId));
   const [pending, startTransition] = useTransition();
@@ -33,12 +24,6 @@ export function CheckInPanel({ participant, sessions, checkIns, hasVictoryDay }:
     startTransition(() => removeCheckIn(participant.id, sessionId));
   }
 
-  const birthdayDisplay = new Date(participant.birthday + "T00:00:00").toLocaleDateString("en-PH", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       {/* Participant summary */}
@@ -50,7 +35,7 @@ export function CheckInPanel({ participant, sessions, checkIns, hasVictoryDay }:
         </h3>
         <div className="mt-2 flex flex-wrap gap-3 text-sm text-gray-600">
           <span>📱 {participant.mobileNumber}</span>
-          <span>🎂 {birthdayDisplay} (age {getAge(participant.birthday)})</span>
+          <span>🎂 Age {participant.age}</span>
           <span>🙏 {participant.lifestage}</span>
           <span>💵 {participant.registrationFee} fee</span>
         </div>

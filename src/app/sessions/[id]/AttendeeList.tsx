@@ -13,7 +13,7 @@ export interface Attendee {
   mobileNumber: string;
   facebookMessengerName: string | null;
   lifestage: string;
-  birthday: string;
+  age: number;
   gender: string;
   serviceAttending: string;
   preferredNameOnId: string;
@@ -28,14 +28,6 @@ export interface Attendee {
   disciplerMessengerName: string | null;
 }
 
-function getAge(birthday: string): number {
-  const today = new Date();
-  const birth = new Date(birthday + "T00:00:00");
-  let age = today.getFullYear() - birth.getFullYear();
-  const m = today.getMonth() - birth.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-  return age;
-}
 
 function Detail({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -56,9 +48,6 @@ export function AttendeeList({ attendees }: { attendees: Attendee[] }) {
         const fullName = `${a.lastName}, ${a.firstName}${a.middleInitial ? ` ${a.middleInitial}.` : ""}`;
         const checkInTime = new Date(a.checkedInAt).toLocaleTimeString("en-PH", {
           hour: "2-digit", minute: "2-digit", second: "2-digit",
-        });
-        const birthdayDisplay = new Date(a.birthday + "T00:00:00").toLocaleDateString("en-PH", {
-          month: "short", day: "numeric", year: "numeric",
         });
 
         return (
@@ -94,7 +83,7 @@ export function AttendeeList({ attendees }: { attendees: Attendee[] }) {
               <div className="border-t border-gray-100 bg-gray-50 px-4 py-4 flex flex-col gap-4">
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <Detail label="Preferred ID Name" value={a.preferredNameOnId} />
-                  <Detail label="Birthday" value={`${birthdayDisplay} (age ${getAge(a.birthday)})`} />
+                  <Detail label="Age" value={a.age} />
                   <Detail label="Gender" value={a.gender} />
                   <Detail label="Service" value={a.serviceAttending} />
                   <Detail label="Facebook / Messenger" value={a.facebookMessengerName} />

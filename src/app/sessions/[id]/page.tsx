@@ -32,7 +32,7 @@ export default async function SessionDetailPage({
       mobileNumber: participants.mobileNumber,
       facebookMessengerName: participants.facebookMessengerName,
       lifestage: participants.lifestage,
-      birthday: participants.birthday,
+      age: participants.age,
       gender: participants.gender,
       serviceAttending: participants.serviceAttending,
       preferredNameOnId: participants.preferredNameOnId,

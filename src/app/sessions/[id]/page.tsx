@@ -1,9 +1,10 @@
 import { db } from "@/db";
-import { classSessions, checkIns, participants } from "@/db/schema";
+import { classSessions, checkIns, participants, walkIns } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AttendeeList } from "./AttendeeList";
+import { WalkInAttendeeList } from "./WalkInAttendeeList";
 
 export default async function SessionDetailPage({
   params,
@@ -51,6 +52,16 @@ export default async function SessionDetailPage({
     .where(eq(checkIns.classSessionId, sessionId))
     .orderBy(checkIns.checkedInAt);
 
+  const walkInAttendees = session.isVictoryDay
+    ? []
+    : await db
+        .select()
+        .from(walkIns)
+        .where(eq(walkIns.classSessionId, sessionId))
+        .orderBy(walkIns.createdAt);
+
+  const total = attendees.length + walkInAttendees.length;
+
   const dateStr = new Date(session.sessionDate + "T00:00:00").toLocaleDateString("en-PH", {
     weekday: "long",
     month: "long",
@@ -67,11 +78,19 @@ export default async function SessionDetailPage({
           <p className="text-sm text-gray-500 mt-0.5">{dateStr}</p>
         </div>
         <div className="flex flex-col items-end gap-3">
-          <div className="text-right">
-            <p className="text-3xl font-bold text-indigo-600">{attendees.length}</p>
-            <p className="text-sm text-gray-400">checked in</p>
+          <div className="flex items-end gap-4">
+            <div className="text-right">
+              <p className="text-3xl font-bold text-indigo-600">{attendees.length}</p>
+              <p className="text-sm text-gray-400">registered</p>
+            </div>
+            {!session.isVictoryDay && (
+              <div className="text-right">
+                <p className="text-3xl font-bold text-orange-500">{walkInAttendees.length}</p>
+                <p className="text-sm text-gray-400">walk-ins</p>
+              </div>
+            )}
           </div>
-          {attendees.length > 0 && (
+          {total > 0 && (
             <a
               href={`/api/sessions/${sessionId}/export`}
               className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
@@ -82,12 +101,34 @@ export default async function SessionDetailPage({
         </div>
       </div>
 
-      {attendees.length === 0 ? (
-        <div className="flex items-center justify-center h-40 rounded-xl border border-dashed border-gray-200 text-sm text-gray-400 bg-white">
-          No check-ins recorded for this session yet.
+      {/* Registered check-ins */}
+      <div className="flex flex-col gap-3">
+        <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
+          Registered — {attendees.length}
+        </p>
+        {attendees.length === 0 ? (
+          <div className="flex items-center justify-center h-32 rounded-xl border border-dashed border-gray-200 text-sm text-gray-400 bg-white">
+            No registered check-ins for this session.
+          </div>
+        ) : (
+          <AttendeeList attendees={attendees} />
+        )}
+      </div>
+
+      {/* Walk-ins */}
+      {!session.isVictoryDay && (
+        <div className="flex flex-col gap-3">
+          <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
+            Walk-ins — {walkInAttendees.length}
+          </p>
+          {walkInAttendees.length === 0 ? (
+            <div className="flex items-center justify-center h-32 rounded-xl border border-dashed border-gray-200 text-sm text-gray-400 bg-white">
+              No walk-ins recorded for this session.
+            </div>
+          ) : (
+            <WalkInAttendeeList walkIns={walkInAttendees} />
+          )}
         </div>
-      ) : (
-        <AttendeeList attendees={attendees} />
       )}
     </div>
   );

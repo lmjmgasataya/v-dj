@@ -14,7 +14,15 @@ function Detail({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-export function ParticipantTable({ rows }: { rows: Participant[] }) {
+type Attendance = { sessionName: string; sessionDate: string };
+
+export function ParticipantTable({
+  rows,
+  attendance = {},
+}: {
+  rows: Participant[];
+  attendance?: Record<number, Attendance[]>;
+}) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   return (
@@ -71,6 +79,27 @@ export function ParticipantTable({ rows }: { rows: Participant[] }) {
                   <Detail label="Discipler Mobile" value={p.disciplerMobileNumber} />
                   <Detail label="Discipler Messenger" value={p.disciplerMessengerName} />
                 </div>
+
+                {(attendance[p.id]?.length ?? 0) > 0 && (
+                  <div className="border-t border-gray-200 pt-3">
+                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-2">
+                      Classes Attended ({attendance[p.id].length})
+                    </p>
+                    <ul className="flex flex-col gap-1.5">
+                      {attendance[p.id].map((a, i) => (
+                        <li key={i} className="inline-flex items-center gap-2 text-sm bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg w-fit">
+                          <span className="font-medium">{a.sessionName}</span>
+                          <span className="text-indigo-400">·</span>
+                          <span className="text-indigo-500">
+                            {new Date(a.sessionDate + "T00:00:00").toLocaleDateString("en-PH", {
+                              month: "short", day: "numeric", year: "numeric",
+                            })}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 <div className="border-t border-gray-200 pt-3 flex items-center justify-between">
                   <Detail label="Admin Volunteer" value={p.adminVolunteerName} />

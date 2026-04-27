@@ -4,6 +4,7 @@ import { useState } from "react";
 import { registerParticipant } from "./actions";
 import { Section, Field, inputCls, selectCls, SERVICE_OPTIONS } from "@/components/form";
 import { DisciplerAutocomplete } from "@/components/DisciplerAutocomplete";
+import { SubmitButton } from "@/components/SubmitButton";
 import type { Discipler } from "@/db/schema";
 
 const LIFESTAGES = [
@@ -197,12 +198,11 @@ export default function RegisterPage() {
           </Field>
         </Section>
 
-        <button
-          type="submit"
-          className="w-full sm:w-auto self-end bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-10 rounded-xl transition"
-        >
-          Register Participant
-        </button>
+        <SubmitButton
+          label="Register Participant"
+          pendingLabel="Registering..."
+          className="w-full sm:w-auto self-end bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 text-white font-semibold py-3 px-10 rounded-xl transition"
+        />
       </form>
     </div>
   );

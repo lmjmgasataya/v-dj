@@ -4,6 +4,7 @@ import { useState } from "react";
 import { updateParticipant } from "./actions";
 import { Section, Field, inputCls, selectCls, SERVICE_OPTIONS } from "@/components/form";
 import { DisciplerAutocomplete } from "@/components/DisciplerAutocomplete";
+import { SubmitButton } from "@/components/SubmitButton";
 import Link from "next/link";
 import type { Participant, Discipler } from "@/db/schema";
 
@@ -208,12 +209,11 @@ export function EditForm({ participant }: { participant: Participant }) {
         >
           Cancel
         </Link>
-        <button
-          type="submit"
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-10 rounded-xl transition"
-        >
-          Save Changes
-        </button>
+        <SubmitButton
+          label="Save Changes"
+          pendingLabel="Saving..."
+          className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 text-white font-semibold py-3 px-10 rounded-xl transition"
+        />
       </div>
     </form>
   );

@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { participants, classSessions, checkIns } from "@/db/schema";
-import { ilike, or, eq, desc } from "drizzle-orm";
+import { ilike, or, eq, desc, isNull, and } from "drizzle-orm";
 import Link from "next/link";
 import { CheckInPanel } from "./CheckInPanel";
 
@@ -21,10 +21,13 @@ export default async function AdminPage({
         .select()
         .from(participants)
         .where(
-          or(
-            ilike(participants.lastName, `%${q}%`),
-            ilike(participants.firstName, `%${q}%`),
-            ilike(participants.mobileNumber, `%${q}%`)
+          and(
+            isNull(participants.deletedAt),
+            or(
+              ilike(participants.lastName, `%${q}%`),
+              ilike(participants.firstName, `%${q}%`),
+              ilike(participants.mobileNumber, `%${q}%`)
+            )
           )
         )
         .orderBy(participants.lastName)
@@ -32,6 +35,7 @@ export default async function AdminPage({
     : await db
         .select()
         .from(participants)
+        .where(isNull(participants.deletedAt))
         .orderBy(desc(participants.id))
         .limit(10);
 

@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { EditForm } from "./EditForm";
+import { DeleteButton } from "./DeleteButton";
 
 export default async function EditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -26,9 +27,15 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
             {participant.lastName}, {participant.firstName}
           </p>
         </div>
-        <Link href="/participants" className="text-sm text-indigo-600 hover:underline">
-          ← Back to list
-        </Link>
+        <div className="flex flex-col items-end gap-2">
+          <Link href="/participants" className="text-sm text-indigo-600 hover:underline">
+            ← Back to list
+          </Link>
+          <DeleteButton
+            id={participant.id}
+            name={`${participant.lastName}, ${participant.firstName}`}
+          />
+        </div>
       </div>
       <EditForm participant={participant} />
     </div>

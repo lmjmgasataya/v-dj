@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { participants } from "@/db/schema";
-import { ilike, or, desc } from "drizzle-orm";
+import { ilike, or, desc, isNull, and } from "drizzle-orm";
 import Link from "next/link";
 import { ParticipantTable } from "./ParticipantTable";
 
@@ -16,14 +16,21 @@ export default async function ParticipantsPage({
         .select()
         .from(participants)
         .where(
-          or(
-            ilike(participants.lastName, `%${q}%`),
-            ilike(participants.firstName, `%${q}%`),
-            ilike(participants.mobileNumber, `%${q}%`)
+          and(
+            isNull(participants.deletedAt),
+            or(
+              ilike(participants.lastName, `%${q}%`),
+              ilike(participants.firstName, `%${q}%`),
+              ilike(participants.mobileNumber, `%${q}%`)
+            )
           )
         )
         .orderBy(participants.lastName)
-    : await db.select().from(participants).orderBy(desc(participants.id));
+    : await db
+        .select()
+        .from(participants)
+        .where(isNull(participants.deletedAt))
+        .orderBy(desc(participants.id));
 
   return (
     <div className="flex flex-col gap-6">
@@ -32,7 +39,10 @@ export default async function ParticipantsPage({
           <h2 className="text-2xl font-bold text-gray-900">Participants</h2>
           <p className="text-sm text-gray-500 mt-0.5">{rows.length} record{rows.length !== 1 ? "s" : ""}</p>
         </div>
-        <Link href="/" className="text-sm text-indigo-600 hover:underline">← Home</Link>
+        <div className="flex flex-col items-end gap-1">
+          <Link href="/" className="text-sm text-indigo-600 hover:underline">← Home</Link>
+          <Link href="/participants/deleted" className="text-xs text-gray-400 hover:text-gray-600 hover:underline">View deleted</Link>
+        </div>
       </div>
 
       <form method="GET" className="flex gap-2">

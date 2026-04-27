@@ -52,3 +52,19 @@ export async function updateParticipant(id: number, formData: FormData) {
 
   redirect("/participants");
 }
+
+export async function deleteParticipant(id: number) {
+  await db
+    .update(participants)
+    .set({ deletedAt: new Date() })
+    .where(eq(participants.id, id));
+  redirect("/participants");
+}
+
+export async function restoreParticipant(id: number) {
+  await db
+    .update(participants)
+    .set({ deletedAt: null })
+    .where(eq(participants.id, id));
+  redirect("/participants/deleted");
+}

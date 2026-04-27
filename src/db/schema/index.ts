@@ -56,6 +56,7 @@ export const participants = pgTable("participants", {
   registrationFee: text("registration_fee").notNull(),
   adminVolunteerName: text("admin_volunteer_name").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 export const classSessions = pgTable("class_sessions", {

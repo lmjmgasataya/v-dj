@@ -1,12 +1,14 @@
 import { db } from "@/db";
 import { classSessions } from "@/db/schema";
+import { sql } from "drizzle-orm";
 import { NewSessionForm } from "./NewSessionForm";
 
 export default async function NewSessionPage() {
   const rows = await db
-    .selectDistinct({ name: classSessions.name })
+    .select({ name: classSessions.name })
     .from(classSessions)
-    .orderBy(classSessions.name);
+    .groupBy(classSessions.name)
+    .orderBy(sql`min(${classSessions.id})`);
 
   const existingNames = rows.map((r) => r.name);
 

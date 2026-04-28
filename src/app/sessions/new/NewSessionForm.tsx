@@ -66,11 +66,6 @@ export function NewSessionForm({ existingNames }: { existingNames: string[] }) {
           />
         </div>
 
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input name="isVictoryDay" type="checkbox" className="w-4 h-4 rounded accent-indigo-600" />
-          <span className="text-sm text-gray-700">This is a Victory Day session</span>
-        </label>
-
         {state?.error && (
           <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
             {state.error}

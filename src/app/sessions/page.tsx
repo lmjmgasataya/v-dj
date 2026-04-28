@@ -18,7 +18,7 @@ export default async function SessionsPage({
   const availableYears = await db
     .selectDistinct({ year: sql<number>`EXTRACT(YEAR FROM ${classSessions.sessionDate})::int` })
     .from(classSessions)
-    .orderBy(sql`1 DESC`);
+    .orderBy(sql`1 ASC`);
 
   const sessions = await db
     .select({

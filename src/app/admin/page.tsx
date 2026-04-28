@@ -78,7 +78,7 @@ export default async function AdminPage({
 
       {/* Step 2: Search participant */}
       {selectedSession && (
-        <ParticipantSearch key={selectedSession.id} sessionId={selectedSession.id} sessionName={selectedSession.name} />
+        <ParticipantSearch key={selectedSession.id} sessionId={selectedSession.id} sessionName={selectedSession.name} isVictoryDay={selectedSession.isVictoryDay} />
       )}
 
       {/* Walk-in Check-in (not applicable to Victory Day) */}

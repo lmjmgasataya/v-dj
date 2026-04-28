@@ -6,7 +6,7 @@ import { SessionCheckInList } from "./SessionCheckInList";
 
 type Results = Awaited<ReturnType<typeof searchParticipants>>;
 
-export function ParticipantSearch({ sessionId, sessionName }: { sessionId: number; sessionName: string }) {
+export function ParticipantSearch({ sessionId, sessionName, isVictoryDay }: { sessionId: number; sessionName: string; isVictoryDay: boolean }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<Results>([]);
   const [searched, setSearched] = useState(false);
@@ -62,6 +62,7 @@ export function ParticipantSearch({ sessionId, sessionName }: { sessionId: numbe
             <SessionCheckInList
               participants={results}
               sessionId={sessionId}
+              isVictoryDay={isVictoryDay}
               onAction={() => runSearch(q)}
             />
           )}

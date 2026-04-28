@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { participants, checkIns, classSessions, type lifestageEnum } from "@/db/schema";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
-import { and, eq, ilike, inArray, isNull, or } from "drizzle-orm";
+import { and, count, eq, gte, ilike, inArray, isNull, lt, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export async function checkInParticipant(participantId: number, classSessionId: number) {
@@ -57,7 +57,7 @@ export async function getSessionCheckIns(sessionId: number) {
 
 export async function searchParticipants(sessionId: number, q: string) {
   if (!q.trim()) return [];
-  return db
+  const rows = await db
     .select({
       id: participants.id,
       lastName: participants.lastName,
@@ -67,6 +67,8 @@ export async function searchParticipants(sessionId: number, q: string) {
       lifestage: participants.lifestage,
       gender: participants.gender,
       preferredNameOnId: participants.preferredNameOnId,
+      isWalkIn: participants.isWalkIn,
+      victoryDate: participants.victoryDate,
       checkInId: checkIns.id,
       checkedInAt: checkIns.checkedInAt,
     })
@@ -90,6 +92,41 @@ export async function searchParticipants(sessionId: number, q: string) {
     )
     .orderBy(participants.lastName)
     .limit(30);
+
+  if (rows.length === 0) return [];
+
+  const ids = rows.map((r) => r.id);
+
+  const year = new Date().getFullYear();
+  const [{ totalVictoryDaySessions }] = await db
+    .select({ totalVictoryDaySessions: count() })
+    .from(classSessions)
+    .where(
+      and(
+        eq(classSessions.isVictoryDay, true),
+        gte(classSessions.sessionDate, `${year}-01-01`),
+        lt(classSessions.sessionDate, `${year + 1}-01-01`)
+      )
+    );
+
+  const victoryCheckIns = await db
+    .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
+    .from(checkIns)
+    .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
+    .where(and(inArray(checkIns.participantId, ids), eq(classSessions.isVictoryDay, true)));
+
+  const victoryCountMap: Record<number, string> = {};
+  const victoryAttendanceCount: Record<number, number> = {};
+  for (const v of victoryCheckIns) {
+    victoryCountMap[v.participantId] ??= v.sessionDate;
+    victoryAttendanceCount[v.participantId] = (victoryAttendanceCount[v.participantId] ?? 0) + 1;
+  }
+
+  return rows.map((r) => ({
+    ...r,
+    victoryDayDate: victoryCountMap[r.id] ?? null,
+    completedVictoryDay: (victoryAttendanceCount[r.id] ?? 0) >= totalVictoryDaySessions,
+  }));
 }
 
 export async function addWalkIn(classSessionId: number, formData: FormData) {

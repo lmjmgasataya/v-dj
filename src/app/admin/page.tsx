@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { classSessions, checkIns, participants } from "@/db/schema";
-import { and, count, eq, isNull } from "drizzle-orm";
+import { and, count, eq, gte, isNull, lt } from "drizzle-orm";
 import Link from "next/link";
 import { WalkInForm } from "./WalkInForm";
 import { ParticipantSearch } from "./ParticipantSearch";
@@ -14,14 +14,31 @@ export default async function AdminPage({
 }) {
   const { session } = await searchParams;
   const sessionId = session ? parseInt(session, 10) : null;
+  const year = new Date().getFullYear();
 
-  const sessions = await db.select().from(classSessions).orderBy(classSessions.sessionDate);
+  const sessions = await db
+    .select()
+    .from(classSessions)
+    .where(
+      and(
+        gte(classSessions.sessionDate, `${year}-01-01`),
+        lt(classSessions.sessionDate, `${year + 1}-01-01`)
+      )
+    )
+    .orderBy(classSessions.sessionDate);
   const selectedSession = sessionId ? (sessions.find((s) => s.id === sessionId) ?? null) : null;
 
   const [{ registeredCount }] = await db
     .select({ registeredCount: count() })
     .from(participants)
-    .where(and(isNull(participants.deletedAt), eq(participants.isWalkIn, false)));
+    .where(
+      and(
+        isNull(participants.deletedAt),
+        eq(participants.isWalkIn, false),
+        gte(participants.createdAt, new Date(`${year}-01-01`)),
+        lt(participants.createdAt, new Date(`${year + 1}-01-01`))
+      )
+    );
 
   const walkInCount =
     selectedSession && !selectedSession.isVictoryDay

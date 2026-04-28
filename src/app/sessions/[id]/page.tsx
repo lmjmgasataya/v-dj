@@ -4,6 +4,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AttendeeList } from "./AttendeeList";
+import { getSession } from "@/lib/auth";
 
 export default async function SessionDetailPage({
   params,
@@ -20,6 +21,9 @@ export default async function SessionDetailPage({
     .limit(1);
 
   if (!session) notFound();
+
+  const authSession = await getSession();
+  const isDeveloper = authSession?.role === "developer";
 
   const attendees = await db
     .select({
@@ -83,7 +87,14 @@ export default async function SessionDetailPage({
       <div className="flex items-start justify-between">
         <div>
           <Link href="/sessions" className="text-sm text-indigo-600 hover:underline">← Sessions</Link>
-          <h2 className="text-2xl font-bold text-gray-900 mt-1">{session.name}</h2>
+          <div className="flex items-center gap-3 mt-1">
+            <h2 className="text-2xl font-bold text-gray-900">{session.name}</h2>
+            {isDeveloper && (
+              <Link href={`/sessions/${sessionId}/edit`} className="text-xs text-gray-400 hover:text-indigo-600 underline underline-offset-2">
+                Edit
+              </Link>
+            )}
+          </div>
           <p className="text-sm text-gray-500 mt-0.5">{dateStr}</p>
         </div>
         <div className="flex flex-col items-end gap-3">

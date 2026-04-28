@@ -14,6 +14,7 @@ const DEVELOPER_ONLY = [
   /^\/participants/,
   /^\/api\/participants/,
   /^\/sessions\/new/,
+  /^\/sessions\/\d+\/edit/,
 ];
 
 export default async function proxy(request: NextRequest) {

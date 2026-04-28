@@ -172,6 +172,20 @@ export function EditForm({ participant }: { participant: Participant }) {
         </div>
       </Section>
 
+      {participant.isWalkIn && (
+        <Section title="Walk-in Info">
+          <Field label="VG Leader's Last Name">
+            <input name="vgLeaderLastName" defaultValue={participant.vgLeaderLastName ?? ""} className={inputCls} />
+          </Field>
+          <Field label="VG Leader's First Name">
+            <input name="vgLeaderFirstName" defaultValue={participant.vgLeaderFirstName ?? ""} className={inputCls} />
+          </Field>
+          <Field label="Victory Weekend / Victory Day Date" className="sm:col-span-2">
+            <input name="victoryDate" type="date" defaultValue={participant.victoryDate ?? ""} className={inputCls} />
+          </Field>
+        </Section>
+      )}
+
       <Section title="Payment &amp; Admin">
         <Field label="Acknowledgement Receipt Number">
           <input name="acknowledgementReceiptNumber" defaultValue={participant.acknowledgementReceiptNumber ?? ""} className={inputCls} />

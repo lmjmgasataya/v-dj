@@ -41,6 +41,9 @@ export async function updateParticipant(id: number, formData: FormData) {
       acknowledgementReceiptNumber: formData.get("acknowledgementReceiptNumber") as string,
       registrationFee: formData.get("registrationFee") as string,
       adminVolunteerName: formData.get("adminVolunteerName") as string,
+      vgLeaderLastName: (formData.get("vgLeaderLastName") as string) || null,
+      vgLeaderFirstName: (formData.get("vgLeaderFirstName") as string) || null,
+      victoryDate: (formData.get("victoryDate") as string) || null,
     }).where(eq(participants.id, id)),
     db.insert(disciplers).values({
       lastName: disciplerLastName,

@@ -19,10 +19,12 @@ export function ParticipantTable({
   rows,
   attendance = {},
   victoryDayDates = {},
+  completedVictoryDays = {},
 }: {
   rows: Participant[];
   attendance?: Record<number, Attendance[]>;
   victoryDayDates?: Record<number, string>;
+  completedVictoryDays?: Record<number, boolean>;
 }) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
@@ -45,15 +47,25 @@ export function ParticipantTable({
                 <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-3">
-                {(p.isWalkIn ? p.victoryDate : victoryDayDates[p.id]) ? (
-                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
-                    Victory Day: {p.isWalkIn ? p.victoryDate : victoryDayDates[p.id]}
-                  </span>
-                ) : (
-                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">
-                    Victory Day: —
-                  </span>
-                )}
+                {(() => {
+                  const vd = p.isWalkIn ? p.victoryDate : victoryDayDates[p.id];
+                  const completed = p.isWalkIn ? true : !!completedVictoryDays[p.id];
+                  if (!vd) return (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">
+                      Victory Day: —
+                    </span>
+                  );
+                  if (!completed) return (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                      Victory Day: {vd} (Incomplete)
+                    </span>
+                  );
+                  return (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                      Victory Day: {vd}
+                    </span>
+                  );
+                })()}
                 <span className={`text-gray-400 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}>
                   ▾
                 </span>

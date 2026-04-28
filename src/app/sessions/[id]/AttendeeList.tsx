@@ -31,6 +31,7 @@ export interface Attendee {
   vgLeaderFirstName: string | null;
   victoryDate: string | null;
   victoryDayDate: string | null;
+  completedVictoryDay: boolean;
 }
 
 function Detail({ label, value }: { label: string; value: React.ReactNode }) {
@@ -71,19 +72,24 @@ export function AttendeeList({ attendees }: { attendees: Attendee[] }) {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-3">
-                {(a.isWalkIn ? a.victoryDate : a.victoryDayDate) ? (
-                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
-                    Victory Day: {a.isWalkIn ? a.victoryDate : a.victoryDayDate}
-                  </span>
-                ) : a.registrationFee ? (
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                    a.registrationFee === "Discounted"
-                      ? "bg-amber-100 text-amber-700"
-                      : "bg-blue-100 text-blue-700"
-                  }`}>
-                    {a.registrationFee}
-                  </span>
-                ) : null}
+                {(() => {
+                  const vd = a.isWalkIn ? a.victoryDate : a.victoryDayDate;
+                  if (!vd) return (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">
+                      Victory Day: —
+                    </span>
+                  );
+                  if (!a.completedVictoryDay) return (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                      Victory Day: {vd} (Incomplete)
+                    </span>
+                  );
+                  return (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                      Victory Day: {vd}
+                    </span>
+                  );
+                })()}
                 <span className={`text-gray-400 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}>
                   ▾
                 </span>

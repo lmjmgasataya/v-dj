@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { participants } from "@/db/schema";
-import { ilike, or, desc, isNull, and } from "drizzle-orm";
+import { ilike, or, desc, isNull, and, count, gte, lt } from "drizzle-orm";
 import Link from "next/link";
 import { ParticipantTable } from "./ParticipantTable";
 import { checkIns, classSessions } from "@/db/schema";
@@ -63,6 +63,27 @@ export default async function ParticipantsPage({
     return acc;
   }, {});
 
+  const victoryDayCountByParticipant = attendanceList.reduce<Record<number, number>>((acc, row) => {
+    if (row.isVictoryDay) acc[row.participantId] = (acc[row.participantId] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const year = new Date().getFullYear();
+  const [{ totalVictoryDaySessions }] = await db
+    .select({ totalVictoryDaySessions: count() })
+    .from(classSessions)
+    .where(
+      and(
+        eq(classSessions.isVictoryDay, true),
+        gte(classSessions.sessionDate, `${year}-01-01`),
+        lt(classSessions.sessionDate, `${year + 1}-01-01`)
+      )
+    );
+
+  const completedVictoryDayMap = Object.fromEntries(
+    Object.entries(victoryDayCountByParticipant).map(([id, c]) => [id, c >= totalVictoryDaySessions])
+  );
+
   const total = rows.length;
 
   return (
@@ -112,7 +133,7 @@ export default async function ParticipantsPage({
       {rows.length === 0 ? (
         <p className="text-sm text-gray-400">{q ? `No results for "${q}".` : "No participants registered yet."}</p>
       ) : (
-        <ParticipantTable rows={rows} attendance={attendanceByParticipant} victoryDayDates={victoryDayMap} />
+        <ParticipantTable rows={rows} attendance={attendanceByParticipant} victoryDayDates={victoryDayMap} completedVictoryDays={completedVictoryDayMap} />
       )}
     </div>
   );

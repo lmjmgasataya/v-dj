@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { classSessions, checkIns, participants } from "@/db/schema";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, count, eq, gte, inArray, lt } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AttendeeList } from "./AttendeeList";
@@ -68,11 +68,29 @@ export default async function SessionDetailPage({
           .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
           .where(and(inArray(checkIns.participantId, participantIds), eq(classSessions.isVictoryDay, true)))
       : [];
-  const victoryDayMap = Object.fromEntries(victoryCheckIns.map((v) => [v.participantId, v.sessionDate]));
+  const victoryDayMap: Record<number, string> = {};
+  const victoryCountMap: Record<number, number> = {};
+  for (const v of victoryCheckIns) {
+    victoryDayMap[v.participantId] ??= v.sessionDate;
+    victoryCountMap[v.participantId] = (victoryCountMap[v.participantId] ?? 0) + 1;
+  }
+
+  const year = new Date().getFullYear();
+  const [{ totalVictoryDaySessions }] = await db
+    .select({ totalVictoryDaySessions: count() })
+    .from(classSessions)
+    .where(
+      and(
+        eq(classSessions.isVictoryDay, true),
+        gte(classSessions.sessionDate, `${year}-01-01`),
+        lt(classSessions.sessionDate, `${year + 1}-01-01`)
+      )
+    );
 
   const attendeesWithVictoryDay = attendees.map((a) => ({
     ...a,
     victoryDayDate: victoryDayMap[a.participantId] ?? null,
+    completedVictoryDay: a.isWalkIn ? true : (victoryCountMap[a.participantId] ?? 0) >= totalVictoryDaySessions,
   }));
 
   const dateStr = new Date(session.sessionDate + "T00:00:00").toLocaleDateString("en-PH", {

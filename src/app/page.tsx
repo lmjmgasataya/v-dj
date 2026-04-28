@@ -1,6 +1,10 @@
 import Link from "next/link";
+import { getSession } from "@/lib/auth";
 
-export default function Home() {
+export default async function Home() {
+  const session = await getSession();
+  const isDeveloper = session?.role === "developer";
+
   return (
     <div className="flex flex-col items-center gap-8 py-12">
       <div className="text-center">
@@ -16,14 +20,16 @@ export default function Home() {
           <span className="text-lg font-semibold text-gray-900">Register</span>
           <span className="text-sm text-gray-500 text-center">Enroll a new participant</span>
         </Link>
-        <Link
-          href="/participants"
-          className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
-        >
-          <span className="text-4xl">👥</span>
-          <span className="text-lg font-semibold text-gray-900">Participants</span>
-          <span className="text-sm text-gray-500 text-center">View and edit all records</span>
-        </Link>
+        {isDeveloper && (
+          <Link
+            href="/participants"
+            className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
+          >
+            <span className="text-4xl">👥</span>
+            <span className="text-lg font-semibold text-gray-900">Participants</span>
+            <span className="text-sm text-gray-500 text-center">View and edit all records</span>
+          </Link>
+        )}
         <Link
           href="/admin"
           className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"

@@ -85,7 +85,19 @@ export const checkIns = pgTable(
   (t) => [unique().on(t.participantId, t.classSessionId)]
 );
 
+export const roleEnum = pgEnum("user_role", ["admin_volunteer", "developer"]);
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  name: text("name").notNull(),
+  role: roleEnum("role").notNull().default("admin_volunteer"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export type Participant = typeof participants.$inferSelect;
 export type ClassSession = typeof classSessions.$inferSelect;
 export type CheckIn = typeof checkIns.$inferSelect;
 export type Discipler = typeof disciplers.$inferSelect;
+export type User = typeof users.$inferSelect;

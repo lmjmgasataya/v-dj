@@ -4,6 +4,7 @@ import { eq, count } from "drizzle-orm";
 import Link from "next/link";
 import { WalkInForm } from "./WalkInForm";
 import { ParticipantSearch } from "./ParticipantSearch";
+import { SessionSelect } from "./SessionSelect";
 
 export default async function AdminPage({
   searchParams,
@@ -38,33 +39,7 @@ export default async function AdminPage({
         <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-3">
           Step 1 — Select a Session
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {sessions.map((s) => {
-            const isSelected = s.id === sessionId;
-            const dateStr = new Date(s.sessionDate + "T00:00:00").toLocaleDateString("en-PH", {
-              weekday: "short", month: "short", day: "numeric", year: "numeric",
-            });
-            return (
-              <Link
-                key={s.id}
-                href={`/admin?session=${s.id}`}
-                className={`rounded-xl border px-4 py-3 text-sm transition hover:border-indigo-400 ${
-                  isSelected ? "border-indigo-500 bg-indigo-50" : "border-gray-200 bg-white"
-                }`}
-              >
-                <p className={`font-semibold ${isSelected ? "text-indigo-700" : "text-gray-900"}`}>
-                  {s.name}
-                </p>
-                <p className="text-xs text-gray-500 mt-0.5">{dateStr}</p>
-                {s.isVictoryDay && (
-                  <span className="inline-block mt-1 text-xs font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                    Victory Day
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </div>
+        <SessionSelect sessions={sessions} selectedId={sessionId} />
       </div>
 
       {/* Step 2: Search participant */}

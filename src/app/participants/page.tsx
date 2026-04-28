@@ -115,7 +115,15 @@ export default async function ParticipantsPage({
         </div>
         <div className="flex flex-col items-end gap-1">
           <Link href="/" className="text-sm text-indigo-600 hover:underline">← Home</Link>
-          <Link href="/participants/deleted" className="text-xs text-gray-400 hover:text-gray-600 hover:underline">View deleted</Link>
+          <div className="flex items-center gap-3">
+            <a
+              href="/api/participants/export"
+              className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition"
+            >
+              <span>↓</span> Export Excel
+            </a>
+            <Link href="/participants/deleted" className="text-xs text-gray-400 hover:text-gray-600 hover:underline">View deleted</Link>
+          </div>
         </div>
       </div>
 

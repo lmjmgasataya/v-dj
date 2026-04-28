@@ -68,15 +68,11 @@ export default async function AdminPage({
         </p>
         <SessionSelect sessions={sessions} selectedId={sessionId} />
         {selectedSession && (
-          <>
-            <div className="mt-3 flex items-center gap-2 px-4 py-2.5 rounded-xl border border-indigo-100 bg-indigo-50 w-fit">
-              <span className="text-2xl font-bold text-indigo-600">{attendeeCount}</span>
-              <span className="text-sm text-indigo-500">attendee{attendeeCount !== 1 ? "s" : ""} checked in</span>
-            </div>
-            <div className="mt-2 flex justify-end">
-              <SessionAttendeesModal sessionId={selectedSession.id} sessionName={selectedSession.name} />
-            </div>
-          </>
+          <SessionAttendeesModal
+            sessionId={selectedSession.id}
+            sessionName={selectedSession.name}
+            attendeeCount={attendeeCount}
+          />
         )}
       </div>
 

@@ -8,9 +8,11 @@ type CheckIn = Awaited<ReturnType<typeof getSessionCheckIns>>[number];
 export function SessionAttendeesModal({
   sessionId,
   sessionName,
+  attendeeCount,
 }: {
   sessionId: number;
   sessionName: string;
+  attendeeCount: number;
 }) {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<CheckIn[]>([]);
@@ -40,9 +42,10 @@ export function SessionAttendeesModal({
     <>
       <button
         onClick={handleOpen}
-        className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline underline-offset-2"
+        className="mt-3 flex items-center gap-2 px-4 py-2.5 rounded-xl border border-indigo-100 bg-indigo-50 hover:bg-indigo-100 transition w-fit"
       >
-        View attendees
+        <span className="text-2xl font-bold text-indigo-600">{attendeeCount}</span>
+        <span className="text-sm text-indigo-500">attendee{attendeeCount !== 1 ? "s" : ""} checked in</span>
       </button>
 
       {open && (

@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { classSessions, checkIns, participants } from "@/db/schema";
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, isNull } from "drizzle-orm";
 import Link from "next/link";
 import { WalkInForm } from "./WalkInForm";
 import { ParticipantSearch } from "./ParticipantSearch";
@@ -17,6 +17,11 @@ export default async function AdminPage({
 
   const sessions = await db.select().from(classSessions).orderBy(classSessions.sessionDate);
   const selectedSession = sessionId ? (sessions.find((s) => s.id === sessionId) ?? null) : null;
+
+  const [{ registeredCount }] = await db
+    .select({ registeredCount: count() })
+    .from(participants)
+    .where(and(isNull(participants.deletedAt), eq(participants.isWalkIn, false)));
 
   const walkInCount =
     selectedSession && !selectedSession.isVictoryDay
@@ -39,6 +44,11 @@ export default async function AdminPage({
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Admin / Check-in</h2>
         <Link href="/" className="text-sm text-indigo-600 hover:underline">← Home</Link>
+      </div>
+
+      <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-indigo-100 bg-indigo-50 w-fit">
+        <span className="text-2xl font-bold text-indigo-600">{registeredCount}</span>
+        <span className="text-sm text-indigo-500">registered participant{registeredCount !== 1 ? "s" : ""}</span>
       </div>
 
       {/* Step 1: Select session */}

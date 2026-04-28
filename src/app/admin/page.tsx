@@ -40,21 +40,14 @@ export default async function AdminPage({
       )
     );
 
-  const walkInCount =
-    selectedSession && !selectedSession.isVictoryDay
-      ? (
-          await db
-            .select({ count: count() })
-            .from(checkIns)
-            .innerJoin(participants, eq(checkIns.participantId, participants.id))
-            .where(
-              and(
-                eq(checkIns.classSessionId, selectedSession.id),
-                eq(participants.isWalkIn, true)
-              )
-            )
-        )[0]?.count ?? 0
-      : 0;
+  const attendeeCount = selectedSession
+    ? (
+        await db
+          .select({ count: count() })
+          .from(checkIns)
+          .where(eq(checkIns.classSessionId, selectedSession.id))
+      )[0]?.count ?? 0
+    : 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -75,9 +68,15 @@ export default async function AdminPage({
         </p>
         <SessionSelect sessions={sessions} selectedId={sessionId} />
         {selectedSession && (
-          <div className="mt-2 flex justify-end">
-            <SessionAttendeesModal sessionId={selectedSession.id} sessionName={selectedSession.name} />
-          </div>
+          <>
+            <div className="mt-3 flex items-center gap-2 px-4 py-2.5 rounded-xl border border-indigo-100 bg-indigo-50 w-fit">
+              <span className="text-2xl font-bold text-indigo-600">{attendeeCount}</span>
+              <span className="text-sm text-indigo-500">attendee{attendeeCount !== 1 ? "s" : ""} checked in</span>
+            </div>
+            <div className="mt-2 flex justify-end">
+              <SessionAttendeesModal sessionId={selectedSession.id} sessionName={selectedSession.name} />
+            </div>
+          </>
         )}
       </div>
 
@@ -93,7 +92,7 @@ export default async function AdminPage({
             Walk-in Check-in —{" "}
             <span className="text-indigo-600 normal-case">{selectedSession.name}</span>
           </p>
-          <WalkInForm key={selectedSession.id} sessionId={selectedSession.id} initialCount={walkInCount} />
+          <WalkInForm key={selectedSession.id} sessionId={selectedSession.id} />
         </div>
       )}
     </div>

@@ -4,10 +4,9 @@ import { useState, useTransition } from "react";
 import { addWalkIn } from "./actions";
 import { Field, inputCls, selectCls, SERVICE_OPTIONS } from "@/components/form";
 
-export function WalkInForm({ sessionId, initialCount }: { sessionId: number; initialCount: number }) {
+export function WalkInForm({ sessionId }: { sessionId: number }) {
   const [pending, startTransition] = useTransition();
   const [formKey, setFormKey] = useState(0);
-  const [count, setCount] = useState(initialCount);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -15,18 +14,11 @@ export function WalkInForm({ sessionId, initialCount }: { sessionId: number; ini
     startTransition(async () => {
       await addWalkIn(sessionId, formData);
       setFormKey((k) => k + 1);
-      setCount((c) => c + 1);
     });
   }
 
   return (
     <div className="flex flex-col gap-4">
-      {count > 0 && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-orange-200 bg-orange-50 w-fit">
-          <span className="text-2xl font-bold text-orange-500">{count}</span>
-          <span className="text-sm text-orange-600 font-medium">walk-in{count !== 1 ? "s" : ""} recorded for this session</span>
-        </div>
-      )}
       <form
         key={formKey}
         onSubmit={handleSubmit}

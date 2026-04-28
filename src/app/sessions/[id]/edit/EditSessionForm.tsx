@@ -15,7 +15,7 @@ export function EditSessionForm({
   const isCustom = !existingNames.includes(session.name);
   const [mode, setMode] = useState<"existing" | "custom">(isCustom ? "custom" : "existing");
 
-  const action = updateSession.bind(null, undefined, session.id);
+  const action = updateSession.bind(null, session.id);
   const [state, formAction, pending] = useActionState(action, undefined);
 
   return (

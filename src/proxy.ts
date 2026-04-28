@@ -13,6 +13,7 @@ function secret() {
 const DEVELOPER_ONLY = [
   /^\/participants/,
   /^\/api\/participants/,
+  /^\/sessions\/new/,
 ];
 
 export default async function proxy(request: NextRequest) {

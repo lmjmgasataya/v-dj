@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { classSessions, checkIns } from "@/db/schema";
 import { and, eq, gte, lt, sql } from "drizzle-orm";
 import Link from "next/link";
+import { getSession } from "@/lib/auth";
 
 export default async function SessionsPage({
   searchParams,
@@ -11,6 +12,8 @@ export default async function SessionsPage({
   const { year: yearParam } = await searchParams;
   const currentYear = new Date().getFullYear();
   const year = yearParam ? parseInt(yearParam, 10) : currentYear;
+  const session = await getSession();
+  const isDeveloper = session?.role === "developer";
 
   const availableYears = await db
     .selectDistinct({ year: sql<number>`EXTRACT(YEAR FROM ${classSessions.sessionDate})::int` })
@@ -45,7 +48,17 @@ export default async function SessionsPage({
           <h2 className="text-2xl font-bold text-gray-900">Class Sessions</h2>
           <p className="text-sm text-gray-500 mt-0.5">{sessions.length} session{sessions.length !== 1 ? "s" : ""} in {year}</p>
         </div>
-        <Link href="/" className="text-sm text-indigo-600 hover:underline">← Home</Link>
+        <div className="flex items-center gap-3">
+          {isDeveloper && (
+            <Link
+              href="/sessions/new"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+            >
+              + New Session
+            </Link>
+          )}
+          <Link href="/" className="text-sm text-indigo-600 hover:underline">← Home</Link>
+        </div>
       </div>
 
       {/* Year selector */}

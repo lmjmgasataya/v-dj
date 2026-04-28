@@ -22,9 +22,10 @@ export function WalkInForm({ sessionId, initialCount }: { sessionId: number; ini
   return (
     <div className="flex flex-col gap-4">
       {count > 0 && (
-        <p className="text-sm text-indigo-600 font-medium">
-          {count} walk-in{count !== 1 ? "s" : ""} recorded for this session.
-        </p>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-orange-200 bg-orange-50 w-fit">
+          <span className="text-2xl font-bold text-orange-500">{count}</span>
+          <span className="text-sm text-orange-600 font-medium">walk-in{count !== 1 ? "s" : ""} recorded for this session</span>
+        </div>
       )}
       <form
         key={formKey}

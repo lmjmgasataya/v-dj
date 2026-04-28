@@ -30,6 +30,7 @@ export interface Attendee {
   vgLeaderLastName: string | null;
   vgLeaderFirstName: string | null;
   victoryDate: string | null;
+  victoryDayDate: string | null;
 }
 
 function Detail({ label, value }: { label: string; value: React.ReactNode }) {
@@ -70,9 +71,9 @@ export function AttendeeList({ attendees }: { attendees: Attendee[] }) {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-3">
-                {a.isWalkIn ? (
-                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
-                    Walk-in
+                {(a.isWalkIn ? a.victoryDate : a.victoryDayDate) ? (
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                    Victory Day: {a.isWalkIn ? a.victoryDate : a.victoryDayDate}
                   </span>
                 ) : a.registrationFee ? (
                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${

@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { participants, checkIns } from "@/db/schema";
-import { and, eq, ilike, isNull, or } from "drizzle-orm";
+import { participants, checkIns, classSessions } from "@/db/schema";
+import { and, eq, ilike, inArray, isNull, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export async function checkInParticipant(participantId: number, classSessionId: number) {
@@ -23,19 +23,34 @@ export async function removeCheckIn(participantId: number, classSessionId: numbe
 }
 
 export async function getSessionCheckIns(sessionId: number) {
-  return db
+  const rows = await db
     .select({
       id: checkIns.id,
+      participantId: checkIns.participantId,
       lastName: participants.lastName,
       firstName: participants.firstName,
       middleInitial: participants.middleInitial,
       isWalkIn: participants.isWalkIn,
+      victoryDate: participants.victoryDate,
       checkedInAt: checkIns.checkedInAt,
     })
     .from(checkIns)
     .innerJoin(participants, eq(checkIns.participantId, participants.id))
     .where(eq(checkIns.classSessionId, sessionId))
     .orderBy(checkIns.checkedInAt);
+
+  if (rows.length === 0) return [];
+
+  const participantIds = rows.map((r) => r.participantId);
+  const victoryCheckIns = await db
+    .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
+    .from(checkIns)
+    .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
+    .where(and(inArray(checkIns.participantId, participantIds), eq(classSessions.isVictoryDay, true)));
+
+  const victoryDayMap = Object.fromEntries(victoryCheckIns.map((v) => [v.participantId, v.sessionDate]));
+
+  return rows.map((r) => ({ ...r, victoryDayDate: victoryDayMap[r.participantId] ?? null }));
 }
 
 export async function searchParticipants(sessionId: number, q: string) {

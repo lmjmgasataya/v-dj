@@ -18,9 +18,11 @@ function Detail({ label, value }: { label: string; value: React.ReactNode }) {
 export function ParticipantTable({
   rows,
   attendance = {},
+  victoryDayDates = {},
 }: {
   rows: Participant[];
   attendance?: Record<number, Attendance[]>;
+  victoryDayDates?: Record<number, string>;
 }) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
@@ -43,9 +45,9 @@ export function ParticipantTable({
                 <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-3">
-                {p.isWalkIn ? (
-                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
-                    Walk-in
+                {(p.isWalkIn ? p.victoryDate : victoryDayDates[p.id]) ? (
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                    Victory Day: {p.isWalkIn ? p.victoryDate : victoryDayDates[p.id]}
                   </span>
                 ) : p.registrationFee ? (
                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${

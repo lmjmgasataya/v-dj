@@ -98,9 +98,9 @@ export function SessionAttendeesModal({
                         <div className="flex items-center gap-3">
                           <span className="text-xs text-gray-400 font-mono w-5 shrink-0">{i + 1}</span>
                           <span className="text-sm font-medium text-gray-900">{name}</span>
-                          {c.isWalkIn && (
-                            <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700">
-                              Walk-in
+                          {(c.isWalkIn ? c.victoryDate : c.victoryDayDate) && (
+                            <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                              Victory Day: {c.isWalkIn ? c.victoryDate : c.victoryDayDate}
                             </span>
                           )}
                         </div>

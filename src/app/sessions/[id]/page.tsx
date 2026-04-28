@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { classSessions, checkIns, participants } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AttendeeList } from "./AttendeeList";
@@ -55,6 +55,22 @@ export default async function SessionDetailPage({
     .where(eq(checkIns.classSessionId, sessionId))
     .orderBy(checkIns.checkedInAt);
 
+  const participantIds = attendees.map((a) => a.participantId);
+  const victoryCheckIns =
+    participantIds.length > 0
+      ? await db
+          .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
+          .from(checkIns)
+          .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
+          .where(and(inArray(checkIns.participantId, participantIds), eq(classSessions.isVictoryDay, true)))
+      : [];
+  const victoryDayMap = Object.fromEntries(victoryCheckIns.map((v) => [v.participantId, v.sessionDate]));
+
+  const attendeesWithVictoryDay = attendees.map((a) => ({
+    ...a,
+    victoryDayDate: victoryDayMap[a.participantId] ?? null,
+  }));
+
   const dateStr = new Date(session.sessionDate + "T00:00:00").toLocaleDateString("en-PH", {
     weekday: "long",
     month: "long",
@@ -91,7 +107,7 @@ export default async function SessionDetailPage({
           No check-ins recorded for this session yet.
         </div>
       ) : (
-        <AttendeeList attendees={attendees} />
+        <AttendeeList attendees={attendeesWithVictoryDay} />
       )}
     </div>
   );

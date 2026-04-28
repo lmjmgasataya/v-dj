@@ -42,6 +42,7 @@ export default async function ParticipantsPage({
             participantId: checkIns.participantId,
             sessionName: classSessions.name,
             sessionDate: classSessions.sessionDate,
+            isVictoryDay: classSessions.isVictoryDay,
           })
           .from(checkIns)
           .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
@@ -54,6 +55,11 @@ export default async function ParticipantsPage({
   >((acc, row) => {
     if (!acc[row.participantId]) acc[row.participantId] = [];
     acc[row.participantId].push({ sessionName: row.sessionName, sessionDate: row.sessionDate });
+    return acc;
+  }, {});
+
+  const victoryDayMap = attendanceList.reduce<Record<number, string>>((acc, row) => {
+    if (row.isVictoryDay) acc[row.participantId] = row.sessionDate;
     return acc;
   }, {});
 
@@ -106,7 +112,7 @@ export default async function ParticipantsPage({
       {rows.length === 0 ? (
         <p className="text-sm text-gray-400">{q ? `No results for "${q}".` : "No participants registered yet."}</p>
       ) : (
-        <ParticipantTable rows={rows} attendance={attendanceByParticipant} />
+        <ParticipantTable rows={rows} attendance={attendanceByParticipant} victoryDayDates={victoryDayMap} />
       )}
     </div>
   );

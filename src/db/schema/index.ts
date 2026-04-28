@@ -37,24 +37,28 @@ export const participants = pgTable("participants", {
   lastName: text("last_name").notNull(),
   firstName: text("first_name").notNull(),
   middleInitial: text("middle_initial"),
-  mobileNumber: text("mobile_number").notNull(),
+  mobileNumber: text("mobile_number"),
   facebookMessengerName: text("facebook_messenger_name"),
-  lifestage: lifestageEnum("lifestage").notNull(),
+  lifestage: lifestageEnum("lifestage"),
   age: integer("age").notNull(),
   gender: text("gender").notNull(),
   serviceAttending: text("service_attending").notNull(),
-  completedOne2One: boolean("completed_one2one").notNull(),
-  willUndergoWaterBaptism: boolean("will_undergo_water_baptism").notNull(),
-  previousChurch: text("previous_church").notNull(),
-  preferredNameOnId: text("preferred_name_on_id").notNull(),
-  disciplerLastName: text("discipler_last_name").notNull(),
-  disciplerFirstName: text("discipler_first_name").notNull(),
-  disciplerMobileNumber: text("discipler_mobile_number").notNull(),
+  completedOne2One: boolean("completed_one2one"),
+  willUndergoWaterBaptism: boolean("will_undergo_water_baptism"),
+  previousChurch: text("previous_church"),
+  preferredNameOnId: text("preferred_name_on_id"),
+  disciplerLastName: text("discipler_last_name"),
+  disciplerFirstName: text("discipler_first_name"),
+  disciplerMobileNumber: text("discipler_mobile_number"),
   disciplerMessengerName: text("discipler_messenger_name"),
-  confirmedReadiness: boolean("confirmed_readiness").notNull(),
-  acknowledgementReceiptNumber: text("acknowledgement_receipt_number").notNull(),
-  registrationFee: text("registration_fee").notNull(),
-  adminVolunteerName: text("admin_volunteer_name").notNull(),
+  confirmedReadiness: boolean("confirmed_readiness"),
+  acknowledgementReceiptNumber: text("acknowledgement_receipt_number"),
+  registrationFee: text("registration_fee"),
+  adminVolunteerName: text("admin_volunteer_name"),
+  isWalkIn: boolean("is_walk_in").default(false).notNull(),
+  vgLeaderLastName: text("vg_leader_last_name"),
+  vgLeaderFirstName: text("vg_leader_first_name"),
+  victoryDate: text("victory_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
 });
@@ -81,26 +85,7 @@ export const checkIns = pgTable(
   (t) => [unique().on(t.participantId, t.classSessionId)]
 );
 
-export const walkIns = pgTable("walk_ins", {
-  id: serial("id").primaryKey(),
-  classSessionId: integer("class_session_id")
-    .references(() => classSessions.id)
-    .notNull(),
-  lastName: text("last_name").notNull(),
-  firstName: text("first_name").notNull(),
-  middleInitial: text("middle_initial"),
-  age: integer("age").notNull(),
-  gender: text("gender").notNull(),
-  serviceAttending: text("service_attending").notNull(),
-  facebookMessengerName: text("facebook_messenger_name"),
-  vgLeaderLastName: text("vg_leader_last_name").notNull(),
-  vgLeaderFirstName: text("vg_leader_first_name").notNull(),
-  victoryDate: text("victory_date").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
 export type Participant = typeof participants.$inferSelect;
 export type ClassSession = typeof classSessions.$inferSelect;
 export type CheckIn = typeof checkIns.$inferSelect;
 export type Discipler = typeof disciplers.$inferSelect;
-export type WalkIn = typeof walkIns.$inferSelect;

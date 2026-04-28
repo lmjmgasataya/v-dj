@@ -3,10 +3,9 @@
 import { useState } from "react";
 import { updateParticipant } from "./actions";
 import { Section, Field, inputCls, selectCls, SERVICE_OPTIONS } from "@/components/form";
-// import { DisciplerAutocomplete } from "@/components/DisciplerAutocomplete";
 import { SubmitButton } from "@/components/SubmitButton";
 import Link from "next/link";
-import type { Participant, Discipler } from "@/db/schema";
+import type { Participant } from "@/db/schema";
 
 const LIFESTAGES = [
   "Student (JHS/SHS)",
@@ -19,18 +18,14 @@ const LIFESTAGES = [
 ];
 
 export function EditForm({ participant }: { participant: Participant }) {
-  const isOtherChurch = participant.previousChurch !== "Roman Catholic";
+  const isOtherChurch = participant.previousChurch != null && participant.previousChurch !== "Roman Catholic";
   const [previousChurch, setPreviousChurch] = useState(isOtherChurch ? "Others" : "Roman Catholic");
   const [discipler, setDiscipler] = useState({
-    lastName: participant.disciplerLastName,
-    firstName: participant.disciplerFirstName,
-    mobileNumber: participant.disciplerMobileNumber,
+    lastName: participant.disciplerLastName ?? "",
+    firstName: participant.disciplerFirstName ?? "",
+    mobileNumber: participant.disciplerMobileNumber ?? "",
     messengerName: participant.disciplerMessengerName ?? "",
   });
-
-  // function handleDisciplerSelect(d: Discipler) {
-  //   setDiscipler({ lastName: d.lastName, firstName: d.firstName, mobileNumber: d.mobileNumber, messengerName: d.messengerName ?? "" });
-  // }
 
   const updateAction = updateParticipant.bind(null, participant.id);
 
@@ -46,14 +41,14 @@ export function EditForm({ participant }: { participant: Participant }) {
         <Field label="Middle Initial">
           <input name="middleInitial" maxLength={3} defaultValue={participant.middleInitial ?? ""} className={inputCls} />
         </Field>
-        <Field label="Mobile Number" required>
-          <input name="mobileNumber" required type="tel" defaultValue={participant.mobileNumber} className={inputCls} />
+        <Field label="Mobile Number">
+          <input name="mobileNumber" type="tel" defaultValue={participant.mobileNumber ?? ""} className={inputCls} />
         </Field>
         <Field label="Facebook / Messenger Name" className="sm:col-span-2">
           <input name="facebookMessengerName" defaultValue={participant.facebookMessengerName ?? ""} className={inputCls} />
         </Field>
-        <Field label="Lifestage" required>
-          <select name="lifestage" required defaultValue={participant.lifestage} className={selectCls}>
+        <Field label="Lifestage">
+          <select name="lifestage" defaultValue={participant.lifestage ?? ""} className={selectCls}>
             <option value="">-- Select --</option>
             {LIFESTAGES.map((l) => (
               <option key={l} value={l}>{l}</option>
@@ -76,37 +71,37 @@ export function EditForm({ participant }: { participant: Participant }) {
             {SERVICE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </Field>
-        <Field label="I have completed One2One" required className="sm:col-span-2">
+        <Field label="I have completed One2One" className="sm:col-span-2">
           <div className="flex flex-col gap-2 mt-1">
             <label className="flex items-start gap-2 text-sm text-gray-700">
-              <input type="radio" name="completedOne2One" value="yes" required className="mt-0.5"
-                defaultChecked={participant.completedOne2One} />
+              <input type="radio" name="completedOne2One" value="yes" className="mt-0.5"
+                defaultChecked={participant.completedOne2One ?? false} />
               Yes
             </label>
             <label className="flex items-start gap-2 text-sm text-gray-700">
               <input type="radio" name="completedOne2One" value="no" className="mt-0.5"
-                defaultChecked={!participant.completedOne2One} />
+                defaultChecked={!(participant.completedOne2One ?? false)} />
               No, but I will complete it before Victory Day
             </label>
           </div>
         </Field>
 
-        <Field label="I will undergo water baptism" required className="sm:col-span-2">
+        <Field label="I will undergo water baptism" className="sm:col-span-2">
           <div className="flex gap-6 mt-1">
             <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="radio" name="willUndergoWaterBaptism" value="yes" required
-                defaultChecked={participant.willUndergoWaterBaptism} />
+              <input type="radio" name="willUndergoWaterBaptism" value="yes"
+                defaultChecked={participant.willUndergoWaterBaptism ?? false} />
               Yes
             </label>
             <label className="flex items-center gap-2 text-sm text-gray-700">
               <input type="radio" name="willUndergoWaterBaptism" value="no"
-                defaultChecked={!participant.willUndergoWaterBaptism} />
+                defaultChecked={!(participant.willUndergoWaterBaptism ?? false)} />
               No
             </label>
           </div>
         </Field>
 
-        <Field label="Previous Church" required className="sm:col-span-2">
+        <Field label="Previous Church" className="sm:col-span-2">
           <div className="flex flex-col gap-2 mt-1">
             <label className="flex items-center gap-2 text-sm text-gray-700">
               <input
@@ -131,8 +126,7 @@ export function EditForm({ participant }: { participant: Participant }) {
             {previousChurch === "Others" && (
               <input
                 name="previousChurchOther"
-                required
-                defaultValue={isOtherChurch ? participant.previousChurch : ""}
+                defaultValue={isOtherChurch ? (participant.previousChurch ?? "") : ""}
                 placeholder="Please specify your previous church"
                 className={`${inputCls} mt-1 ml-5`}
               />
@@ -140,23 +134,22 @@ export function EditForm({ participant }: { participant: Participant }) {
           </div>
         </Field>
 
-        <Field label="Preferred Name on ID" required className="sm:col-span-2">
-          <input name="preferredNameOnId" required defaultValue={participant.preferredNameOnId} className={inputCls} />
+        <Field label="Preferred Name on ID" className="sm:col-span-2">
+          <input name="preferredNameOnId" defaultValue={participant.preferredNameOnId ?? ""} className={inputCls} />
         </Field>
       </Section>
 
       <Section title="One2One Discipler Information" description="To be filled up by the One2One discipler">
-        {/* <DisciplerAutocomplete onSelect={handleDisciplerSelect} /> */}
-        <Field label="Discipler's Last Name" required>
-          <input name="disciplerLastName" required className={inputCls}
+        <Field label="Discipler's Last Name">
+          <input name="disciplerLastName" className={inputCls}
             value={discipler.lastName} onChange={(e) => setDiscipler((p) => ({ ...p, lastName: e.target.value }))} />
         </Field>
-        <Field label="Discipler's First Name" required>
-          <input name="disciplerFirstName" required className={inputCls}
+        <Field label="Discipler's First Name">
+          <input name="disciplerFirstName" className={inputCls}
             value={discipler.firstName} onChange={(e) => setDiscipler((p) => ({ ...p, firstName: e.target.value }))} />
         </Field>
-        <Field label="Discipler's Mobile Number" required>
-          <input name="disciplerMobileNumber" required type="tel" className={inputCls}
+        <Field label="Discipler's Mobile Number">
+          <input name="disciplerMobileNumber" type="tel" className={inputCls}
             value={discipler.mobileNumber} onChange={(e) => setDiscipler((p) => ({ ...p, mobileNumber: e.target.value }))} />
         </Field>
         <Field label="Discipler's Messenger / Facebook Name">
@@ -168,8 +161,7 @@ export function EditForm({ participant }: { participant: Participant }) {
             <input
               type="checkbox"
               name="confirmedReadiness"
-              required
-              defaultChecked={participant.confirmedReadiness}
+              defaultChecked={participant.confirmedReadiness ?? false}
               className="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
             />
             <span className="text-sm text-gray-700">
@@ -181,18 +173,18 @@ export function EditForm({ participant }: { participant: Participant }) {
       </Section>
 
       <Section title="Payment &amp; Admin">
-        <Field label="Acknowledgement Receipt Number" required>
-          <input name="acknowledgementReceiptNumber" required defaultValue={participant.acknowledgementReceiptNumber} className={inputCls} />
+        <Field label="Acknowledgement Receipt Number">
+          <input name="acknowledgementReceiptNumber" defaultValue={participant.acknowledgementReceiptNumber ?? ""} className={inputCls} />
         </Field>
-        <Field label="Registration Fee" required>
-          <select name="registrationFee" required defaultValue={participant.registrationFee} className={selectCls}>
+        <Field label="Registration Fee">
+          <select name="registrationFee" defaultValue={participant.registrationFee ?? ""} className={selectCls}>
             <option value="">-- Select --</option>
             <option value="Regular">Regular — ₱1,200</option>
             <option value="Discounted">Discounted — ₱900</option>
           </select>
         </Field>
-        <Field label="Name of Admin Volunteer" required className="sm:col-span-2">
-          <input name="adminVolunteerName" required defaultValue={participant.adminVolunteerName} className={inputCls} />
+        <Field label="Name of Admin Volunteer" className="sm:col-span-2">
+          <input name="adminVolunteerName" defaultValue={participant.adminVolunteerName ?? ""} className={inputCls} />
         </Field>
       </Section>
 

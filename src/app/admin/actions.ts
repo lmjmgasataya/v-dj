@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { participants, checkIns, walkIns } from "@/db/schema";
+import { participants, checkIns } from "@/db/schema";
 import { and, eq, ilike, isNull, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -59,18 +59,26 @@ export async function searchParticipants(sessionId: number, q: string) {
 }
 
 export async function addWalkIn(classSessionId: number, formData: FormData) {
-  await db.insert(walkIns).values({
-    classSessionId,
-    lastName: formData.get("lastName") as string,
-    firstName: formData.get("firstName") as string,
-    middleInitial: (formData.get("middleInitial") as string) || null,
-    age: Number(formData.get("age")),
-    gender: formData.get("gender") as string,
-    serviceAttending: formData.get("serviceAttending") as string,
-    facebookMessengerName: (formData.get("facebookMessengerName") as string) || null,
-    vgLeaderLastName: formData.get("vgLeaderLastName") as string,
-    vgLeaderFirstName: formData.get("vgLeaderFirstName") as string,
-    victoryDate: formData.get("victoryDate") as string,
-  });
+  const [inserted] = await db
+    .insert(participants)
+    .values({
+      lastName: formData.get("lastName") as string,
+      firstName: formData.get("firstName") as string,
+      middleInitial: (formData.get("middleInitial") as string) || null,
+      age: Number(formData.get("age")),
+      gender: formData.get("gender") as string,
+      serviceAttending: formData.get("serviceAttending") as string,
+      facebookMessengerName: (formData.get("facebookMessengerName") as string) || null,
+      vgLeaderLastName: formData.get("vgLeaderLastName") as string,
+      vgLeaderFirstName: formData.get("vgLeaderFirstName") as string,
+      victoryDate: formData.get("victoryDate") as string,
+      isWalkIn: true,
+    })
+    .returning({ id: participants.id });
+
+  await db.insert(checkIns).values({ participantId: inserted.id, classSessionId }).onConflictDoNothing();
+
   revalidatePath("/admin");
+  revalidatePath("/participants");
+  revalidatePath("/sessions");
 }

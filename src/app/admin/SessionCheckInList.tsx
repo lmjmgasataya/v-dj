@@ -8,9 +8,9 @@ interface ParticipantWithStatus {
   lastName: string;
   firstName: string;
   middleInitial: string | null;
-  mobileNumber: string;
-  lifestage: string;
-  preferredNameOnId: string;
+  mobileNumber: string | null;
+  lifestage: string | null;
+  preferredNameOnId: string | null;
   checkInId: number | null;
   checkedInAt: Date | null;
 }

@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { classSessions, checkIns, walkIns } from "@/db/schema";
+import { classSessions, checkIns } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import Link from "next/link";
 
@@ -10,8 +10,7 @@ export default async function SessionsPage() {
       name: classSessions.name,
       sessionDate: classSessions.sessionDate,
       isVictoryDay: classSessions.isVictoryDay,
-      checkInCount: sql<number>`count(distinct ${checkIns.id})::int`,
-      walkInCount: sql<number>`(select count(*)::int from ${walkIns} where ${walkIns.classSessionId} = ${classSessions.id})`,
+      checkInCount: sql<number>`count(${checkIns.id})::int`,
     })
     .from(classSessions)
     .leftJoin(checkIns, eq(checkIns.classSessionId, classSessions.id))
@@ -69,17 +68,11 @@ export default async function SessionsPage() {
                   {dateStr}
                 </span>
               </div>
-              <div className="flex items-center gap-4 shrink-0 ml-4">
+              <div className="flex items-center gap-3 shrink-0 ml-4">
                 <div className="text-right">
                   <p className="text-2xl font-bold text-indigo-600">{session.checkInCount}</p>
-                  <p className="text-xs text-gray-400">registered</p>
+                  <p className="text-xs text-gray-400">checked in</p>
                 </div>
-                {!session.isVictoryDay && (
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-orange-500">{session.walkInCount}</p>
-                    <p className="text-xs text-gray-400">walk-ins</p>
-                  </div>
-                )}
                 <span className="text-gray-300">›</span>
               </div>
             </Link>

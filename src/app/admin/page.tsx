@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { classSessions, walkIns } from "@/db/schema";
-import { eq, count } from "drizzle-orm";
+import { classSessions, checkIns, participants } from "@/db/schema";
+import { and, count, eq } from "drizzle-orm";
 import Link from "next/link";
 import { WalkInForm } from "./WalkInForm";
 import { ParticipantSearch } from "./ParticipantSearch";
@@ -22,8 +22,14 @@ export default async function AdminPage({
       ? (
           await db
             .select({ count: count() })
-            .from(walkIns)
-            .where(eq(walkIns.classSessionId, selectedSession.id))
+            .from(checkIns)
+            .innerJoin(participants, eq(checkIns.participantId, participants.id))
+            .where(
+              and(
+                eq(checkIns.classSessionId, selectedSession.id),
+                eq(participants.isWalkIn, true)
+              )
+            )
         )[0]?.count ?? 0
       : 0;
 

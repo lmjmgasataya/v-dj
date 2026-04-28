@@ -1,9 +1,10 @@
 import { db } from "@/db";
-import { participants, walkIns, classSessions, checkIns } from "@/db/schema";
-import { ilike, or, desc, isNull, and, eq, inArray } from "drizzle-orm";
+import { participants } from "@/db/schema";
+import { ilike, or, desc, isNull, and } from "drizzle-orm";
 import Link from "next/link";
 import { ParticipantTable } from "./ParticipantTable";
-import { WalkInTable } from "./WalkInTable";
+import { checkIns, classSessions } from "@/db/schema";
+import { eq, inArray } from "drizzle-orm";
 
 export default async function ParticipantsPage({
   searchParams,
@@ -56,55 +57,7 @@ export default async function ParticipantsPage({
     return acc;
   }, {});
 
-  const walkInRows = q.trim()
-    ? await db
-        .select({
-          id: walkIns.id,
-          classSessionId: walkIns.classSessionId,
-          lastName: walkIns.lastName,
-          firstName: walkIns.firstName,
-          middleInitial: walkIns.middleInitial,
-          age: walkIns.age,
-          gender: walkIns.gender,
-          serviceAttending: walkIns.serviceAttending,
-          facebookMessengerName: walkIns.facebookMessengerName,
-          vgLeaderLastName: walkIns.vgLeaderLastName,
-          vgLeaderFirstName: walkIns.vgLeaderFirstName,
-          victoryDate: walkIns.victoryDate,
-          createdAt: walkIns.createdAt,
-          sessionName: classSessions.name,
-        })
-        .from(walkIns)
-        .leftJoin(classSessions, eq(walkIns.classSessionId, classSessions.id))
-        .where(
-          or(
-            ilike(walkIns.lastName, `%${q}%`),
-            ilike(walkIns.firstName, `%${q}%`)
-          )
-        )
-        .orderBy(walkIns.lastName)
-    : await db
-        .select({
-          id: walkIns.id,
-          classSessionId: walkIns.classSessionId,
-          lastName: walkIns.lastName,
-          firstName: walkIns.firstName,
-          middleInitial: walkIns.middleInitial,
-          age: walkIns.age,
-          gender: walkIns.gender,
-          serviceAttending: walkIns.serviceAttending,
-          facebookMessengerName: walkIns.facebookMessengerName,
-          vgLeaderLastName: walkIns.vgLeaderLastName,
-          vgLeaderFirstName: walkIns.vgLeaderFirstName,
-          victoryDate: walkIns.victoryDate,
-          createdAt: walkIns.createdAt,
-          sessionName: classSessions.name,
-        })
-        .from(walkIns)
-        .leftJoin(classSessions, eq(walkIns.classSessionId, classSessions.id))
-        .orderBy(desc(walkIns.id));
-
-  const total = rows.length + walkInRows.length;
+  const total = rows.length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -150,29 +103,11 @@ export default async function ParticipantsPage({
         )}
       </form>
 
-      {/* Registered participants */}
-      <div className="flex flex-col gap-3">
-        <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
-          Registered — {rows.length} record{rows.length !== 1 ? "s" : ""}
-        </p>
-        {rows.length === 0 ? (
-          <p className="text-sm text-gray-400">{q ? `No registered participants found for "${q}".` : "No participants registered yet."}</p>
-        ) : (
-          <ParticipantTable rows={rows} attendance={attendanceByParticipant} />
-        )}
-      </div>
-
-      {/* Walk-ins */}
-      <div className="flex flex-col gap-3">
-        <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
-          Walk-ins — {walkInRows.length} record{walkInRows.length !== 1 ? "s" : ""}
-        </p>
-        {walkInRows.length === 0 ? (
-          <p className="text-sm text-gray-400">{q ? `No walk-ins found for "${q}".` : "No walk-ins recorded yet."}</p>
-        ) : (
-          <WalkInTable rows={walkInRows} />
-        )}
-      </div>
+      {rows.length === 0 ? (
+        <p className="text-sm text-gray-400">{q ? `No results for "${q}".` : "No participants registered yet."}</p>
+      ) : (
+        <ParticipantTable rows={rows} attendance={attendanceByParticipant} />
+      )}
     </div>
   );
 }

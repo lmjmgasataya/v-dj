@@ -40,6 +40,21 @@ export function WalkInForm({ sessionId, initialCount }: { sessionId: number; ini
         <Field label="Middle Initial">
           <input name="middleInitial" maxLength={3} className={inputCls} />
         </Field>
+        <Field label="Mobile Number">
+          <input name="mobileNumber" type="tel" className={inputCls} />
+        </Field>
+        <Field label="Lifestage">
+          <select name="lifestage" className={selectCls}>
+            <option value="">-- Select --</option>
+            <option>Student (JHS/SHS)</option>
+            <option>Student (College)</option>
+            <option>Single</option>
+            <option>Married</option>
+            <option>Single Parent</option>
+            <option>Widow/Widower</option>
+            <option>Senior</option>
+          </select>
+        </Field>
         <Field label="Age" required>
           <input name="age" required type="number" min={1} max={120} className={inputCls} />
         </Field>

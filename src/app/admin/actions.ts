@@ -1,7 +1,9 @@
 "use server";
 
 import { db } from "@/db";
-import { participants, checkIns, classSessions } from "@/db/schema";
+import { participants, checkIns, classSessions, type lifestageEnum } from "@/db/schema";
+
+type Lifestage = (typeof lifestageEnum.enumValues)[number];
 import { and, eq, ilike, inArray, isNull, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -96,6 +98,8 @@ export async function addWalkIn(classSessionId: number, formData: FormData) {
       lastName: formData.get("lastName") as string,
       firstName: formData.get("firstName") as string,
       middleInitial: (formData.get("middleInitial") as string) || null,
+      mobileNumber: (formData.get("mobileNumber") as string) || null,
+      lifestage: ((formData.get("lifestage") as string) || null) as Lifestage | null,
       age: Number(formData.get("age")),
       gender: formData.get("gender") as string,
       serviceAttending: formData.get("serviceAttending") as string,

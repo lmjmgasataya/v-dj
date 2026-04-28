@@ -5,6 +5,7 @@ import Link from "next/link";
 import { WalkInForm } from "./WalkInForm";
 import { ParticipantSearch } from "./ParticipantSearch";
 import { SessionSelect } from "./SessionSelect";
+import { SessionAttendeesModal } from "./SessionAttendeesModal";
 
 export default async function AdminPage({
   searchParams,
@@ -46,6 +47,11 @@ export default async function AdminPage({
           Step 1 — Select a Session
         </p>
         <SessionSelect sessions={sessions} selectedId={sessionId} />
+        {selectedSession && (
+          <div className="mt-2 flex justify-end">
+            <SessionAttendeesModal sessionId={selectedSession.id} sessionName={selectedSession.name} />
+          </div>
+        )}
       </div>
 
       {/* Step 2: Search participant */}

@@ -22,6 +22,22 @@ export async function removeCheckIn(participantId: number, classSessionId: numbe
   revalidatePath("/sessions");
 }
 
+export async function getSessionCheckIns(sessionId: number) {
+  return db
+    .select({
+      id: checkIns.id,
+      lastName: participants.lastName,
+      firstName: participants.firstName,
+      middleInitial: participants.middleInitial,
+      isWalkIn: participants.isWalkIn,
+      checkedInAt: checkIns.checkedInAt,
+    })
+    .from(checkIns)
+    .innerJoin(participants, eq(checkIns.participantId, participants.id))
+    .where(eq(checkIns.classSessionId, sessionId))
+    .orderBy(checkIns.checkedInAt);
+}
+
 export async function searchParticipants(sessionId: number, q: string) {
   if (!q.trim()) return [];
   return db

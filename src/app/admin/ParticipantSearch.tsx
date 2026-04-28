@@ -28,10 +28,6 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay }: { se
 
   return (
     <div>
-      <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-3">
-        Step 2 — Search Participant for{" "}
-        <span className="text-indigo-600 normal-case">{sessionName}</span>
-      </p>
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input
           value={q}

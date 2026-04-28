@@ -62,10 +62,11 @@ export default async function AdminPage({
       </div>
 
       {/* Step 1: Select session */}
-      <div>
-        <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-3">
-          Step 1 — Select a Session
-        </p>
+      <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold shrink-0">1</span>
+          <p className="text-sm font-semibold text-gray-700">Select a Session</p>
+        </div>
         <SessionSelect sessions={sessions} selectedId={sessionId} />
         {selectedSession && (
           <SessionAttendeesModal
@@ -78,16 +79,28 @@ export default async function AdminPage({
 
       {/* Step 2: Search participant */}
       {selectedSession && (
-        <ParticipantSearch key={selectedSession.id} sessionId={selectedSession.id} sessionName={selectedSession.name} isVictoryDay={selectedSession.isVictoryDay} />
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold shrink-0">2</span>
+            <p className="text-sm font-semibold text-gray-700">
+              Search Participant —{" "}
+              <span className="text-indigo-600 font-medium">{selectedSession.name}</span>
+            </p>
+          </div>
+          <ParticipantSearch key={selectedSession.id} sessionId={selectedSession.id} sessionName={selectedSession.name} isVictoryDay={selectedSession.isVictoryDay} />
+        </div>
       )}
 
       {/* Walk-in Check-in (not applicable to Victory Day) */}
       {selectedSession && !selectedSession.isVictoryDay && (
-        <div>
-          <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-3">
-            Walk-in Check-in —{" "}
-            <span className="text-indigo-600 normal-case">{selectedSession.name}</span>
-          </p>
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold shrink-0">2.1</span>
+            <p className="text-sm font-semibold text-gray-700">
+              Walk-in Check-in —{" "}
+              <span className="text-indigo-600 font-medium">{selectedSession.name}</span>
+            </p>
+          </div>
           <WalkInForm key={selectedSession.id} sessionId={selectedSession.id} />
         </div>
       )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 import type { ClassSession } from "@/db/schema";
 
 export function SessionSelect({
@@ -11,15 +12,20 @@ export function SessionSelect({
   selectedId: number | null;
 }) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
   return (
+    <div className="relative">
     <select
       value={selectedId ?? ""}
+      disabled={isPending}
       onChange={(e) => {
         const val = e.target.value;
-        router.push(val ? `/admin?session=${val}` : "/admin");
+        startTransition(() => {
+          router.push(val ? `/admin?session=${val}` : "/admin");
+        });
       }}
-      className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+      className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white disabled:opacity-60"
     >
       <option value="">-- Select a session --</option>
       {sessions.map((s) => {
@@ -33,5 +39,11 @@ export function SessionSelect({
         );
       })}
     </select>
+    {isPending && (
+      <div className="absolute inset-y-0 right-8 flex items-center">
+        <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )}
+    </div>
   );
 }

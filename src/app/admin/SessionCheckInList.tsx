@@ -10,6 +10,7 @@ interface ParticipantWithStatus {
   middleInitial: string | null;
   mobileNumber: string | null;
   lifestage: string | null;
+  gender: string;
   preferredNameOnId: string | null;
   checkInId: number | null;
   checkedInAt: Date | null;
@@ -25,6 +26,7 @@ function CheckInRow({ p, sessionId, onAction }: { p: ParticipantWithStatus; sess
     }`}>
       <div>
         <p className="font-semibold text-gray-900 text-sm">
+          {p.gender === "Male" ? "👨🏻" : "👩🏻"}{" "}
           {p.lastName}, {p.firstName}{p.middleInitial ? ` ${p.middleInitial}.` : ""}
         </p>
         <p className="text-xs text-gray-500 mt-0.5">

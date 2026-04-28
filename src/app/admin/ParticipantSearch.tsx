@@ -51,7 +51,12 @@ export function ParticipantSearch({ sessionId, sessionName }: { sessionId: numbe
 
       {searched && (
         <div className="mt-4">
-          {results.length === 0 ? (
+          {pending ? (
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+              Searching…
+            </div>
+          ) : results.length === 0 ? (
             <p className="text-sm text-gray-500">No participants found for &ldquo;{q}&rdquo;.</p>
           ) : (
             <SessionCheckInList

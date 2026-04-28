@@ -65,6 +65,7 @@ export async function searchParticipants(sessionId: number, q: string) {
       middleInitial: participants.middleInitial,
       mobileNumber: participants.mobileNumber,
       lifestage: participants.lifestage,
+      gender: participants.gender,
       preferredNameOnId: participants.preferredNameOnId,
       checkInId: checkIns.id,
       checkedInAt: checkIns.checkedInAt,

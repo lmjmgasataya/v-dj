@@ -89,14 +89,18 @@ export async function GET() {
     }
 
     const victoryAttended = victoryAttendanceMap.get(p.id) ?? new Map<number, { date: string; remarks: string | null }>();
+    const earliestVictoryDate = Array.from(victoryAttended.values()).map(e => e.date).sort()[0] ?? null;
+    const participantVictoryDate = earliestVictoryDate ?? p.victoryDate ?? null;
+
     const victorySessionCols: Record<string, string> = {};
     for (const s of victorySessions) {
       const entry = victoryAttended.get(s.id);
-      const fallbackDate = !entry && p.isWalkIn && !victoryAttended.size ? (p.victoryDate ?? null) : null;
       victorySessionCols[s.name] = entry
         ? formatDate(entry.date) + (entry.remarks ? ` (${entry.remarks})` : "")
-        : fallbackDate ? formatDate(fallbackDate) : "";
+        : participantVictoryDate ? formatDate(participantVictoryDate) : "";
     }
+
+    const victoryDateDisplay = participantVictoryDate ? formatDate(participantVictoryDate) : "";
 
     return {
       "#": i + 1,
@@ -130,13 +134,9 @@ export async function GET() {
       "Admin Volunteer": p.isWalkIn ? "" : (p.adminVolunteerName ?? ""),
       "VG Leader Last Name": p.isWalkIn ? (p.vgLeaderLastName ?? "") : "",
       "VG Leader First Name": p.isWalkIn ? (p.vgLeaderFirstName ?? "") : "",
-      "Victory Weekend / Victory Day Date": p.isWalkIn
-        ? p.victoryDate
-          ? formatDate(p.victoryDate)
-          : ""
-        : "",
-      ...sessionCols,
+      "Victory Weekend / Victory Day Date": victoryDateDisplay,
       ...victorySessionCols,
+      ...sessionCols,
     };
   });
 

@@ -16,6 +16,12 @@ export async function GET() {
     .where(eq(classSessions.isVictoryDay, false))
     .orderBy(classSessions.sessionDate);
 
+  const victorySessions = await db
+    .select()
+    .from(classSessions)
+    .where(eq(classSessions.isVictoryDay, true))
+    .orderBy(classSessions.sessionDate);
+
   const participantIds = rows.map((r) => r.id);
   const attendance =
     participantIds.length > 0
@@ -35,24 +41,56 @@ export async function GET() {
           )
       : [];
 
+  const victoryAttendance =
+    participantIds.length > 0
+      ? await db
+          .select({
+            participantId: checkIns.participantId,
+            sessionId: checkIns.classSessionId,
+            sessionDate: classSessions.sessionDate,
+          })
+          .from(checkIns)
+          .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
+          .where(
+            and(
+              inArray(checkIns.participantId, participantIds),
+              eq(classSessions.isVictoryDay, true)
+            )
+          )
+      : [];
+
   const attendanceMap = new Map<number, Map<number, string>>();
   for (const a of attendance) {
     if (!attendanceMap.has(a.participantId)) attendanceMap.set(a.participantId, new Map());
     attendanceMap.get(a.participantId)!.set(a.sessionId, a.sessionDate);
   }
 
+  const victoryAttendanceMap = new Map<number, Map<number, string>>();
+  for (const a of victoryAttendance) {
+    if (!victoryAttendanceMap.has(a.participantId)) victoryAttendanceMap.set(a.participantId, new Map());
+    victoryAttendanceMap.get(a.participantId)!.set(a.sessionId, a.sessionDate);
+  }
+
+  const formatDate = (date: string) =>
+    new Date(date + "T00:00:00").toLocaleDateString("en-PH", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
   const data = rows.map((p, i) => {
     const attended = attendanceMap.get(p.id) ?? new Map<number, string>();
     const sessionCols: Record<string, string> = {};
     for (const s of sessions) {
       const date = attended.get(s.id);
-      sessionCols[s.name] = date
-        ? new Date(date + "T00:00:00").toLocaleDateString("en-PH", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })
-        : "";
+      sessionCols[s.name] = date ? formatDate(date) : "";
+    }
+
+    const victoryAttended = victoryAttendanceMap.get(p.id) ?? new Map<number, string>();
+    const victorySessionCols: Record<string, string> = {};
+    for (const s of victorySessions) {
+      const date = victoryAttended.get(s.id) ?? (p.isWalkIn && !victoryAttended.size ? (p.victoryDate ?? null) : null);
+      victorySessionCols[s.name] = date ? formatDate(date) : "";
     }
 
     return {
@@ -85,7 +123,15 @@ export async function GET() {
       "Discipler Mobile": p.isWalkIn ? "" : (p.disciplerMobileNumber ?? ""),
       "Discipler Messenger": p.isWalkIn ? "" : (p.disciplerMessengerName ?? ""),
       "Admin Volunteer": p.isWalkIn ? "" : (p.adminVolunteerName ?? ""),
+      "VG Leader Last Name": p.isWalkIn ? (p.vgLeaderLastName ?? "") : "",
+      "VG Leader First Name": p.isWalkIn ? (p.vgLeaderFirstName ?? "") : "",
+      "Victory Weekend / Victory Day Date": p.isWalkIn
+        ? p.victoryDate
+          ? formatDate(p.victoryDate)
+          : ""
+        : "",
       ...sessionCols,
+      ...victorySessionCols,
     };
   });
 

@@ -32,6 +32,7 @@ export interface Attendee {
   victoryDate: string | null;
   victoryDayDate: string | null;
   completedVictoryDay: boolean;
+  remarks: string | null;
 }
 
 function Detail({ label, value }: { label: string; value: React.ReactNode }) {
@@ -69,6 +70,9 @@ export function AttendeeList({ attendees }: { attendees: Attendee[] }) {
                   <p className="text-xs text-gray-500 mt-0.5">
                     {subtitle ? `${subtitle} · ` : ""}checked in at {checkInTime}
                   </p>
+                  {a.remarks && (
+                    <p className="text-xs text-amber-700 italic mt-0.5">{a.remarks}</p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-3">

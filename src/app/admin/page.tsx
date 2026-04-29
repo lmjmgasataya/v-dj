@@ -64,7 +64,7 @@ export default async function AdminPage({
 
       <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-indigo-100 bg-indigo-50 w-fit">
         <span className="text-2xl font-bold text-indigo-600">{registeredCount}</span>
-        <span className="text-sm text-indigo-500">registered participant{registeredCount !== 1 ? "s" : ""}</span>
+        <span className="text-sm text-indigo-500">registered participant{registeredCount !== 1 ? "s" : ""} for this year</span>
       </div>
 
       {/* Step 1: Select session */}

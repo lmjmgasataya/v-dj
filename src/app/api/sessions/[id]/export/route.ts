@@ -37,6 +37,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       disciplerLastName: participants.disciplerLastName,
       disciplerFirstName: participants.disciplerFirstName,
       disciplerMobileNumber: participants.disciplerMobileNumber,
+      remarks: checkIns.remarks,
     })
     .from(checkIns)
     .innerJoin(participants, eq(checkIns.participantId, participants.id))
@@ -66,6 +67,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     "Check-in Time": new Date(a.checkedInAt).toLocaleTimeString("en-PH", {
       hour: "2-digit", minute: "2-digit", second: "2-digit",
     }),
+    "Remarks": a.remarks ?? "",
   }));
 
   const ws = XLSX.utils.json_to_sheet(rows);

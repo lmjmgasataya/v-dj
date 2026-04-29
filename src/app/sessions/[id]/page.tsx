@@ -53,6 +53,7 @@ export default async function SessionDetailPage({
       vgLeaderLastName: participants.vgLeaderLastName,
       vgLeaderFirstName: participants.vgLeaderFirstName,
       victoryDate: participants.victoryDate,
+      remarks: checkIns.remarks,
     })
     .from(checkIns)
     .innerJoin(participants, eq(checkIns.participantId, participants.id))

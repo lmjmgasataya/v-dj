@@ -1,0 +1,456 @@
+{
+  "id": "34b40b1c-c1c1-4d00-8254-f162b780c279",
+  "prevId": "0e2b2baf-2db7-4efa-92ed-8c9c794cb788",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.check_ins": {
+      "name": "check_ins",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "participant_id": {
+          "name": "participant_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "class_session_id": {
+          "name": "class_session_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "checked_in_at": {
+          "name": "checked_in_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "remarks": {
+          "name": "remarks",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "check_ins_participant_id_participants_id_fk": {
+          "name": "check_ins_participant_id_participants_id_fk",
+          "tableFrom": "check_ins",
+          "tableTo": "participants",
+          "columnsFrom": [
+            "participant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "check_ins_class_session_id_class_sessions_id_fk": {
+          "name": "check_ins_class_session_id_class_sessions_id_fk",
+          "tableFrom": "check_ins",
+          "tableTo": "class_sessions",
+          "columnsFrom": [
+            "class_session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "check_ins_participant_id_class_session_id_unique": {
+          "name": "check_ins_participant_id_class_session_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "participant_id",
+            "class_session_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.class_sessions": {
+      "name": "class_sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "session_date": {
+          "name": "session_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_victory_day": {
+          "name": "is_victory_day",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.disciplers": {
+      "name": "disciplers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mobile_number": {
+          "name": "mobile_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "messenger_name": {
+          "name": "messenger_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "disciplers_last_name_first_name_mobile_number_unique": {
+          "name": "disciplers_last_name_first_name_mobile_number_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "last_name",
+            "first_name",
+            "mobile_number"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.participants": {
+      "name": "participants",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "middle_initial": {
+          "name": "middle_initial",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mobile_number": {
+          "name": "mobile_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "facebook_messenger_name": {
+          "name": "facebook_messenger_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lifestage": {
+          "name": "lifestage",
+          "type": "lifestage",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "age": {
+          "name": "age",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gender": {
+          "name": "gender",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "service_attending": {
+          "name": "service_attending",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "completed_one2one": {
+          "name": "completed_one2one",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "will_undergo_water_baptism": {
+          "name": "will_undergo_water_baptism",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "previous_church": {
+          "name": "previous_church",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preferred_name_on_id": {
+          "name": "preferred_name_on_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "discipler_last_name": {
+          "name": "discipler_last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "discipler_first_name": {
+          "name": "discipler_first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "discipler_mobile_number": {
+          "name": "discipler_mobile_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "discipler_messenger_name": {
+          "name": "discipler_messenger_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "confirmed_readiness": {
+          "name": "confirmed_readiness",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acknowledgement_receipt_number": {
+          "name": "acknowledgement_receipt_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "registration_fee": {
+          "name": "registration_fee",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "admin_volunteer_name": {
+          "name": "admin_volunteer_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_walk_in": {
+          "name": "is_walk_in",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "vg_leader_last_name": {
+          "name": "vg_leader_last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vg_leader_first_name": {
+          "name": "vg_leader_first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "victory_date": {
+          "name": "victory_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "user_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'admin_volunteer'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_username_unique": {
+          "name": "users_username_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "username"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.lifestage": {
+      "name": "lifestage",
+      "schema": "public",
+      "values": [
+        "Student (JHS/SHS)",
+        "Student (College)",
+        "Single",
+        "Married",
+        "Single Parent",
+        "Widow/Widower",
+        "Senior"
+      ]
+    },
+    "public.user_role": {
+      "name": "user_role",
+      "schema": "public",
+      "values": [
+        "admin_volunteer",
+        "developer"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

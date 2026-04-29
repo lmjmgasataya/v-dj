@@ -78,6 +78,9 @@ export function WalkInForm({ sessionId }: { sessionId: number }) {
         <Field label="Victory Weekend / Victory Day Date" required className="sm:col-span-2">
           <input name="victoryDate" required type="date" className={inputCls} />
         </Field>
+        <Field label="Remarks (optional)" className="sm:col-span-2">
+          <textarea name="remarks" rows={2} placeholder="e.g. arrived late, missed first 30 minutes" className={inputCls + " resize-none"} />
+        </Field>
         <div className="sm:col-span-2 flex justify-end">
           <button
             type="submit"

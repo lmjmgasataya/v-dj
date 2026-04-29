@@ -7,10 +7,10 @@ type Lifestage = (typeof lifestageEnum.enumValues)[number];
 import { and, count, eq, gte, ilike, inArray, isNull, lt, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-export async function checkInParticipant(participantId: number, classSessionId: number) {
+export async function checkInParticipant(participantId: number, classSessionId: number, remarks?: string) {
   await db
     .insert(checkIns)
-    .values({ participantId, classSessionId })
+    .values({ participantId, classSessionId, remarks: remarks || null })
     .onConflictDoNothing();
   revalidatePath("/admin");
   revalidatePath("/sessions");
@@ -35,6 +35,7 @@ export async function getSessionCheckIns(sessionId: number) {
       isWalkIn: participants.isWalkIn,
       victoryDate: participants.victoryDate,
       checkedInAt: checkIns.checkedInAt,
+      remarks: checkIns.remarks,
     })
     .from(checkIns)
     .innerJoin(participants, eq(checkIns.participantId, participants.id))
@@ -71,6 +72,7 @@ export async function searchParticipants(sessionId: number, q: string) {
       victoryDate: participants.victoryDate,
       checkInId: checkIns.id,
       checkedInAt: checkIns.checkedInAt,
+      checkInRemarks: checkIns.remarks,
     })
     .from(participants)
     .leftJoin(
@@ -126,6 +128,7 @@ export async function searchParticipants(sessionId: number, q: string) {
     ...r,
     victoryDayDate: victoryCountMap[r.id] ?? null,
     completedVictoryDay: (victoryAttendanceCount[r.id] ?? 0) >= totalVictoryDaySessions,
+    checkInRemarks: r.checkInRemarks ?? null,
   }));
 }
 
@@ -149,7 +152,8 @@ export async function addWalkIn(classSessionId: number, formData: FormData) {
     })
     .returning({ id: participants.id });
 
-  await db.insert(checkIns).values({ participantId: inserted.id, classSessionId }).onConflictDoNothing();
+  const remarks = (formData.get("remarks") as string) || null;
+  await db.insert(checkIns).values({ participantId: inserted.id, classSessionId, remarks }).onConflictDoNothing();
 
   revalidatePath("/admin");
   revalidatePath("/participants");

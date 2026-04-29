@@ -97,17 +97,24 @@ export function SessionAttendeesModal({
                       hour: "2-digit", minute: "2-digit",
                     });
                     return (
-                      <li key={c.id} className="flex items-center justify-between px-5 py-3">
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs text-gray-400 font-mono w-5 shrink-0">{i + 1}</span>
-                          <span className="text-sm font-medium text-gray-900">{name}</span>
-                          {(c.isWalkIn ? c.victoryDate : c.victoryDayDate) && (
-                            <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">
-                              Victory Day: {c.isWalkIn ? c.victoryDate : c.victoryDayDate}
-                            </span>
-                          )}
+                      <li key={c.id} className="flex items-start justify-between px-5 py-3">
+                        <div className="flex items-start gap-3">
+                          <span className="text-xs text-gray-400 font-mono w-5 shrink-0 mt-0.5">{i + 1}</span>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-medium text-gray-900">{name}</span>
+                              {(c.isWalkIn ? c.victoryDate : c.victoryDayDate) && (
+                                <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                                  Victory Day: {c.isWalkIn ? c.victoryDate : c.victoryDayDate}
+                                </span>
+                              )}
+                            </div>
+                            {c.remarks && (
+                              <p className="text-xs text-amber-700 italic mt-0.5">{c.remarks}</p>
+                            )}
+                          </div>
                         </div>
-                        <span className="text-xs text-gray-400 shrink-0 ml-3">{time}</span>
+                        <span className="text-xs text-gray-400 shrink-0 ml-3 mt-0.5">{time}</span>
                       </li>
                     );
                   })}

@@ -8,6 +8,13 @@
       "when": 1777300000576,
       "tag": "0000_left_goliath",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1777430306337,
+      "tag": "0001_cold_starjammers",
+      "breakpoints": true
     }
   ]
 }

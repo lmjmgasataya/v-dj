@@ -81,6 +81,7 @@ export const checkIns = pgTable(
       .references(() => classSessions.id)
       .notNull(),
     checkedInAt: timestamp("checked_in_at").defaultNow().notNull(),
+    remarks: text("remarks"),
   },
   (t) => [unique().on(t.participantId, t.classSessionId)]
 );

@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { classSessions, checkIns, participants } from "@/db/schema";
-import { and, count, eq, gte, isNull, lt } from "drizzle-orm";
+import { and, count, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import Link from "next/link";
 import { WalkInForm } from "./WalkInForm";
 import { ParticipantSearch } from "./ParticipantSearch";
@@ -10,11 +10,17 @@ import { SessionAttendeesModal } from "./SessionAttendeesModal";
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ session?: string }>;
+  searchParams: Promise<{ session?: string; year?: string; q?: string }>;
 }) {
-  const { session } = await searchParams;
+  const { session, year: yearParam, q: initialQ = "" } = await searchParams;
+  const currentYear = new Date().getFullYear();
+  const year = yearParam ? parseInt(yearParam, 10) : currentYear;
   const sessionId = session ? parseInt(session, 10) : null;
-  const year = new Date().getFullYear();
+
+  const availableYears = await db
+    .selectDistinct({ year: sql<number>`EXTRACT(YEAR FROM ${classSessions.sessionDate})::int` })
+    .from(classSessions)
+    .orderBy(sql`1 ASC`);
 
   const sessions = await db
     .select()
@@ -67,6 +73,23 @@ export default async function AdminPage({
           <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold shrink-0">1</span>
           <p className="text-sm font-semibold text-gray-700">Select a Session</p>
         </div>
+        {availableYears.length > 1 && (
+          <div className="flex items-center gap-2">
+            {availableYears.map(({ year: y }) => (
+              <Link
+                key={y}
+                href={y === currentYear ? "/admin" : `/admin?year=${y}`}
+                className={`text-sm font-semibold px-4 py-1.5 rounded-lg border transition ${
+                  y === year
+                    ? "bg-indigo-600 text-white border-indigo-600"
+                    : "bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600"
+                }`}
+              >
+                {y}
+              </Link>
+            ))}
+          </div>
+        )}
         <SessionSelect sessions={sessions} selectedId={sessionId} />
         {selectedSession && (
           <SessionAttendeesModal
@@ -87,7 +110,7 @@ export default async function AdminPage({
               <span className="text-indigo-600 font-medium">{selectedSession.name}</span>
             </p>
           </div>
-          <ParticipantSearch key={selectedSession.id} sessionId={selectedSession.id} sessionName={selectedSession.name} isVictoryDay={selectedSession.isVictoryDay} />
+          <ParticipantSearch key={selectedSession.id} sessionId={selectedSession.id} sessionName={selectedSession.name} isVictoryDay={selectedSession.isVictoryDay} initialQ={initialQ} />
         </div>
       )}
 

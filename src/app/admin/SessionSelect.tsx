@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import type { ClassSession } from "@/db/schema";
 
@@ -12,6 +12,7 @@ export function SessionSelect({
   selectedId: number | null;
 }) {
   const router = useRouter();
+  const currentParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
   return (
@@ -21,8 +22,14 @@ export function SessionSelect({
       disabled={isPending}
       onChange={(e) => {
         const val = e.target.value;
+        const params = new URLSearchParams(currentParams.toString());
+        if (val) {
+          params.set("session", val);
+        } else {
+          params.delete("session");
+        }
         startTransition(() => {
-          router.push(val ? `/admin?session=${val}` : "/admin");
+          router.push(`/admin?${params.toString()}`);
         });
       }}
       className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white disabled:opacity-60"

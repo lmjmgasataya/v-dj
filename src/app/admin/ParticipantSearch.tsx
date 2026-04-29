@@ -1,16 +1,19 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { searchParticipants } from "./actions";
 import { SessionCheckInList } from "./SessionCheckInList";
 
 type Results = Awaited<ReturnType<typeof searchParticipants>>;
 
-export function ParticipantSearch({ sessionId, sessionName, isVictoryDay }: { sessionId: number; sessionName: string; isVictoryDay: boolean }) {
-  const [q, setQ] = useState("");
+export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, initialQ }: { sessionId: number; sessionName: string; isVictoryDay: boolean; initialQ?: string }) {
+  const [q, setQ] = useState(initialQ ?? "");
   const [results, setResults] = useState<Results>([]);
   const [searched, setSearched] = useState(false);
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   function runSearch(query: string) {
     setSearched(true);
@@ -23,8 +26,16 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay }: { se
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!q.trim()) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("q", q.trim());
+    router.replace(`/admin?${params.toString()}`, { scroll: false });
     runSearch(q);
   }
+
+  useEffect(() => {
+    if (initialQ?.trim()) runSearch(initialQ);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
 
   return (
     <div>

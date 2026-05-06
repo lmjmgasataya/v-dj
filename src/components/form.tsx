@@ -1,3 +1,17 @@
+export const FEE_CATEGORIES = [
+  { value: "A", label: "A — Adult with Victory Day", amount: "₱1,200" },
+  { value: "B", label: "B — Student with Victory Day", amount: "₱900" },
+  { value: "C", label: "C — Adult without Victory Day", amount: "₱900" },
+  { value: "D", label: "D — Student without Victory Day", amount: "₱700" },
+] as const;
+
+export type FeeCategory = (typeof FEE_CATEGORIES)[number]["value"];
+
+export function feeLabel(value: string | null | undefined): string {
+  const cat = FEE_CATEGORIES.find((f) => f.value === value);
+  return cat ? `${cat.label} (${cat.amount})` : (value ?? "—");
+}
+
 export const SERVICE_OPTIONS = [
   "9AM - Mandurriao",
   "11AM - Mandurriao",

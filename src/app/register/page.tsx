@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { registerParticipant } from "./actions";
-import { Section, Field, inputCls, selectCls, SERVICE_OPTIONS } from "@/components/form";
+import { Section, Field, inputCls, selectCls, SERVICE_OPTIONS, FEE_CATEGORIES } from "@/components/form";
 // import { DisciplerAutocomplete } from "@/components/DisciplerAutocomplete";
 import { SubmitButton } from "@/components/SubmitButton";
 // import type { Discipler } from "@/db/schema";
@@ -184,8 +184,9 @@ export default function RegisterPage() {
           <Field label="Registration Fee" required>
             <select name="registrationFee" required className={selectCls}>
               <option value="">-- Select --</option>
-              <option value="Regular">Regular — ₱1,200</option>
-              <option value="Discounted">Discounted — ₱900</option>
+              {FEE_CATEGORIES.map((f) => (
+                <option key={f.value} value={f.value}>{f.label} — {f.amount}</option>
+              ))}
             </select>
           </Field>
           <Field label="Name of Admin Volunteer" required className="sm:col-span-2">

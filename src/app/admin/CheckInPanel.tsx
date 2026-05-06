@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { checkInParticipant, removeCheckIn } from "./actions";
 import type { Participant, ClassSession, CheckIn } from "@/db/schema";
+import { FEE_CATEGORIES } from "@/components/form";
 
 interface Props {
   participant: Participant;
@@ -47,7 +48,7 @@ export function CheckInPanel({ participant, sessions, checkIns, hasVictoryDay }:
             <span>📱 {participant.mobileNumber}</span>
             <span>🎂 Age {participant.age}</span>
             <span>🙏 {participant.lifestage}</span>
-            <span>💵 {participant.registrationFee} fee</span>
+            <span>💵 {FEE_CATEGORIES.find((f) => f.value === participant.registrationFee)?.label ?? participant.registrationFee ?? "—"}</span>
           </div>
           <div className="mt-1 text-sm text-gray-600">
             <span>ID Name: <strong>{participant.preferredNameOnId}</strong></span>

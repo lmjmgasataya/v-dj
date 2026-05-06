@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { updateParticipant } from "./actions";
-import { Section, Field, inputCls, selectCls, SERVICE_OPTIONS } from "@/components/form";
+import { Section, Field, inputCls, selectCls, SERVICE_OPTIONS, FEE_CATEGORIES } from "@/components/form";
 import { SubmitButton } from "@/components/SubmitButton";
 import Link from "next/link";
 import type { Participant } from "@/db/schema";
@@ -193,8 +193,9 @@ export function EditForm({ participant }: { participant: Participant }) {
         <Field label="Registration Fee">
           <select name="registrationFee" defaultValue={participant.registrationFee ?? ""} className={selectCls}>
             <option value="">-- Select --</option>
-            <option value="Regular">Regular — ₱1,200</option>
-            <option value="Discounted">Discounted — ₱900</option>
+            {FEE_CATEGORIES.map((f) => (
+              <option key={f.value} value={f.value}>{f.label} — {f.amount}</option>
+            ))}
           </select>
         </Field>
         <Field label="Name of Admin Volunteer" className="sm:col-span-2">

@@ -26,8 +26,8 @@ function CheckInRow({ p, sessionId, isVictoryDay, onAction }: { p: ParticipantWi
   const [showModal, setShowModal] = useState(false);
   const [remarks, setRemarks] = useState("");
   const isCheckedIn = p.checkInId != null;
-  const hasVictoryDay = p.isWalkIn ? !!p.victoryDate : p.completedVictoryDay;
-  const isIncomplete = !p.isWalkIn && !!p.victoryDayDate && !p.completedVictoryDay;
+  const hasVictoryDay = !!p.victoryDate || p.completedVictoryDay;
+  const isIncomplete = !!p.victoryDayDate && !p.completedVictoryDay && !p.victoryDate;
   const blocked = !isVictoryDay && !hasVictoryDay;
 
   function handleConfirmCheckIn() {
@@ -53,7 +53,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, onAction }: { p: ParticipantWi
             {p.mobileNumber} · {p.lifestage}
           </p>
           {(() => {
-            const vd = p.isWalkIn ? p.victoryDate : p.victoryDayDate;
+            const vd = p.victoryDate ?? p.victoryDayDate;
             if (!vd) return (
               <span className="inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">
                 Victory Day: —

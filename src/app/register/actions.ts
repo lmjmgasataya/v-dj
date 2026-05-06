@@ -39,6 +39,7 @@ export async function registerParticipant(formData: FormData) {
       confirmedReadiness: formData.get("confirmedReadiness") === "on",
       acknowledgementReceiptNumber: formData.get("acknowledgementReceiptNumber") as string,
       registrationFee: formData.get("registrationFee") as string,
+      victoryDate: (formData.get("victoryDate") as string) || null,
       adminVolunteerName: formData.get("adminVolunteerName") as string,
     }),
     db.insert(disciplers).values({

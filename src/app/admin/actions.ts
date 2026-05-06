@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { participants, checkIns, classSessions, type lifestageEnum } from "@/db/schema";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
-import { and, count, eq, gte, ilike, inArray, isNull, lt, or } from "drizzle-orm";
+import { and, count, eq, gte, ilike, inArray, isNull, lt, notInArray, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export async function checkInParticipant(participantId: number, classSessionId: number, remarks?: string) {
@@ -56,7 +56,7 @@ export async function getSessionCheckIns(sessionId: number) {
   return rows.map((r) => ({ ...r, victoryDayDate: victoryDayMap[r.participantId] ?? null }));
 }
 
-export async function searchParticipants(sessionId: number, q: string) {
+export async function searchParticipants(sessionId: number, q: string, isVictoryDay = false) {
   if (!q.trim()) return [];
   const rows = await db
     .select({
@@ -89,7 +89,8 @@ export async function searchParticipants(sessionId: number, q: string) {
           ilike(participants.lastName, `%${q}%`),
           ilike(participants.firstName, `%${q}%`),
           ilike(participants.mobileNumber, `%${q}%`)
-        )
+        ),
+        isVictoryDay ? notInArray(participants.registrationFee, ["C", "D"]) : undefined
       )
     )
     .orderBy(participants.lastName)

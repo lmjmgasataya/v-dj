@@ -18,7 +18,7 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, initia
   function runSearch(query: string) {
     setSearched(true);
     startTransition(async () => {
-      const data = await searchParticipants(sessionId, query);
+      const data = await searchParticipants(sessionId, query, isVictoryDay);
       setResults(data);
     });
   }

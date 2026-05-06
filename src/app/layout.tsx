@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
+import { NavigationProgress } from "@/components/NavigationProgress";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"] });
@@ -18,6 +19,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className="h-full">
       <body className={`${geist.className} min-h-full bg-gray-50 antialiased`}>
+        <NavigationProgress />
         <header className="bg-indigo-700 text-white shadow">
           <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
             <Link href="/" className="hover:opacity-80 transition">

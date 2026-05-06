@@ -2,7 +2,6 @@ import { db } from "@/db";
 import { classSessions, checkIns, participants } from "@/db/schema";
 import { and, count, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import Link from "next/link";
-import { WalkInForm } from "./WalkInForm";
 import { ParticipantSearch } from "./ParticipantSearch";
 import { SessionSelect } from "./SessionSelect";
 import { SessionAttendeesModal } from "./SessionAttendeesModal";
@@ -111,20 +110,6 @@ export default async function AdminPage({
             </p>
           </div>
           <ParticipantSearch key={selectedSession.id} sessionId={selectedSession.id} sessionName={selectedSession.name} isVictoryDay={selectedSession.isVictoryDay} initialQ={initialQ} />
-        </div>
-      )}
-
-      {/* Walk-in Check-in (not applicable to Victory Day) */}
-      {selectedSession && !selectedSession.isVictoryDay && (
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold shrink-0">2.1</span>
-            <p className="text-sm font-semibold text-gray-700">
-              Walk-in Check-in —{" "}
-              <span className="text-indigo-600 font-medium">{selectedSession.name}</span>
-            </p>
-          </div>
-          <WalkInForm key={selectedSession.id} sessionId={selectedSession.id} />
         </div>
       )}
     </div>

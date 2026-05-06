@@ -1,8 +1,8 @@
 export const FEE_CATEGORIES = [
-  { value: "A", label: "A — Adult with Victory Day", amount: "₱1,200" },
-  { value: "B", label: "B — Student with Victory Day", amount: "₱900" },
-  { value: "C", label: "C — Adult without Victory Day", amount: "₱900" },
-  { value: "D", label: "D — Student without Victory Day", amount: "₱700" },
+  { value: "A", description: "Adult with Victory Day",    label: "A — Adult with Victory Day",    amount: "₱1,200" },
+  { value: "B", description: "Student with Victory Day",  label: "B — Student with Victory Day",  amount: "₱900" },
+  { value: "C", description: "Adult without Victory Day", label: "C — Adult without Victory Day", amount: "₱900" },
+  { value: "D", description: "Student without Victory Day", label: "D — Student without Victory Day", amount: "₱700" },
 ] as const;
 
 export type FeeCategory = (typeof FEE_CATEGORIES)[number]["value"];

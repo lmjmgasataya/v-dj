@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Participant } from "@/db/schema";
+import { FEE_CATEGORIES } from "@/components/form";
 
 type Attendance = { sessionName: string; sessionDate: string };
 
@@ -32,7 +33,9 @@ export function ParticipantTable({
     <div className="flex flex-col divide-y divide-gray-100 rounded-xl border border-gray-200 shadow-sm bg-white overflow-hidden">
       {rows.map((p) => {
         const isExpanded = expandedId === p.id;
-        const subtitle = [p.mobileNumber, p.lifestage, p.serviceAttending].filter(Boolean).join(" · ");
+        const feeCat = FEE_CATEGORIES.find((f) => f.value === p.registrationFee);
+        const feeLabel = feeCat ? `Class ${feeCat.value} (${feeCat.description})` : null;
+        const subtitle = [p.mobileNumber, p.lifestage, feeLabel].filter(Boolean).join(" · ");
 
         return (
           <div key={p.id}>
@@ -48,8 +51,8 @@ export function ParticipantTable({
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-3">
                 {(() => {
-                  const vd = p.isWalkIn ? p.victoryDate : victoryDayDates[p.id];
-                  const completed = p.isWalkIn ? true : !!completedVictoryDays[p.id];
+                  const vd = p.victoryDate ?? victoryDayDates[p.id] ?? null;
+                  const completed = !!p.victoryDate || !!completedVictoryDays[p.id];
                   if (!vd) return (
                     <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">
                       Victory Day: —
@@ -79,44 +82,31 @@ export function ParticipantTable({
                   <Detail label="Gender" value={p.gender} />
                   <Detail label="Service" value={p.serviceAttending} />
                   <Detail label="Facebook / Messenger" value={p.facebookMessengerName} />
-                  {!p.isWalkIn && (
-                    <>
-                      <Detail label="Previous Church" value={p.previousChurch} />
-                      <Detail label="Preferred ID Name" value={p.preferredNameOnId} />
-                      <Detail label="Completed One2One" value={
-                        p.completedOne2One == null ? null
-                          : p.completedOne2One ? "Yes" : "No (will complete before Victory Day)"
-                      } />
-                      <Detail label="Water Baptism" value={
-                        p.willUndergoWaterBaptism == null ? null
-                          : p.willUndergoWaterBaptism ? "Yes" : "No"
-                      } />
-                      <Detail label="Receipt No." value={p.acknowledgementReceiptNumber} />
-                    </>
-                  )}
-                  {p.isWalkIn && (
-                    <>
-                      <Detail label="VG Leader" value={
-                        p.vgLeaderLastName && p.vgLeaderFirstName
-                          ? `${p.vgLeaderLastName}, ${p.vgLeaderFirstName}`
-                          : null
-                      } />
-                      <Detail label="Victory Date" value={p.victoryDate} />
-                    </>
+                  <Detail label="Previous Church" value={p.previousChurch} />
+                  <Detail label="Preferred ID Name" value={p.preferredNameOnId} />
+                  <Detail label="Completed One2One" value={
+                    p.completedOne2One == null ? null
+                      : p.completedOne2One ? "Yes" : "No (will complete before Victory Day)"
+                  } />
+                  <Detail label="Water Baptism" value={
+                    p.willUndergoWaterBaptism == null ? null
+                      : p.willUndergoWaterBaptism ? "Yes" : "No"
+                  } />
+                  <Detail label="Receipt No." value={p.acknowledgementReceiptNumber} />
+                  {p.victoryDate && (
+                    <Detail label="Victory Date" value={p.victoryDate} />
                   )}
                 </div>
 
-                {!p.isWalkIn && (
-                  <div className="border-t border-gray-200 pt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    <Detail label="Discipler" value={
-                      p.disciplerLastName && p.disciplerFirstName
-                        ? `${p.disciplerLastName}, ${p.disciplerFirstName}`
-                        : null
-                    } />
-                    <Detail label="Discipler Mobile" value={p.disciplerMobileNumber} />
-                    <Detail label="Discipler Messenger" value={p.disciplerMessengerName} />
-                  </div>
-                )}
+                <div className="border-t border-gray-200 pt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <Detail label="Discipler" value={
+                    p.disciplerLastName && p.disciplerFirstName
+                      ? `${p.disciplerLastName}, ${p.disciplerFirstName}`
+                      : null
+                  } />
+                  <Detail label="Discipler Mobile" value={p.disciplerMobileNumber} />
+                  <Detail label="Discipler Messenger" value={p.disciplerMessengerName} />
+                </div>
 
                 {(attendance[p.id]?.length ?? 0) > 0 && (
                   <div className="border-t border-gray-200 pt-3">
@@ -140,7 +130,7 @@ export function ParticipantTable({
                 )}
 
                 <div className="border-t border-gray-200 pt-3 flex items-center justify-between">
-                  {!p.isWalkIn && <Detail label="Admin Volunteer" value={p.adminVolunteerName} />}
+                  <Detail label="Admin Volunteer" value={p.adminVolunteerName} />
                   <div className="ml-auto">
                     <Link
                       href={`/participants/${p.id}/edit`}

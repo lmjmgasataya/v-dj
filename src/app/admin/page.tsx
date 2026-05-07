@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { classSessions, checkIns, participants } from "@/db/schema";
 import { and, count, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import Link from "next/link";
+import { FEE_CATEGORIES } from "@/components/form";
 import { ParticipantSearch } from "./ParticipantSearch";
 import { SessionSelect } from "./SessionSelect";
 import { SessionAttendeesModal } from "./SessionAttendeesModal";
@@ -45,6 +46,20 @@ export default async function AdminPage({
       )
     );
 
+  const feeBreakdown = await db
+    .select({ fee: participants.registrationFee, total: count() })
+    .from(participants)
+    .where(
+      and(
+        isNull(participants.deletedAt),
+        eq(participants.isWalkIn, false),
+        gte(participants.createdAt, new Date(`${year}-01-01`)),
+        lt(participants.createdAt, new Date(`${year + 1}-01-01`))
+      )
+    )
+    .groupBy(participants.registrationFee)
+    .orderBy(participants.registrationFee);
+
   const attendeeCount = selectedSession
     ? (
         await db
@@ -61,9 +76,25 @@ export default async function AdminPage({
         <Link href="/" className="text-sm text-indigo-600 hover:underline">← Home</Link>
       </div>
 
-      <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-indigo-100 bg-indigo-50 w-fit">
-        <span className="text-2xl font-bold text-indigo-600">{registeredCount}</span>
-        <span className="text-sm text-indigo-500">registered participant{registeredCount !== 1 ? "s" : ""} for the selected year</span>
+      <div className="px-4 py-3 rounded-xl border border-indigo-100 bg-indigo-50 w-fit flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl font-bold text-indigo-600">{registeredCount}</span>
+          <span className="text-sm text-indigo-500">registered participant{registeredCount !== 1 ? "s" : ""} for the selected year</span>
+        </div>
+        {feeBreakdown.length > 0 && (
+          <ul className="flex flex-col gap-0.5 pl-3 border-l-2 border-indigo-200">
+            {feeBreakdown.map(({ fee, total }) => {
+              const cat = FEE_CATEGORIES.find((f) => f.value === fee);
+              return (
+                <li key={fee} className="text-sm text-indigo-700">
+                  <span className="font-semibold">{total}</span>
+                  {" — "}
+                  {cat ? `Class ${cat.value} (${cat.description})` : (fee ?? "Unknown")}
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
       {/* Step 1: Select session */}

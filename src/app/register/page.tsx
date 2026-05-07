@@ -42,9 +42,6 @@ export default function RegisterPage() {
 
       <form action={registerParticipant} className="flex flex-col gap-6">
         <Section title="Payment &amp; Admin">
-          <Field label="Acknowledgement Receipt Number" required>
-            <input name="acknowledgementReceiptNumber" required className={inputCls} />
-          </Field>
           <Field label="Registration Fee" required important>
             <select
               name="registrationFee"
@@ -59,21 +56,24 @@ export default function RegisterPage() {
               ))}
             </select>
           </Field>
-          {needsVictoryDate && (
-            <div className="sm:col-span-2 rounded-xl border-2 border-amber-400 bg-amber-50 px-5 py-4 flex flex-col gap-1">
-              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Required</p>
-              <p className="text-xs text-amber-600 mb-2">This fee category does not include Victory Day. Please enter the date when the participant completed Victory Day/Victory Weekend.</p>
-              <Field label="Victory Day Date" required>
-                <input name="victoryDate" required type="date" max={today} className={inputCls} />
-              </Field>
-            </div>
-          )}
+          <Field label="Acknowledgement Receipt Number" required>
+            <input name="acknowledgementReceiptNumber" required className={inputCls} />
+          </Field>
           <Field label="Name of Admin Volunteer" required className="sm:col-span-2">
             <input name="adminVolunteerName" required className={inputCls} />
           </Field>
         </Section>
 
         <Section title="Participant Information">
+          {needsVictoryDate && (
+            <div className="sm:col-span-2 rounded-xl border-2 border-amber-400 bg-amber-50 px-5 py-4 flex flex-col gap-1">
+              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Required</p>
+              <p className="text-xs text-amber-600 mb-2">Please enter the date when the participant completed Victory Day/Victory Weekend.</p>
+              <Field label="Victory Day Date" required>
+                <input name="victoryDate" required type="date" max={today} className={inputCls} />
+              </Field>
+            </div>
+          )}
           <Field label="Last Name" required>
             <input name="lastName" required className={inputCls} />
           </Field>

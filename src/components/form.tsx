@@ -42,11 +42,13 @@ export function Section({ title, description, children }: { title: string; descr
 export function Field({
   label,
   required,
+  important,
   className,
   children,
 }: {
   label: string;
   required?: boolean;
+  important?: boolean;
   className?: string;
   children: React.ReactNode;
 }) {
@@ -54,6 +56,7 @@ export function Field({
     <div className={className}>
       <label className="block text-sm font-medium text-gray-700 mb-1">
         {label} {required && <span className="text-red-500">*</span>}
+        {important && <span className="ml-1.5 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 uppercase tracking-wide">Important</span>}
       </label>
       {children}
     </div>

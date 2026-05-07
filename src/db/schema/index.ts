@@ -97,8 +97,19 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const loginLogs = pgTable("login_logs", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull(),
+  userId: integer("user_id").references(() => users.id),
+  success: boolean("success").notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  loggedAt: timestamp("logged_at").defaultNow().notNull(),
+});
+
 export type Participant = typeof participants.$inferSelect;
 export type ClassSession = typeof classSessions.$inferSelect;
 export type CheckIn = typeof checkIns.$inferSelect;
 export type Discipler = typeof disciplers.$inferSelect;
 export type User = typeof users.$inferSelect;
+export type LoginLog = typeof loginLogs.$inferSelect;

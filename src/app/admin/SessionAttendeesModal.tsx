@@ -103,11 +103,16 @@ export function SessionAttendeesModal({
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm font-medium text-gray-900">{name}</span>
-                              {(c.isWalkIn ? c.victoryDate : c.victoryDayDate) && (
-                                <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">
-                                  Victory Day: {c.isWalkIn ? c.victoryDate : c.victoryDayDate}
-                                </span>
-                              )}
+                              {(() => {
+                                const vd = c.victoryDate ?? c.victoryDayDate;
+                                if (!vd) return null;
+                                const isIncomplete = !!c.victoryDayDate && !c.completedVictoryDay && !c.victoryDate;
+                                return (
+                                  <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${isIncomplete ? "bg-amber-100 text-amber-700" : "bg-purple-100 text-purple-700"}`}>
+                                    Victory Day: {vd}{isIncomplete ? " (Incomplete)" : ""}
+                                  </span>
+                                );
+                              })()}
                             </div>
                             {c.remarks && (
                               <p className="text-xs text-amber-700 italic mt-0.5">{c.remarks}</p>

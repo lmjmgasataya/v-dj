@@ -12,7 +12,6 @@ interface ParticipantWithStatus {
   lifestage: string | null;
   gender: string;
   preferredNameOnId: string | null;
-  isWalkIn: boolean;
   victoryDate: string | null;
   victoryDayDate: string | null;
   completedVictoryDay: boolean;

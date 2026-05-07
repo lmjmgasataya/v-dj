@@ -32,7 +32,6 @@ export async function getSessionCheckIns(sessionId: number) {
       lastName: participants.lastName,
       firstName: participants.firstName,
       middleInitial: participants.middleInitial,
-      isWalkIn: participants.isWalkIn,
       victoryDate: participants.victoryDate,
       checkedInAt: checkIns.checkedInAt,
       remarks: checkIns.remarks,
@@ -45,15 +44,37 @@ export async function getSessionCheckIns(sessionId: number) {
   if (rows.length === 0) return [];
 
   const participantIds = rows.map((r) => r.participantId);
+
+  const year = new Date().getFullYear();
+  const [{ totalVictoryDaySessions }] = await db
+    .select({ totalVictoryDaySessions: count() })
+    .from(classSessions)
+    .where(
+      and(
+        eq(classSessions.isVictoryDay, true),
+        gte(classSessions.sessionDate, `${year}-01-01`),
+        lt(classSessions.sessionDate, `${year + 1}-01-01`)
+      )
+    );
+
   const victoryCheckIns = await db
     .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
     .from(checkIns)
     .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
     .where(and(inArray(checkIns.participantId, participantIds), eq(classSessions.isVictoryDay, true)));
 
-  const victoryDayMap = Object.fromEntries(victoryCheckIns.map((v) => [v.participantId, v.sessionDate]));
+  const victoryDayMap: Record<number, string> = {};
+  const victoryAttendanceCount: Record<number, number> = {};
+  for (const v of victoryCheckIns) {
+    victoryDayMap[v.participantId] ??= v.sessionDate;
+    victoryAttendanceCount[v.participantId] = (victoryAttendanceCount[v.participantId] ?? 0) + 1;
+  }
 
-  return rows.map((r) => ({ ...r, victoryDayDate: victoryDayMap[r.participantId] ?? null }));
+  return rows.map((r) => ({
+    ...r,
+    victoryDayDate: victoryDayMap[r.participantId] ?? null,
+    completedVictoryDay: (victoryAttendanceCount[r.participantId] ?? 0) >= totalVictoryDaySessions,
+  }));
 }
 
 export async function searchParticipants(sessionId: number, q: string, isVictoryDay = false) {

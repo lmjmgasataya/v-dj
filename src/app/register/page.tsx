@@ -41,7 +41,35 @@ export default function RegisterPage() {
       </div>
 
       <form action={registerParticipant} className="flex flex-col gap-6">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-5 flex flex-col gap-2">
+          <p className="text-sm font-semibold text-gray-700">
+            I will register for: <span className="text-red-500">*</span>
+            <span className="ml-1.5 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 uppercase tracking-wide">Important</span>
+          </p>
+          <select
+            name="registrationFee"
+            required
+            className={selectCls}
+            value={registrationFee}
+            onChange={(e) => setRegistrationFee(e.target.value)}
+          >
+            <option value="">-- Select --</option>
+            {FEE_CATEGORIES.map((f) => (
+              <option key={f.value} value={f.value}>{f.label} — {f.amount}</option>
+            ))}
+          </select>
+        </div>
+
         <Section title="Participant Information">
+          {needsVictoryDate && (
+            <div className="sm:col-span-2 rounded-xl border-2 border-amber-400 bg-amber-50 px-5 py-4 flex flex-col gap-1">
+              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Required</p>
+              <p className="text-xs text-amber-600 mb-2">Please enter the date when the participant completed Victory Day/Victory Weekend.</p>
+              <Field label="Victory Day Date" required>
+                <input name="victoryDate" required type="date" max={today} className={inputCls} />
+              </Field>
+            </div>
+          )}
           <Field label="Last Name" required>
             <input name="lastName" required className={inputCls} />
           </Field>
@@ -181,13 +209,11 @@ export default function RegisterPage() {
         </Section>
 
         <Section title="Payment &amp; Admin">
-          <Field label="Registration Fee" required important>
+          <Field label="Registration Fee" required>
             <select
-              name="registrationFee"
-              required
-              className={selectCls}
+              disabled
+              className={`${selectCls} opacity-60 cursor-not-allowed bg-gray-50`}
               value={registrationFee}
-              onChange={(e) => setRegistrationFee(e.target.value)}
             >
               <option value="">-- Select --</option>
               {FEE_CATEGORIES.map((f) => (
@@ -202,18 +228,6 @@ export default function RegisterPage() {
             <input name="adminVolunteerName" required className={inputCls} />
           </Field>
         </Section>
-
-        {needsVictoryDate && (
-          <Section title="Additional Participant Information">
-            <div className="sm:col-span-2 rounded-xl border-2 border-amber-400 bg-amber-50 px-5 py-4 flex flex-col gap-1">
-              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Required</p>
-              <p className="text-xs text-amber-600 mb-2">Please enter the date when the participant completed Victory Day/Victory Weekend.</p>
-              <Field label="Victory Day Date" required>
-                <input name="victoryDate" required type="date" max={today} className={inputCls} />
-              </Field>
-            </div>
-          </Section>
-        )}
 
         <SubmitButton
           label="Register Participant"

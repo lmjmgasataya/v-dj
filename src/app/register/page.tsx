@@ -64,8 +64,8 @@ export default function RegisterPage() {
           {needsVictoryDate && (
             <div className="sm:col-span-2 rounded-xl border-2 border-amber-400 bg-amber-50 px-5 py-4 flex flex-col gap-1">
               <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Required</p>
-              <p className="text-xs text-amber-600 mb-2">Please enter the date when the participant completed Victory Day/Victory Weekend.</p>
-              <Field label="Victory Day Date" required>
+              <p className="text-xs text-amber-600 mb-2">Please enter the date when the participant completed Victory Weekend.</p>
+              <Field label="Victory Weekend Date" required>
                 <input name="victoryDate" required type="date" max={today} className={inputCls} />
               </Field>
             </div>

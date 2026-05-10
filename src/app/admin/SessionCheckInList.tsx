@@ -77,7 +77,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, onAction }: { p: ParticipantWi
           {isCheckedIn ? (
             <>
               <div className="flex flex-col items-end gap-1">
-                <span className="text-green-600 font-semibold text-xs">✓ Done</span>
+                <span className="text-green-600 font-semibold text-xs">✓ Checked In</span>
                 {p.checkedInAt && (
                   <span className="text-xs text-green-500">
                     {new Date(p.checkedInAt).toLocaleString("en-PH", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}

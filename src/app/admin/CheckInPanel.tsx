@@ -26,6 +26,7 @@ export function CheckInPanel({ participant, sessions, checkIns, hasVictoryDay }:
       await checkInParticipant(participant.id, modalSessionId, remarks || undefined);
       setModalSessionId(null);
       setRemarks("");
+      document.getElementById("search-participant")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }
 

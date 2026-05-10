@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { searchParticipants } from "./actions";
 import { SessionCheckInList } from "./SessionCheckInList";
@@ -14,9 +14,18 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, initia
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const scrollAfterSearch = useRef(false);
+
+  useEffect(() => {
+    if (scrollAfterSearch.current && !pending) {
+      scrollAfterSearch.current = false;
+      document.getElementById("search-participant")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [pending]);
 
   function runSearch(query: string) {
     setSearched(true);
+    scrollAfterSearch.current = true;
     startTransition(async () => {
       const data = await searchParticipants(sessionId, query, isVictoryDay);
       setResults(data);

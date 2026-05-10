@@ -9,7 +9,7 @@ export default async function EditSessionPage({ params }: { params: Promise<{ id
   const sessionId = parseInt(id, 10);
 
   const [session] = await db
-    .select({ id: classSessions.id, name: classSessions.name, sessionDate: classSessions.sessionDate })
+    .select({ id: classSessions.id, name: classSessions.name, sessionDate: classSessions.sessionDate, allowsWalkIn: classSessions.allowsWalkIn })
     .from(classSessions)
     .where(eq(classSessions.id, sessionId))
     .limit(1);

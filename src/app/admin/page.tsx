@@ -6,6 +6,7 @@ import { FEE_CATEGORIES } from "@/components/form";
 import { ParticipantSearch } from "./ParticipantSearch";
 import { SessionSelect } from "./SessionSelect";
 import { SessionAttendeesModal } from "./SessionAttendeesModal";
+import { WalkInForm } from "./WalkInForm";
 
 export default async function AdminPage({
   searchParams,
@@ -141,6 +142,20 @@ export default async function AdminPage({
             </p>
           </div>
           <ParticipantSearch key={selectedSession.id} sessionId={selectedSession.id} sessionName={selectedSession.name} isVictoryDay={selectedSession.isVictoryDay} initialQ={initialQ} />
+        </div>
+      )}
+
+      {/* Step 3: Add walk-in */}
+      {selectedSession && selectedSession.allowsWalkIn && (
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold shrink-0">2.1</span>
+            <p className="text-sm font-semibold text-gray-700">
+              Add Walk-in —{" "}
+              <span className="text-indigo-600 font-medium">{selectedSession.name}</span>
+            </p>
+          </div>
+          <WalkInForm sessionId={selectedSession.id} />
         </div>
       )}
     </div>

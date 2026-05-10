@@ -9,10 +9,11 @@ export async function createSession(_: unknown, formData: FormData) {
   const name = (formData.get("name") as string).trim();
   const sessionDate = formData.get("sessionDate") as string;
   const isVictoryDay = name.includes("Victory Day");
+  const allowsWalkIn = formData.get("allowsWalkIn") === "true";
 
   if (!name || !sessionDate) return { error: "Name and date are required." };
 
-  await db.insert(classSessions).values({ name, sessionDate, isVictoryDay });
+  await db.insert(classSessions).values({ name, sessionDate, isVictoryDay, allowsWalkIn });
 
   revalidatePath("/sessions");
   redirect("/sessions");

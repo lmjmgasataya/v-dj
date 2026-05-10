@@ -9,7 +9,7 @@ export function EditSessionForm({
   session,
   existingNames,
 }: {
-  session: { id: number; name: string; sessionDate: string };
+  session: { id: number; name: string; sessionDate: string; allowsWalkIn: boolean };
   existingNames: string[];
 }) {
   const isCustom = !existingNames.includes(session.name);
@@ -77,6 +77,17 @@ export function EditSessionForm({
             className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
           />
         </div>
+
+        <label className="flex items-center gap-3 cursor-pointer select-none">
+          <input
+            name="allowsWalkIn"
+            type="checkbox"
+            value="true"
+            defaultChecked={session.allowsWalkIn}
+            className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+          />
+          <span className="text-sm text-gray-700 font-medium">Allow walk-in registration for this session</span>
+        </label>
 
         {state?.error && (
           <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">

@@ -13,8 +13,9 @@ export async function updateSession(id: number, _: unknown, formData: FormData) 
   if (!name || !sessionDate) return { error: "Name and date are required." };
 
   const isVictoryDay = name.includes("Victory Day");
+  const allowsWalkIn = formData.get("allowsWalkIn") === "true";
 
-  await db.update(classSessions).set({ name, sessionDate, isVictoryDay }).where(eq(classSessions.id, id));
+  await db.update(classSessions).set({ name, sessionDate, isVictoryDay, allowsWalkIn }).where(eq(classSessions.id, id));
 
   revalidatePath("/sessions");
   redirect(`/sessions/${id}`);

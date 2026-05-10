@@ -1,0 +1,1 @@
+ALTER TABLE "class_sessions" ADD COLUMN "allows_walk_in" boolean DEFAULT false NOT NULL;

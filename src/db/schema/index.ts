@@ -68,6 +68,7 @@ export const classSessions = pgTable("class_sessions", {
   name: text("name").notNull(),
   sessionDate: date("session_date").notNull(),
   isVictoryDay: boolean("is_victory_day").default(false).notNull(),
+  allowsWalkIn: boolean("allows_walk_in").default(false).notNull(),
 });
 
 export const checkIns = pgTable(

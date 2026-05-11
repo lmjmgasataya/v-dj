@@ -94,7 +94,7 @@ export function ParticipantTable({
                   } />
                   <Detail label="Receipt No." value={p.acknowledgementReceiptNumber} />
                   {p.victoryDate && (
-                    <Detail label="Victory Date" value={p.victoryDate} />
+                    <Detail label="Victory Weekend Date" value={p.victoryDate} />
                   )}
                 </div>
 

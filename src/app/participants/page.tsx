@@ -112,7 +112,7 @@ export default async function ParticipantsPage({
           name="q"
           defaultValue={q}
           placeholder="Search by name or mobile number..."
-          className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
         />
         <button
           type="submit"

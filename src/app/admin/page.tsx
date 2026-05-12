@@ -132,7 +132,7 @@ export default async function AdminPage({
       </div>
 
       {/* Step 2: Search participant */}
-      {selectedSession && (
+      {selectedSession && !selectedSession.allowsWalkIn && (
         <div id="search-participant" className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold shrink-0">2</span>

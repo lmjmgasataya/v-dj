@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { registerParticipant } from "./actions";
 import { Section, Field, inputCls, selectCls, SERVICE_OPTIONS, FEE_CATEGORIES } from "@/components/form";
 // import { DisciplerAutocomplete } from "@/components/DisciplerAutocomplete";
@@ -22,6 +22,36 @@ export default function RegisterPage() {
   const [discipler, setDiscipler] = useState({ lastName: "", firstName: "", mobileNumber: "", messengerName: "" });
   const [registrationFee, setRegistrationFee] = useState("");
   const needsVictoryDate = registrationFee === "C" || registrationFee === "D";
+
+  const isDirty = useRef(false);
+  useEffect(() => {
+    // Tab close / refresh / external navigation
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      if (isDirty.current) e.preventDefault();
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    // Next.js Link clicks — intercept in capture phase before the router acts
+    function handleClick(e: MouseEvent) {
+      if (!isDirty.current) return;
+      const anchor = (e.target as Element).closest("a[href]");
+      if (!anchor) return;
+      const href = anchor.getAttribute("href");
+      if (!href || href.startsWith("#")) return;
+      if (!confirm("You have unsaved changes. Are you sure you want to leave?")) {
+        e.preventDefault();
+        e.stopPropagation();
+      } else {
+        isDirty.current = false;
+      }
+    }
+    document.addEventListener("click", handleClick, true);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("click", handleClick, true);
+    };
+  }, []);
   const today = new Date().toISOString().slice(0, 10);
 
   // function handleDisciplerSelect(d: Discipler) {
@@ -40,7 +70,12 @@ export default function RegisterPage() {
         <a href="/" className="text-sm text-indigo-600 hover:underline shrink-0">← Home</a>
       </div>
 
-      <form action={registerParticipant} className="flex flex-col gap-6">
+      <form
+        action={registerParticipant}
+        onChange={() => { isDirty.current = true; }}
+        onSubmit={() => { isDirty.current = false; }}
+        className="flex flex-col gap-6"
+      >
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-5 flex flex-col gap-2">
           <p className="text-sm font-semibold text-gray-700">
             I will register for: <span className="text-red-500">*</span>

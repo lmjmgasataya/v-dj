@@ -1,0 +1,1 @@
+ALTER TABLE "victory_groups" ADD COLUMN "other_frequency" text;

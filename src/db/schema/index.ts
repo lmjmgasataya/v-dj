@@ -108,9 +108,57 @@ export const loginLogs = pgTable("login_logs", {
   loggedAt: timestamp("logged_at").defaultNow().notNull(),
 });
 
+export const dayOfWeekEnum = pgEnum("day_of_week", [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+]);
+
+export const vgFrequencyEnum = pgEnum("vg_frequency", [
+  "Weekly",
+  "Every other week",
+  "Once a month",
+  "Others",
+]);
+
+export const victoryGroupLeaders = pgTable("victory_group_leaders", {
+  id: serial("id").primaryKey(),
+  lastName: text("last_name").notNull(),
+  firstName: text("first_name").notNull(),
+  middleInitial: text("middle_initial"),
+  mobileNumber: text("mobile_number").notNull(),
+  age: integer("age").notNull(),
+  gender: text("gender").notNull(),
+  lifestage: lifestageEnum("lifestage"),
+  serviceAttending: text("service_attending"),
+  facebookMessengerName: text("facebook_messenger_name"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
+});
+
+export const victoryGroups = pgTable("victory_groups", {
+  id: serial("id").primaryKey(),
+  vgLeaderId: integer("vg_leader_id")
+    .references(() => victoryGroupLeaders.id)
+    .notNull(),
+  place: text("place").notNull(),
+  day: dayOfWeekEnum("day").notNull(),
+  time: text("time").notNull(),
+  frequency: vgFrequencyEnum("frequency").notNull(),
+  otherFrequency: text("other_frequency"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
+});
+
 export type Participant = typeof participants.$inferSelect;
 export type ClassSession = typeof classSessions.$inferSelect;
 export type CheckIn = typeof checkIns.$inferSelect;
 export type Discipler = typeof disciplers.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type LoginLog = typeof loginLogs.$inferSelect;
+export type VictoryGroupLeader = typeof victoryGroupLeaders.$inferSelect;
+export type VictoryGroup = typeof victoryGroups.$inferSelect;

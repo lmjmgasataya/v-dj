@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { createSession } from "./actions";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 export function NewSessionForm({ existingNames }: { existingNames: string[] }) {
   const [state, action, pending] = useActionState(createSession, undefined);
@@ -11,8 +12,8 @@ export function NewSessionForm({ existingNames }: { existingNames: string[] }) {
   return (
     <div className="flex flex-col gap-6 max-w-lg">
       <div>
-        <Link href="/sessions" className="text-sm text-indigo-600 hover:underline">← Sessions</Link>
-        <h2 className="text-2xl font-bold text-gray-900 mt-1">New Session</h2>
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Sessions", href: "/sessions" }, { label: "New Session" }]} />
+        <h2 className="text-2xl font-bold text-gray-900">New Session</h2>
       </div>
 
       <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm font-medium w-fit">

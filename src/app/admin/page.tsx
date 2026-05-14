@@ -3,6 +3,7 @@ import { classSessions, checkIns, participants } from "@/db/schema";
 import { and, count, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import Link from "next/link";
 import { FEE_CATEGORIES } from "@/components/form";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ParticipantSearch } from "./ParticipantSearch";
 import { SessionSelect } from "./SessionSelect";
 import { SessionAttendeesModal } from "./SessionAttendeesModal";
@@ -72,9 +73,9 @@ export default async function AdminPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div>
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Check-in" }]} />
         <h2 className="text-2xl font-bold text-gray-900">Admin / Check-in</h2>
-        <Link href="/" className="text-sm text-indigo-600 hover:underline">← Home</Link>
       </div>
 
       <div className="px-4 py-3 rounded-xl border border-indigo-100 bg-indigo-50 w-fit flex flex-col gap-2">

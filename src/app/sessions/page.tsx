@@ -3,6 +3,7 @@ import { classSessions, checkIns } from "@/db/schema";
 import { and, eq, gte, lt, sql } from "drizzle-orm";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 export default async function SessionsPage({
   searchParams,
@@ -43,12 +44,13 @@ export default async function SessionsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Class Sessions</h2>
-          <p className="text-sm text-gray-500 mt-0.5">{sessions.length} session{sessions.length !== 1 ? "s" : ""} in {year}</p>
-        </div>
-        <div className="flex items-center gap-3">
+      <div>
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Sessions" }]} />
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Class Sessions</h2>
+            <p className="text-sm text-gray-500 mt-0.5">{sessions.length} session{sessions.length !== 1 ? "s" : ""} in {year}</p>
+          </div>
           {isDeveloper && (
             <Link
               href="/sessions/new"
@@ -57,7 +59,6 @@ export default async function SessionsPage({
               + New Session
             </Link>
           )}
-          <Link href="/" className="text-sm text-indigo-600 hover:underline">← Home</Link>
         </div>
       </div>
 

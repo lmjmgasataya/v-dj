@@ -2,10 +2,10 @@ import { db } from "@/db";
 import { victoryGroupLeaders, victoryGroups } from "@/db/schema";
 import { eq, isNull, and } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { EditForm } from "./EditForm";
 import { DeleteButton } from "./DeleteButton";
 import { VictoryGroupsSection } from "./VictoryGroupsSection";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 export default async function EditVGLeaderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -27,17 +27,15 @@ export default async function EditVGLeaderPage({ params }: { params: Promise<{ i
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Edit VG Leader</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {leader.lastName}, {leader.firstName}
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <Link href="/vg-leaders" className="text-sm text-indigo-600 hover:underline">
-            ← Back to list
-          </Link>
+      <div className="mb-6">
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "VG Leaders", href: "/vg-leaders" }, { label: `${leader.lastName}, ${leader.firstName}` }]} />
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Edit VG Leader</h2>
+            <p className="text-sm text-gray-500 mt-0.5">
+              {leader.lastName}, {leader.firstName}
+            </p>
+          </div>
           <DeleteButton
             id={leader.id}
             name={`${leader.lastName}, ${leader.firstName}`}

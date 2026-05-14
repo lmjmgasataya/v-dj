@@ -3,6 +3,7 @@ import { participants } from "@/db/schema";
 import { ilike, or, desc, isNull, and, count, gte, lt } from "drizzle-orm";
 import Link from "next/link";
 import { ParticipantTable } from "./ParticipantTable";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { checkIns, classSessions } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 
@@ -88,13 +89,13 @@ export default async function ParticipantsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Participants</h2>
-          <p className="text-sm text-gray-500 mt-0.5">{total} record{total !== 1 ? "s" : ""}</p>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <Link href="/" className="text-sm text-indigo-600 hover:underline">← Home</Link>
+      <div>
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Participants" }]} />
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Participants</h2>
+            <p className="text-sm text-gray-500 mt-0.5">{total} record{total !== 1 ? "s" : ""}</p>
+          </div>
           <div className="flex items-center gap-3">
             <a
               href="/api/participants/export"

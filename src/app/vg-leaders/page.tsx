@@ -3,6 +3,7 @@ import { victoryGroupLeaders, victoryGroups } from "@/db/schema";
 import { ilike, or, desc, isNull, and, inArray } from "drizzle-orm";
 import Link from "next/link";
 import { VGLeaderTable } from "./VGLeaderTable";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 export default async function VGLeadersPage({
   searchParams,
@@ -51,13 +52,13 @@ export default async function VGLeadersPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">VG Leaders</h2>
-          <p className="text-sm text-gray-500 mt-0.5">{total} record{total !== 1 ? "s" : ""}</p>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <Link href="/" className="text-sm text-indigo-600 hover:underline">← Home</Link>
+      <div>
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "VG Leaders" }]} />
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">VG Leaders</h2>
+            <p className="text-sm text-gray-500 mt-0.5">{total} record{total !== 1 ? "s" : ""}</p>
+          </div>
           <Link
             href="/vg-leaders/new"
             className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"

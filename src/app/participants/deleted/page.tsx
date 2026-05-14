@@ -1,8 +1,8 @@
 import { db } from "@/db";
 import { participants } from "@/db/schema";
 import { isNotNull, desc } from "drizzle-orm";
-import Link from "next/link";
 import { RestoreButton } from "./RestoreButton";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 export default async function DeletedParticipantsPage() {
   const rows = await db
@@ -13,12 +13,10 @@ export default async function DeletedParticipantsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Deleted Participants</h2>
-          <p className="text-sm text-gray-500 mt-0.5">{rows.length} record{rows.length !== 1 ? "s" : ""}</p>
-        </div>
-        <Link href="/participants" className="text-sm text-indigo-600 hover:underline">← Back to list</Link>
+      <div>
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Participants", href: "/participants" }, { label: "Deleted" }]} />
+        <h2 className="text-2xl font-bold text-gray-900">Deleted Participants</h2>
+        <p className="text-sm text-gray-500 mt-0.5">{rows.length} record{rows.length !== 1 ? "s" : ""}</p>
       </div>
 
       {rows.length === 0 ? (

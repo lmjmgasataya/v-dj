@@ -5,6 +5,7 @@ import { registerParticipant } from "./actions";
 import { Section, Field, inputCls, selectCls, SERVICE_OPTIONS, FEE_CATEGORIES } from "@/components/form";
 // import { DisciplerAutocomplete } from "@/components/DisciplerAutocomplete";
 import { SubmitButton } from "@/components/SubmitButton";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 // import type { Discipler } from "@/db/schema";
 
 const LIFESTAGES = [
@@ -60,14 +61,12 @@ export default function RegisterPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Participant Registration</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            All fields marked with <span className="text-red-500">*</span> are required.
-          </p>
-        </div>
-        <a href="/" className="text-sm text-indigo-600 hover:underline shrink-0">← Home</a>
+      <div className="mb-6">
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Register" }]} />
+        <h2 className="text-2xl font-bold text-gray-900">Participant Registration</h2>
+        <p className="text-sm text-gray-500 mt-1">
+          All fields marked with <span className="text-red-500">*</span> are required.
+        </p>
       </div>
 
       <form

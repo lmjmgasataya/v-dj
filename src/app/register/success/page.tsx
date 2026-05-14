@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 export default function SuccessPage() {
   return (
-    <div className="flex flex-col items-center gap-6 py-20 text-center">
+    <div className="flex flex-col gap-6">
+      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Register", href: "/register" }, { label: "Success" }]} />
+      <div className="flex flex-col items-center gap-6 py-16 text-center">
       <div className="text-6xl">🎉</div>
       <h2 className="text-2xl font-bold text-gray-900">Registration Successful!</h2>
       <p className="text-gray-500 max-w-sm">
@@ -21,6 +24,7 @@ export default function SuccessPage() {
         >
           Home
         </Link>
+      </div>
       </div>
     </div>
   );

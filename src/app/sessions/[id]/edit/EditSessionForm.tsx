@@ -5,6 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { updateSession } from "./actions";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { CheckboxOption } from "@/components/form";
 
 export function EditSessionForm({
   session,
@@ -79,16 +80,9 @@ export function EditSessionForm({
           />
         </div>
 
-        <label className="flex items-center gap-3 cursor-pointer select-none">
-          <input
-            name="allowsWalkIn"
-            type="checkbox"
-            value="true"
-            defaultChecked={session.allowsWalkIn}
-            className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-          />
-          <span className="text-sm text-gray-700 font-medium">Allow walk-in registration for this session</span>
-        </label>
+        <CheckboxOption name="allowsWalkIn" value="true" defaultChecked={session.allowsWalkIn} labelClassName="font-medium">
+          Allow walk-in registration for this session
+        </CheckboxOption>
 
         {state?.error && (
           <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">

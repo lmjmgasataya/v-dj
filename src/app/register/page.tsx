@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { registerParticipant } from "./actions";
-import { Section, Field, inputCls, selectCls, SERVICE_OPTIONS, FEE_CATEGORIES } from "@/components/form";
+import { Section, Field, RadioOption, CheckboxOption, inputCls, selectCls, SERVICE_OPTIONS, FEE_CATEGORIES } from "@/components/form";
 // import { DisciplerAutocomplete } from "@/components/DisciplerAutocomplete";
 import { SubmitButton } from "@/components/SubmitButton";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -146,52 +146,34 @@ export default function RegisterPage() {
 
           <Field label="I have completed One2One" required className="sm:col-span-2">
             <div className="flex flex-col gap-2 mt-1">
-              <label className="flex items-start gap-2 text-sm text-gray-700">
-                <input type="radio" name="completedOne2One" value="yes" required className="mt-0.5" />
-                Yes
-              </label>
-              <label className="flex items-start gap-2 text-sm text-gray-700">
-                <input type="radio" name="completedOne2One" value="no" className="mt-0.5" />
-                No, but I will complete it before Victory Day
-              </label>
+              <RadioOption name="completedOne2One" value="yes" label="Yes" required />
+              <RadioOption name="completedOne2One" value="no" label="No, but I will complete it before Victory Day" />
             </div>
           </Field>
 
           <Field label="I will undergo water baptism" required className="sm:col-span-2">
             <div className="flex gap-6 mt-1">
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input type="radio" name="willUndergoWaterBaptism" value="yes" required />
-                Yes
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input type="radio" name="willUndergoWaterBaptism" value="no" />
-                No
-              </label>
+              <RadioOption name="willUndergoWaterBaptism" value="yes" label="Yes" required />
+              <RadioOption name="willUndergoWaterBaptism" value="no" label="No" />
             </div>
           </Field>
 
           <Field label="Previous Church" required className="sm:col-span-2">
             <div className="flex flex-col gap-2 mt-1">
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="radio"
-                  name="previousChurch"
-                  value="Roman Catholic"
-                  checked={previousChurch === "Roman Catholic"}
-                  onChange={() => setPreviousChurch("Roman Catholic")}
-                />
-                Roman Catholic
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="radio"
-                  name="previousChurch"
-                  value="Others"
-                  checked={previousChurch === "Others"}
-                  onChange={() => setPreviousChurch("Others")}
-                />
-                Others
-              </label>
+              <RadioOption
+                name="previousChurch"
+                value="Roman Catholic"
+                label="Roman Catholic"
+                checked={previousChurch === "Roman Catholic"}
+                onChange={() => setPreviousChurch("Roman Catholic")}
+              />
+              <RadioOption
+                name="previousChurch"
+                value="Others"
+                label="Others"
+                checked={previousChurch === "Others"}
+                onChange={() => setPreviousChurch("Others")}
+              />
               {previousChurch === "Others" && (
                 <input
                   name="previousChurchOther"
@@ -227,18 +209,10 @@ export default function RegisterPage() {
               value={discipler.messengerName} onChange={(e) => setDiscipler((p) => ({ ...p, messengerName: e.target.value }))} />
           </Field>
           <div className="sm:col-span-2">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                name="confirmedReadiness"
-                required
-                className="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <span className="text-sm text-gray-700">
-                I am confirming that the participant is ready to join Victory Day, that we will
-                complete/have completed One2One and Preparing for Victory before the day of the event.
-              </span>
-            </label>
+            <CheckboxOption name="confirmedReadiness" required align="start">
+              I am confirming that the participant is ready to join Victory Day, that we will
+              complete/have completed One2One and Preparing for Victory before the day of the event.
+            </CheckboxOption>
           </div>
         </Section>
 

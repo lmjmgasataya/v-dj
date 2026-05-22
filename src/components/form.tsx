@@ -39,6 +39,94 @@ export function Section({ title, description, children }: { title: string; descr
   );
 }
 
+export function CheckboxOption({
+  name,
+  value,
+  children,
+  required,
+  defaultChecked,
+  align = "center",
+  labelClassName,
+}: {
+  name: string;
+  value?: string;
+  children: React.ReactNode;
+  required?: boolean;
+  defaultChecked?: boolean;
+  align?: "center" | "start";
+  labelClassName?: string;
+}) {
+  return (
+    <label className={`flex ${align === "start" ? "items-start" : "items-center"} gap-2.5 cursor-pointer group`}>
+      <span className={`relative flex-shrink-0 w-4 h-4${align === "start" ? " mt-0.5" : ""}`}>
+        <input
+          type="checkbox"
+          name={name}
+          value={value}
+          required={required}
+          defaultChecked={defaultChecked}
+          className="peer sr-only"
+        />
+        <span className="absolute inset-0 rounded border-2 border-gray-300 bg-white transition-colors group-hover:border-indigo-400 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-400 peer-focus-visible:ring-offset-1" />
+        <svg
+          className="absolute inset-0 m-auto w-2.5 h-2.5 text-white opacity-0 peer-checked:opacity-100 scale-75 peer-checked:scale-100 transition-all duration-150 pointer-events-none"
+          viewBox="0 0 12 12"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="1.5,6 4.5,9 10.5,3" />
+        </svg>
+      </span>
+      <span className={`text-sm text-gray-700 select-none leading-snug${labelClassName ? ` ${labelClassName}` : ""}`}>
+        {children}
+      </span>
+    </label>
+  );
+}
+
+export function RadioOption({
+  name,
+  value,
+  label,
+  required,
+  checked,
+  defaultChecked,
+  onChange,
+}: {
+  name: string;
+  value: string;
+  label: string;
+  required?: boolean;
+  checked?: boolean;
+  defaultChecked?: boolean;
+  onChange?: () => void;
+}) {
+  return (
+    <label className="flex items-center gap-2.5 cursor-pointer group">
+      <span className="relative flex-shrink-0 w-4 h-4">
+        <input
+          type="radio"
+          name={name}
+          value={value}
+          required={required}
+          checked={checked}
+          defaultChecked={defaultChecked}
+          onChange={onChange && (() => onChange())}
+          className="peer sr-only"
+        />
+        <span className="absolute inset-0 rounded-full border-2 border-gray-300 bg-white transition-colors group-hover:border-indigo-400 peer-checked:border-indigo-600 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-400 peer-focus-visible:ring-offset-1" />
+        <span className="absolute inset-0 m-auto w-2 h-2 rounded-full bg-indigo-600 scale-0 peer-checked:scale-100 transition-transform duration-150 pointer-events-none" />
+      </span>
+      <span className="text-sm text-gray-700 group-hover:text-gray-900 select-none leading-tight">
+        {label}
+      </span>
+    </label>
+  );
+}
+
 export function Field({
   label,
   required,

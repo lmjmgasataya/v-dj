@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { updateParticipant } from "./actions";
-import { Section, Field, inputCls, selectCls, SERVICE_OPTIONS, FEE_CATEGORIES } from "@/components/form";
+import { Section, Field, RadioOption, CheckboxOption, inputCls, selectCls, SERVICE_OPTIONS, FEE_CATEGORIES } from "@/components/form";
 import { SubmitButton } from "@/components/SubmitButton";
 import Link from "next/link";
 import type { Participant } from "@/db/schema";
@@ -92,56 +92,34 @@ export function EditForm({ participant }: { participant: Participant }) {
         </Field>
         <Field label="I have completed One2One" className="sm:col-span-2">
           <div className="flex flex-col gap-2 mt-1">
-            <label className="flex items-start gap-2 text-sm text-gray-700">
-              <input type="radio" name="completedOne2One" value="yes" className="mt-0.5"
-                defaultChecked={participant.completedOne2One ?? false} />
-              Yes
-            </label>
-            <label className="flex items-start gap-2 text-sm text-gray-700">
-              <input type="radio" name="completedOne2One" value="no" className="mt-0.5"
-                defaultChecked={!(participant.completedOne2One ?? false)} />
-              No, but I will complete it before Victory Day
-            </label>
+            <RadioOption name="completedOne2One" value="yes" label="Yes" defaultChecked={participant.completedOne2One ?? false} />
+            <RadioOption name="completedOne2One" value="no" label="No, but I will complete it before Victory Day" defaultChecked={!(participant.completedOne2One ?? false)} />
           </div>
         </Field>
 
         <Field label="I will undergo water baptism" className="sm:col-span-2">
           <div className="flex gap-6 mt-1">
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="radio" name="willUndergoWaterBaptism" value="yes"
-                defaultChecked={participant.willUndergoWaterBaptism ?? false} />
-              Yes
-            </label>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="radio" name="willUndergoWaterBaptism" value="no"
-                defaultChecked={!(participant.willUndergoWaterBaptism ?? false)} />
-              No
-            </label>
+            <RadioOption name="willUndergoWaterBaptism" value="yes" label="Yes" defaultChecked={participant.willUndergoWaterBaptism ?? false} />
+            <RadioOption name="willUndergoWaterBaptism" value="no" label="No" defaultChecked={!(participant.willUndergoWaterBaptism ?? false)} />
           </div>
         </Field>
 
         <Field label="Previous Church" className="sm:col-span-2">
           <div className="flex flex-col gap-2 mt-1">
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="radio"
-                name="previousChurch"
-                value="Roman Catholic"
-                checked={previousChurch === "Roman Catholic"}
-                onChange={() => setPreviousChurch("Roman Catholic")}
-              />
-              Roman Catholic
-            </label>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="radio"
-                name="previousChurch"
-                value="Others"
-                checked={previousChurch === "Others"}
-                onChange={() => setPreviousChurch("Others")}
-              />
-              Others
-            </label>
+            <RadioOption
+              name="previousChurch"
+              value="Roman Catholic"
+              label="Roman Catholic"
+              checked={previousChurch === "Roman Catholic"}
+              onChange={() => setPreviousChurch("Roman Catholic")}
+            />
+            <RadioOption
+              name="previousChurch"
+              value="Others"
+              label="Others"
+              checked={previousChurch === "Others"}
+              onChange={() => setPreviousChurch("Others")}
+            />
             {previousChurch === "Others" && (
               <input
                 name="previousChurchOther"
@@ -176,18 +154,10 @@ export function EditForm({ participant }: { participant: Participant }) {
             value={discipler.messengerName} onChange={(e) => setDiscipler((p) => ({ ...p, messengerName: e.target.value }))} />
         </Field>
         <div className="sm:col-span-2">
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              name="confirmedReadiness"
-              defaultChecked={participant.confirmedReadiness ?? false}
-              className="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-            />
-            <span className="text-sm text-gray-700">
-              I am confirming that the participant is ready to join Victory Day, that we will
-              complete/have completed One2One and Preparing for Victory before the day of the event.
-            </span>
-          </label>
+          <CheckboxOption name="confirmedReadiness" defaultChecked={participant.confirmedReadiness ?? false} align="start">
+            I am confirming that the participant is ready to join Victory Day, that we will
+            complete/have completed One2One and Preparing for Victory before the day of the event.
+          </CheckboxOption>
         </div>
       </Section>
 

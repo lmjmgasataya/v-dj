@@ -19,7 +19,7 @@ const LIFESTAGES = [
 ];
 
 export default function RegisterPage() {
-  const [previousChurch, setPreviousChurch] = useState("Roman Catholic");
+  const [previousChurch, setPreviousChurch] = useState("");
   const [discipler, setDiscipler] = useState({ lastName: "", firstName: "", mobileNumber: "", messengerName: "" });
   const [registrationFee, setRegistrationFee] = useState("");
   const needsVictoryDate = registrationFee === "C" || registrationFee === "D";
@@ -230,7 +230,7 @@ export default function RegisterPage() {
             </select>
           </Field>
           <Field label="Acknowledgement Receipt Number" required>
-            <input name="acknowledgementReceiptNumber" required className={inputCls} />
+            <input name="acknowledgementReceiptNumber" required autoComplete="off" className={inputCls} />
           </Field>
           <Field label="Name of Admin Volunteer" required className="sm:col-span-2">
             <input name="adminVolunteerName" required className={inputCls} />

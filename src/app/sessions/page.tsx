@@ -9,9 +9,9 @@ import { todayPH, currentYearPH } from "@/lib/date";
 export default async function SessionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ year?: string }>;
+  searchParams: Promise<{ year?: string; created?: string }>;
 }) {
-  const { year: yearParam } = await searchParams;
+  const { year: yearParam, created } = await searchParams;
   const currentYear = currentYearPH();
   const year = yearParam ? parseInt(yearParam, 10) : currentYear;
   const session = await getSession();
@@ -62,6 +62,12 @@ export default async function SessionsPage({
           )}
         </div>
       </div>
+
+      {created && (
+        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+          <strong>Session created.</strong> &ldquo;{created}&rdquo; has been added to the list.
+        </div>
+      )}
 
       {/* Year selector */}
       <div className="flex items-center gap-3">

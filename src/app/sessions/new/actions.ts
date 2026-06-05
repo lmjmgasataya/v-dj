@@ -16,5 +16,5 @@ export async function createSession(_: unknown, formData: FormData) {
   await db.insert(classSessions).values({ name, sessionDate, isVictoryDay, allowsWalkIn });
 
   revalidatePath("/sessions");
-  redirect("/sessions");
+  redirect(`/sessions?created=${encodeURIComponent(name)}`);
 }

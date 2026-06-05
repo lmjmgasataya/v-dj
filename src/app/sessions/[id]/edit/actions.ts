@@ -18,5 +18,5 @@ export async function updateSession(id: number, _: unknown, formData: FormData) 
   await db.update(classSessions).set({ name, sessionDate, isVictoryDay, allowsWalkIn }).where(eq(classSessions.id, id));
 
   revalidatePath("/sessions");
-  redirect(`/sessions/${id}`);
+  redirect(`/sessions/${id}?updated=1`);
 }

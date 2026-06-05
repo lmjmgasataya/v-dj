@@ -10,10 +10,13 @@ import { currentYearPH } from "@/lib/date";
 
 export default async function SessionDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ updated?: string }>;
 }) {
   const { id } = await params;
+  const { updated } = await searchParams;
   const sessionId = parseInt(id, 10);
 
   const [session] = await db
@@ -106,6 +109,12 @@ export default async function SessionDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
+      {updated && (
+        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+          <strong>Session updated.</strong> Your changes have been saved.
+        </div>
+      )}
+
       <div className="flex items-start justify-between">
         <div>
           <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Sessions", href: "/sessions" }, { label: session.name }]} />

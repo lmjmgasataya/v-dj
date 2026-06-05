@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const links = [
   { href: "/report", label: "Attendance", icon: "✅" },
   { href: "/report/registrations", label: "Registrations", icon: "📈" },
+  { href: "/report/checkins", label: "Check-in Times", icon: "🕐" },
 ];
 
 export function ReportNav() {

@@ -23,7 +23,7 @@ export default async function RegistrationsReportPage({
   const [dailyCounts, summary, availableYears] = await Promise.all([
     db
       .select({
-        date: sql<string>`DATE(${participants.createdAt} AT TIME ZONE 'Asia/Manila')`,
+        date: sql<string>`DATE(${participants.createdAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila')`,
         count: count(),
       })
       .from(participants)
@@ -35,8 +35,8 @@ export default async function RegistrationsReportPage({
           lt(participants.createdAt, new Date(`${year + 1}-01-01`))
         )
       )
-      .groupBy(sql`DATE(${participants.createdAt} AT TIME ZONE 'Asia/Manila')`)
-      .orderBy(sql`DATE(${participants.createdAt} AT TIME ZONE 'Asia/Manila')`),
+      .groupBy(sql`DATE(${participants.createdAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila')`)
+      .orderBy(sql`DATE(${participants.createdAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila')`),
 
     db
       .select({ total: count() })

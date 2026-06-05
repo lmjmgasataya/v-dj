@@ -92,6 +92,7 @@ export function CheckInPanel({ participant, sessions, checkIns, hasVictoryDay }:
                 month: "short",
                 day: "numeric",
                 year: "numeric",
+                timeZone: "Asia/Manila",
               });
 
               return (
@@ -114,6 +115,7 @@ export function CheckInPanel({ participant, sessions, checkIns, hasVictoryDay }:
                         {new Date(checkIn.checkedInAt).toLocaleTimeString("en-PH", {
                           hour: "2-digit",
                           minute: "2-digit",
+                          timeZone: "Asia/Manila",
                         })}
                       </p>
                     )}

@@ -53,7 +53,7 @@ export function AttendeeList({ attendees }: { attendees: Attendee[] }) {
         const isExpanded = expandedId === a.checkInId;
         const fullName = `${a.lastName}, ${a.firstName}${a.middleInitial ? ` ${a.middleInitial}.` : ""}`;
         const checkInTime = new Date(a.checkedInAt).toLocaleTimeString("en-PH", {
-          hour: "2-digit", minute: "2-digit", second: "2-digit",
+          hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Manila",
         });
         const subtitle = [a.mobileNumber, a.lifestage].filter(Boolean).join(" · ");
 

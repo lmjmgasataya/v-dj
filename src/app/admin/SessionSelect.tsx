@@ -21,7 +21,7 @@ export function SessionSelect({
 
   function formatOption(s: ClassSession) {
     const dateStr = new Date(s.sessionDate + "T00:00:00").toLocaleDateString("en-PH", {
-      weekday: "short", month: "short", day: "numeric", year: "numeric",
+      weekday: "short", month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila",
     });
     return `${s.name} — ${dateStr}${s.isVictoryDay ? " (Victory Day)" : ""}`;
   }

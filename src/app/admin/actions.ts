@@ -2,6 +2,7 @@
 
 import { db } from "@/db";
 import { participants, checkIns, classSessions, type lifestageEnum } from "@/db/schema";
+import { currentYearPH } from "@/lib/date";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
 import { and, count, eq, gte, ilike, inArray, isNull, lt, notInArray, or } from "drizzle-orm";
@@ -45,7 +46,7 @@ export async function getSessionCheckIns(sessionId: number) {
 
   const participantIds = rows.map((r) => r.participantId);
 
-  const year = new Date().getFullYear();
+  const year = currentYearPH();
   const [{ totalVictoryDaySessions }] = await db
     .select({ totalVictoryDaySessions: count() })
     .from(classSessions)
@@ -121,7 +122,7 @@ export async function searchParticipants(sessionId: number, q: string, isVictory
 
   const ids = rows.map((r) => r.id);
 
-  const year = new Date().getFullYear();
+  const year = currentYearPH();
   const [{ totalVictoryDaySessions }] = await db
     .select({ totalVictoryDaySessions: count() })
     .from(classSessions)

@@ -94,7 +94,7 @@ export function SessionAttendeesModal({
                   {data.map((c, i) => {
                     const name = `${c.lastName}, ${c.firstName}${c.middleInitial ? ` ${c.middleInitial}.` : ""}`;
                     const time = new Date(c.checkedInAt).toLocaleTimeString("en-PH", {
-                      hour: "2-digit", minute: "2-digit",
+                      hour: "2-digit", minute: "2-digit", timeZone: "Asia/Manila",
                     });
                     return (
                       <li key={c.id} className="flex items-start justify-between px-5 py-3">

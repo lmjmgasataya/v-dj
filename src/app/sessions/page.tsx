@@ -4,6 +4,7 @@ import { and, eq, gte, lt, sql } from "drizzle-orm";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { todayPH, currentYearPH } from "@/lib/date";
 
 export default async function SessionsPage({
   searchParams,
@@ -11,7 +12,7 @@ export default async function SessionsPage({
   searchParams: Promise<{ year?: string }>;
 }) {
   const { year: yearParam } = await searchParams;
-  const currentYear = new Date().getFullYear();
+  const currentYear = currentYearPH();
   const year = yearParam ? parseInt(yearParam, 10) : currentYear;
   const session = await getSession();
   const isDeveloper = session?.role === "developer";
@@ -40,7 +41,7 @@ export default async function SessionsPage({
     .groupBy(classSessions.id)
     .orderBy(classSessions.sessionDate, classSessions.id);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayPH();
 
   return (
     <div className="flex flex-col gap-6">
@@ -89,6 +90,7 @@ export default async function SessionsPage({
               month: "long",
               day: "numeric",
               year: "numeric",
+              timeZone: "Asia/Manila",
             });
             const isToday = session.sessionDate === today;
             const isPast = session.sessionDate < today;

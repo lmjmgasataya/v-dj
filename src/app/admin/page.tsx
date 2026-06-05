@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { classSessions, checkIns, participants } from "@/db/schema";
 import { and, count, eq, gte, isNull, lt, sql } from "drizzle-orm";
+import { currentYearPH } from "@/lib/date";
 import Link from "next/link";
 import { FEE_CATEGORIES } from "@/components/form";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -15,7 +16,7 @@ export default async function AdminPage({
   searchParams: Promise<{ session?: string; year?: string; q?: string }>;
 }) {
   const { session, year: yearParam, q: initialQ = "" } = await searchParams;
-  const currentYear = new Date().getFullYear();
+  const currentYear = currentYearPH();
   const year = yearParam ? parseInt(yearParam, 10) : currentYear;
   const sessionId = session ? parseInt(session, 10) : null;
 

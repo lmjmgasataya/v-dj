@@ -120,7 +120,7 @@ export function ParticipantTable({
                           <span className="text-indigo-400">·</span>
                           <span className="text-indigo-500">
                             {new Date(a.sessionDate + "T00:00:00").toLocaleDateString("en-PH", {
-                              month: "short", day: "numeric", year: "numeric",
+                              month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila",
                             })}
                           </span>
                         </li>

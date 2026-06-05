@@ -6,6 +6,7 @@ import { ParticipantTable } from "./ParticipantTable";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { checkIns, classSessions } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
+import { currentYearPH } from "@/lib/date";
 
 export default async function ParticipantsPage({
   searchParams,
@@ -69,7 +70,7 @@ export default async function ParticipantsPage({
     return acc;
   }, {});
 
-  const year = new Date().getFullYear();
+  const year = currentYearPH();
   const [{ totalVictoryDaySessions }] = await db
     .select({ totalVictoryDaySessions: count() })
     .from(classSessions)

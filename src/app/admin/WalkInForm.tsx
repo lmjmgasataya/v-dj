@@ -94,7 +94,7 @@ export function WalkInForm({ sessionId }: { sessionId: number }) {
           <input name="vgLeaderFirstName" required className={inputCls} />
         </Field>
         <Field label="Victory Weekend / Victory Day Date" required className="sm:col-span-2">
-          <input name="victoryDate" required type="date" max={new Date().toISOString().split("T")[0]} className={inputCls} />
+          <input name="victoryDate" required type="date" max={new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" })} className={inputCls} />
         </Field>
         <Field label="Remarks (optional)" className="sm:col-span-2">
           <textarea name="remarks" rows={2} placeholder="e.g. arrived late, missed first 30 minutes" className={inputCls + " resize-none"} />

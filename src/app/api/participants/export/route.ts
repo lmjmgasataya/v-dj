@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { participants, checkIns, classSessions } from "@/db/schema";
 import { isNull, desc, eq, inArray, and } from "drizzle-orm";
 import * as XLSX from "xlsx";
+import { todayPH } from "@/lib/date";
 
 export async function GET() {
   const rows = await db
@@ -78,6 +79,7 @@ export async function GET() {
       month: "short",
       day: "numeric",
       year: "numeric",
+      timeZone: "Asia/Manila",
     });
 
   const data = rows.map((p, i) => {
@@ -154,7 +156,7 @@ export async function GET() {
   }));
 
   const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
-  const filename = `participants_${new Date().toISOString().split("T")[0]}.xlsx`;
+  const filename = `participants_${todayPH()}.xlsx`;
 
   return new Response(buf, {
     headers: {

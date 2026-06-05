@@ -65,7 +65,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     "Discipler First Name": a.disciplerFirstName,
     "Discipler Mobile": a.disciplerMobileNumber,
     "Check-in Time": new Date(a.checkedInAt).toLocaleTimeString("en-PH", {
-      hour: "2-digit", minute: "2-digit", second: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Manila",
     }),
     "Remarks": a.remarks ?? "",
   }));

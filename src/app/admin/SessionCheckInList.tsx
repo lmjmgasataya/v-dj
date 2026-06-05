@@ -80,7 +80,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, onAction }: { p: ParticipantWi
                 <span className="text-green-600 font-semibold text-xs">✓ Checked In</span>
                 {p.checkedInAt && (
                   <span className="text-xs text-green-500">
-                    {new Date(p.checkedInAt).toLocaleString("en-PH", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    {new Date(p.checkedInAt).toLocaleString("en-PH", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Manila" })}
                   </span>
                 )}
               </div>

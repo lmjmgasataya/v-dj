@@ -53,7 +53,7 @@ export default function RegisterPage() {
       document.removeEventListener("click", handleClick, true);
     };
   }, []);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
 
   // function handleDisciplerSelect(d: Discipler) {
   //   setDiscipler({ lastName: d.lastName, firstName: d.firstName, mobileNumber: d.mobileNumber, messengerName: d.messengerName ?? "" });

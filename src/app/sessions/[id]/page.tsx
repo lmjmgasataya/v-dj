@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AttendeeList } from "./AttendeeList";
 import { getSession } from "@/lib/auth";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { currentYearPH } from "@/lib/date";
 
 export default async function SessionDetailPage({
   params,
@@ -77,7 +78,7 @@ export default async function SessionDetailPage({
     victoryCountMap[v.participantId] = (victoryCountMap[v.participantId] ?? 0) + 1;
   }
 
-  const year = new Date().getFullYear();
+  const year = currentYearPH();
   const [{ totalVictoryDaySessions }] = await db
     .select({ totalVictoryDaySessions: count() })
     .from(classSessions)
@@ -100,6 +101,7 @@ export default async function SessionDetailPage({
     month: "long",
     day: "numeric",
     year: "numeric",
+    timeZone: "Asia/Manila",
   });
 
   return (

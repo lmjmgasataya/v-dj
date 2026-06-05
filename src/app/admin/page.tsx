@@ -20,48 +20,40 @@ export default async function AdminPage({
   const year = yearParam ? parseInt(yearParam, 10) : currentYear;
   const sessionId = session ? parseInt(session, 10) : null;
 
-  const availableYears = await db
-    .selectDistinct({ year: sql<number>`EXTRACT(YEAR FROM ${classSessions.sessionDate})::int` })
-    .from(classSessions)
-    .orderBy(sql`1 ASC`);
+  const [availableYears, sessions, feeBreakdown] = await Promise.all([
+    db
+      .selectDistinct({ year: sql<number>`EXTRACT(YEAR FROM ${classSessions.sessionDate})::int` })
+      .from(classSessions)
+      .orderBy(sql`1 ASC`),
 
-  const sessions = await db
-    .select()
-    .from(classSessions)
-    .where(
-      and(
-        gte(classSessions.sessionDate, `${year}-01-01`),
-        lt(classSessions.sessionDate, `${year + 1}-01-01`)
+    db
+      .select()
+      .from(classSessions)
+      .where(
+        and(
+          gte(classSessions.sessionDate, `${year}-01-01`),
+          lt(classSessions.sessionDate, `${year + 1}-01-01`)
+        )
       )
-    )
-    .orderBy(classSessions.sessionDate);
+      .orderBy(classSessions.sessionDate),
+
+    db
+      .select({ fee: participants.registrationFee, total: count() })
+      .from(participants)
+      .where(
+        and(
+          isNull(participants.deletedAt),
+          eq(participants.isWalkIn, false),
+          gte(participants.createdAt, new Date(`${year}-01-01`)),
+          lt(participants.createdAt, new Date(`${year + 1}-01-01`))
+        )
+      )
+      .groupBy(participants.registrationFee)
+      .orderBy(participants.registrationFee),
+  ]);
+
+  const registeredCount = feeBreakdown.reduce((s, r) => s + r.total, 0);
   const selectedSession = sessionId ? (sessions.find((s) => s.id === sessionId) ?? null) : null;
-
-  const [{ registeredCount }] = await db
-    .select({ registeredCount: count() })
-    .from(participants)
-    .where(
-      and(
-        isNull(participants.deletedAt),
-        eq(participants.isWalkIn, false),
-        gte(participants.createdAt, new Date(`${year}-01-01`)),
-        lt(participants.createdAt, new Date(`${year + 1}-01-01`))
-      )
-    );
-
-  const feeBreakdown = await db
-    .select({ fee: participants.registrationFee, total: count() })
-    .from(participants)
-    .where(
-      and(
-        isNull(participants.deletedAt),
-        eq(participants.isWalkIn, false),
-        gte(participants.createdAt, new Date(`${year}-01-01`)),
-        lt(participants.createdAt, new Date(`${year + 1}-01-01`))
-      )
-    )
-    .groupBy(participants.registrationFee)
-    .orderBy(participants.registrationFee);
 
   const attendeeCount = selectedSession
     ? (

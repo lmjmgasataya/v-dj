@@ -11,19 +11,21 @@ export default async function EditVGLeaderPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const leaderId = parseInt(id, 10);
 
-  const [leader] = await db
-    .select()
-    .from(victoryGroupLeaders)
-    .where(eq(victoryGroupLeaders.id, leaderId))
-    .limit(1);
+  const [[leader], groups] = await Promise.all([
+    db
+      .select()
+      .from(victoryGroupLeaders)
+      .where(eq(victoryGroupLeaders.id, leaderId))
+      .limit(1),
+
+    db
+      .select()
+      .from(victoryGroups)
+      .where(and(eq(victoryGroups.vgLeaderId, leaderId), isNull(victoryGroups.deletedAt)))
+      .orderBy(victoryGroups.createdAt),
+  ]);
 
   if (!leader) notFound();
-
-  const groups = await db
-    .select()
-    .from(victoryGroups)
-    .where(and(eq(victoryGroups.vgLeaderId, leaderId), isNull(victoryGroups.deletedAt)))
-    .orderBy(victoryGroups.createdAt);
 
   return (
     <div className="max-w-3xl mx-auto">

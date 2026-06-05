@@ -26,7 +26,7 @@ export default async function ReportPage({
   const currentYear = currentYearPH();
   const year = yearParam ? parseInt(yearParam, 10) : currentYear;
 
-  const [sessions, registrants, allCheckIns, availableYears] = await Promise.all([
+  const [sessions, availableYears] = await Promise.all([
     db
       .select()
       .from(classSessions)
@@ -38,6 +38,13 @@ export default async function ReportPage({
       )
       .orderBy(classSessions.sessionDate, classSessions.id),
 
+    db
+      .selectDistinct({ year: sql<number>`EXTRACT(YEAR FROM ${classSessions.sessionDate})::int` })
+      .from(classSessions)
+      .orderBy(sql`1 ASC`),
+  ]);
+
+  const [registrants, allCheckIns] = await Promise.all([
     db
       .select({
         id: participants.id,
@@ -66,11 +73,6 @@ export default async function ReportPage({
           lt(classSessions.sessionDate, `${year + 1}-01-01`)
         )
       ),
-
-    db
-      .selectDistinct({ year: sql<number>`EXTRACT(YEAR FROM ${classSessions.sessionDate})::int` })
-      .from(classSessions)
-      .orderBy(sql`1 ASC`),
   ]);
 
   const attended = new Set(allCheckIns.map((c) => `${c.participantId}-${c.classSessionId}`));

@@ -45,24 +45,26 @@ export async function getSessionCheckIns(sessionId: number) {
   if (rows.length === 0) return [];
 
   const participantIds = rows.map((r) => r.participantId);
-
   const year = currentYearPH();
-  const [{ totalVictoryDaySessions }] = await db
-    .select({ totalVictoryDaySessions: count() })
-    .from(classSessions)
-    .where(
-      and(
-        eq(classSessions.isVictoryDay, true),
-        gte(classSessions.sessionDate, `${year}-01-01`),
-        lt(classSessions.sessionDate, `${year + 1}-01-01`)
-      )
-    );
 
-  const victoryCheckIns = await db
-    .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
-    .from(checkIns)
-    .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
-    .where(and(inArray(checkIns.participantId, participantIds), eq(classSessions.isVictoryDay, true)));
+  const [[{ totalVictoryDaySessions }], victoryCheckIns] = await Promise.all([
+    db
+      .select({ totalVictoryDaySessions: count() })
+      .from(classSessions)
+      .where(
+        and(
+          eq(classSessions.isVictoryDay, true),
+          gte(classSessions.sessionDate, `${year}-01-01`),
+          lt(classSessions.sessionDate, `${year + 1}-01-01`)
+        )
+      ),
+
+    db
+      .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
+      .from(checkIns)
+      .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
+      .where(and(inArray(checkIns.participantId, participantIds), eq(classSessions.isVictoryDay, true))),
+  ]);
 
   const victoryDayMap: Record<number, string> = {};
   const victoryAttendanceCount: Record<number, number> = {};
@@ -121,24 +123,26 @@ export async function searchParticipants(sessionId: number, q: string, isVictory
   if (rows.length === 0) return [];
 
   const ids = rows.map((r) => r.id);
-
   const year = currentYearPH();
-  const [{ totalVictoryDaySessions }] = await db
-    .select({ totalVictoryDaySessions: count() })
-    .from(classSessions)
-    .where(
-      and(
-        eq(classSessions.isVictoryDay, true),
-        gte(classSessions.sessionDate, `${year}-01-01`),
-        lt(classSessions.sessionDate, `${year + 1}-01-01`)
-      )
-    );
 
-  const victoryCheckIns = await db
-    .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
-    .from(checkIns)
-    .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
-    .where(and(inArray(checkIns.participantId, ids), eq(classSessions.isVictoryDay, true)));
+  const [[{ totalVictoryDaySessions }], victoryCheckIns] = await Promise.all([
+    db
+      .select({ totalVictoryDaySessions: count() })
+      .from(classSessions)
+      .where(
+        and(
+          eq(classSessions.isVictoryDay, true),
+          gte(classSessions.sessionDate, `${year}-01-01`),
+          lt(classSessions.sessionDate, `${year + 1}-01-01`)
+        )
+      ),
+
+    db
+      .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
+      .from(checkIns)
+      .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
+      .where(and(inArray(checkIns.participantId, ids), eq(classSessions.isVictoryDay, true))),
+  ]);
 
   const victoryCountMap: Record<number, string> = {};
   const victoryAttendanceCount: Record<number, number> = {};

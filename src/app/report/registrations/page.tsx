@@ -20,7 +20,7 @@ export default async function RegistrationsReportPage({
   const currentYear = currentYearPH();
   const year = yearParam ? parseInt(yearParam, 10) : currentYear;
 
-  const [dailyCounts, summary, availableYears] = await Promise.all([
+  const [dailyCounts, availableYears] = await Promise.all([
     db
       .select({
         date: sql<string>`DATE(${participants.createdAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila')`,
@@ -39,24 +39,12 @@ export default async function RegistrationsReportPage({
       .orderBy(sql`DATE(${participants.createdAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila')`),
 
     db
-      .select({ total: count() })
-      .from(participants)
-      .where(
-        and(
-          isNull(participants.deletedAt),
-          eq(participants.isWalkIn, false),
-          gte(participants.createdAt, new Date(`${year}-01-01`)),
-          lt(participants.createdAt, new Date(`${year + 1}-01-01`))
-        )
-      ),
-
-    db
       .selectDistinct({ year: sql<number>`EXTRACT(YEAR FROM ${classSessions.sessionDate})::int` })
       .from(classSessions)
       .orderBy(sql`1 ASC`),
   ]);
 
-  const total = summary[0]?.total ?? 0;
+  const total = dailyCounts.reduce((s, d) => s + d.count, 0);
   const peak = dailyCounts.reduce((max, d) => (d.count > max ? d.count : max), 0);
 
   const chartData = dailyCounts.map((d) => ({

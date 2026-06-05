@@ -19,79 +19,85 @@ export default async function SessionDetailPage({
   const { updated } = await searchParams;
   const sessionId = parseInt(id, 10);
 
-  const [session] = await db
-    .select()
-    .from(classSessions)
-    .where(eq(classSessions.id, sessionId))
-    .limit(1);
+  const [[session], attendees, authSession] = await Promise.all([
+    db
+      .select()
+      .from(classSessions)
+      .where(eq(classSessions.id, sessionId))
+      .limit(1),
+
+    db
+      .select({
+        checkInId: checkIns.id,
+        checkedInAt: checkIns.checkedInAt,
+        participantId: participants.id,
+        lastName: participants.lastName,
+        firstName: participants.firstName,
+        middleInitial: participants.middleInitial,
+        mobileNumber: participants.mobileNumber,
+        facebookMessengerName: participants.facebookMessengerName,
+        lifestage: participants.lifestage,
+        age: participants.age,
+        gender: participants.gender,
+        serviceAttending: participants.serviceAttending,
+        preferredNameOnId: participants.preferredNameOnId,
+        registrationFee: participants.registrationFee,
+        acknowledgementReceiptNumber: participants.acknowledgementReceiptNumber,
+        completedOne2One: participants.completedOne2One,
+        willUndergoWaterBaptism: participants.willUndergoWaterBaptism,
+        previousChurch: participants.previousChurch,
+        disciplerLastName: participants.disciplerLastName,
+        disciplerFirstName: participants.disciplerFirstName,
+        disciplerMobileNumber: participants.disciplerMobileNumber,
+        disciplerMessengerName: participants.disciplerMessengerName,
+        isWalkIn: participants.isWalkIn,
+        vgLeaderLastName: participants.vgLeaderLastName,
+        vgLeaderFirstName: participants.vgLeaderFirstName,
+        victoryDate: participants.victoryDate,
+        remarks: checkIns.remarks,
+      })
+      .from(checkIns)
+      .innerJoin(participants, eq(checkIns.participantId, participants.id))
+      .where(eq(checkIns.classSessionId, sessionId))
+      .orderBy(checkIns.checkedInAt),
+
+    getSession(),
+  ]);
 
   if (!session) notFound();
 
-  const authSession = await getSession();
   const isDeveloper = authSession?.role === "developer";
 
-  const attendees = await db
-    .select({
-      checkInId: checkIns.id,
-      checkedInAt: checkIns.checkedInAt,
-      participantId: participants.id,
-      lastName: participants.lastName,
-      firstName: participants.firstName,
-      middleInitial: participants.middleInitial,
-      mobileNumber: participants.mobileNumber,
-      facebookMessengerName: participants.facebookMessengerName,
-      lifestage: participants.lifestage,
-      age: participants.age,
-      gender: participants.gender,
-      serviceAttending: participants.serviceAttending,
-      preferredNameOnId: participants.preferredNameOnId,
-      registrationFee: participants.registrationFee,
-      acknowledgementReceiptNumber: participants.acknowledgementReceiptNumber,
-      completedOne2One: participants.completedOne2One,
-      willUndergoWaterBaptism: participants.willUndergoWaterBaptism,
-      previousChurch: participants.previousChurch,
-      disciplerLastName: participants.disciplerLastName,
-      disciplerFirstName: participants.disciplerFirstName,
-      disciplerMobileNumber: participants.disciplerMobileNumber,
-      disciplerMessengerName: participants.disciplerMessengerName,
-      isWalkIn: participants.isWalkIn,
-      vgLeaderLastName: participants.vgLeaderLastName,
-      vgLeaderFirstName: participants.vgLeaderFirstName,
-      victoryDate: participants.victoryDate,
-      remarks: checkIns.remarks,
-    })
-    .from(checkIns)
-    .innerJoin(participants, eq(checkIns.participantId, participants.id))
-    .where(eq(checkIns.classSessionId, sessionId))
-    .orderBy(checkIns.checkedInAt);
-
   const participantIds = attendees.map((a) => a.participantId);
-  const victoryCheckIns =
+  const year = currentYearPH();
+
+  const [victoryCheckIns, [{ totalVictoryDaySessions }]] = await Promise.all([
     participantIds.length > 0
-      ? await db
+      ? db
           .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
           .from(checkIns)
           .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
           .where(and(inArray(checkIns.participantId, participantIds), eq(classSessions.isVictoryDay, true)))
-      : [];
+      : Promise.resolve([]),
+
+    db
+      .select({ totalVictoryDaySessions: count() })
+      .from(classSessions)
+      .where(
+        and(
+          eq(classSessions.isVictoryDay, true),
+          gte(classSessions.sessionDate, `${year}-01-01`),
+          lt(classSessions.sessionDate, `${year + 1}-01-01`)
+        )
+      ),
+  ]);
+
   const victoryDayMap: Record<number, string> = {};
   const victoryCountMap: Record<number, number> = {};
   for (const v of victoryCheckIns) {
     victoryDayMap[v.participantId] ??= v.sessionDate;
     victoryCountMap[v.participantId] = (victoryCountMap[v.participantId] ?? 0) + 1;
   }
-
-  const year = currentYearPH();
-  const [{ totalVictoryDaySessions }] = await db
-    .select({ totalVictoryDaySessions: count() })
-    .from(classSessions)
-    .where(
-      and(
-        eq(classSessions.isVictoryDay, true),
-        gte(classSessions.sessionDate, `${year}-01-01`),
-        lt(classSessions.sessionDate, `${year + 1}-01-01`)
-      )
-    );
 
   const attendeesWithVictoryDay = attendees.map((a) => ({
     ...a,

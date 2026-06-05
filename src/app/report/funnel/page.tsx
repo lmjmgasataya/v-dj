@@ -20,7 +20,7 @@ export default async function FunnelReportPage({
   const currentYear = currentYearPH();
   const year = yearParam ? parseInt(yearParam, 10) : currentYear;
 
-  const [sessions, registrants, availableYears] = await Promise.all([
+  const [sessions, availableYears] = await Promise.all([
     db
       .select({ id: classSessions.id })
       .from(classSessions)
@@ -32,18 +32,6 @@ export default async function FunnelReportPage({
       ),
 
     db
-      .select({ id: participants.id })
-      .from(participants)
-      .where(
-        and(
-          isNull(participants.deletedAt),
-          eq(participants.isWalkIn, false),
-          gte(participants.createdAt, new Date(`${year}-01-01`)),
-          lt(participants.createdAt, new Date(`${year + 1}-01-01`))
-        )
-      ),
-
-    db
       .selectDistinct({ year: sql<number>`EXTRACT(YEAR FROM ${classSessions.sessionDate})::int` })
       .from(classSessions)
       .orderBy(sql`1 ASC`),
@@ -51,29 +39,37 @@ export default async function FunnelReportPage({
 
   const totalSessions = sessions.length;
   const sessionIds = sessions.map((s) => s.id);
-  const participantIds = registrants.map((p) => p.id);
 
-  const checkInCounts =
-    sessionIds.length > 0 && participantIds.length > 0
-      ? await db
-          .select({ participantId: checkIns.participantId, count: count() })
-          .from(checkIns)
-          .where(
-            and(
-              inArray(checkIns.participantId, participantIds),
-              inArray(checkIns.classSessionId, sessionIds)
-            )
-          )
-          .groupBy(checkIns.participantId)
-      : [];
-
-  const countMap = new Map(checkInCounts.map((r) => [r.participantId, r.count]));
+  const participantRows = await db
+    .select({
+      id: participants.id,
+      checkInCount: sql<number>`COUNT(${checkIns.id})::int`,
+    })
+    .from(participants)
+    .leftJoin(
+      checkIns,
+      and(
+        eq(checkIns.participantId, participants.id),
+        sessionIds.length > 0 ? inArray(checkIns.classSessionId, sessionIds) : sql`false`
+      )
+    )
+    .where(
+      and(
+        isNull(participants.deletedAt),
+        eq(participants.isWalkIn, false),
+        gte(participants.createdAt, new Date(`${year}-01-01`)),
+        lt(participants.createdAt, new Date(`${year + 1}-01-01`))
+      )
+    )
+    .groupBy(participants.id);
 
   const distribution = new Map<number, number>();
-  for (const p of registrants) {
-    const attended = countMap.get(p.id) ?? 0;
+  for (const p of participantRows) {
+    const attended = p.checkInCount;
     distribution.set(attended, (distribution.get(attended) ?? 0) + 1);
   }
+
+  const registrantCount = participantRows.length;
 
   const funnelData = Array.from({ length: totalSessions + 1 }, (_, i) => ({
     sessions: i,
@@ -84,7 +80,7 @@ export default async function FunnelReportPage({
 
   const noneCount = distribution.get(0) ?? 0;
   const completeCount = distribution.get(totalSessions) ?? 0;
-  const partialCount = registrants.length - noneCount - completeCount;
+  const partialCount = registrantCount - noneCount - completeCount;
 
   return (
     <div className="flex flex-col gap-6">
@@ -98,7 +94,7 @@ export default async function FunnelReportPage({
         />
         <h2 className="text-2xl font-bold text-gray-900">Completion Funnel</h2>
         <p className="text-sm text-gray-500 mt-0.5">
-          {registrants.length} participant{registrants.length !== 1 ? "s" : ""} · {totalSessions} session{totalSessions !== 1 ? "s" : ""} in {year}
+          {registrantCount} participant{registrantCount !== 1 ? "s" : ""} · {totalSessions} session{totalSessions !== 1 ? "s" : ""} in {year}
         </p>
       </div>
 
@@ -129,9 +125,9 @@ export default async function FunnelReportPage({
           <div key={label} className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
             <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{label}</p>
             <p className={`text-3xl font-bold mt-1 ${color}`}>{value}</p>
-            {registrants.length > 0 && (
+            {registrantCount > 0 && (
               <p className="text-xs text-gray-400 mt-0.5">
-                {Math.round((value / registrants.length) * 100)}% of participants
+                {Math.round((value / registrantCount) * 100)}% of participants
               </p>
             )}
           </div>

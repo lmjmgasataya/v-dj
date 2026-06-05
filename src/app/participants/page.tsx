@@ -37,9 +37,11 @@ export default async function ParticipantsPage({
         .orderBy(desc(participants.id));
 
   const participantIds = rows.map((r) => r.id);
-  const attendanceList =
+  const year = currentYearPH();
+
+  const [attendanceList, [{ totalVictoryDaySessions }]] = await Promise.all([
     participantIds.length > 0
-      ? await db
+      ? db
           .select({
             participantId: checkIns.participantId,
             sessionName: classSessions.name,
@@ -50,7 +52,19 @@ export default async function ParticipantsPage({
           .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
           .where(inArray(checkIns.participantId, participantIds))
           .orderBy(classSessions.sessionDate)
-      : [];
+      : Promise.resolve([]),
+
+    db
+      .select({ totalVictoryDaySessions: count() })
+      .from(classSessions)
+      .where(
+        and(
+          eq(classSessions.isVictoryDay, true),
+          gte(classSessions.sessionDate, `${year}-01-01`),
+          lt(classSessions.sessionDate, `${year + 1}-01-01`)
+        )
+      ),
+  ]);
 
   const attendanceByParticipant = attendanceList.reduce<
     Record<number, { sessionName: string; sessionDate: string }[]>
@@ -69,18 +83,6 @@ export default async function ParticipantsPage({
     if (row.isVictoryDay) acc[row.participantId] = (acc[row.participantId] ?? 0) + 1;
     return acc;
   }, {});
-
-  const year = currentYearPH();
-  const [{ totalVictoryDaySessions }] = await db
-    .select({ totalVictoryDaySessions: count() })
-    .from(classSessions)
-    .where(
-      and(
-        eq(classSessions.isVictoryDay, true),
-        gte(classSessions.sessionDate, `${year}-01-01`),
-        lt(classSessions.sessionDate, `${year + 1}-01-01`)
-      )
-    );
 
   const completedVictoryDayMap = Object.fromEntries(
     Object.entries(victoryDayCountByParticipant).map(([id, c]) => [id, c >= totalVictoryDaySessions])

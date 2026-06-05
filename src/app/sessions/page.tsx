@@ -17,29 +17,31 @@ export default async function SessionsPage({
   const session = await getSession();
   const isDeveloper = session?.role === "developer";
 
-  const availableYears = await db
-    .selectDistinct({ year: sql<number>`EXTRACT(YEAR FROM ${classSessions.sessionDate})::int` })
-    .from(classSessions)
-    .orderBy(sql`1 ASC`);
+  const [availableYears, sessions] = await Promise.all([
+    db
+      .selectDistinct({ year: sql<number>`EXTRACT(YEAR FROM ${classSessions.sessionDate})::int` })
+      .from(classSessions)
+      .orderBy(sql`1 ASC`),
 
-  const sessions = await db
-    .select({
-      id: classSessions.id,
-      name: classSessions.name,
-      sessionDate: classSessions.sessionDate,
-      isVictoryDay: classSessions.isVictoryDay,
-      checkInCount: sql<number>`count(${checkIns.id})::int`,
-    })
-    .from(classSessions)
-    .leftJoin(checkIns, eq(checkIns.classSessionId, classSessions.id))
-    .where(
-      and(
-        gte(classSessions.sessionDate, `${year}-01-01`),
-        lt(classSessions.sessionDate, `${year + 1}-01-01`)
+    db
+      .select({
+        id: classSessions.id,
+        name: classSessions.name,
+        sessionDate: classSessions.sessionDate,
+        isVictoryDay: classSessions.isVictoryDay,
+        checkInCount: sql<number>`count(${checkIns.id})::int`,
+      })
+      .from(classSessions)
+      .leftJoin(checkIns, eq(checkIns.classSessionId, classSessions.id))
+      .where(
+        and(
+          gte(classSessions.sessionDate, `${year}-01-01`),
+          lt(classSessions.sessionDate, `${year + 1}-01-01`)
+        )
       )
-    )
-    .groupBy(classSessions.id)
-    .orderBy(classSessions.sessionDate, classSessions.id);
+      .groupBy(classSessions.id)
+      .orderBy(classSessions.sessionDate, classSessions.id),
+  ]);
 
   const today = todayPH();
 

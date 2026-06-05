@@ -5,28 +5,31 @@ import * as XLSX from "xlsx";
 import { todayPH } from "@/lib/date";
 
 export async function GET() {
-  const rows = await db
-    .select()
-    .from(participants)
-    .where(isNull(participants.deletedAt))
-    .orderBy(desc(participants.id));
+  const [rows, sessions, victorySessions] = await Promise.all([
+    db
+      .select()
+      .from(participants)
+      .where(isNull(participants.deletedAt))
+      .orderBy(desc(participants.id)),
 
-  const sessions = await db
-    .select()
-    .from(classSessions)
-    .where(eq(classSessions.isVictoryDay, false))
-    .orderBy(classSessions.sessionDate);
+    db
+      .select()
+      .from(classSessions)
+      .where(eq(classSessions.isVictoryDay, false))
+      .orderBy(classSessions.sessionDate),
 
-  const victorySessions = await db
-    .select()
-    .from(classSessions)
-    .where(eq(classSessions.isVictoryDay, true))
-    .orderBy(classSessions.sessionDate);
+    db
+      .select()
+      .from(classSessions)
+      .where(eq(classSessions.isVictoryDay, true))
+      .orderBy(classSessions.sessionDate),
+  ]);
 
   const participantIds = rows.map((r) => r.id);
-  const attendance =
+
+  const [attendance, victoryAttendance] = await Promise.all([
     participantIds.length > 0
-      ? await db
+      ? db
           .select({
             participantId: checkIns.participantId,
             sessionId: checkIns.classSessionId,
@@ -41,11 +44,10 @@ export async function GET() {
               eq(classSessions.isVictoryDay, false)
             )
           )
-      : [];
+      : Promise.resolve([]),
 
-  const victoryAttendance =
     participantIds.length > 0
-      ? await db
+      ? db
           .select({
             participantId: checkIns.participantId,
             sessionId: checkIns.classSessionId,
@@ -60,7 +62,8 @@ export async function GET() {
               eq(classSessions.isVictoryDay, true)
             )
           )
-      : [];
+      : Promise.resolve([]),
+  ]);
 
   const attendanceMap = new Map<number, Map<number, { date: string; remarks: string | null }>>();
   for (const a of attendance) {

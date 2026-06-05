@@ -7,6 +7,8 @@ const links = [
   { href: "/report", label: "Attendance", icon: "✅" },
   { href: "/report/registrations", label: "Registrations", icon: "📈" },
   { href: "/report/checkins", label: "Check-in Times", icon: "🕐" },
+  { href: "/report/class-category", label: "Class Category", icon: "💰" },
+  { href: "/report/funnel", label: "Completion Funnel", icon: "📉" },
 ];
 
 export function ReportNav() {

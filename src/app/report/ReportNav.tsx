@@ -9,6 +9,7 @@ const links = [
   { href: "/report/checkins", label: "Check-in Times", icon: "🕐" },
   { href: "/report/class-category", label: "Class Category", icon: "💰" },
   { href: "/report/funnel", label: "Completion Funnel", icon: "📉" },
+  { href: "/report/demographics", label: "Demographics", icon: "👥" },
 ];
 
 export function ReportNav() {

@@ -144,46 +144,52 @@ export default function RegisterPage() {
             </select>
           </Field>
 
-          <Field label="I have completed One2One" required className="sm:col-span-2">
-            <div className="flex flex-col gap-2 mt-1">
-              <RadioOption name="completedOne2One" value="yes" label="Yes" required />
-              <RadioOption name="completedOne2One" value="no" label="No, but I will complete it before Victory Day" />
-            </div>
-          </Field>
+          {!needsVictoryDate && (
+            <Field label="I have completed One2One" required className="sm:col-span-2">
+              <div className="flex flex-col gap-2 mt-1">
+                <RadioOption name="completedOne2One" value="yes" label="Yes" required />
+                <RadioOption name="completedOne2One" value="no" label="No, but I will complete it before Victory Day" />
+              </div>
+            </Field>
+          )}
 
-          <Field label="I will undergo water baptism" required className="sm:col-span-2">
-            <div className="flex gap-6 mt-1">
-              <RadioOption name="willUndergoWaterBaptism" value="yes" label="Yes" required />
-              <RadioOption name="willUndergoWaterBaptism" value="no" label="No" />
-            </div>
-          </Field>
+          {!needsVictoryDate && (
+            <Field label="I will undergo water baptism" required className="sm:col-span-2">
+              <div className="flex gap-6 mt-1">
+                <RadioOption name="willUndergoWaterBaptism" value="yes" label="Yes" required />
+                <RadioOption name="willUndergoWaterBaptism" value="no" label="No" />
+              </div>
+            </Field>
+          )}
 
-          <Field label="Previous Church" required className="sm:col-span-2">
-            <div className="flex flex-col gap-2 mt-1">
-              <RadioOption
-                name="previousChurch"
-                value="Roman Catholic"
-                label="Roman Catholic"
-                checked={previousChurch === "Roman Catholic"}
-                onChange={() => setPreviousChurch("Roman Catholic")}
-              />
-              <RadioOption
-                name="previousChurch"
-                value="Others"
-                label="Others"
-                checked={previousChurch === "Others"}
-                onChange={() => setPreviousChurch("Others")}
-              />
-              {previousChurch === "Others" && (
-                <input
-                  name="previousChurchOther"
-                  required
-                  placeholder="Please specify your previous church"
-                  className={`${inputCls} mt-1 ml-5`}
+          {!needsVictoryDate && (
+            <Field label="Previous Church" required className="sm:col-span-2">
+              <div className="flex flex-col gap-2 mt-1">
+                <RadioOption
+                  name="previousChurch"
+                  value="Roman Catholic"
+                  label="Roman Catholic"
+                  checked={previousChurch === "Roman Catholic"}
+                  onChange={() => setPreviousChurch("Roman Catholic")}
                 />
-              )}
-            </div>
-          </Field>
+                <RadioOption
+                  name="previousChurch"
+                  value="Others"
+                  label="Others"
+                  checked={previousChurch === "Others"}
+                  onChange={() => setPreviousChurch("Others")}
+                />
+                {previousChurch === "Others" && (
+                  <input
+                    name="previousChurchOther"
+                    required
+                    placeholder="Please specify your previous church"
+                    className={`${inputCls} mt-1 ml-5`}
+                  />
+                )}
+              </div>
+            </Field>
+          )}
 
           <Field label="Preferred Name on ID" required className="sm:col-span-2">
             <input name="preferredNameOnId" required className={inputCls} />

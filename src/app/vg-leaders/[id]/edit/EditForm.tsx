@@ -31,10 +31,10 @@ export function EditForm({ leader }: { leader: VictoryGroupLeader }) {
           <input name="mobileNumber" required defaultValue={leader.mobileNumber} className={inputCls} />
         </Field>
         <Field label="Age" required>
-          <input name="age" type="number" required min={1} max={120} defaultValue={leader.age} className={inputCls} />
+          <input name="age" type="number" required min={1} max={120} defaultValue={leader.age ?? ""} className={inputCls} />
         </Field>
         <Field label="Gender" required>
-          <select name="gender" required defaultValue={leader.gender} className={selectCls}>
+          <select name="gender" required defaultValue={leader.gender ?? ""} className={selectCls}>
             <option value="Male">Male</option>
             <option value="Female">Female</option>
           </select>

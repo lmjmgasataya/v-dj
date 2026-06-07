@@ -196,31 +196,52 @@ export default function RegisterPage() {
           </Field>
         </Section>
 
-        <Section title="One2One Discipler Information" description="To be filled up by the One2One discipler">
-          {/* <DisciplerAutocomplete onSelect={handleDisciplerSelect} /> */}
-          <Field label="Discipler's Last Name" required>
-            <input name="disciplerLastName" required className={inputCls}
-              value={discipler.lastName} onChange={(e) => setDiscipler((p) => ({ ...p, lastName: e.target.value }))} />
-          </Field>
-          <Field label="Discipler's First Name" required>
-            <input name="disciplerFirstName" required className={inputCls}
-              value={discipler.firstName} onChange={(e) => setDiscipler((p) => ({ ...p, firstName: e.target.value }))} />
-          </Field>
-          <Field label="Discipler's Mobile Number" required>
-            <input name="disciplerMobileNumber" required type="tel" className={inputCls}
-              value={discipler.mobileNumber} onChange={(e) => setDiscipler((p) => ({ ...p, mobileNumber: e.target.value }))} />
-          </Field>
-          <Field label="Discipler's Messenger / Facebook Name">
-            <input name="disciplerMessengerName" className={inputCls}
-              value={discipler.messengerName} onChange={(e) => setDiscipler((p) => ({ ...p, messengerName: e.target.value }))} />
-          </Field>
-          <div className="sm:col-span-2">
-            <CheckboxOption name="confirmedReadiness" required align="start">
-              I am confirming that the participant is ready to join Victory Day, that we will
-              complete/have completed One2One and Preparing for Victory before the day of the event.
-            </CheckboxOption>
-          </div>
-        </Section>
+        {needsVictoryDate ? (
+          <Section title="Victory Group Leader Information">
+            <Field label="VG Leader's Last Name" required>
+              <input name="vgLeaderLastName" required className={inputCls}
+                value={discipler.lastName} onChange={(e) => setDiscipler((p) => ({ ...p, lastName: e.target.value }))} />
+            </Field>
+            <Field label="VG Leader's First Name" required>
+              <input name="vgLeaderFirstName" required className={inputCls}
+                value={discipler.firstName} onChange={(e) => setDiscipler((p) => ({ ...p, firstName: e.target.value }))} />
+            </Field>
+            <Field label="VG Leader's Mobile Number" required>
+              <input name="vgLeaderMobileNumber" required type="tel" className={inputCls}
+                value={discipler.mobileNumber} onChange={(e) => setDiscipler((p) => ({ ...p, mobileNumber: e.target.value }))} />
+            </Field>
+            <Field label="VG Leader's Messenger / Facebook Name">
+              <input name="vgLeaderMessengerName" className={inputCls}
+                value={discipler.messengerName} onChange={(e) => setDiscipler((p) => ({ ...p, messengerName: e.target.value }))} />
+            </Field>
+          </Section>
+        ) : (
+          <Section title="One2One Discipler Information" description="To be filled up by the One2One discipler">
+            {/* <DisciplerAutocomplete onSelect={handleDisciplerSelect} /> */}
+            <Field label="Discipler's Last Name" required>
+              <input name="disciplerLastName" required className={inputCls}
+                value={discipler.lastName} onChange={(e) => setDiscipler((p) => ({ ...p, lastName: e.target.value }))} />
+            </Field>
+            <Field label="Discipler's First Name" required>
+              <input name="disciplerFirstName" required className={inputCls}
+                value={discipler.firstName} onChange={(e) => setDiscipler((p) => ({ ...p, firstName: e.target.value }))} />
+            </Field>
+            <Field label="Discipler's Mobile Number" required>
+              <input name="disciplerMobileNumber" required type="tel" className={inputCls}
+                value={discipler.mobileNumber} onChange={(e) => setDiscipler((p) => ({ ...p, mobileNumber: e.target.value }))} />
+            </Field>
+            <Field label="Discipler's Messenger / Facebook Name">
+              <input name="disciplerMessengerName" className={inputCls}
+                value={discipler.messengerName} onChange={(e) => setDiscipler((p) => ({ ...p, messengerName: e.target.value }))} />
+            </Field>
+            <div className="sm:col-span-2">
+              <CheckboxOption name="confirmedReadiness" required align="start">
+                I am confirming that the participant is ready to join Victory Day, that we will
+                complete/have completed One2One and Preparing for Victory before the day of the event.
+              </CheckboxOption>
+            </div>
+          </Section>
+        )}
 
         <Section title="Payment &amp; Admin">
           <Field label="Registration Fee" required>

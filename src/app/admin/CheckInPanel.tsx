@@ -41,7 +41,7 @@ export function CheckInPanel({ participant, sessions, checkIns, hasVictoryDay }:
         {/* Participant summary */}
         <div className="bg-indigo-50 border-b border-indigo-100 px-6 py-4">
           <p className="text-xs text-indigo-400 uppercase tracking-widest font-medium">Selected Participant</p>
-          <h3 className="text-lg font-bold text-gray-900 mt-0.5">
+          <h3 className="text-lg font-bold text-gray-900 mt-0.5 capitalize">
             {participant.lastName}, {participant.firstName}{" "}
             {participant.middleInitial ? `${participant.middleInitial}.` : ""}
           </h3>

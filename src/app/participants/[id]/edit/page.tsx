@@ -25,7 +25,7 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Edit Participant</h2>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-sm text-gray-500 mt-0.5 capitalize">
               {participant.lastName}, {participant.firstName}
             </p>
           </div>

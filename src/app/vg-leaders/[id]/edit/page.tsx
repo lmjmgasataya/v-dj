@@ -34,7 +34,7 @@ export default async function EditVGLeaderPage({ params }: { params: Promise<{ i
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Edit VG Leader</h2>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-sm text-gray-500 mt-0.5 capitalize">
               {leader.lastName}, {leader.firstName}
             </p>
           </div>

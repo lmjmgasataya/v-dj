@@ -40,7 +40,7 @@ export default async function DeletedParticipantsPage() {
                 className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-5 py-4"
               >
                 <div>
-                  <p className="font-semibold text-gray-900">
+                  <p className="font-semibold text-gray-900 capitalize">
                     {p.lastName}, {p.firstName} {p.middleInitial ? `${p.middleInitial}.` : ""}
                   </p>
                   <p className="text-sm text-gray-500 mt-0.5">{p.mobileNumber} · {p.lifestage}</p>

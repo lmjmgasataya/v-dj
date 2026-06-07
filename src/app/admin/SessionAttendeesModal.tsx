@@ -102,7 +102,7 @@ export function SessionAttendeesModal({
                           <span className="text-xs text-gray-400 font-mono w-5 shrink-0 mt-0.5">{i + 1}</span>
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-medium text-gray-900">{name}</span>
+                              <span className="text-sm font-medium text-gray-900 capitalize">{name}</span>
                               {(() => {
                                 const vd = c.victoryDate ?? c.victoryDayDate;
                                 if (!vd) return null;

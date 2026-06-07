@@ -149,7 +149,7 @@ export default async function ReportPage({
                 const rowBg = i % 2 === 0 ? "bg-white" : "bg-gray-50";
                 return (
                   <tr key={p.id} className={rowBg}>
-                    <td className={`sticky left-0 z-10 ${rowBg} border-r-2 border-b border-gray-100 px-4 py-2.5 font-medium text-gray-900 whitespace-nowrap`}>
+                    <td className={`sticky left-0 z-10 ${rowBg} border-r-2 border-b border-gray-100 px-4 py-2.5 font-medium text-gray-900 whitespace-nowrap capitalize`}>
                       {p.lastName}, {p.firstName}
                       {p.middleInitial ? ` ${p.middleInitial}.` : ""}
                     </td>

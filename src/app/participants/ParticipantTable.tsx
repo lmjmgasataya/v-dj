@@ -44,7 +44,7 @@ export function ParticipantTable({
               className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition"
             >
               <div>
-                <p className="font-semibold text-gray-900 text-sm">
+                <p className="font-semibold text-gray-900 text-sm capitalize">
                   {p.lastName}, {p.firstName}{p.middleInitial ? ` ${p.middleInitial}.` : ""}
                 </p>
                 <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>

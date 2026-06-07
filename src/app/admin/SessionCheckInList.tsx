@@ -44,7 +44,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, onAction }: { p: ParticipantWi
         isCheckedIn ? "bg-green-50 border-green-200" : "bg-white border-gray-200"
       }`}>
         <div>
-          <p className="font-semibold text-gray-900 text-sm">
+          <p className="font-semibold text-gray-900 text-sm capitalize">
             {p.gender === "Male" ? "👨🏻" : "👩🏻"}{" "}
             {p.lastName}, {p.firstName}{p.middleInitial ? ` ${p.middleInitial}.` : ""}
           </p>
@@ -116,7 +116,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, onAction }: { p: ParticipantWi
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4">
             <div>
               <h3 className="text-base font-bold text-gray-900">Check In</h3>
-              <p className="text-sm text-gray-600 mt-0.5">
+              <p className="text-sm text-gray-600 mt-0.5 capitalize">
                 {p.lastName}, {p.firstName}{p.middleInitial ? ` ${p.middleInitial}.` : ""}
               </p>
             </div>

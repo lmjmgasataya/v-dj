@@ -66,7 +66,7 @@ export function AttendeeList({ attendees }: { attendees: Attendee[] }) {
               <div className="flex items-center gap-3">
                 <span className="text-xs text-gray-400 font-mono w-5 shrink-0">{i + 1}</span>
                 <div>
-                  <p className="font-semibold text-gray-900 text-sm">{fullName}</p>
+                  <p className="font-semibold text-gray-900 text-sm capitalize">{fullName}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {subtitle ? `${subtitle} · ` : ""}checked in at {checkInTime}
                   </p>

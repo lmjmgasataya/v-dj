@@ -14,7 +14,7 @@ export default async function FunnelReportPage({
   searchParams: Promise<{ year?: string }>;
 }) {
   const authSession = await getSession();
-  if (authSession?.role !== "developer") redirect("/");
+  if (!authSession) redirect("/");
 
   const { year: yearParam } = await searchParams;
   const currentYear = currentYearPH();

@@ -20,7 +20,7 @@ export default async function ReportPage({
   searchParams: Promise<{ year?: string }>;
 }) {
   const authSession = await getSession();
-  if (authSession?.role !== "developer") redirect("/");
+  if (!authSession) redirect("/");
 
   const { year: yearParam } = await searchParams;
   const currentYear = currentYearPH();

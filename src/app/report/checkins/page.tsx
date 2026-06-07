@@ -15,7 +15,7 @@ export default async function CheckInsReportPage({
   searchParams: Promise<{ year?: string; session?: string }>;
 }) {
   const authSession = await getSession();
-  if (authSession?.role !== "developer") redirect("/");
+  if (!authSession) redirect("/");
 
   const { year: yearParam, session: sessionParam } = await searchParams;
   const currentYear = currentYearPH();

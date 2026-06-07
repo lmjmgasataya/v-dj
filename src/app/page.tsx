@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 export default async function Home() {
   const session = await getSession();
   const isDeveloper = session?.role === "developer";
+  const isAdmin = !!session;
 
   return (
     <div className="flex flex-col items-center gap-8 py-12">
@@ -46,7 +47,7 @@ export default async function Home() {
           <span className="text-lg font-semibold text-gray-900">Sessions</span>
           <span className="text-sm text-gray-500 text-center">View attendance per session</span>
         </Link>
-        {isDeveloper && (
+        {isAdmin && (
           <Link
             href="/report"
             className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"

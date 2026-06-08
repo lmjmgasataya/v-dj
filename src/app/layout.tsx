@@ -28,9 +28,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </Link>
             {session && (
               <div className="flex items-center gap-4">
-                <Link href="/report" className="text-xs text-indigo-300 hover:text-white transition">
-                  Reports
-                </Link>
                 <span className="text-xs text-indigo-200 capitalize">{session.name}</span>
                 <form action={logout}>
                   <button

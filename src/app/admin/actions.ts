@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { participants, checkIns, classSessions, type lifestageEnum } from "@/db/schema";
+import { participants, checkIns, classSessions, victoryGroupLeaders, type lifestageEnum } from "@/db/schema";
 import { currentYearPH } from "@/lib/date";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
@@ -160,6 +160,15 @@ export async function searchParticipants(sessionId: number, q: string, isVictory
 }
 
 export async function addWalkIn(classSessionId: number, formData: FormData) {
+  const vgLeaderLastName = formData.get("vgLeaderLastName") as string;
+  const vgLeaderFirstName = formData.get("vgLeaderFirstName") as string;
+
+  const [vgLeaderRecord] = await db
+    .select({ id: victoryGroupLeaders.id })
+    .from(victoryGroupLeaders)
+    .where(and(eq(victoryGroupLeaders.lastName, vgLeaderLastName), eq(victoryGroupLeaders.firstName, vgLeaderFirstName)))
+    .limit(1);
+
   const [inserted] = await db
     .insert(participants)
     .values({
@@ -172,8 +181,7 @@ export async function addWalkIn(classSessionId: number, formData: FormData) {
       gender: formData.get("gender") as string,
       serviceAttending: formData.get("serviceAttending") as string,
       facebookMessengerName: (formData.get("facebookMessengerName") as string) || null,
-      vgLeaderLastName: formData.get("vgLeaderLastName") as string,
-      vgLeaderFirstName: formData.get("vgLeaderFirstName") as string,
+      vgLeaderId: vgLeaderRecord?.id ?? null,
       victoryDate: formData.get("victoryDate") as string,
       isWalkIn: true,
     })

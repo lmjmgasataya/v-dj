@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { participants, disciplers, type lifestageEnum } from "@/db/schema";
+import { participants, disciplers, victoryGroupLeaders, type lifestageEnum } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
@@ -21,6 +21,15 @@ async function upsertDiscipler(
   return d.id;
 }
 
+async function findVgLeaderByName(lastName: string, firstName: string): Promise<number | null> {
+  const [v] = await db
+    .select({ id: victoryGroupLeaders.id })
+    .from(victoryGroupLeaders)
+    .where(and(eq(victoryGroupLeaders.lastName, lastName), eq(victoryGroupLeaders.firstName, firstName)))
+    .limit(1);
+  return v?.id ?? null;
+}
+
 export async function updateParticipant(id: number, formData: FormData) {
   const previousChurchRaw = formData.get("previousChurch") as string;
   const previousChurchOther = formData.get("previousChurchOther") as string;
@@ -32,14 +41,17 @@ export async function updateParticipant(id: number, formData: FormData) {
   const disciplerMobileNumber = formData.get("disciplerMobileNumber") as string;
   const disciplerMessengerName = (formData.get("disciplerMessengerName") as string) || null;
 
+  const vgLeaderLastName = (formData.get("vgLeaderLastName") as string) || "";
+  const vgLeaderFirstName = (formData.get("vgLeaderFirstName") as string) || "";
+
   let disciplerId: number | null = null;
   if (disciplerLastName && disciplerFirstName && disciplerMobileNumber) {
-    disciplerId = await upsertDiscipler(
-      disciplerLastName,
-      disciplerFirstName,
-      disciplerMobileNumber,
-      disciplerMessengerName,
-    );
+    disciplerId = await upsertDiscipler(disciplerLastName, disciplerFirstName, disciplerMobileNumber, disciplerMessengerName);
+  }
+
+  let vgLeaderId: number | null = null;
+  if (vgLeaderLastName && vgLeaderFirstName) {
+    vgLeaderId = await findVgLeaderByName(vgLeaderLastName, vgLeaderFirstName);
   }
 
   await db.update(participants).set({
@@ -57,12 +69,11 @@ export async function updateParticipant(id: number, formData: FormData) {
     previousChurch,
     preferredNameOnId: formData.get("preferredNameOnId") as string,
     disciplerId,
+    vgLeaderId,
     confirmedReadiness: formData.get("confirmedReadiness") === "on",
     acknowledgementReceiptNumber: formData.get("acknowledgementReceiptNumber") as string,
     registrationFee: formData.get("registrationFee") as string,
     adminVolunteerName: formData.get("adminVolunteerName") as string,
-    vgLeaderLastName: (formData.get("vgLeaderLastName") as string) || null,
-    vgLeaderFirstName: (formData.get("vgLeaderFirstName") as string) || null,
     victoryDate: (formData.get("victoryDate") as string) || null,
   }).where(eq(participants.id, id));
 

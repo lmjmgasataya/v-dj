@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { participants, disciplers } from "@/db/schema";
+import { participants, disciplers, victoryGroupLeaders } from "@/db/schema";
 import { ilike, or, desc, isNull, and, count, gte, lt, eq, inArray, getTableColumns } from "drizzle-orm";
 import Link from "next/link";
 import { ParticipantTable } from "./ParticipantTable";
@@ -14,18 +14,23 @@ export default async function ParticipantsPage({
 }) {
   const { q = "" } = await searchParams;
 
-  const disciplerCols = {
+  const extraCols = {
     disciplerLastName: disciplers.lastName,
     disciplerFirstName: disciplers.firstName,
     disciplerMobileNumber: disciplers.mobileNumber,
     disciplerMessengerName: disciplers.messengerName,
+    vgLeaderLastName: victoryGroupLeaders.lastName,
+    vgLeaderFirstName: victoryGroupLeaders.firstName,
+    vgLeaderMobileNumber: victoryGroupLeaders.mobileNumber,
+    vgLeaderMessengerName: victoryGroupLeaders.facebookMessengerName,
   };
 
   const rows = q.trim()
     ? await db
-        .select({ ...getTableColumns(participants), ...disciplerCols })
+        .select({ ...getTableColumns(participants), ...extraCols })
         .from(participants)
         .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
+        .leftJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
         .where(
           and(
             isNull(participants.deletedAt),
@@ -38,9 +43,10 @@ export default async function ParticipantsPage({
         )
         .orderBy(participants.lastName)
     : await db
-        .select({ ...getTableColumns(participants), ...disciplerCols })
+        .select({ ...getTableColumns(participants), ...extraCols })
         .from(participants)
         .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
+        .leftJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
         .where(isNull(participants.deletedAt))
         .orderBy(desc(participants.id));
 

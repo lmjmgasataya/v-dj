@@ -1,7 +1,6 @@
 import { db } from "@/db";
-import { participants, disciplers } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { getTableColumns } from "drizzle-orm";
+import { participants, disciplers, victoryGroupLeaders } from "@/db/schema";
+import { eq, and, getTableColumns } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { EditForm } from "./EditForm";
 import { DeleteButton } from "./DeleteButton";
@@ -18,9 +17,12 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
       disciplerFirstName: disciplers.firstName,
       disciplerMobileNumber: disciplers.mobileNumber,
       disciplerMessengerName: disciplers.messengerName,
+      vgLeaderLastName: victoryGroupLeaders.lastName,
+      vgLeaderFirstName: victoryGroupLeaders.firstName,
     })
     .from(participants)
     .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
+    .leftJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
     .where(eq(participants.id, participantId))
     .limit(1);
 

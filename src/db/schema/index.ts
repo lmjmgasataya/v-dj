@@ -20,6 +20,23 @@ export const lifestageEnum = pgEnum("lifestage", [
   "Senior",
 ]);
 
+export const dayOfWeekEnum = pgEnum("day_of_week", [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+]);
+
+export const vgFrequencyEnum = pgEnum("vg_frequency", [
+  "Weekly",
+  "Every other week",
+  "Once a month",
+  "Others",
+]);
+
 export const disciplers = pgTable(
   "disciplers",
   {
@@ -31,6 +48,35 @@ export const disciplers = pgTable(
   },
   (t) => [unique().on(t.lastName, t.firstName, t.mobileNumber)]
 );
+
+export const victoryGroupLeaders = pgTable("victory_group_leaders", {
+  id: serial("id").primaryKey(),
+  lastName: text("last_name").notNull(),
+  firstName: text("first_name").notNull(),
+  middleInitial: text("middle_initial"),
+  mobileNumber: text("mobile_number").notNull(),
+  age: integer("age"),
+  gender: text("gender"),
+  lifestage: lifestageEnum("lifestage"),
+  serviceAttending: text("service_attending"),
+  facebookMessengerName: text("facebook_messenger_name"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
+});
+
+export const victoryGroups = pgTable("victory_groups", {
+  id: serial("id").primaryKey(),
+  vgLeaderId: integer("vg_leader_id")
+    .references(() => victoryGroupLeaders.id)
+    .notNull(),
+  place: text("place").notNull(),
+  day: dayOfWeekEnum("day").notNull(),
+  time: text("time").notNull(),
+  frequency: vgFrequencyEnum("frequency").notNull(),
+  otherFrequency: text("other_frequency"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
+});
 
 export const participants = pgTable("participants", {
   id: serial("id").primaryKey(),
@@ -48,13 +94,12 @@ export const participants = pgTable("participants", {
   previousChurch: text("previous_church"),
   preferredNameOnId: text("preferred_name_on_id"),
   disciplerId: integer("discipler_id").references(() => disciplers.id),
+  vgLeaderId: integer("vg_leader_id").references(() => victoryGroupLeaders.id),
   confirmedReadiness: boolean("confirmed_readiness"),
   acknowledgementReceiptNumber: text("acknowledgement_receipt_number"),
   registrationFee: text("registration_fee"),
   adminVolunteerName: text("admin_volunteer_name"),
   isWalkIn: boolean("is_walk_in").default(false).notNull(),
-  vgLeaderLastName: text("vg_leader_last_name"),
-  vgLeaderFirstName: text("vg_leader_first_name"),
   victoryDate: text("victory_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
@@ -103,52 +148,6 @@ export const loginLogs = pgTable("login_logs", {
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
   loggedAt: timestamp("logged_at").defaultNow().notNull(),
-});
-
-export const dayOfWeekEnum = pgEnum("day_of_week", [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-]);
-
-export const vgFrequencyEnum = pgEnum("vg_frequency", [
-  "Weekly",
-  "Every other week",
-  "Once a month",
-  "Others",
-]);
-
-export const victoryGroupLeaders = pgTable("victory_group_leaders", {
-  id: serial("id").primaryKey(),
-  lastName: text("last_name").notNull(),
-  firstName: text("first_name").notNull(),
-  middleInitial: text("middle_initial"),
-  mobileNumber: text("mobile_number").notNull(),
-  age: integer("age"),
-  gender: text("gender"),
-  lifestage: lifestageEnum("lifestage"),
-  serviceAttending: text("service_attending"),
-  facebookMessengerName: text("facebook_messenger_name"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  deletedAt: timestamp("deleted_at"),
-});
-
-export const victoryGroups = pgTable("victory_groups", {
-  id: serial("id").primaryKey(),
-  vgLeaderId: integer("vg_leader_id")
-    .references(() => victoryGroupLeaders.id)
-    .notNull(),
-  place: text("place").notNull(),
-  day: dayOfWeekEnum("day").notNull(),
-  time: text("time").notNull(),
-  frequency: vgFrequencyEnum("frequency").notNull(),
-  otherFrequency: text("other_frequency"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  deletedAt: timestamp("deleted_at"),
 });
 
 export type Participant = typeof participants.$inferSelect;

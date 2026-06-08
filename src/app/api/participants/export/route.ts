@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { participants, disciplers, checkIns, classSessions } from "@/db/schema";
+import { participants, disciplers, victoryGroupLeaders, checkIns, classSessions } from "@/db/schema";
 import { isNull, desc, eq, inArray, and, getTableColumns } from "drizzle-orm";
 import * as XLSX from "xlsx";
 import { todayPH } from "@/lib/date";
@@ -13,9 +13,12 @@ export async function GET() {
         disciplerFirstName: disciplers.firstName,
         disciplerMobileNumber: disciplers.mobileNumber,
         disciplerMessengerName: disciplers.messengerName,
+        vgLeaderLastName: victoryGroupLeaders.lastName,
+        vgLeaderFirstName: victoryGroupLeaders.firstName,
       })
       .from(participants)
       .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
+      .leftJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
       .where(isNull(participants.deletedAt))
       .orderBy(desc(participants.id)),
 

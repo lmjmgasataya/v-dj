@@ -9,6 +9,10 @@ type ParticipantRow = Participant & {
   disciplerFirstName: string | null;
   disciplerMobileNumber: string | null;
   disciplerMessengerName: string | null;
+  vgLeaderLastName: string | null;
+  vgLeaderFirstName: string | null;
+  vgLeaderMobileNumber: string | null;
+  vgLeaderMessengerName: string | null;
 };
 import { FEE_CATEGORIES } from "@/components/form";
 
@@ -106,13 +110,27 @@ export function ParticipantTable({
                 </div>
 
                 <div className="border-t border-gray-200 pt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <Detail label="Discipler" value={
-                    p.disciplerLastName && p.disciplerFirstName
-                      ? `${p.disciplerLastName}, ${p.disciplerFirstName}`
-                      : null
-                  } />
-                  <Detail label="Discipler Mobile" value={p.disciplerMobileNumber} />
-                  <Detail label="Discipler Messenger" value={p.disciplerMessengerName} />
+                  {p.registrationFee === "C" || p.registrationFee === "D" ? (
+                    <>
+                      <Detail label="VG Leader" value={
+                        p.vgLeaderLastName && p.vgLeaderFirstName
+                          ? `${p.vgLeaderLastName}, ${p.vgLeaderFirstName}`
+                          : null
+                      } />
+                      <Detail label="VG Leader Mobile" value={p.vgLeaderMobileNumber} />
+                      <Detail label="VG Leader Messenger" value={p.vgLeaderMessengerName} />
+                    </>
+                  ) : (
+                    <>
+                      <Detail label="Discipler" value={
+                        p.disciplerLastName && p.disciplerFirstName
+                          ? `${p.disciplerLastName}, ${p.disciplerFirstName}`
+                          : null
+                      } />
+                      <Detail label="Discipler Mobile" value={p.disciplerMobileNumber} />
+                      <Detail label="Discipler Messenger" value={p.disciplerMessengerName} />
+                    </>
+                  )}
                 </div>
 
                 {(attendance[p.id]?.length ?? 0) > 0 && (

@@ -12,6 +12,8 @@ type ParticipantWithDiscipler = Participant & {
   disciplerFirstName: string | null;
   disciplerMobileNumber: string | null;
   disciplerMessengerName: string | null;
+  vgLeaderLastName: string | null;
+  vgLeaderFirstName: string | null;
 };
 
 const LIFESTAGES = [

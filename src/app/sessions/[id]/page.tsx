@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { classSessions, checkIns, participants, disciplers } from "@/db/schema";
+import { classSessions, checkIns, participants, disciplers, victoryGroupLeaders } from "@/db/schema";
 import { and, count, eq, gte, inArray, lt } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -51,14 +51,15 @@ export default async function SessionDetailPage({
         disciplerMobileNumber: disciplers.mobileNumber,
         disciplerMessengerName: disciplers.messengerName,
         isWalkIn: participants.isWalkIn,
-        vgLeaderLastName: participants.vgLeaderLastName,
-        vgLeaderFirstName: participants.vgLeaderFirstName,
+        vgLeaderLastName: victoryGroupLeaders.lastName,
+        vgLeaderFirstName: victoryGroupLeaders.firstName,
         victoryDate: participants.victoryDate,
         remarks: checkIns.remarks,
       })
       .from(checkIns)
       .innerJoin(participants, eq(checkIns.participantId, participants.id))
       .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
+      .leftJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
       .where(eq(checkIns.classSessionId, sessionId))
       .orderBy(checkIns.checkedInAt),
 

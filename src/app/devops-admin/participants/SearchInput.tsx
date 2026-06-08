@@ -6,7 +6,7 @@ import { useRef } from "react";
 export function SearchInput({ defaultValue }: { defaultValue: string }) {
   const router = useRouter();
   const pathname = usePathname();
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     clearTimeout(timer.current);

@@ -18,11 +18,11 @@ import { FEE_CATEGORIES } from "@/components/form";
 
 type Attendance = { sessionName: string; sessionDate: string };
 
-function Detail({ label, value }: { label: string; value: React.ReactNode }) {
+function Detail({ label, value, className }: { label: string; value: React.ReactNode; className?: string }) {
   return (
     <div>
       <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">{label}</p>
-      <p className="text-sm text-gray-800 mt-0.5">{value ?? "—"}</p>
+      <p className={`text-sm text-gray-800 mt-0.5 ${className ?? ""}`}>{value ?? "—"}</p>
     </div>
   );
 }
@@ -112,7 +112,7 @@ export function ParticipantTable({
                 <div className="border-t border-gray-200 pt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {p.registrationFee === "C" || p.registrationFee === "D" ? (
                     <>
-                      <Detail label="VG Leader" value={
+                      <Detail label="VG Leader" className="capitalize" value={
                         p.vgLeaderLastName && p.vgLeaderFirstName
                           ? `${p.vgLeaderLastName}, ${p.vgLeaderFirstName}`
                           : null
@@ -122,7 +122,7 @@ export function ParticipantTable({
                     </>
                   ) : (
                     <>
-                      <Detail label="Discipler" value={
+                      <Detail label="Discipler" className="capitalize" value={
                         p.disciplerLastName && p.disciplerFirstName
                           ? `${p.disciplerLastName}, ${p.disciplerFirstName}`
                           : null

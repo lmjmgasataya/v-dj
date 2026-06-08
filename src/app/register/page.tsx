@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { registerParticipant } from "./actions";
 import { Section, Field, RadioOption, CheckboxOption, inputCls, selectCls, SERVICE_OPTIONS, FEE_CATEGORIES } from "@/components/form";
-// import { DisciplerAutocomplete } from "@/components/DisciplerAutocomplete";
+import { VgLeaderFields } from "@/components/VgLeaderFields";
+import { DisciplerFields } from "@/components/DisciplerFields";
 import { SubmitButton } from "@/components/SubmitButton";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 // import type { Discipler } from "@/db/schema";
@@ -20,7 +21,6 @@ const LIFESTAGES = [
 
 export default function RegisterPage() {
   const [previousChurch, setPreviousChurch] = useState("");
-  const [discipler, setDiscipler] = useState({ lastName: "", firstName: "", mobileNumber: "", messengerName: "" });
   const [registrationFee, setRegistrationFee] = useState("");
   const needsVictoryDate = registrationFee === "C" || registrationFee === "D";
 
@@ -198,42 +198,11 @@ export default function RegisterPage() {
 
         {needsVictoryDate ? (
           <Section title="Victory Group Leader Information">
-            <Field label="VG Leader's Last Name" required>
-              <input name="vgLeaderLastName" required className={inputCls}
-                value={discipler.lastName} onChange={(e) => setDiscipler((p) => ({ ...p, lastName: e.target.value }))} />
-            </Field>
-            <Field label="VG Leader's First Name" required>
-              <input name="vgLeaderFirstName" required className={inputCls}
-                value={discipler.firstName} onChange={(e) => setDiscipler((p) => ({ ...p, firstName: e.target.value }))} />
-            </Field>
-            <Field label="VG Leader's Mobile Number" required>
-              <input name="vgLeaderMobileNumber" required type="tel" className={inputCls}
-                value={discipler.mobileNumber} onChange={(e) => setDiscipler((p) => ({ ...p, mobileNumber: e.target.value }))} />
-            </Field>
-            <Field label="VG Leader's Messenger / Facebook Name">
-              <input name="vgLeaderMessengerName" className={inputCls}
-                value={discipler.messengerName} onChange={(e) => setDiscipler((p) => ({ ...p, messengerName: e.target.value }))} />
-            </Field>
+            <VgLeaderFields />
           </Section>
         ) : (
           <Section title="One2One Discipler Information" description="To be filled up by the One2One discipler">
-            {/* <DisciplerAutocomplete onSelect={handleDisciplerSelect} /> */}
-            <Field label="Discipler's Last Name" required>
-              <input name="disciplerLastName" required className={inputCls}
-                value={discipler.lastName} onChange={(e) => setDiscipler((p) => ({ ...p, lastName: e.target.value }))} />
-            </Field>
-            <Field label="Discipler's First Name" required>
-              <input name="disciplerFirstName" required className={inputCls}
-                value={discipler.firstName} onChange={(e) => setDiscipler((p) => ({ ...p, firstName: e.target.value }))} />
-            </Field>
-            <Field label="Discipler's Mobile Number" required>
-              <input name="disciplerMobileNumber" required type="tel" className={inputCls}
-                value={discipler.mobileNumber} onChange={(e) => setDiscipler((p) => ({ ...p, mobileNumber: e.target.value }))} />
-            </Field>
-            <Field label="Discipler's Messenger / Facebook Name">
-              <input name="disciplerMessengerName" className={inputCls}
-                value={discipler.messengerName} onChange={(e) => setDiscipler((p) => ({ ...p, messengerName: e.target.value }))} />
-            </Field>
+            <DisciplerFields />
             <div className="sm:col-span-2">
               <CheckboxOption name="confirmedReadiness" required align="start">
                 I am confirming that the participant is ready to join Victory Day, that we will

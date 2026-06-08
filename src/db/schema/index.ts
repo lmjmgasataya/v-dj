@@ -62,7 +62,7 @@ export const victoryGroupLeaders = pgTable("victory_group_leaders", {
   facebookMessengerName: text("facebook_messenger_name"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
-});
+}, (t) => [unique().on(t.lastName, t.firstName, t.mobileNumber)]);
 
 export const victoryGroups = pgTable("victory_groups", {
   id: serial("id").primaryKey(),

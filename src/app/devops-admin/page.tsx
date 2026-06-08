@@ -1,9 +1,9 @@
 import { db } from "@/db";
 import { featureFlags, users } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { redirect } from "next/navigation";
 import { sql } from "drizzle-orm";
 import { toggleFlag, changeRole, resetPassword, deleteUser, createUser } from "./actions";
+// session is read here (not in layout) because we need session.userId to hide delete-self button
 
 const FLAG_LABELS: Record<string, string> = {
   autocomplete_vg_leaders: "VG Leader autocomplete",
@@ -27,7 +27,6 @@ async function getDbStats() {
 
 export default async function DevopsAdminPage() {
   const session = await getSession();
-  if (!session || session.role !== "developer") redirect("/");
 
   const [{ dbSize, tables }, flags, allUsers] = await Promise.all([
     getDbStats(),
@@ -36,12 +35,7 @@ export default async function DevopsAdminPage() {
   ]);
 
   return (
-    <div className="max-w-3xl mx-auto flex flex-col gap-6">
-      <div>
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Developer only</p>
-        <h2 className="text-2xl font-bold text-gray-900">Devops Admin</h2>
-      </div>
-
+    <div className="flex flex-col gap-6">
       {/* Feature Flags */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">

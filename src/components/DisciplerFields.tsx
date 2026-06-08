@@ -4,7 +4,9 @@ import { useRef, useState } from "react";
 import { Field, inputCls } from "./form";
 import type { Discipler } from "@/db/schema";
 
-export function DisciplerFields() {
+interface Props { enabled?: boolean }
+
+export function DisciplerFields({ enabled = true }: Props) {
   const [lastName, setLastName] = useState("");
   const [firstName, setFirstName] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
@@ -14,6 +16,7 @@ export function DisciplerFields() {
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   function search(q: string) {
+    if (!enabled) return;
     clearTimeout(timer.current);
     if (q.trim().length < 2) {
       setResults([]);

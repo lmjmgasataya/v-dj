@@ -27,3 +27,9 @@ export async function restoreParticipant(formData: FormData) {
     .where(eq(participants.id, Number(formData.get("id"))));
   revalidatePath("/devops-admin/participants");
 }
+
+export async function deleteParticipant(formData: FormData) {
+  await requireDeveloper();
+  await db.delete(participants).where(eq(participants.id, Number(formData.get("id"))));
+  revalidatePath("/devops-admin/participants");
+}

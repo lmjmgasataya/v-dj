@@ -9,7 +9,7 @@ export default function SuccessPage() {
       <div className="text-6xl">🎉</div>
       <h2 className="text-2xl font-bold text-gray-900">Registration Successful!</h2>
       <p className="text-gray-500 max-w-sm">
-        The participant has been registered for Discipleship Journey. See you on Victory Day!
+        The participant has been registered for Discipleship Journey. See you on the Discipleship Journey Classes!
       </p>
       <div className="flex gap-4 mt-2">
         <Link

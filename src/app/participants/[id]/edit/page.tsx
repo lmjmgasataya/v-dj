@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { participants, disciplers, victoryGroupLeaders } from "@/db/schema";
-import { eq, and, getTableColumns } from "drizzle-orm";
+import { eq, getTableColumns } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { EditForm } from "./EditForm";
 import { DeleteButton } from "./DeleteButton";

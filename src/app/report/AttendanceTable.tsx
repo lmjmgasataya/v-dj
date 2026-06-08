@@ -125,7 +125,7 @@ export async function AttendanceTable({
   const attended = new Set(allCheckIns.map((c) => `${c.participantId}-${c.classSessionId}`));
 
   if (registrants.length === 0) {
-    return <p className="text-sm text-gray-400">No participants found for "{query}".</p>;
+    return <p className="text-sm text-gray-400">No participants found for &ldquo;{query}&rdquo;.</p>;
   }
 
   return (

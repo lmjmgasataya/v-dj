@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { participants, classSessions } from "@/db/schema";
-import { and, count, eq, gte, isNull, lt, sql } from "drizzle-orm";
+import { and, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import { currentYearPH } from "@/lib/date";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";

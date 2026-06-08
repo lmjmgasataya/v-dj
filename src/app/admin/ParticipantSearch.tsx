@@ -31,7 +31,7 @@ function SearchSkeleton() {
   );
 }
 
-export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, initialQ }: { sessionId: number; sessionName: string; isVictoryDay: boolean; initialQ?: string }) {
+export function ParticipantSearch({ sessionId, sessionName: _sessionName, isVictoryDay, initialQ }: { sessionId: number; sessionName: string; isVictoryDay: boolean; initialQ?: string }) {
   const [q, setQ] = useState(initialQ ?? "");
   const [results, setResults] = useState<Results>([]);
   const [searched, setSearched] = useState(false);
@@ -70,11 +70,7 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, initia
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
 
-    if (!q.trim()) {
-      setSearched(false);
-      setResults([]);
-      return;
-    }
+    if (!q.trim()) return;
 
     debounceTimer.current = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
@@ -90,6 +86,7 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, initia
   }, [q]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (initialQ?.trim()) runSearch(initialQ);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
@@ -99,7 +96,11 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, initia
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => {
+            const val = e.target.value;
+            setQ(val);
+            if (!val.trim()) { setSearched(false); setResults([]); }
+          }}
           placeholder="Search by name or mobile number..."
           autoFocus
           className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"

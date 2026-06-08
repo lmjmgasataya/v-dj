@@ -12,6 +12,7 @@ const NAV = [
   { href: "/devops-admin/participants", label: "Participants" },
   { href: "/devops-admin/check-ins", label: "Check-ins" },
   { href: "/devops-admin/login-logs", label: "Login Logs" },
+  { href: "/devops-admin/data", label: "Data" },
 ];
 
 export function DevopsNav() {

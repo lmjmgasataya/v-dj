@@ -7,6 +7,30 @@ import { SessionCheckInList } from "./SessionCheckInList";
 
 type Results = Awaited<ReturnType<typeof searchParticipants>>;
 
+function SkeletonRow() {
+  return (
+    <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 animate-pulse">
+      <div className="flex flex-col gap-2">
+        <div className="h-3.5 w-44 rounded bg-gray-200" />
+        <div className="h-3 w-32 rounded bg-gray-100" />
+        <div className="h-5 w-28 rounded-full bg-gray-100" />
+      </div>
+      <div className="h-7 w-20 rounded-lg bg-gray-200 shrink-0" />
+    </div>
+  );
+}
+
+function SearchSkeleton() {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="h-3 w-16 rounded bg-gray-200 animate-pulse mb-1" />
+      <SkeletonRow />
+      <SkeletonRow />
+      <SkeletonRow />
+    </div>
+  );
+}
+
 export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, initialQ }: { sessionId: number; sessionName: string; isVictoryDay: boolean; initialQ?: string }) {
   const [q, setQ] = useState(initialQ ?? "");
   const [results, setResults] = useState<Results>([]);
@@ -15,6 +39,7 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, initia
   const router = useRouter();
   const searchParams = useSearchParams();
   const scrollAfterSearch = useRef(false);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (scrollAfterSearch.current && !pending) {
@@ -35,11 +60,34 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, initia
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!q.trim()) return;
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
     const params = new URLSearchParams(searchParams.toString());
     params.set("q", q.trim());
     router.replace(`/admin?${params.toString()}`, { scroll: false });
     runSearch(q);
   }
+
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    if (!q.trim()) {
+      setSearched(false);
+      setResults([]);
+      return;
+    }
+
+    debounceTimer.current = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("q", q.trim());
+      router.replace(`/admin?${params.toString()}`, { scroll: false });
+      runSearch(q);
+    }, 400);
+
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
 
   useEffect(() => {
     if (initialQ?.trim()) runSearch(initialQ);
@@ -68,10 +116,7 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, initia
       {searched && (
         <div className="mt-4">
           {pending ? (
-            <div className="flex items-center gap-2 text-sm text-gray-400">
-              <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-              Searching…
-            </div>
+            <SearchSkeleton />
           ) : results.length === 0 ? (
             <p className="text-sm text-gray-500">No participants found for &ldquo;{q}&rdquo;.</p>
           ) : (

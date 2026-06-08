@@ -126,7 +126,7 @@ export default async function DevopsAdminPage() {
                 </form>
 
                 {/* Delete — hidden for current user */}
-                {user.id !== session.userId && (
+                {user.id !== session!.userId && (
                   <>
                     <span className="text-gray-200">|</span>
                     <form action={deleteUser}>

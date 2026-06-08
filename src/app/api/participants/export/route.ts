@@ -1,14 +1,21 @@
 import { db } from "@/db";
-import { participants, checkIns, classSessions } from "@/db/schema";
-import { isNull, desc, eq, inArray, and } from "drizzle-orm";
+import { participants, disciplers, checkIns, classSessions } from "@/db/schema";
+import { isNull, desc, eq, inArray, and, getTableColumns } from "drizzle-orm";
 import * as XLSX from "xlsx";
 import { todayPH } from "@/lib/date";
 
 export async function GET() {
   const [rows, sessions, victorySessions] = await Promise.all([
     db
-      .select()
+      .select({
+        ...getTableColumns(participants),
+        disciplerLastName: disciplers.lastName,
+        disciplerFirstName: disciplers.firstName,
+        disciplerMobileNumber: disciplers.mobileNumber,
+        disciplerMessengerName: disciplers.messengerName,
+      })
       .from(participants)
+      .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
       .where(isNull(participants.deletedAt))
       .orderBy(desc(participants.id)),
 

@@ -1,11 +1,10 @@
 import { db } from "@/db";
-import { participants } from "@/db/schema";
-import { ilike, or, desc, isNull, and, count, gte, lt } from "drizzle-orm";
+import { participants, disciplers } from "@/db/schema";
+import { ilike, or, desc, isNull, and, count, gte, lt, eq, inArray, getTableColumns } from "drizzle-orm";
 import Link from "next/link";
 import { ParticipantTable } from "./ParticipantTable";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { checkIns, classSessions } from "@/db/schema";
-import { eq, inArray } from "drizzle-orm";
 import { currentYearPH } from "@/lib/date";
 
 export default async function ParticipantsPage({
@@ -15,10 +14,18 @@ export default async function ParticipantsPage({
 }) {
   const { q = "" } = await searchParams;
 
+  const disciplerCols = {
+    disciplerLastName: disciplers.lastName,
+    disciplerFirstName: disciplers.firstName,
+    disciplerMobileNumber: disciplers.mobileNumber,
+    disciplerMessengerName: disciplers.messengerName,
+  };
+
   const rows = q.trim()
     ? await db
-        .select()
+        .select({ ...getTableColumns(participants), ...disciplerCols })
         .from(participants)
+        .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
         .where(
           and(
             isNull(participants.deletedAt),
@@ -31,8 +38,9 @@ export default async function ParticipantsPage({
         )
         .orderBy(participants.lastName)
     : await db
-        .select()
+        .select({ ...getTableColumns(participants), ...disciplerCols })
         .from(participants)
+        .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
         .where(isNull(participants.deletedAt))
         .orderBy(desc(participants.id));
 

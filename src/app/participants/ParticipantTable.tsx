@@ -3,6 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Participant } from "@/db/schema";
+
+type ParticipantRow = Participant & {
+  disciplerLastName: string | null;
+  disciplerFirstName: string | null;
+  disciplerMobileNumber: string | null;
+  disciplerMessengerName: string | null;
+};
 import { FEE_CATEGORIES } from "@/components/form";
 
 type Attendance = { sessionName: string; sessionDate: string };
@@ -22,7 +29,7 @@ export function ParticipantTable({
   victoryDayDates = {},
   completedVictoryDays = {},
 }: {
-  rows: Participant[];
+  rows: ParticipantRow[];
   attendance?: Record<number, Attendance[]>;
   victoryDayDates?: Record<number, string>;
   completedVictoryDays?: Record<number, boolean>;

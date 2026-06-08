@@ -7,6 +7,13 @@ import { SubmitButton } from "@/components/SubmitButton";
 import Link from "next/link";
 import type { Participant } from "@/db/schema";
 
+type ParticipantWithDiscipler = Participant & {
+  disciplerLastName: string | null;
+  disciplerFirstName: string | null;
+  disciplerMobileNumber: string | null;
+  disciplerMessengerName: string | null;
+};
+
 const LIFESTAGES = [
   "Student (JHS/SHS)",
   "Student (College)",
@@ -17,7 +24,7 @@ const LIFESTAGES = [
   "Senior",
 ];
 
-export function EditForm({ participant }: { participant: Participant }) {
+export function EditForm({ participant }: { participant: ParticipantWithDiscipler }) {
   const isOtherChurch = participant.previousChurch != null && participant.previousChurch !== "Roman Catholic";
   const [previousChurch, setPreviousChurch] = useState(isOtherChurch ? "Others" : "Roman Catholic");
   const [discipler, setDiscipler] = useState({

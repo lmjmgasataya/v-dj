@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { classSessions, checkIns, participants } from "@/db/schema";
+import { classSessions, checkIns, participants, disciplers } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import * as XLSX from "xlsx";
@@ -34,13 +34,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       previousChurch: participants.previousChurch,
       registrationFee: participants.registrationFee,
       acknowledgementReceiptNumber: participants.acknowledgementReceiptNumber,
-      disciplerLastName: participants.disciplerLastName,
-      disciplerFirstName: participants.disciplerFirstName,
-      disciplerMobileNumber: participants.disciplerMobileNumber,
+      disciplerLastName: disciplers.lastName,
+      disciplerFirstName: disciplers.firstName,
+      disciplerMobileNumber: disciplers.mobileNumber,
       remarks: checkIns.remarks,
     })
     .from(checkIns)
     .innerJoin(participants, eq(checkIns.participantId, participants.id))
+    .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
     .where(eq(checkIns.classSessionId, sessionId))
     .orderBy(checkIns.checkedInAt);
 

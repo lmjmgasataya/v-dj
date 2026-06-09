@@ -94,6 +94,8 @@ export async function AttendanceTable({
         lastName: participants.lastName,
         firstName: participants.firstName,
         middleInitial: participants.middleInitial,
+        registrationFee: participants.registrationFee,
+        victoryDate: participants.victoryDate,
       })
       .from(participants)
       .where(
@@ -134,7 +136,11 @@ export async function AttendanceTable({
         <SessionHeader sessions={sessions} />
         <tbody>
           {registrants.map((p, i) => {
-            const count = sessions.filter((s) => attended.has(`${p.id}-${s.id}`)).length;
+            const skipsVictoryDay = p.registrationFee === "C" || p.registrationFee === "D";
+            const applicableSessions = skipsVictoryDay
+              ? sessions.filter((s) => !s.isVictoryDay)
+              : sessions;
+            const count = applicableSessions.filter((s) => attended.has(`${p.id}-${s.id}`)).length;
             const rowBg = i % 2 === 0 ? "bg-white" : "bg-gray-50";
             return (
               <tr key={p.id} className={rowBg}>
@@ -144,6 +150,7 @@ export async function AttendanceTable({
                 </td>
                 {sessions.map((s) => {
                   const done = attended.has(`${p.id}-${s.id}`);
+                  const skipped = skipsVictoryDay && s.isVictoryDay;
                   return (
                     <td key={s.id} className="border-r border-b border-gray-100 px-3 py-2.5 text-center">
                       {done ? (
@@ -158,6 +165,24 @@ export async function AttendanceTable({
                         >
                           <path d="M5 13l4 4L19 7" />
                         </svg>
+                      ) : skipped ? (
+                        <span
+                          title={`Victory Day: ${p.victoryDate ?? "—"}`}
+                          className="inline-flex items-center justify-center cursor-default"
+                        >
+                          <svg
+                            className="w-4 h-4 text-gray-300"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                          </svg>
+                        </span>
                       ) : (
                         <span className="text-gray-200 text-xs">—</span>
                       )}
@@ -165,7 +190,7 @@ export async function AttendanceTable({
                   );
                 })}
                 <td className="border-b border-gray-100 px-4 py-2.5 text-center font-semibold text-indigo-600 whitespace-nowrap">
-                  {count}/{sessions.length}
+                  {count}/{applicableSessions.length}
                 </td>
               </tr>
             );

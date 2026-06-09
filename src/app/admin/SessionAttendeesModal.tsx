@@ -59,7 +59,7 @@ export function SessionAttendeesModal({
               <div>
                 <h3 className="font-semibold text-gray-900 text-sm">{sessionName}</h3>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  {pending ? "Loading…" : `${data.length} checked in`}
+                  {pending ? <span className="inline-block h-3 w-16 rounded bg-gray-200 animate-pulse align-middle" /> : `${data.length} checked in`}
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -82,8 +82,16 @@ export function SessionAttendeesModal({
             {/* List */}
             <div className="overflow-y-auto flex-1">
               {pending ? (
-                <div className="flex items-center justify-center h-32 text-sm text-gray-400">
-                  Loading…
+                <div className="flex flex-col divide-y divide-gray-100">
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex items-start justify-between px-5 py-3 animate-pulse">
+                      <div className="flex items-start gap-3">
+                        <div className="h-3.5 w-4 rounded bg-gray-100 shrink-0 mt-0.5" />
+                        <div className="h-4 w-40 rounded bg-gray-200" />
+                      </div>
+                      <div className="h-3.5 w-10 rounded bg-gray-100 shrink-0 ml-3" />
+                    </div>
+                  ))}
                 </div>
               ) : data.length === 0 ? (
                 <div className="flex items-center justify-center h-32 text-sm text-gray-400">

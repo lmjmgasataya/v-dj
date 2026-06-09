@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { checkInParticipant, removeCheckIn } from "./actions";
 
 interface ParticipantWithStatus {
@@ -160,17 +161,31 @@ export function SessionCheckInList({
   sessionId,
   isVictoryDay,
   onAction,
+  searchQuery,
 }: {
   participants: ParticipantWithStatus[];
   sessionId: number;
   isVictoryDay: boolean;
   onAction?: () => void;
+  searchQuery?: string;
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
-        {participants.length} result{participants.length !== 1 ? "s" : ""}
-      </p>
+      <div className="flex items-center gap-3">
+        <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
+          {participants.length} result{participants.length !== 1 ? "s" : ""}
+        </p>
+        {searchQuery && (
+          <Link
+            href={`/report?q=${encodeURIComponent(searchQuery)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-indigo-600 hover:text-indigo-800 hover:underline font-medium"
+          >
+            View Attendance
+          </Link>
+        )}
+      </div>
       {participants.map((p) => (
         <CheckInRow key={p.id} p={p} sessionId={sessionId} isVictoryDay={isVictoryDay} onAction={onAction} />
       ))}

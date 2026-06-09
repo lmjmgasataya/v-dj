@@ -127,6 +127,7 @@ export function ParticipantSearch({ sessionId, sessionName: _sessionName, isVict
               sessionId={sessionId}
               isVictoryDay={isVictoryDay}
               onAction={() => runSearch(q)}
+              searchQuery={q.trim()}
             />
           )}
         </div>

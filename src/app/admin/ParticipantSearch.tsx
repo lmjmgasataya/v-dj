@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { searchParticipants } from "./actions";
 import { SessionCheckInList } from "./SessionCheckInList";
@@ -35,7 +35,7 @@ export function ParticipantSearch({ sessionId, sessionName: _sessionName, isVict
   const [q, setQ] = useState(initialQ ?? "");
   const [results, setResults] = useState<Results>([]);
   const [searched, setSearched] = useState(false);
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const scrollAfterSearch = useRef(false);
@@ -51,9 +51,10 @@ export function ParticipantSearch({ sessionId, sessionName: _sessionName, isVict
   function runSearch(query: string) {
     setSearched(true);
     scrollAfterSearch.current = true;
-    startTransition(async () => {
-      const data = await searchParticipants(sessionId, query, isVictoryDay);
+    setPending(true);
+    searchParticipants(sessionId, query, isVictoryDay).then((data) => {
       setResults(data);
+      setPending(false);
     });
   }
 
@@ -116,7 +117,7 @@ export function ParticipantSearch({ sessionId, sessionName: _sessionName, isVict
 
       {searched && (
         <div className="mt-4">
-          {pending ? (
+          {pending && results.length === 0 ? (
             <SearchSkeleton />
           ) : results.length === 0 ? (
             <p className="text-sm text-gray-500">No participants found for &ldquo;{q}&rdquo;.</p>

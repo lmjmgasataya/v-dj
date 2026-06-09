@@ -77,6 +77,7 @@ export function VgLeaderFields({ enabled = true }: Props) {
           required
           type="tel"
           className={inputCls}
+          autoComplete="off"
           value={mobileNumber}
           onChange={(e) => setMobileNumber(e.target.value)}
         />
@@ -86,6 +87,7 @@ export function VgLeaderFields({ enabled = true }: Props) {
         <input
           name="vgLeaderMessengerName"
           className={inputCls}
+          autoComplete="off"
           value={messengerName}
           onChange={(e) => setMessengerName(e.target.value)}
         />

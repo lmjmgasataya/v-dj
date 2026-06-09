@@ -91,6 +91,7 @@ export function DisciplerFields({ enabled = true }: Props) {
           required
           type="tel"
           className={inputCls}
+          autoComplete="off"
           value={mobileNumber}
           onChange={(e) => setMobileNumber(e.target.value)}
         />
@@ -100,6 +101,7 @@ export function DisciplerFields({ enabled = true }: Props) {
         <input
           name="disciplerMessengerName"
           className={inputCls}
+          autoComplete="off"
           value={messengerName}
           onChange={(e) => setMessengerName(e.target.value)}
         />

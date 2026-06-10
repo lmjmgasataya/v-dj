@@ -123,7 +123,7 @@ export default async function ClassCategoryReportPage({
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm font-semibold text-gray-700">Participants per category</p>
           <p className="text-sm text-gray-500">
-            Total revenue: <span className="font-semibold text-gray-800">₱{totalRevenue.toLocaleString()}</span>
+            Overall total collected: <span className="font-semibold text-gray-800">₱{totalRevenue.toLocaleString()}</span>
           </p>
         </div>
         <ClassCategoryChart data={chartData} />

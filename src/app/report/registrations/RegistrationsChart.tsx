@@ -7,15 +7,33 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
 } from "recharts";
 
-interface DataPoint {
+export interface DayBreakdown {
   date: string;
-  count: number;
+  A: number;
+  B: number;
+  C: number;
+  D: number;
 }
 
-export function RegistrationsChart({ data }: { data: DataPoint[] }) {
+const COLORS: Record<string, string> = {
+  A: "#6366f1",
+  B: "#a855f7",
+  C: "#0ea5e9",
+  D: "#10b981",
+};
+
+const LABELS: Record<string, string> = {
+  A: "A — Adult w/ VD",
+  B: "B — Student w/ VD",
+  C: "C — Adult w/o VD",
+  D: "D — Student w/o VD",
+};
+
+export function RegistrationsChart({ data }: { data: DayBreakdown[] }) {
   if (data.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 text-sm text-gray-400">
@@ -52,9 +70,15 @@ export function RegistrationsChart({ data }: { data: DataPoint[] }) {
             fontSize: "12px",
             boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
           }}
-          formatter={(value) => [value, "Registrants"]}
+          formatter={(value, key) => [value, LABELS[key as string] ?? key]}
         />
-        <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} maxBarSize={40} />
+        <Legend
+          formatter={(value) => LABELS[value] ?? value}
+          wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
+        />
+        {(["A", "B", "C", "D"] as const).map((cat) => (
+          <Bar key={cat} dataKey={cat} stackId="a" fill={COLORS[cat]} radius={cat === "D" ? [4, 4, 0, 0] : [0, 0, 0, 0]} maxBarSize={48} />
+        ))}
       </BarChart>
     </ResponsiveContainer>
   );

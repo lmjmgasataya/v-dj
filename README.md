@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Discipleship Journey
 
-## Getting Started
+Registration and check-in system for Victory Iloilo discipleship classes.
 
-First, run the development server:
+## Stack
+
+- **Next.js 16** App Router · **React 19**
+- **Drizzle ORM** on PostgreSQL
+- **Tailwind CSS 4**
+- JWT sessions via `jose` (`dj_session` cookie)
+
+## Local setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 1. Start Postgres
+docker compose up -d        # postgres:16 on :5432, Adminer on :8080
+
+# 2. Copy and fill in env
+cp .env.example .env.local  # set DATABASE_URL, DATABASE_URL_UNPOOLED, SESSION_SECRET
+
+# 3. Apply schema
+nvm use 24
+npm install
+npm run db:migrate
+
+# 4. (Optional) seed data
+npm run db:seed
+
+# 5. Run dev server
+npm run dev                 # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Commands
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run dev           # dev server (binds 0.0.0.0)
+npm run build         # production build
+npm run lint          # ESLint
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+npm run db:generate   # generate migration files from schema changes
+npm run db:migrate    # apply pending migrations (DATABASE_URL_UNPOOLED)
+npm run db:push       # push schema without migration files (dev only)
+npm run db:studio     # Drizzle Studio GUI
+npm run db:seed       # seed database
+```
 
-## Learn More
+## Features
 
-To learn more about Next.js, take a look at the following resources:
+- **Public registration** — participants fill out a form; walk-ins are supported
+- **Admin check-in** — volunteers check participants in per session
+- **Participant management** — list, search, edit, soft-delete
+- **Session management** — create/edit class sessions with Victory Day and walk-in flags
+- **VG Leaders** — manage Victory Group leaders and their group schedules
+- **Reports** — check-ins, registrations, demographics, funnel, and class-category dashboards
+- **Developer admin** — full data access, exports, and login audit logs (`developer` role)
+- **Feature flags** — runtime toggles stored in the `feature_flags` table
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Roles
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Role | Access |
+|---|---|
+| `admin_volunteer` | Check-in, participants, sessions, VG leaders, reports |
+| `developer` | Everything above + devops-admin area + exports |

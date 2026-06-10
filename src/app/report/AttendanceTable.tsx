@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { classSessions, checkIns, participants } from "@/db/schema";
-import { and, eq, gte, ilike, isNull, lt, or } from "drizzle-orm";
+import { checkIns, participants } from "@/db/schema";
+import { and, eq, gte, ilike, inArray, isNull, lt, or } from "drizzle-orm";
 import type { ClassSession } from "@/db/schema";
 
 export function abbrev(name: string): string {
@@ -115,13 +115,7 @@ export async function AttendanceTable({
     db
       .select({ participantId: checkIns.participantId, classSessionId: checkIns.classSessionId })
       .from(checkIns)
-      .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
-      .where(
-        and(
-          gte(classSessions.sessionDate, `${year}-01-01`),
-          lt(classSessions.sessionDate, `${year + 1}-01-01`)
-        )
-      ),
+      .where(inArray(checkIns.classSessionId, sessions.map((s) => s.id))),
   ]);
 
   const attended = new Set(allCheckIns.map((c) => `${c.participantId}-${c.classSessionId}`));

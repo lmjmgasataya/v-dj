@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { participants, classSessions, checkIns } from "@/db/schema";
-import { and, eq, gte, inArray, isNull, lt, sql } from "drizzle-orm";
+import { and, eq, exists, gte, isNull, lt, sql } from "drizzle-orm";
 import { currentYearPH } from "@/lib/date";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";
@@ -20,48 +20,52 @@ export default async function FunnelReportPage({
   const currentYear = currentYearPH();
   const year = yearParam ? parseInt(yearParam, 10) : currentYear;
 
-  const [sessions, availableYears] = await Promise.all([
-    db
-      .select({ id: classSessions.id })
-      .from(classSessions)
-      .where(
-        and(
-          gte(classSessions.sessionDate, `${year}-01-01`),
-          lt(classSessions.sessionDate, `${year + 1}-01-01`)
-        )
-      ),
+  const yearFilter = and(
+    gte(classSessions.sessionDate, `${year}-01-01`),
+    lt(classSessions.sessionDate, `${year + 1}-01-01`)
+  );
 
+  const [availableYears, totalSessionsResult, participantRows] = await Promise.all([
     db
       .selectDistinct({ year: sql<number>`EXTRACT(YEAR FROM ${classSessions.sessionDate})::int` })
       .from(classSessions)
       .orderBy(sql`1 ASC`),
+
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(classSessions)
+      .where(yearFilter),
+
+    db
+      .select({
+        id: participants.id,
+        checkInCount: sql<number>`COUNT(${checkIns.id})::int`,
+      })
+      .from(participants)
+      .leftJoin(
+        checkIns,
+        and(
+          eq(checkIns.participantId, participants.id),
+          exists(
+            db
+              .select({ one: sql`1` })
+              .from(classSessions)
+              .where(and(eq(classSessions.id, checkIns.classSessionId), yearFilter))
+          )
+        )
+      )
+      .where(
+        and(
+          isNull(participants.deletedAt),
+          eq(participants.isWalkIn, false),
+          gte(participants.createdAt, new Date(`${year}-01-01`)),
+          lt(participants.createdAt, new Date(`${year + 1}-01-01`))
+        )
+      )
+      .groupBy(participants.id),
   ]);
 
-  const totalSessions = sessions.length;
-  const sessionIds = sessions.map((s) => s.id);
-
-  const participantRows = await db
-    .select({
-      id: participants.id,
-      checkInCount: sql<number>`COUNT(${checkIns.id})::int`,
-    })
-    .from(participants)
-    .leftJoin(
-      checkIns,
-      and(
-        eq(checkIns.participantId, participants.id),
-        sessionIds.length > 0 ? inArray(checkIns.classSessionId, sessionIds) : sql`false`
-      )
-    )
-    .where(
-      and(
-        isNull(participants.deletedAt),
-        eq(participants.isWalkIn, false),
-        gte(participants.createdAt, new Date(`${year}-01-01`)),
-        lt(participants.createdAt, new Date(`${year + 1}-01-01`))
-      )
-    )
-    .groupBy(participants.id);
+  const totalSessions = totalSessionsResult[0].count;
 
   const distribution = new Map<number, number>();
   for (const p of participantRows) {

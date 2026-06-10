@@ -8,13 +8,18 @@ import { checkIns, classSessions } from "@/db/schema";
 import { currentYearPH } from "@/lib/date";
 import { getSession } from "@/lib/auth";
 
+const PAGE_SIZE = 50;
+
 export default async function ParticipantsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; page?: string }>;
 }) {
-  const [{ q = "" }, session] = await Promise.all([searchParams, getSession()]);
+  const [{ q = "", page: pageParam }, session] = await Promise.all([searchParams, getSession()]);
   const isDeveloper = session?.role === "developer";
+
+  const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
+  const offset = (page - 1) * PAGE_SIZE;
 
   const extraCols = {
     disciplerLastName: disciplers.lastName,
@@ -27,30 +32,33 @@ export default async function ParticipantsPage({
     vgLeaderMessengerName: victoryGroupLeaders.facebookMessengerName,
   };
 
-  const rows = q.trim()
-    ? await db
-        .select({ ...getTableColumns(participants), ...extraCols })
-        .from(participants)
-        .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
-        .leftJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
-        .where(
-          and(
-            isNull(participants.deletedAt),
-            or(
-              ilike(participants.lastName, `%${q}%`),
-              ilike(participants.firstName, `%${q}%`),
-              ilike(participants.mobileNumber, `%${q}%`)
-            )
-          )
+  const baseWhere = q.trim()
+    ? and(
+        isNull(participants.deletedAt),
+        or(
+          ilike(participants.lastName, `%${q}%`),
+          ilike(participants.firstName, `%${q}%`),
+          ilike(participants.mobileNumber, `%${q}%`)
         )
-        .orderBy(participants.lastName)
-    : await db
-        .select({ ...getTableColumns(participants), ...extraCols })
-        .from(participants)
-        .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
-        .leftJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
-        .where(isNull(participants.deletedAt))
-        .orderBy(desc(participants.id));
+      )
+    : isNull(participants.deletedAt);
+
+  const [rows, [{ total }]] = await Promise.all([
+    db
+      .select({ ...getTableColumns(participants), ...extraCols })
+      .from(participants)
+      .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
+      .leftJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
+      .where(baseWhere)
+      .orderBy(q.trim() ? participants.lastName : desc(participants.id))
+      .limit(PAGE_SIZE)
+      .offset(offset),
+
+    db
+      .select({ total: count() })
+      .from(participants)
+      .where(baseWhere),
+  ]);
 
   const participantIds = rows.map((r) => r.id);
   const year = currentYearPH();
@@ -104,7 +112,15 @@ export default async function ParticipantsPage({
     Object.entries(victoryDayCountByParticipant).map(([id, c]) => [id, c >= totalVictoryDaySessions])
   );
 
-  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  function pageHref(p: number) {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (p > 1) params.set("page", String(p));
+    const qs = params.toString();
+    return `/participants${qs ? `?${qs}` : ""}`;
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -153,7 +169,43 @@ export default async function ParticipantsPage({
       {rows.length === 0 ? (
         <p className="text-sm text-gray-400">{q ? `No results for "${q}".` : "No participants registered yet."}</p>
       ) : (
-        <ParticipantTable rows={rows} attendance={attendanceByParticipant} victoryDayDates={victoryDayMap} completedVictoryDays={completedVictoryDayMap} showEdit={isDeveloper} />
+        <>
+          <ParticipantTable rows={rows} attendance={attendanceByParticipant} victoryDayDates={victoryDayMap} completedVictoryDays={completedVictoryDayMap} showEdit={isDeveloper} />
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-500">
+                Page {page} of {totalPages}
+              </span>
+              <div className="flex gap-2">
+                {page > 1 ? (
+                  <Link
+                    href={pageHref(page - 1)}
+                    className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition"
+                  >
+                    ← Previous
+                  </Link>
+                ) : (
+                  <span className="px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-300 font-medium cursor-not-allowed">
+                    ← Previous
+                  </span>
+                )}
+                {page < totalPages ? (
+                  <Link
+                    href={pageHref(page + 1)}
+                    className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition"
+                  >
+                    Next →
+                  </Link>
+                ) : (
+                  <span className="px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-300 font-medium cursor-not-allowed">
+                    Next →
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

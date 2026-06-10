@@ -1,6 +1,10 @@
+import { getSession } from "@/lib/auth";
 import { ReportNav } from "./ReportNav";
 
-export default function ReportLayout({ children }: { children: React.ReactNode }) {
+export default async function ReportLayout({ children }: { children: React.ReactNode }) {
+  const session = await getSession();
+  const role = session?.role ?? "admin_volunteer";
+
   return (
     <>
       {/* Fixed gutter sidebar — only when viewport is wide enough (2xl = 1536px).
@@ -8,7 +12,7 @@ export default function ReportLayout({ children }: { children: React.ReactNode }
           so a 192px sidebar at left-4 comfortably clears the content area. */}
       <div className="hidden 2xl:block fixed left-4 top-24 w-48">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3">
-          <ReportNav />
+          <ReportNav role={role} />
         </div>
       </div>
 
@@ -16,7 +20,7 @@ export default function ReportLayout({ children }: { children: React.ReactNode }
       <div className="flex gap-6 items-start 2xl:block">
         <aside className="2xl:hidden w-44 shrink-0 sticky top-8 self-start">
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3">
-            <ReportNav />
+            <ReportNav role={role} />
           </div>
         </aside>
         <div className="flex-1 min-w-0">{children}</div>

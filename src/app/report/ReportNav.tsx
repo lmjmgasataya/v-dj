@@ -3,17 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const links = [
-  { href: "/report", label: "Attendance", icon: "✅" },
-  { href: "/report/registrations", label: "Registrations", icon: "📈" },
-  { href: "/report/checkins", label: "Check-in Times", icon: "🕐" },
-  { href: "/report/class-category", label: "Class Category", icon: "💰" },
-  { href: "/report/funnel", label: "Completion Funnel", icon: "📉" },
-  { href: "/report/demographics", label: "Demographics", icon: "👥" },
+const allLinks = [
+  { href: "/report", label: "Attendance", icon: "✅", adminOnly: false },
+  { href: "/report/registrations", label: "Registrations", icon: "📈", adminOnly: true },
+  { href: "/report/checkins", label: "Check-in Times", icon: "🕐", adminOnly: true },
+  { href: "/report/class-category", label: "Class Category", icon: "💰", adminOnly: true },
+  { href: "/report/funnel", label: "Completion Funnel", icon: "📉", adminOnly: true },
+  { href: "/report/demographics", label: "Demographics", icon: "👥", adminOnly: true },
 ];
 
-export function ReportNav() {
+export function ReportNav({ role }: { role: string }) {
   const pathname = usePathname();
+  const links = role === "admin_volunteer" ? allLinks.filter((l) => !l.adminOnly) : allLinks;
 
   return (
     <nav className="flex flex-col gap-1">

@@ -32,11 +32,13 @@ export function ParticipantTable({
   attendance = {},
   victoryDayDates = {},
   completedVictoryDays = {},
+  showEdit = true,
 }: {
   rows: ParticipantRow[];
   attendance?: Record<number, Attendance[]>;
   victoryDayDates?: Record<number, string>;
   completedVictoryDays?: Record<number, boolean>;
+  showEdit?: boolean;
 }) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
@@ -156,14 +158,16 @@ export function ParticipantTable({
 
                 <div className="border-t border-gray-200 pt-3 flex items-center justify-between">
                   <Detail label="Admin Volunteer" value={p.adminVolunteerName} />
-                  <div className="ml-auto">
-                    <Link
-                      href={`/participants/${p.id}/edit`}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
-                    >
-                      Edit
-                    </Link>
-                  </div>
+                  {showEdit && (
+                    <div className="ml-auto">
+                      <Link
+                        href={`/participants/${p.id}/edit`}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
+                      >
+                        Edit
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

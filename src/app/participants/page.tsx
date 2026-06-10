@@ -6,13 +6,15 @@ import { ParticipantTable } from "./ParticipantTable";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { checkIns, classSessions } from "@/db/schema";
 import { currentYearPH } from "@/lib/date";
+import { getSession } from "@/lib/auth";
 
 export default async function ParticipantsPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  const { q = "" } = await searchParams;
+  const [{ q = "" }, session] = await Promise.all([searchParams, getSession()]);
+  const isDeveloper = session?.role === "developer";
 
   const extraCols = {
     disciplerLastName: disciplers.lastName,
@@ -151,7 +153,7 @@ export default async function ParticipantsPage({
       {rows.length === 0 ? (
         <p className="text-sm text-gray-400">{q ? `No results for "${q}".` : "No participants registered yet."}</p>
       ) : (
-        <ParticipantTable rows={rows} attendance={attendanceByParticipant} victoryDayDates={victoryDayMap} completedVictoryDays={completedVictoryDayMap} />
+        <ParticipantTable rows={rows} attendance={attendanceByParticipant} victoryDayDates={victoryDayMap} completedVictoryDays={completedVictoryDayMap} showEdit={isDeveloper} />
       )}
     </div>
   );

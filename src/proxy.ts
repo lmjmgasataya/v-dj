@@ -11,7 +11,7 @@ function secret() {
 }
 
 const DEVELOPER_ONLY = [
-  /^\/participants/,
+  /^\/participants\/\d+\/edit/,
   /^\/api\/participants/,
   /^\/sessions\/new/,
   /^\/sessions\/\d+\/edit/,

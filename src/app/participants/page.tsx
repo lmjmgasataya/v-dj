@@ -8,7 +8,7 @@ import { checkIns, classSessions } from "@/db/schema";
 import { currentYearPH } from "@/lib/date";
 import { getSession } from "@/lib/auth";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 20;
 
 export default async function ParticipantsPage({
   searchParams,

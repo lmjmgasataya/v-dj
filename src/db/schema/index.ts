@@ -8,6 +8,7 @@ import {
   date,
   integer,
   unique,
+  index,
 } from "drizzle-orm/pg-core";
 
 export const lifestageEnum = pgEnum("lifestage", [
@@ -103,7 +104,9 @@ export const participants = pgTable("participants", {
   victoryDate: text("victory_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
-});
+}, (t) => [
+  index("participants_report_idx").on(t.deletedAt, t.isWalkIn, t.createdAt),
+]);
 
 export const classSessions = pgTable("class_sessions", {
   id: serial("id").primaryKey(),
@@ -111,7 +114,9 @@ export const classSessions = pgTable("class_sessions", {
   sessionDate: date("session_date").notNull(),
   isVictoryDay: boolean("is_victory_day").default(false).notNull(),
   allowsWalkIn: boolean("allows_walk_in").default(false).notNull(),
-});
+}, (t) => [
+  index("class_sessions_session_date_idx").on(t.sessionDate),
+]);
 
 export const checkIns = pgTable(
   "check_ins",
@@ -126,7 +131,11 @@ export const checkIns = pgTable(
     checkedInAt: timestamp("checked_in_at").defaultNow().notNull(),
     remarks: text("remarks"),
   },
-  (t) => [unique().on(t.participantId, t.classSessionId)]
+  (t) => [
+    unique().on(t.participantId, t.classSessionId),
+    index("check_ins_class_session_id_idx").on(t.classSessionId),
+    index("check_ins_checked_in_at_idx").on(t.checkedInAt),
+  ]
 );
 
 export const roleEnum = pgEnum("user_role", ["admin_volunteer", "developer"]);

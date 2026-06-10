@@ -10,6 +10,7 @@ export default async function RegisterPage() {
     <RegisterForm
       vgLeaderAutocomplete={flagMap["autocomplete_vg_leaders"] ?? true}
       disciplerAutocomplete={flagMap["autocomplete_disciplers"] ?? true}
+      newDatePicker={flagMap["new_date_picker"] ?? false}
     />
   );
 }

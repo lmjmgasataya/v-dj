@@ -8,6 +8,7 @@ import { toggleFlag, changeRole, resetPassword, deleteUser, createUser } from ".
 const FLAG_LABELS: Record<string, string> = {
   autocomplete_vg_leaders: "VG Leader autocomplete",
   autocomplete_disciplers: "Discipler autocomplete",
+  new_date_picker: "New date picker (calendar popover)",
 };
 
 async function getDbStats() {
@@ -43,12 +44,37 @@ export default async function DevopsAdminPage() {
           <p className="text-xs text-gray-500 mt-0.5">Changes take effect immediately on the next page load.</p>
         </div>
         <ul className="divide-y divide-gray-100">
-          {flags.map((flag) => (
+          {Object.keys(FLAG_LABELS).map((key) => {
+            const flag = flags.find((f) => f.key === key);
+            const enabled = flag?.enabled ?? false;
+            return (
+              <li key={key} className="flex items-center justify-between px-6 py-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-800">{FLAG_LABELS[key]}</p>
+                  <p className="text-xs text-gray-400 font-mono mt-0.5">{key}</p>
+                </div>
+                <form action={toggleFlag.bind(null, key)}>
+                  <button
+                    type="submit"
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+                      enabled ? "bg-indigo-600" : "bg-gray-200"
+                    }`}
+                    aria-label={enabled ? "Disable" : "Enable"}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-200 ${
+                        enabled ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </form>
+              </li>
+            );
+          })}
+          {flags.filter((f) => !(f.key in FLAG_LABELS)).map((flag) => (
             <li key={flag.key} className="flex items-center justify-between px-6 py-4">
               <div>
-                <p className="text-sm font-medium text-gray-800">
-                  {FLAG_LABELS[flag.key] ?? flag.key}
-                </p>
+                <p className="text-sm font-medium text-gray-800">{flag.key}</p>
                 <p className="text-xs text-gray-400 font-mono mt-0.5">{flag.key}</p>
               </div>
               <form action={toggleFlag.bind(null, flag.key)}>

@@ -1,12 +1,17 @@
 import { db } from "@/db";
-import { classSessions } from "@/db/schema";
+import { classSessions, featureFlags } from "@/db/schema";
 import { desc } from "drizzle-orm";
 import { createClassSession, deleteClassSession, toggleSessionFlag } from "./actions";
+import { DatePickerField } from "@/components/DatePickerField";
 
 const input = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400";
 
 export default async function ClassSessionsPage() {
-  const sessions = await db.select().from(classSessions).orderBy(desc(classSessions.sessionDate));
+  const [sessions, flags] = await Promise.all([
+    db.select().from(classSessions).orderBy(desc(classSessions.sessionDate)),
+    db.select().from(featureFlags),
+  ]);
+  const newDatePicker = (Object.fromEntries(flags.map((f) => [f.key, f.enabled])))["new_date_picker"] ?? false;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -74,7 +79,7 @@ export default async function ClassSessionsPage() {
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Date</label>
-            <input name="sessionDate" required type="date" className={input} />
+            <DatePickerField name="sessionDate" required className={input} newDatePicker={newDatePicker} />
           </div>
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">

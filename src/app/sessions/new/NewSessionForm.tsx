@@ -3,10 +3,11 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { createSession } from "./actions";
+import { DatePickerField } from "@/components/DatePickerField";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { CheckboxOption } from "@/components/form";
 
-export function NewSessionForm({ existingNames }: { existingNames: string[] }) {
+export function NewSessionForm({ existingNames, newDatePicker }: { existingNames: string[]; newDatePicker: boolean }) {
   const [state, action, pending] = useActionState(createSession, undefined);
   const [mode, setMode] = useState<"existing" | "custom">("existing");
 
@@ -60,11 +61,11 @@ export function NewSessionForm({ existingNames }: { existingNames: string[] }) {
 
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Session Date</label>
-          <input
+          <DatePickerField
             name="sessionDate"
-            type="date"
             required
             className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            newDatePicker={newDatePicker}
           />
         </div>
 

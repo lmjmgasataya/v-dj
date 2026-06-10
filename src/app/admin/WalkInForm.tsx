@@ -3,8 +3,9 @@
 import { useState, useTransition, useEffect, useRef } from "react";
 import { addWalkIn } from "./actions";
 import { Field, inputCls, selectCls, SERVICE_OPTIONS } from "@/components/form";
+import { DatePickerField } from "@/components/DatePickerField";
 
-export function WalkInForm({ sessionId }: { sessionId: number }) {
+export function WalkInForm({ sessionId, newDatePicker }: { sessionId: number; newDatePicker: boolean }) {
   const [pending, startTransition] = useTransition();
   const [formKey, setFormKey] = useState(0);
   const [showToast, setShowToast] = useState(false);
@@ -94,7 +95,7 @@ export function WalkInForm({ sessionId }: { sessionId: number }) {
           <input name="vgLeaderFirstName" required className={inputCls} />
         </Field>
         <Field label="Victory Weekend / Victory Day Date" required className="sm:col-span-2">
-          <input name="victoryDate" required type="date" max={new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" })} className={inputCls} />
+          <DatePickerField name="victoryDate" required max={new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" })} className={inputCls} newDatePicker={newDatePicker} />
         </Field>
         <Field label="Remarks (optional)" className="sm:col-span-2">
           <textarea name="remarks" rows={2} placeholder="e.g. arrived late, missed first 30 minutes" className={inputCls + " resize-none"} />

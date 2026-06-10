@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { participants, disciplers, victoryGroupLeaders } from "@/db/schema";
+import { participants, disciplers, victoryGroupLeaders, featureFlags } from "@/db/schema";
 import { eq, getTableColumns } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { EditForm } from "./EditForm";
@@ -10,23 +10,28 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const participantId = parseInt(id, 10);
 
-  const [participant] = await db
-    .select({
-      ...getTableColumns(participants),
-      disciplerLastName: disciplers.lastName,
-      disciplerFirstName: disciplers.firstName,
-      disciplerMobileNumber: disciplers.mobileNumber,
-      disciplerMessengerName: disciplers.messengerName,
-      vgLeaderLastName: victoryGroupLeaders.lastName,
-      vgLeaderFirstName: victoryGroupLeaders.firstName,
-    })
-    .from(participants)
-    .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
-    .leftJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
-    .where(eq(participants.id, participantId))
-    .limit(1);
+  const [[participant], flags] = await Promise.all([
+    db
+      .select({
+        ...getTableColumns(participants),
+        disciplerLastName: disciplers.lastName,
+        disciplerFirstName: disciplers.firstName,
+        disciplerMobileNumber: disciplers.mobileNumber,
+        disciplerMessengerName: disciplers.messengerName,
+        vgLeaderLastName: victoryGroupLeaders.lastName,
+        vgLeaderFirstName: victoryGroupLeaders.firstName,
+      })
+      .from(participants)
+      .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
+      .leftJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
+      .where(eq(participants.id, participantId))
+      .limit(1),
+    db.select().from(featureFlags),
+  ]);
 
   if (!participant) notFound();
+
+  const flagMap = Object.fromEntries(flags.map((f) => [f.key, f.enabled]));
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -45,7 +50,7 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
           />
         </div>
       </div>
-      <EditForm participant={participant} />
+      <EditForm participant={participant} newDatePicker={flagMap["new_date_picker"] ?? false} />
     </div>
   );
 }

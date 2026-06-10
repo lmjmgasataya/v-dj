@@ -17,9 +17,12 @@ async function requireDeveloper() {
 export async function toggleFlag(key: string) {
   await requireDeveloper();
   await db
-    .update(featureFlags)
-    .set({ enabled: sql`NOT enabled`, updatedAt: new Date() })
-    .where(eq(featureFlags.key, key));
+    .insert(featureFlags)
+    .values({ key, enabled: true })
+    .onConflictDoUpdate({
+      target: featureFlags.key,
+      set: { enabled: sql`NOT ${featureFlags.enabled}`, updatedAt: new Date() },
+    });
   revalidatePath("/devops-admin");
 }
 

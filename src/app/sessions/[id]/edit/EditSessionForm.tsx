@@ -6,13 +6,16 @@ import Link from "next/link";
 import { updateSession } from "./actions";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { CheckboxOption } from "@/components/form";
+import { DatePickerField } from "@/components/DatePickerField";
 
 export function EditSessionForm({
   session,
   existingNames,
+  newDatePicker,
 }: {
   session: { id: number; name: string; sessionDate: string; allowsWalkIn: boolean };
   existingNames: string[];
+  newDatePicker: boolean;
 }) {
   const isCustom = !existingNames.includes(session.name);
   const [mode, setMode] = useState<"existing" | "custom">(isCustom ? "custom" : "existing");
@@ -71,12 +74,12 @@ export function EditSessionForm({
 
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Session Date</label>
-          <input
+          <DatePickerField
             name="sessionDate"
-            type="date"
             required
             defaultValue={session.sessionDate}
             className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            newDatePicker={newDatePicker}
           />
         </div>
 

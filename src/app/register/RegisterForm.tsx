@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { registerParticipant } from "./actions";
 import { Section, Field, RadioOption, CheckboxOption, inputCls, selectCls, SERVICE_OPTIONS, FEE_CATEGORIES } from "@/components/form";
+import { DatePickerField } from "@/components/DatePickerField";
 import { VgLeaderFields } from "@/components/VgLeaderFields";
 import { DisciplerFields } from "@/components/DisciplerFields";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -21,9 +22,10 @@ const LIFESTAGES = [
 interface Props {
   vgLeaderAutocomplete: boolean;
   disciplerAutocomplete: boolean;
+  newDatePicker: boolean;
 }
 
-export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete }: Props) {
+export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newDatePicker }: Props) {
   const [previousChurch, setPreviousChurch] = useState("");
   const [registrationFee, setRegistrationFee] = useState("");
   const needsVictoryDate = registrationFee === "C" || registrationFee === "D";
@@ -98,7 +100,7 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete }: Pr
               <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Required</p>
               <p className="text-xs text-amber-600 mb-2">Please enter the date when the participant completed Victory Weekend.</p>
               <Field label="Victory Weekend Date" required>
-                <input name="victoryDate" required type="date" max={today} className={inputCls} />
+                <DatePickerField name="victoryDate" required max={today} className={inputCls} newDatePicker={newDatePicker} />
               </Field>
             </div>
           )}

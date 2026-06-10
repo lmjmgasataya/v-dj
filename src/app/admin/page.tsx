@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { classSessions, checkIns, participants } from "@/db/schema";
+import { classSessions, checkIns, participants, featureFlags } from "@/db/schema";
 import { and, count, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import { currentYearPH } from "@/lib/date";
 import Link from "next/link";
@@ -20,7 +20,7 @@ export default async function AdminPage({
   const year = yearParam ? parseInt(yearParam, 10) : currentYear;
   const sessionId = session ? parseInt(session, 10) : null;
 
-  const [availableYears, sessions, feeBreakdown] = await Promise.all([
+  const [availableYears, sessions, feeBreakdown, flags] = await Promise.all([
     db
       .selectDistinct({ year: sql<number>`EXTRACT(YEAR FROM ${classSessions.sessionDate})::int` })
       .from(classSessions)
@@ -50,7 +50,11 @@ export default async function AdminPage({
       )
       .groupBy(participants.registrationFee)
       .orderBy(participants.registrationFee),
+
+    db.select().from(featureFlags),
   ]);
+
+  const flagMap = Object.fromEntries(flags.map((f) => [f.key, f.enabled]));
 
   const registeredCount = feeBreakdown.reduce((s, r) => s + r.total, 0);
   const selectedSession = sessionId ? (sessions.find((s) => s.id === sessionId) ?? null) : null;
@@ -149,7 +153,7 @@ export default async function AdminPage({
               <span className="text-indigo-600 font-medium">{selectedSession.name}</span>
             </p>
           </div>
-          <WalkInForm sessionId={selectedSession.id} />
+          <WalkInForm sessionId={selectedSession.id} newDatePicker={flagMap["new_date_picker"] ?? false} />
         </div>
       )}
     </div>

@@ -48,7 +48,10 @@ export function ParticipantTable({
         const isExpanded = expandedId === p.id;
         const feeCat = FEE_CATEGORIES.find((f) => f.value === p.registrationFee);
         const feeLabel = feeCat ? `Class ${feeCat.value} (${feeCat.description})` : null;
-        const subtitle = [p.mobileNumber, p.lifestage, feeLabel].filter(Boolean).join(" · ");
+        const registeredDate = p.createdAt
+          ? `Registered: ${new Date(p.createdAt).toLocaleString("en-PH", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Manila" })}`
+          : null;
+        const subtitle = [p.mobileNumber, p.lifestage, feeLabel, registeredDate].filter(Boolean).join(" · ");
 
         return (
           <div key={p.id}>

@@ -55,6 +55,10 @@ npm run db:seed       # seed database
 - **Developer admin** — full data access, exports, and login audit logs (`developer` role)
 - **Feature flags** — runtime toggles stored in the `feature_flags` table
 
+## Future ideas
+
+- **Live participant counter** — a client component polling `SELECT COUNT(*) FROM participants` every 5–10s via a lightweight API route. Simple polling is sufficient (no WebSockets needed). Display on the admin dashboard or registration success page.
+
 ## Roles
 
 | Role | Access |

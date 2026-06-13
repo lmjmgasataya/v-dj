@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { participants, disciplers, victoryGroupLeaders, checkIns, classSessions } from "@/db/schema";
-import { ilike, or, desc, isNull, and, count, gte, lt, eq, inArray, getTableColumns } from "drizzle-orm";
+import { ilike, or, isNull, and, count, gte, lt, eq, inArray, getTableColumns } from "drizzle-orm";
 import Link from "next/link";
 import { ParticipantTable } from "./ParticipantTable";
 import { currentYearPH } from "@/lib/date";
@@ -63,7 +63,7 @@ export async function ParticipantList({
       .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
       .leftJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
       .where(baseWhere)
-      .orderBy(q.trim() ? participants.lastName : desc(participants.id))
+      .orderBy(participants.id)
       .limit(PAGE_SIZE)
       .offset(offset),
 

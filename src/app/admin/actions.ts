@@ -17,9 +17,31 @@ export async function checkInParticipant(participantId: number, classSessionId: 
   revalidatePath("/sessions");
 }
 
+export async function lookupParticipantForQr(
+  participantId: number,
+  classSessionId: number,
+): Promise<{ name: string; alreadyCheckedIn: boolean } | { error: string }> {
+  const [participant] = await db
+    .select({ id: participants.id, firstName: participants.firstName, lastName: participants.lastName })
+    .from(participants)
+    .where(and(eq(participants.id, participantId), isNull(participants.deletedAt)))
+    .limit(1);
+
+  if (!participant) return { error: "Participant not found" };
+
+  const [existing] = await db
+    .select({ id: checkIns.id })
+    .from(checkIns)
+    .where(and(eq(checkIns.participantId, participantId), eq(checkIns.classSessionId, classSessionId)))
+    .limit(1);
+
+  return { name: `${participant.lastName}, ${participant.firstName}`, alreadyCheckedIn: !!existing };
+}
+
 export async function checkInByQr(
   participantId: number,
-  classSessionId: number
+  classSessionId: number,
+  remarks?: string,
 ): Promise<{ name: string; alreadyCheckedIn: boolean } | { error: string }> {
   const [participant] = await db
     .select({ id: participants.id, firstName: participants.firstName, lastName: participants.lastName })
@@ -39,7 +61,7 @@ export async function checkInByQr(
     return { name: `${participant.lastName}, ${participant.firstName}`, alreadyCheckedIn: true };
   }
 
-  await db.insert(checkIns).values({ participantId, classSessionId }).onConflictDoNothing();
+  await db.insert(checkIns).values({ participantId, classSessionId, remarks: remarks || null }).onConflictDoNothing();
   revalidatePath("/admin");
   revalidatePath("/sessions");
 

@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { disciplers } from "@/db/schema";
 import { asc } from "drizzle-orm";
 import { createDiscipler, deleteDiscipler } from "./actions";
+import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
 
 const input = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400";
 
@@ -35,10 +36,11 @@ export default async function DisciplersPage() {
                   <td className="px-4 py-2.5 text-gray-500 font-mono text-xs">{d.mobileNumber}</td>
                   <td className="px-4 py-2.5 text-gray-500">{d.messengerName ?? "—"}</td>
                   <td className="px-4 py-2.5 text-right">
-                    <form action={deleteDiscipler}>
-                      <input type="hidden" name="id" value={d.id} />
-                      <button type="submit" className="text-xs px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded transition">Delete</button>
-                    </form>
+                    <ConfirmDeleteButton
+                      action={deleteDiscipler}
+                      hiddenFields={{ id: String(d.id) }}
+                      message={`Delete discipler "${d.lastName}, ${d.firstName}"?`}
+                    />
                   </td>
                 </tr>
               ))}

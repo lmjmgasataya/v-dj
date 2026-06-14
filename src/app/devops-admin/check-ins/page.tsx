@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { checkIns, participants, classSessions } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { deleteCheckIn } from "./actions";
+import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
 
 export default async function CheckInsPage() {
   const rows = await db
@@ -52,10 +53,11 @@ export default async function CheckInsPage() {
                   </td>
                   <td className="px-4 py-2.5 text-gray-500">{c.remarks ?? "—"}</td>
                   <td className="px-4 py-2.5 text-right">
-                    <form action={deleteCheckIn}>
-                      <input type="hidden" name="id" value={c.id} />
-                      <button type="submit" className="text-xs px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded transition">Delete</button>
-                    </form>
+                    <ConfirmDeleteButton
+                      action={deleteCheckIn}
+                      hiddenFields={{ id: String(c.id) }}
+                      message="Delete this check-in record?"
+                    />
                   </td>
                 </tr>
               ))}

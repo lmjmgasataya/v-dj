@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { classSessions, featureFlags } from "@/db/schema";
 import { desc } from "drizzle-orm";
 import { createClassSession, deleteClassSession, toggleSessionFlag } from "./actions";
+import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
 import { DatePickerField } from "@/components/DatePickerField";
 
 const input = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400";
@@ -56,10 +57,11 @@ export default async function ClassSessionsPage() {
                     </form>
                   </td>
                   <td className="px-4 py-2.5 text-right">
-                    <form action={deleteClassSession}>
-                      <input type="hidden" name="id" value={s.id} />
-                      <button type="submit" className="text-xs px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded transition">Delete</button>
-                    </form>
+                    <ConfirmDeleteButton
+                      action={deleteClassSession}
+                      hiddenFields={{ id: String(s.id) }}
+                      message={`Delete session "${s.name}" (${s.sessionDate})?`}
+                    />
                   </td>
                 </tr>
               ))}

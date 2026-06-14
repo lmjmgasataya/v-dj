@@ -3,6 +3,7 @@ import { featureFlags, users } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { sql } from "drizzle-orm";
 import { toggleFlag, createFlag, deleteFlag, changeRole, resetPassword, deleteUser, createUser } from "./actions";
+import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 // session is read here (not in layout) because we need session.userId to hide delete-self button
 
 const FLAG_LABELS: Record<string, string> = {
@@ -94,14 +95,10 @@ export default async function DevopsAdminPage() {
                     />
                   </button>
                 </form>
-                <form action={deleteFlag.bind(null, flag.key)}>
-                  <button
-                    type="submit"
-                    className="text-xs px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition"
-                  >
-                    Delete
-                  </button>
-                </form>
+                <ConfirmDeleteButton
+                  action={deleteFlag.bind(null, flag.key)}
+                  message={`Delete flag "${flag.key}"?`}
+                />
               </div>
             </li>
           ))}
@@ -185,15 +182,11 @@ export default async function DevopsAdminPage() {
                 {user.id !== session!.userId && (
                   <>
                     <span className="text-gray-200">|</span>
-                    <form action={deleteUser}>
-                      <input type="hidden" name="userId" value={user.id} />
-                      <button
-                        type="submit"
-                        className="text-xs px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition"
-                      >
-                        Delete
-                      </button>
-                    </form>
+                    <ConfirmDeleteButton
+                      action={deleteUser}
+                      hiddenFields={{ userId: String(user.id) }}
+                      message={`Delete user "${user.name}" (${user.username})?`}
+                    />
                   </>
                 )}
               </div>

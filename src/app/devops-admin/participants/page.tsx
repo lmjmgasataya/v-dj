@@ -4,6 +4,7 @@ import { desc, ilike, or, isNull, isNotNull, and, count } from "drizzle-orm";
 import Link from "next/link";
 import { SearchInput } from "./SearchInput";
 import { archiveParticipant, restoreParticipant, deleteParticipant } from "./actions";
+import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
 
 const PAGE_SIZE = 10;
 
@@ -106,10 +107,11 @@ export default async function ParticipantsPage({
                           <input type="hidden" name="id" value={p.id} />
                           <button type="submit" className="text-xs px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded transition">Archive</button>
                         </form>
-                        <form action={deleteParticipant}>
-                          <input type="hidden" name="id" value={p.id} />
-                          <button type="submit" className="text-xs px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded transition">Delete</button>
-                        </form>
+                        <ConfirmDeleteButton
+                          action={deleteParticipant}
+                          hiddenFields={{ id: String(p.id) }}
+                          message={`Delete participant "${p.lastName}, ${p.firstName}"?`}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -161,10 +163,11 @@ export default async function ParticipantsPage({
                           <input type="hidden" name="id" value={p.id} />
                           <button type="submit" className="text-xs px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition">Restore</button>
                         </form>
-                        <form action={deleteParticipant}>
-                          <input type="hidden" name="id" value={p.id} />
-                          <button type="submit" className="text-xs px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded transition">Delete</button>
-                        </form>
+                        <ConfirmDeleteButton
+                          action={deleteParticipant}
+                          hiddenFields={{ id: String(p.id) }}
+                          message={`Delete participant "${p.lastName}, ${p.firstName}"?`}
+                        />
                       </div>
                     </td>
                   </tr>

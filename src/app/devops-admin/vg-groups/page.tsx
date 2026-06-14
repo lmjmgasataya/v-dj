@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { victoryGroups, victoryGroupLeaders } from "@/db/schema";
 import { eq, isNull, asc } from "drizzle-orm";
 import { createVgGroup, deleteVgGroup } from "./actions";
+import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
 
 const input = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400";
 const select = input + " bg-white";
@@ -63,10 +64,11 @@ export default async function VgGroupsPage() {
                     {g.frequency === "Others" && g.otherFrequency ? g.otherFrequency : g.frequency}
                   </td>
                   <td className="px-4 py-2.5 text-right">
-                    <form action={deleteVgGroup}>
-                      <input type="hidden" name="id" value={g.id} />
-                      <button type="submit" className="text-xs px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded transition">Delete</button>
-                    </form>
+                    <ConfirmDeleteButton
+                      action={deleteVgGroup}
+                      hiddenFields={{ id: String(g.id) }}
+                      message={`Delete VG group (${g.day} ${g.time})?`}
+                    />
                   </td>
                 </tr>
               ))}

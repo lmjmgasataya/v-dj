@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { searchParticipants } from "./actions";
 import { SessionCheckInList } from "./SessionCheckInList";
+import { QrScanner } from "./QrScanner";
 
 type Results = Awaited<ReturnType<typeof searchParticipants>>;
 
@@ -31,7 +32,7 @@ function SearchSkeleton() {
   );
 }
 
-export function ParticipantSearch({ sessionId, sessionName: _sessionName, isVictoryDay, initialQ }: { sessionId: number; sessionName: string; isVictoryDay: boolean; initialQ?: string }) {
+export function ParticipantSearch({ sessionId, sessionName: _sessionName, isVictoryDay, initialQ, qrCheckin }: { sessionId: number; sessionName: string; isVictoryDay: boolean; initialQ?: string; qrCheckin?: boolean }) {
   const [q, setQ] = useState(initialQ ?? "");
   const [results, setResults] = useState<Results>([]);
   const [searched, setSearched] = useState(false);
@@ -94,6 +95,16 @@ export function ParticipantSearch({ sessionId, sessionName: _sessionName, isVict
 
   return (
     <div>
+      {qrCheckin && (
+        <>
+          <QrScanner sessionId={sessionId} />
+          <div className="relative flex items-center my-4">
+            <div className="flex-1 border-t border-gray-200" />
+            <span className="px-3 text-xs text-gray-400">or search manually</span>
+            <div className="flex-1 border-t border-gray-200" />
+          </div>
+        </>
+      )}
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input
           value={q}

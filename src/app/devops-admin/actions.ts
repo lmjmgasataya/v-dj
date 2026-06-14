@@ -26,6 +26,20 @@ export async function toggleFlag(key: string) {
   revalidatePath("/devops-admin");
 }
 
+export async function createFlag(formData: FormData) {
+  await requireDeveloper();
+  const key = (formData.get("key") as string ?? "").trim().toLowerCase().replace(/\s+/g, "_");
+  if (!key || !/^[a-z0-9_]+$/.test(key)) return;
+  await db.insert(featureFlags).values({ key, enabled: false }).onConflictDoNothing();
+  revalidatePath("/devops-admin");
+}
+
+export async function deleteFlag(key: string) {
+  await requireDeveloper();
+  await db.delete(featureFlags).where(eq(featureFlags.key, key));
+  revalidatePath("/devops-admin");
+}
+
 export async function changeRole(formData: FormData) {
   await requireDeveloper();
   const userId = Number(formData.get("userId"));

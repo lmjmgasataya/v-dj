@@ -2,13 +2,14 @@ import { db } from "@/db";
 import { featureFlags, users } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { sql } from "drizzle-orm";
-import { toggleFlag, changeRole, resetPassword, deleteUser, createUser } from "./actions";
+import { toggleFlag, createFlag, deleteFlag, changeRole, resetPassword, deleteUser, createUser } from "./actions";
 // session is read here (not in layout) because we need session.userId to hide delete-self button
 
 const FLAG_LABELS: Record<string, string> = {
   autocomplete_vg_leaders: "VG Leader autocomplete",
   autocomplete_disciplers: "Discipler autocomplete",
   new_date_picker: "New date picker (calendar popover)",
+  qr_checkin: "QR code check-in (scan to check in + QR on participant page)",
 };
 
 async function getDbStats() {
@@ -77,24 +78,53 @@ export default async function DevopsAdminPage() {
                 <p className="text-sm font-medium text-gray-800">{flag.key}</p>
                 <p className="text-xs text-gray-400 font-mono mt-0.5">{flag.key}</p>
               </div>
-              <form action={toggleFlag.bind(null, flag.key)}>
-                <button
-                  type="submit"
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-                    flag.enabled ? "bg-indigo-600" : "bg-gray-200"
-                  }`}
-                  aria-label={flag.enabled ? "Disable" : "Enable"}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-200 ${
-                      flag.enabled ? "translate-x-5" : "translate-x-0"
+              <div className="flex items-center gap-3">
+                <form action={toggleFlag.bind(null, flag.key)}>
+                  <button
+                    type="submit"
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+                      flag.enabled ? "bg-indigo-600" : "bg-gray-200"
                     }`}
-                  />
-                </button>
-              </form>
+                    aria-label={flag.enabled ? "Disable" : "Enable"}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-200 ${
+                        flag.enabled ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </form>
+                <form action={deleteFlag.bind(null, flag.key)}>
+                  <button
+                    type="submit"
+                    className="text-xs px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition"
+                  >
+                    Delete
+                  </button>
+                </form>
+              </div>
             </li>
           ))}
         </ul>
+        <div className="px-6 py-5 border-t border-gray-100 bg-gray-50">
+          <p className="text-sm font-semibold text-gray-700 mb-3">Create Flag</p>
+          <form action={createFlag} className="flex items-center gap-3">
+            <input
+              name="key"
+              required
+              placeholder="flag_key_name"
+              pattern="[a-z0-9_]+"
+              className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 font-mono"
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition shrink-0"
+            >
+              Add Flag
+            </button>
+          </form>
+          <p className="text-xs text-gray-400 mt-2">Lowercase letters, numbers, and underscores only. Starts disabled.</p>
+        </div>
       </div>
 
       {/* User Management */}

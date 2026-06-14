@@ -17,6 +17,35 @@ export async function checkInParticipant(participantId: number, classSessionId: 
   revalidatePath("/sessions");
 }
 
+export async function checkInByQr(
+  participantId: number,
+  classSessionId: number
+): Promise<{ name: string; alreadyCheckedIn: boolean } | { error: string }> {
+  const [participant] = await db
+    .select({ id: participants.id, firstName: participants.firstName, lastName: participants.lastName })
+    .from(participants)
+    .where(and(eq(participants.id, participantId), isNull(participants.deletedAt)))
+    .limit(1);
+
+  if (!participant) return { error: "Participant not found" };
+
+  const [existing] = await db
+    .select({ id: checkIns.id })
+    .from(checkIns)
+    .where(and(eq(checkIns.participantId, participantId), eq(checkIns.classSessionId, classSessionId)))
+    .limit(1);
+
+  if (existing) {
+    return { name: `${participant.lastName}, ${participant.firstName}`, alreadyCheckedIn: true };
+  }
+
+  await db.insert(checkIns).values({ participantId, classSessionId }).onConflictDoNothing();
+  revalidatePath("/admin");
+  revalidatePath("/sessions");
+
+  return { name: `${participant.lastName}, ${participant.firstName}`, alreadyCheckedIn: false };
+}
+
 export async function removeCheckIn(participantId: number, classSessionId: number) {
   await db
     .delete(checkIns)

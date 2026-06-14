@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { EditForm } from "./EditForm";
 import { DeleteButton } from "./DeleteButton";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { ParticipantQrCode } from "./ParticipantQrCode";
 
 export default async function EditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -51,6 +52,14 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
         </div>
       </div>
       <EditForm participant={participant} newDatePicker={flagMap["new_date_picker"] ?? false} />
+      {(flagMap["qr_checkin"] ?? false) && (
+        <div className="mt-6">
+          <ParticipantQrCode
+            participantId={participant.id}
+            name={`${participant.lastName}, ${participant.firstName}`}
+          />
+        </div>
+      )}
     </div>
   );
 }

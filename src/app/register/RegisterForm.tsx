@@ -170,7 +170,7 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
             </Field>
           )}
 
-          {!showVgLeader && (
+          {isAB && isDoneWithVictoryWeekend && (
             <Field label="I will undergo water baptism" required className="sm:col-span-2">
               <div className="flex gap-6 mt-1">
                 <RadioOption name="willUndergoWaterBaptism" value="yes" label="Yes" required />

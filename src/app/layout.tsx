@@ -20,7 +20,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" className="h-full">
       <body className={`${geist.className} min-h-full bg-gray-50 antialiased`}>
         <NavigationProgress />
-        <header className="bg-indigo-700 text-white shadow">
+        <header className="text-white shadow" style={{ backgroundColor: "#00428E" }}>
           <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
             <Link href="/" className="hover:opacity-80 transition">
               <p className="text-xs font-medium text-indigo-200 uppercase tracking-widest">Victory Iloilo</p>

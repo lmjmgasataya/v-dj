@@ -20,6 +20,14 @@ export default async function ParticipantsPage({
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-900">Participants</h2>
           <div className="flex items-center gap-3">
+            {isDeveloper && (
+              <Link
+                href="/participants/print-ids"
+                className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition"
+              >
+                Print IDs
+              </Link>
+            )}
             <a
               href="/api/participants/export"
               className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition"

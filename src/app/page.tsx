@@ -57,6 +57,16 @@ export default async function Home() {
             <span className="text-sm text-gray-500 text-center">Attendance completion matrix</span>
           </Link>
         )}
+        {isDeveloper && (
+          <Link
+            href="/participants/print-ids"
+            className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
+          >
+            <span className="text-4xl">🪪</span>
+            <span className="text-lg font-semibold text-gray-900">(Preview) Print IDs</span>
+            <span className="text-sm text-gray-500 text-center">Print participant ID cards</span>
+          </Link>
+        )}
       </div>
     </div>
   );

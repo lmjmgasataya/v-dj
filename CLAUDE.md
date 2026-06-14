@@ -41,7 +41,7 @@ docker compose up -d  # Starts postgres:16 on :5432 and Adminer on :8080
 
 ### Data model
 Eight tables:
-- `participants` — registrants with personal info, life stage, discipler/VG leader refs, baptism status, walk-in flag, etc.
+- `participants` — registrants with personal info, life stage, discipler/VG leader refs, baptism status, walk-in flag, etc. Notable fields: `preferredNameOnId` (used on printed ID cards), `registrationFee` (categories A–D), `isWalkIn`, `deletedAt` (soft-delete)
 - `disciplers` — people who disciple participants; referenced by `participants.disciplerId`
 - `victoryGroupLeaders` — VG leaders with personal info; referenced by `participants.vgLeaderId`
 - `victoryGroups` — VG schedules (place, day, time, frequency) owned by a `victoryGroupLeader`
@@ -53,8 +53,8 @@ Eight tables:
 
 ### Route sections
 - `src/app/register/` — public registration form + success page
-- `src/app/admin/` — check-in workflow for `admin_volunteer` role
-- `src/app/participants/` — participant list, detail (`[id]`), edit (`[id]/edit`), and deleted list
+- `src/app/admin/` — check-in workflow for `admin_volunteer` role; includes `QrScanner.tsx` (uses `html5-qrcode`, gated by `qr_checkin` feature flag)
+- `src/app/participants/` — participant list, detail (`[id]`), edit (`[id]/edit`), deleted list, and print IDs (`print-ids/`)
 - `src/app/sessions/` — session list, new session, and edit (`[id]/edit`)
 - `src/app/vg-leaders/` — VG leader list, new (`new`), and edit (`[id]/edit`)
 - `src/app/report/` — reporting dashboards: `checkins`, `class-category`, `demographics`, `funnel`, `registrations`
@@ -62,6 +62,13 @@ Eight tables:
 - `src/app/login/` — login page; Server Actions handle auth
 
 ### Patterns
+**Auth gating pattern** — any page that requires login:
+```ts
+const session = await getSession();
+if (!session) redirect("/");
+```
+Role checks: `session.role === "developer"` for developer-only pages. `!!session` for any logged-in user.
+
 **Mutations use Server Actions**, not API routes. Each page route folder contains an `actions.ts` with `'use server'` functions (e.g., `src/app/register/actions.ts`, `src/app/admin/actions.ts`). Database queries are written directly in Drizzle inside these action files.
 
 **API routes** (`src/app/api/`) exist only for:
@@ -74,6 +81,14 @@ Eight tables:
 - `devops-admin/export` — full data export for developers
 
 **Auth flow:** `src/lib/auth.ts` exports `getSession()` (reads + verifies cookie) and `setSessionCookie()` / `clearSessionCookie()`. Pages call `getSession()` at the top to gate access; login/logout are Server Actions in `src/app/login/actions.ts`. Role `developer` gets access to `devops-admin`; `admin_volunteer` gets access to `admin`, `participants`, `sessions`, `vg-leaders`, and `report`.
+
+**QR codes** — two libraries serve different purposes:
+- `react-qr-code` (v2.2+) generates QR SVGs; value format is `dj:participant:{id}`. Used in `src/app/participants/[id]/edit/ParticipantQrCode.tsx` and `src/app/participants/print-ids/PrintIdsClient.tsx`.
+- `html5-qrcode` (v2.3+) scans via camera; used in `src/app/admin/QrScanner.tsx` during check-in. Gated by the `qr_checkin` feature flag.
+
+**Shared components** (`src/components/`):
+- `Breadcrumbs` — renders a breadcrumb nav; accepts `items: { label, href? }[]`. Safe to import in client components.
+- `NavigationProgress` — top-of-page loading bar; mounted once in `src/app/layout.tsx`.
 
 **Path alias:** `@/*` maps to `src/*`.
 

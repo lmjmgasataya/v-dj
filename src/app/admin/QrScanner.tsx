@@ -70,6 +70,10 @@ export function QrScanner({ sessionId, onCheckIn }: { sessionId: number; onCheck
           },
           undefined
         );
+        if (!cancelled) {
+          document.getElementById(CONTAINER_ID)?.scrollIntoView({ behavior: "smooth", block: "start" });
+          setTimeout(() => window.scrollBy({ top: 450, behavior: "smooth" }), 100);
+        }
       } catch {
         if (!cancelled) {
           setStatus("error");

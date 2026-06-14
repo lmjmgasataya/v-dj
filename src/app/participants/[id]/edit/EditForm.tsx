@@ -8,13 +8,15 @@ import { SubmitButton } from "@/components/SubmitButton";
 import Link from "next/link";
 import type { Participant } from "@/db/schema";
 
-type ParticipantWithDiscipler = Participant & {
+type ParticipantWithRelations = Participant & {
   disciplerLastName: string | null;
   disciplerFirstName: string | null;
   disciplerMobileNumber: string | null;
   disciplerMessengerName: string | null;
   vgLeaderLastName: string | null;
   vgLeaderFirstName: string | null;
+  vgLeaderMobileNumber: string | null;
+  vgLeaderMessengerName: string | null;
 };
 
 const LIFESTAGES = [
@@ -27,21 +29,20 @@ const LIFESTAGES = [
   "Senior",
 ];
 
-export function EditForm({ participant, newDatePicker }: { participant: ParticipantWithDiscipler; newDatePicker: boolean }) {
+export function EditForm({ participant, newDatePicker }: { participant: ParticipantWithRelations; newDatePicker: boolean }) {
   const isOtherChurch = participant.previousChurch != null && participant.previousChurch !== "Roman Catholic";
   const [previousChurch, setPreviousChurch] = useState(isOtherChurch ? "Others" : "Roman Catholic");
-  const [discipler, setDiscipler] = useState({
-    lastName: participant.disciplerLastName ?? "",
-    firstName: participant.disciplerFirstName ?? "",
-    mobileNumber: participant.disciplerMobileNumber ?? "",
-    messengerName: participant.disciplerMessengerName ?? "",
-  });
+  const [isDoneWithVictoryWeekend, setIsDoneWithVictoryWeekend] = useState(participant.isDoneWithVictoryWeekend ?? false);
+
+  const isAB = participant.registrationFee === "A" || participant.registrationFee === "B";
+  const needsVictoryDate = participant.registrationFee === "C" || participant.registrationFee === "D";
+  const showVgLeader = needsVictoryDate || isDoneWithVictoryWeekend;
 
   const updateAction = updateParticipant.bind(null, participant.id);
 
   return (
     <form action={updateAction} className="flex flex-col gap-6">
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-5 flex flex-col gap-2">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-5 flex flex-col gap-3">
         <p className="text-sm font-semibold text-gray-700">
           I will register for: <span className="text-red-500">*</span>
           <span className="ml-1.5 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 uppercase tracking-wide">Important</span>
@@ -58,6 +59,16 @@ export function EditForm({ participant, newDatePicker }: { participant: Particip
             <option key={f.value} value={f.value}>{f.label} — {f.amount}</option>
           ))}
         </select>
+        {isAB && (
+          <CheckboxOption
+            name="isDoneWithVictoryWeekend"
+            checked={isDoneWithVictoryWeekend}
+            onChange={(e) => setIsDoneWithVictoryWeekend(e.target.checked)}
+            align="center"
+          >
+            Have you gone through Victory Weekend before?
+          </CheckboxOption>
+        )}
       </div>
 
       <Section title="Participant Information">
@@ -100,88 +111,97 @@ export function EditForm({ participant, newDatePicker }: { participant: Particip
             {SERVICE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </Field>
-        <Field label="I have completed One2One" className="sm:col-span-2">
-          <div className="flex flex-col gap-2 mt-1">
-            <RadioOption name="completedOne2One" value="yes" label="Yes" defaultChecked={participant.completedOne2One ?? false} />
-            <RadioOption name="completedOne2One" value="no" label="No, but I will complete it before Victory Day" defaultChecked={!(participant.completedOne2One ?? false)} />
-          </div>
-        </Field>
 
-        <Field label="I will undergo water baptism" className="sm:col-span-2">
-          <div className="flex gap-6 mt-1">
-            <RadioOption name="willUndergoWaterBaptism" value="yes" label="Yes" defaultChecked={participant.willUndergoWaterBaptism ?? false} />
-            <RadioOption name="willUndergoWaterBaptism" value="no" label="No" defaultChecked={!(participant.willUndergoWaterBaptism ?? false)} />
-          </div>
-        </Field>
+        {!showVgLeader && (
+          <Field label="I have completed One2One" className="sm:col-span-2">
+            <div className="flex flex-col gap-2 mt-1">
+              <RadioOption name="completedOne2One" value="yes" label="Yes" defaultChecked={participant.completedOne2One ?? false} />
+              <RadioOption name="completedOne2One" value="no" label="No, but I will complete it before Victory Day" defaultChecked={!(participant.completedOne2One ?? false)} />
+            </div>
+          </Field>
+        )}
 
-        <Field label="Previous Church" className="sm:col-span-2">
-          <div className="flex flex-col gap-2 mt-1">
-            <RadioOption
-              name="previousChurch"
-              value="Roman Catholic"
-              label="Roman Catholic"
-              checked={previousChurch === "Roman Catholic"}
-              onChange={() => setPreviousChurch("Roman Catholic")}
-            />
-            <RadioOption
-              name="previousChurch"
-              value="Others"
-              label="Others"
-              checked={previousChurch === "Others"}
-              onChange={() => setPreviousChurch("Others")}
-            />
-            {previousChurch === "Others" && (
-              <input
-                name="previousChurchOther"
-                defaultValue={isOtherChurch ? (participant.previousChurch ?? "") : ""}
-                placeholder="Please specify your previous church"
-                className={`${inputCls} mt-1 ml-5`}
+        {!showVgLeader && (
+          <Field label="I will undergo water baptism" className="sm:col-span-2">
+            <div className="flex gap-6 mt-1">
+              <RadioOption name="willUndergoWaterBaptism" value="yes" label="Yes" defaultChecked={participant.willUndergoWaterBaptism ?? false} />
+              <RadioOption name="willUndergoWaterBaptism" value="no" label="No" defaultChecked={!(participant.willUndergoWaterBaptism ?? false)} />
+            </div>
+          </Field>
+        )}
+
+        {!showVgLeader && (
+          <Field label="Previous Church" className="sm:col-span-2">
+            <div className="flex flex-col gap-2 mt-1">
+              <RadioOption
+                name="previousChurch"
+                value="Roman Catholic"
+                label="Roman Catholic"
+                checked={previousChurch === "Roman Catholic"}
+                onChange={() => setPreviousChurch("Roman Catholic")}
               />
-            )}
-          </div>
-        </Field>
+              <RadioOption
+                name="previousChurch"
+                value="Others"
+                label="Others"
+                checked={previousChurch === "Others"}
+                onChange={() => setPreviousChurch("Others")}
+              />
+              {previousChurch === "Others" && (
+                <input
+                  name="previousChurchOther"
+                  defaultValue={isOtherChurch ? (participant.previousChurch ?? "") : ""}
+                  placeholder="Please specify your previous church"
+                  className={`${inputCls} mt-1 ml-5`}
+                />
+              )}
+            </div>
+          </Field>
+        )}
 
         <Field label="Preferred Name on ID" className="sm:col-span-2">
           <input name="preferredNameOnId" defaultValue={participant.preferredNameOnId ?? ""} className={inputCls} />
         </Field>
       </Section>
 
-      <Section title="One2One Discipler Information" description="To be filled up by the One2One discipler">
-        <Field label="Discipler's Last Name">
-          <input name="disciplerLastName" className={inputCls}
-            value={discipler.lastName} onChange={(e) => setDiscipler((p) => ({ ...p, lastName: e.target.value }))} />
-        </Field>
-        <Field label="Discipler's First Name">
-          <input name="disciplerFirstName" className={inputCls}
-            value={discipler.firstName} onChange={(e) => setDiscipler((p) => ({ ...p, firstName: e.target.value }))} />
-        </Field>
-        <Field label="Discipler's Mobile Number">
-          <input name="disciplerMobileNumber" type="tel" className={inputCls}
-            value={discipler.mobileNumber} onChange={(e) => setDiscipler((p) => ({ ...p, mobileNumber: e.target.value }))} />
-        </Field>
-        <Field label="Discipler's Messenger / Facebook Name">
-          <input name="disciplerMessengerName" className={inputCls}
-            value={discipler.messengerName} onChange={(e) => setDiscipler((p) => ({ ...p, messengerName: e.target.value }))} />
-        </Field>
-        <div className="sm:col-span-2">
-          <CheckboxOption name="confirmedReadiness" defaultChecked={participant.confirmedReadiness ?? false} align="start">
-            I am confirming that the participant is ready to join Victory Day, that we will
-            complete/have completed One2One and Preparing for Victory before the day of the event.
-          </CheckboxOption>
-        </div>
-      </Section>
-
-      {participant.isWalkIn && (
-        <Section title="Walk-in Info">
+      {showVgLeader ? (
+        <Section title="Victory Group Leader Information">
           <Field label="VG Leader's Last Name">
             <input name="vgLeaderLastName" defaultValue={participant.vgLeaderLastName ?? ""} className={inputCls} />
           </Field>
           <Field label="VG Leader's First Name">
             <input name="vgLeaderFirstName" defaultValue={participant.vgLeaderFirstName ?? ""} className={inputCls} />
           </Field>
+          <Field label="VG Leader's Mobile Number">
+            <input name="vgLeaderMobileNumber" type="tel" defaultValue={participant.vgLeaderMobileNumber ?? ""} className={inputCls} />
+          </Field>
+          <Field label="VG Leader's Messenger / Facebook Name">
+            <input name="vgLeaderMessengerName" defaultValue={participant.vgLeaderMessengerName ?? ""} className={inputCls} />
+          </Field>
           <Field label="Victory Weekend / Victory Day Date" className="sm:col-span-2">
             <DatePickerField name="victoryDate" defaultValue={participant.victoryDate ?? ""} className={inputCls} newDatePicker={newDatePicker} />
           </Field>
+        </Section>
+      ) : (
+        <Section title="One2One Discipler Information" important="To be filled up by the One2One discipler">
+          <Field label="Discipler's Last Name">
+            <input name="disciplerLastName" defaultValue={participant.disciplerLastName ?? ""} className={inputCls} />
+          </Field>
+          <Field label="Discipler's First Name">
+            <input name="disciplerFirstName" defaultValue={participant.disciplerFirstName ?? ""} className={inputCls} />
+          </Field>
+          <Field label="Discipler's Mobile Number">
+            <input name="disciplerMobileNumber" type="tel" defaultValue={participant.disciplerMobileNumber ?? ""} className={inputCls} />
+          </Field>
+          <Field label="Discipler's Messenger / Facebook Name">
+            <input name="disciplerMessengerName" defaultValue={participant.disciplerMessengerName ?? ""} className={inputCls} />
+          </Field>
+          <div className="sm:col-span-2">
+            <CheckboxOption name="confirmedReadiness" defaultChecked={participant.confirmedReadiness ?? false} align="start" labelClassName="text-red-800 font-bold">
+              I am confirming that the participant is ready to join Victory Day, that we will
+              complete/have completed One2One and Preparing for Victory before the day of the event.
+            </CheckboxOption>
+          </div>
         </Section>
       )}
 
@@ -202,7 +222,7 @@ export function EditForm({ participant, newDatePicker }: { participant: Particip
             ))}
           </select>
         </Field>
-        <Field label="Name of Admin Volunteer" className="sm:col-span-2">
+        <Field label="Name of Admin Service Team Member" className="sm:col-span-2">
           <input name="adminVolunteerName" defaultValue={participant.adminVolunteerName ?? ""} className={inputCls} />
         </Field>
       </Section>

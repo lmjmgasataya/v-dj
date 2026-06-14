@@ -27,11 +27,12 @@ export const inputCls =
 
 export const selectCls = inputCls;
 
-export function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
+export function Section({ title, description, important, children }: { title: string; description?: string; important?: boolean | string; children: React.ReactNode }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="bg-indigo-50 border-b border-indigo-100 px-6 py-3">
         <h2 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">{title}</h2>
+        {important && <span className="mt-0.5 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 uppercase tracking-wide">{typeof important === "string" ? important : "Important"}</span>}
         {description && <p className="text-xs text-indigo-500 mt-0.5">{description}</p>}
       </div>
       <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">{children}</div>
@@ -45,6 +46,8 @@ export function CheckboxOption({
   children,
   required,
   defaultChecked,
+  checked,
+  onChange,
   align = "center",
   labelClassName,
 }: {
@@ -53,6 +56,8 @@ export function CheckboxOption({
   children: React.ReactNode;
   required?: boolean;
   defaultChecked?: boolean;
+  checked?: boolean;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   align?: "center" | "start";
   labelClassName?: string;
 }) {
@@ -65,6 +70,8 @@ export function CheckboxOption({
           value={value}
           required={required}
           defaultChecked={defaultChecked}
+          checked={checked}
+          onChange={onChange}
           className="peer sr-only"
         />
         <span className="absolute inset-0 rounded border-2 border-gray-300 bg-white transition-colors group-hover:border-indigo-400 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-400 peer-focus-visible:ring-offset-1" />

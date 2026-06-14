@@ -100,6 +100,7 @@ export const participants = pgTable("participants", {
   acknowledgementReceiptNumber: text("acknowledgement_receipt_number"),
   registrationFee: text("registration_fee"),
   adminVolunteerName: text("admin_volunteer_name"),
+  isDoneWithVictoryWeekend: boolean("is_done_with_victory_weekend"),
   isWalkIn: boolean("is_walk_in").default(false).notNull(),
   victoryDate: text("victory_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

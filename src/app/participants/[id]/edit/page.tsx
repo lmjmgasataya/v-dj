@@ -21,6 +21,8 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
         disciplerMessengerName: disciplers.messengerName,
         vgLeaderLastName: victoryGroupLeaders.lastName,
         vgLeaderFirstName: victoryGroupLeaders.firstName,
+        vgLeaderMobileNumber: victoryGroupLeaders.mobileNumber,
+        vgLeaderMessengerName: victoryGroupLeaders.facebookMessengerName,
       })
       .from(participants)
       .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))

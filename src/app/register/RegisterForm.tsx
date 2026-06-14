@@ -28,7 +28,11 @@ interface Props {
 export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newDatePicker }: Props) {
   const [previousChurch, setPreviousChurch] = useState("");
   const [registrationFee, setRegistrationFee] = useState("");
+  const [isDoneWithVictoryWeekend, setIsDoneWithVictoryWeekend] = useState(false);
+
   const needsVictoryDate = registrationFee === "C" || registrationFee === "D";
+  const isAB = registrationFee === "A" || registrationFee === "B";
+  const showVgLeader = needsVictoryDate || isDoneWithVictoryWeekend;
 
   const isDirty = useRef(false);
   useEffect(() => {
@@ -75,7 +79,7 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
         onSubmit={() => { isDirty.current = false; }}
         className="flex flex-col gap-6"
       >
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-5 flex flex-col gap-2">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-5 flex flex-col gap-3">
           <p className="text-sm font-semibold text-gray-700">
             I will register for: <span className="text-red-500">*</span>
             <span className="ml-1.5 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 uppercase tracking-wide">Important</span>
@@ -85,13 +89,26 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
             required
             className={selectCls}
             value={registrationFee}
-            onChange={(e) => setRegistrationFee(e.target.value)}
+            onChange={(e) => {
+              setRegistrationFee(e.target.value);
+              setIsDoneWithVictoryWeekend(false);
+            }}
           >
             <option value="">-- Select --</option>
             {FEE_CATEGORIES.map((f) => (
               <option key={f.value} value={f.value}>{f.label} — {f.amount}</option>
             ))}
           </select>
+          {isAB && (
+            <CheckboxOption
+              name="isDoneWithVictoryWeekend"
+              checked={isDoneWithVictoryWeekend}
+              onChange={(e) => setIsDoneWithVictoryWeekend(e.target.checked)}
+              align="center"
+            >
+              Have you gone through Victory Weekend before?
+            </CheckboxOption>
+          )}
         </div>
 
         <Section title="Participant Information">
@@ -144,7 +161,7 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
             </select>
           </Field>
 
-          {!needsVictoryDate && (
+          {!showVgLeader && (
             <Field label="I have completed One2One" required className="sm:col-span-2">
               <div className="flex flex-col gap-2 mt-1">
                 <RadioOption name="completedOne2One" value="yes" label="Yes" required />
@@ -153,7 +170,7 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
             </Field>
           )}
 
-          {!needsVictoryDate && (
+          {!showVgLeader && (
             <Field label="I will undergo water baptism" required className="sm:col-span-2">
               <div className="flex gap-6 mt-1">
                 <RadioOption name="willUndergoWaterBaptism" value="yes" label="Yes" required />
@@ -162,7 +179,7 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
             </Field>
           )}
 
-          {!needsVictoryDate && (
+          {!showVgLeader && (
             <Field label="Previous Church" required className="sm:col-span-2">
               <div className="flex flex-col gap-2 mt-1">
                 <RadioOption
@@ -196,21 +213,21 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
           </Field>
         </Section>
 
-        {needsVictoryDate ? (
+        {showVgLeader ? (
           <Section title="Victory Group Leader Information">
             <VgLeaderFields enabled={vgLeaderAutocomplete} />
           </Section>
-        ) : (
-          <Section title="One2One Discipler Information" description="To be filled up by the One2One discipler">
+        ) : isAB ? (
+          <Section title="One2One Discipler Information" important="To be filled up by the One2One discipler">
             <DisciplerFields enabled={disciplerAutocomplete} />
             <div className="sm:col-span-2">
-              <CheckboxOption name="confirmedReadiness" required align="start">
+              <CheckboxOption name="confirmedReadiness" required align="start" labelClassName="text-red-800 font-bold">
                 I am confirming that the participant is ready to join Victory Day, that we will
                 complete/have completed One2One and Preparing for Victory before the day of the event.
               </CheckboxOption>
             </div>
           </Section>
-        )}
+        ) : null}
 
         <Section title="Payment &amp; Admin">
           <Field label="Registration Fee" required>
@@ -228,7 +245,7 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
           <Field label="Acknowledgement Receipt Number" required>
             <input name="acknowledgementReceiptNumber" required autoComplete="off" className={inputCls} />
           </Field>
-          <Field label="Name of Admin Volunteer" required className="sm:col-span-2">
+          <Field label="Name of Admin Service Team Member" required className="sm:col-span-2">
             <input name="adminVolunteerName" required className={inputCls} />
           </Field>
         </Section>

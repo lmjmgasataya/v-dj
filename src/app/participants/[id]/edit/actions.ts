@@ -21,37 +21,49 @@ async function upsertDiscipler(
   return d.id;
 }
 
-async function findVgLeaderByName(lastName: string, firstName: string): Promise<number | null> {
+async function upsertVgLeader(
+  lastName: string,
+  firstName: string,
+  mobileNumber: string,
+  messengerName: string | null,
+): Promise<number> {
+  await db.insert(victoryGroupLeaders).values({ lastName, firstName, mobileNumber, facebookMessengerName: messengerName }).onConflictDoNothing();
   const [v] = await db
     .select({ id: victoryGroupLeaders.id })
     .from(victoryGroupLeaders)
-    .where(and(eq(victoryGroupLeaders.lastName, lastName), eq(victoryGroupLeaders.firstName, firstName)))
-    .limit(1);
-  return v?.id ?? null;
+    .where(and(eq(victoryGroupLeaders.lastName, lastName), eq(victoryGroupLeaders.firstName, firstName), eq(victoryGroupLeaders.mobileNumber, mobileNumber)));
+  return v.id;
 }
 
 export async function updateParticipant(id: number, formData: FormData) {
+  const registrationFee = formData.get("registrationFee") as string;
+  const isAB = registrationFee === "A" || registrationFee === "B";
+  const needsVictoryDate = registrationFee === "C" || registrationFee === "D";
+  const isDoneWithVictoryWeekend = isAB && formData.get("isDoneWithVictoryWeekend") === "on";
+  const showVgLeader = needsVictoryDate || isDoneWithVictoryWeekend;
+
   const previousChurchRaw = formData.get("previousChurch") as string;
   const previousChurchOther = formData.get("previousChurchOther") as string;
   const previousChurch =
     previousChurchRaw === "Others" ? previousChurchOther : previousChurchRaw;
 
-  const disciplerLastName = formData.get("disciplerLastName") as string;
-  const disciplerFirstName = formData.get("disciplerFirstName") as string;
-  const disciplerMobileNumber = formData.get("disciplerMobileNumber") as string;
-  const disciplerMessengerName = (formData.get("disciplerMessengerName") as string) || null;
-
-  const vgLeaderLastName = (formData.get("vgLeaderLastName") as string) || "";
-  const vgLeaderFirstName = (formData.get("vgLeaderFirstName") as string) || "";
-
   let disciplerId: number | null = null;
-  if (disciplerLastName && disciplerFirstName && disciplerMobileNumber) {
-    disciplerId = await upsertDiscipler(disciplerLastName, disciplerFirstName, disciplerMobileNumber, disciplerMessengerName);
-  }
-
   let vgLeaderId: number | null = null;
-  if (vgLeaderLastName && vgLeaderFirstName) {
-    vgLeaderId = await findVgLeaderByName(vgLeaderLastName, vgLeaderFirstName);
+
+  if (showVgLeader) {
+    const lastName = (formData.get("vgLeaderLastName") as string) || "";
+    const firstName = (formData.get("vgLeaderFirstName") as string) || "";
+    const mobileNumber = (formData.get("vgLeaderMobileNumber") as string) || "";
+    if (lastName && firstName && mobileNumber) {
+      vgLeaderId = await upsertVgLeader(lastName, firstName, mobileNumber, (formData.get("vgLeaderMessengerName") as string) || null);
+    }
+  } else {
+    const lastName = (formData.get("disciplerLastName") as string) || "";
+    const firstName = (formData.get("disciplerFirstName") as string) || "";
+    const mobileNumber = (formData.get("disciplerMobileNumber") as string) || "";
+    if (lastName && firstName && mobileNumber) {
+      disciplerId = await upsertDiscipler(lastName, firstName, mobileNumber, (formData.get("disciplerMessengerName") as string) || null);
+    }
   }
 
   await db.update(participants).set({
@@ -64,15 +76,16 @@ export async function updateParticipant(id: number, formData: FormData) {
     age: Number(formData.get("age")),
     gender: formData.get("gender") as string,
     serviceAttending: formData.get("serviceAttending") as string,
-    completedOne2One: formData.get("completedOne2One") === "yes",
-    willUndergoWaterBaptism: formData.get("willUndergoWaterBaptism") === "yes",
-    previousChurch,
+    completedOne2One: !showVgLeader ? formData.get("completedOne2One") === "yes" : null,
+    willUndergoWaterBaptism: !showVgLeader ? formData.get("willUndergoWaterBaptism") === "yes" : null,
+    previousChurch: !showVgLeader ? previousChurch : null,
+    isDoneWithVictoryWeekend: isAB ? isDoneWithVictoryWeekend : null,
     preferredNameOnId: formData.get("preferredNameOnId") as string,
     disciplerId,
+    confirmedReadiness: !showVgLeader ? formData.get("confirmedReadiness") === "on" : null,
     vgLeaderId,
-    confirmedReadiness: formData.get("confirmedReadiness") === "on",
     acknowledgementReceiptNumber: formData.get("acknowledgementReceiptNumber") as string,
-    registrationFee: formData.get("registrationFee") as string,
+    registrationFee,
     adminVolunteerName: formData.get("adminVolunteerName") as string,
     victoryDate: (formData.get("victoryDate") as string) || null,
   }).where(eq(participants.id, id));

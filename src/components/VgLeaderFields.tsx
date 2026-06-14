@@ -83,9 +83,10 @@ export function VgLeaderFields({ enabled = true }: Props) {
         />
       </Field>
 
-      <Field label="VG Leader's Messenger / Facebook Name">
+      <Field label="VG Leader's Messenger / Facebook Name" required>
         <input
           name="vgLeaderMessengerName"
+          required
           className={inputCls}
           autoComplete="off"
           value={messengerName}

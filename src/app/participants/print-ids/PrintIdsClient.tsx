@@ -98,7 +98,7 @@ function IdCard({ participant }: { participant: Participant }) {
 
   return (
     <div className="id-card flex flex-col border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
-      <div className="id-card-header px-4 py-3 text-center" style={{ backgroundColor: "#00428E" }}>
+      <div className="id-card-header px-4 py-3 text-center rounded-b-2xl" style={{ backgroundColor: "#00428E" }}>
         <p className="text-lg font-bold uppercase tracking-widest text-white">
           Spiritual <br></br> Foundations
         </p>

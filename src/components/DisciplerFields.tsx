@@ -97,9 +97,10 @@ export function DisciplerFields({ enabled = true }: Props) {
         />
       </Field>
 
-      <Field label="Discipler's Messenger / Facebook Name">
+      <Field label="Discipler's Messenger / Facebook Name" required>
         <input
           name="disciplerMessengerName"
+          required
           className={inputCls}
           autoComplete="off"
           value={messengerName}

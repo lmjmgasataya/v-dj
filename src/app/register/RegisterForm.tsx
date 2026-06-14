@@ -116,8 +116,8 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
           <Field label="Mobile Number" required>
             <input name="mobileNumber" required type="tel" className={inputCls} />
           </Field>
-          <Field label="Facebook / Messenger Name" className="sm:col-span-2">
-            <input name="facebookMessengerName" className={inputCls} />
+          <Field label="Facebook / Messenger Name" required className="sm:col-span-2">
+            <input name="facebookMessengerName" required className={inputCls} />
           </Field>
           <Field label="Lifestage" required>
             <select name="lifestage" required className={selectCls}>

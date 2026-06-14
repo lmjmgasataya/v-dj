@@ -72,7 +72,7 @@ export function QrScanner({ sessionId, onCheckIn }: { sessionId: number; onCheck
         );
         if (!cancelled) {
           document.getElementById(CONTAINER_ID)?.scrollIntoView({ behavior: "smooth", block: "start" });
-          setTimeout(() => window.scrollBy({ top: 450, behavior: "smooth" }), 100);
+          setTimeout(() => window.scrollBy({ top: window.innerWidth < 768 ? 650 : 500, behavior: "smooth" }), 100);
         }
       } catch {
         if (!cancelled) {

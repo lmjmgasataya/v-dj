@@ -253,7 +253,7 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
         <SubmitButton
           label="Register Participant"
           pendingLabel="Registering..."
-          className="w-full sm:w-auto self-end bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 text-white font-semibold py-3 px-10 rounded-xl transition"
+          className="w-full sm:w-auto self-end bg-[#00428E] hover:bg-[#003578] disabled:opacity-70 text-white font-semibold py-3 px-10 rounded-xl transition"
         />
       </form>
     </div>

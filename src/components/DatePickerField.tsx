@@ -97,7 +97,7 @@ function NewDatePicker({ name, defaultValue, required, max, className }: DatePic
               week: "",
               day: "p-0 text-center",
               day_button: "w-8 h-8 flex items-center justify-center rounded-lg text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition cursor-pointer",
-              selected: "bg-indigo-600 text-white rounded-lg hover:bg-indigo-600 hover:text-white font-medium",
+              selected: "bg-[#00428E] text-white rounded-lg hover:bg-[#00428E] hover:text-white font-medium",
               today: "text-indigo-600 font-semibold",
               disabled: "text-gray-300 cursor-not-allowed pointer-events-none",
               outside: "text-gray-300 opacity-50",

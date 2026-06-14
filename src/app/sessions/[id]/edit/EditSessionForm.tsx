@@ -34,14 +34,14 @@ export function EditSessionForm({
         <button
           type="button"
           onClick={() => setMode("existing")}
-          className={`px-4 py-2 transition ${mode === "existing" ? "bg-indigo-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+          className={`px-4 py-2 transition ${mode === "existing" ? "bg-[#00428E] text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
         >
           Use existing name
         </button>
         <button
           type="button"
           onClick={() => setMode("custom")}
-          className={`px-4 py-2 transition border-l border-gray-200 ${mode === "custom" ? "bg-indigo-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+          className={`px-4 py-2 transition border-l border-gray-200 ${mode === "custom" ? "bg-[#00428E] text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
         >
           Custom
         </button>
@@ -103,7 +103,7 @@ export function EditSessionForm({
           <button
             type="submit"
             disabled={pending}
-            className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold px-6 py-2 rounded-lg transition"
+            className="bg-[#00428E] hover:bg-[#003578] disabled:opacity-50 text-white text-sm font-semibold px-6 py-2 rounded-lg transition"
           >
             {pending ? "Saving…" : "Save Changes"}
           </button>

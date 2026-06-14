@@ -59,7 +59,7 @@ export default async function DevopsAdminPage() {
                   <button
                     type="submit"
                     className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-                      enabled ? "bg-indigo-600" : "bg-gray-200"
+                      enabled ? "bg-[#00428E]" : "bg-gray-200"
                     }`}
                     aria-label={enabled ? "Disable" : "Enable"}
                   >
@@ -84,7 +84,7 @@ export default async function DevopsAdminPage() {
                   <button
                     type="submit"
                     className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-                      flag.enabled ? "bg-indigo-600" : "bg-gray-200"
+                      flag.enabled ? "bg-[#00428E]" : "bg-gray-200"
                     }`}
                     aria-label={flag.enabled ? "Disable" : "Enable"}
                   >
@@ -115,7 +115,7 @@ export default async function DevopsAdminPage() {
             />
             <button
               type="submit"
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition shrink-0"
+              className="px-4 py-2 bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold rounded-lg transition shrink-0"
             >
               Add Flag
             </button>
@@ -218,7 +218,7 @@ export default async function DevopsAdminPage() {
               </select>
             </div>
             <div className="col-span-2">
-              <button type="submit" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition">
+              <button type="submit" className="px-4 py-2 bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold rounded-lg transition">
                 Create User
               </button>
             </div>

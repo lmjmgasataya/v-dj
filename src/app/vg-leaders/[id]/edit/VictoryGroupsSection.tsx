@@ -76,7 +76,7 @@ function GroupForm({
         <button type="button" onClick={onCancel} className="text-sm text-gray-600 hover:text-gray-800 px-4 py-1.5 rounded-lg border border-gray-300 bg-white">
           Cancel
         </button>
-        <button type="submit" disabled={pending} className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-1.5 rounded-lg transition">
+        <button type="submit" disabled={pending} className="bg-[#00428E] hover:bg-[#003578] disabled:opacity-50 text-white text-sm font-semibold px-5 py-1.5 rounded-lg transition">
           {pending ? "Saving..." : saveLabel}
         </button>
       </div>

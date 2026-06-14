@@ -61,7 +61,7 @@ export default async function VGLeadersPage({
           </div>
           <Link
             href="/vg-leaders/new"
-            className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+            className="bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
           >
             + Add Leader
           </Link>
@@ -77,7 +77,7 @@ export default async function VGLeadersPage({
         />
         <button
           type="submit"
-          className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
+          className="bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
         >
           Search
         </button>

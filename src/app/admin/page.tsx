@@ -99,7 +99,7 @@ export default async function AdminPage({
       {/* Step 1: Select session */}
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
         <div className="flex items-center gap-2">
-          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold shrink-0">1</span>
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00428E] text-white text-xs font-bold shrink-0">1</span>
           <p className="text-sm font-semibold text-gray-700">Select a Session</p>
         </div>
         {availableYears.length > 1 && (
@@ -110,7 +110,7 @@ export default async function AdminPage({
                 href={y === currentYear ? "/admin" : `/admin?year=${y}`}
                 className={`text-sm font-semibold px-4 py-1.5 rounded-lg border transition ${
                   y === year
-                    ? "bg-indigo-600 text-white border-indigo-600"
+                    ? "bg-[#00428E] text-white border-indigo-600"
                     : "bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600"
                 }`}
               >
@@ -133,7 +133,7 @@ export default async function AdminPage({
       {selectedSession && !selectedSession.allowsWalkIn && (
         <div id="search-participant" className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold shrink-0">2</span>
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00428E] text-white text-xs font-bold shrink-0">2</span>
             <p className="text-sm font-semibold text-gray-700">
               Search Participant —{" "}
               <span className="text-indigo-600 font-medium">{selectedSession.name}</span>
@@ -147,7 +147,7 @@ export default async function AdminPage({
       {selectedSession && selectedSession.allowsWalkIn && (
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold shrink-0">2.1</span>
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00428E] text-white text-xs font-bold shrink-0">2.1</span>
             <p className="text-sm font-semibold text-gray-700">
               Add Walk-in —{" "}
               <span className="text-indigo-600 font-medium">{selectedSession.name}</span>

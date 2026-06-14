@@ -76,7 +76,7 @@ export default async function VgLeadersPage() {
               <input name="facebookMessengerName" className={input} />
             </div>
             <div className="col-span-2">
-              <button type="submit" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition">Add</button>
+              <button type="submit" className="px-4 py-2 bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold rounded-lg transition">Add</button>
             </div>
           </form>
         </div>

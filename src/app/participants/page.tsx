@@ -23,7 +23,7 @@ export default async function ParticipantsPage({
             {isDeveloper && (
               <Link
                 href="/participants/print-ids"
-                className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition"
+                className="flex items-center gap-1.5 bg-[#00428E] hover:bg-[#003578] text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition"
               >
                 Print IDs
               </Link>
@@ -48,7 +48,7 @@ export default async function ParticipantsPage({
         />
         <button
           type="submit"
-          className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
+          className="bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
         >
           Search
         </button>

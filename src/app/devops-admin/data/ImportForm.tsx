@@ -19,7 +19,7 @@ export function ImportForm({ table }: { table: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="text-xs px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold rounded-lg transition whitespace-nowrap"
+        className="text-xs px-3 py-1.5 bg-[#00428E] hover:bg-[#003578] disabled:opacity-50 text-white font-semibold rounded-lg transition whitespace-nowrap"
       >
         {pending ? "Importing…" : "Import"}
       </button>

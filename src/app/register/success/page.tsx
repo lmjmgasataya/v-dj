@@ -14,7 +14,7 @@ export default function SuccessPage() {
       <div className="flex gap-4 mt-2">
         <Link
           href="/register"
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-lg transition"
+          className="bg-[#00428E] hover:bg-[#003578] text-white font-semibold py-2 px-6 rounded-lg transition"
         >
           Register Another
         </Link>

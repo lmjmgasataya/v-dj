@@ -67,7 +67,7 @@ export function EditForm({ leader }: { leader: VictoryGroupLeader }) {
         <button
           type="submit"
           disabled={pending}
-          className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition"
+          className="bg-[#00428E] hover:bg-[#003578] disabled:opacity-50 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition"
         >
           {pending ? "Saving..." : "Save Changes"}
         </button>

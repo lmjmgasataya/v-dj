@@ -104,7 +104,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, onAction }: { p: ParticipantWi
             <button
               onClick={() => setShowModal(true)}
               disabled={pending}
-              className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-semibold px-4 py-1.5 rounded-lg transition"
+              className="bg-[#00428E] hover:bg-[#003578] disabled:opacity-50 text-white text-xs font-semibold px-4 py-1.5 rounded-lg transition"
             >
               Check In
             </button>
@@ -144,7 +144,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, onAction }: { p: ParticipantWi
               <button
                 onClick={handleConfirmCheckIn}
                 disabled={pending}
-                className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
+                className="bg-[#00428E] hover:bg-[#003578] disabled:opacity-50 text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
               >
                 {pending ? "Checking in..." : "Confirm Check In"}
               </button>

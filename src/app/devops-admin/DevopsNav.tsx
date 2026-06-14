@@ -26,7 +26,7 @@ export function DevopsNav() {
             key={href}
             href={href}
             className={`whitespace-nowrap px-3 py-1.5 text-xs font-medium rounded-lg transition ${
-              active ? "bg-indigo-600 text-white" : "text-gray-600 hover:bg-gray-100"
+              active ? "bg-[#00428E] text-white" : "text-gray-600 hover:bg-gray-100"
             }`}
           >
             {label}

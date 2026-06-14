@@ -95,7 +95,7 @@ export default async function RegistrationsReportPage({
               href={y === currentYear ? "/report/registrations" : `/report/registrations?year=${y}`}
               className={`text-sm font-semibold px-4 py-1.5 rounded-lg border transition ${
                 y === year
-                  ? "bg-indigo-600 text-white border-indigo-600"
+                  ? "bg-[#00428E] text-white border-indigo-600"
                   : "bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600"
               }`}
             >

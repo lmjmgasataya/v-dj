@@ -237,7 +237,7 @@ export function EditForm({ participant, newDatePicker }: { participant: Particip
         <SubmitButton
           label="Save Changes"
           pendingLabel="Saving..."
-          className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 text-white font-semibold py-3 px-10 rounded-xl transition"
+          className="bg-[#00428E] hover:bg-[#003578] disabled:opacity-70 text-white font-semibold py-3 px-10 rounded-xl transition"
         />
       </div>
     </form>

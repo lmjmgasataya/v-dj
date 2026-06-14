@@ -74,7 +74,7 @@ export function CheckboxOption({
           onChange={onChange}
           className="peer sr-only"
         />
-        <span className="absolute inset-0 rounded border-2 border-gray-300 bg-white transition-colors group-hover:border-indigo-400 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-400 peer-focus-visible:ring-offset-1" />
+        <span className="absolute inset-0 rounded border-2 border-gray-300 bg-white transition-colors group-hover:border-indigo-400 peer-checked:border-indigo-600 peer-checked:bg-[#00428E] peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-400 peer-focus-visible:ring-offset-1" />
         <svg
           className="absolute inset-0 m-auto w-2.5 h-2.5 text-white opacity-0 peer-checked:opacity-100 scale-75 peer-checked:scale-100 transition-all duration-150 pointer-events-none"
           viewBox="0 0 12 12"
@@ -125,7 +125,7 @@ export function RadioOption({
           className="peer sr-only"
         />
         <span className="absolute inset-0 rounded-full border-2 border-gray-300 bg-white transition-colors group-hover:border-indigo-400 peer-checked:border-indigo-600 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-400 peer-focus-visible:ring-offset-1" />
-        <span className="absolute inset-0 m-auto w-2 h-2 rounded-full bg-indigo-600 scale-0 peer-checked:scale-100 transition-transform duration-150 pointer-events-none" />
+        <span className="absolute inset-0 m-auto w-2 h-2 rounded-full bg-[#00428E] scale-0 peer-checked:scale-100 transition-transform duration-150 pointer-events-none" />
       </span>
       <span className="text-sm text-gray-700 group-hover:text-gray-900 select-none leading-tight">
         {label}

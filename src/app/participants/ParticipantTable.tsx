@@ -165,7 +165,7 @@ export function ParticipantTable({
                     <div className="ml-auto">
                       <Link
                         href={`/participants/${p.id}/edit`}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
+                        className="bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
                       >
                         Edit
                       </Link>

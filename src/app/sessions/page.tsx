@@ -57,7 +57,7 @@ export default async function SessionsPage({
           {isDeveloper && (
             <Link
               href="/sessions/new"
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+              className="bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
             >
               + New Session
             </Link>
@@ -79,7 +79,7 @@ export default async function SessionsPage({
             href={y === currentYear ? "/sessions" : `/sessions?year=${y}`}
             className={`text-sm font-semibold px-4 py-1.5 rounded-lg border transition ${
               y === year
-                ? "bg-indigo-600 text-white border-indigo-600"
+                ? "bg-[#00428E] text-white border-indigo-600"
                 : "bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600"
             }`}
           >

@@ -210,7 +210,7 @@ export function QrScanner({ sessionId, onCheckIn }: { sessionId: number; onCheck
               <button
                 type="button"
                 onClick={handleConfirm}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
+                className="bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
               >
                 Confirm Check In
               </button>

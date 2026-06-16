@@ -32,6 +32,7 @@ export default async function CheckInsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
               <tr>
+                <th className="px-4 py-2 text-left font-medium">ID</th>
                 <th className="px-4 py-2 text-left font-medium">Participant</th>
                 <th className="px-4 py-2 text-left font-medium">Session</th>
                 <th className="px-4 py-2 text-left font-medium">Checked In</th>
@@ -42,6 +43,7 @@ export default async function CheckInsPage() {
             <tbody className="divide-y divide-gray-100">
               {rows.map((c) => (
                 <tr key={c.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-2.5 text-gray-400 font-mono text-xs">{c.id}</td>
                   <td className="px-4 py-2.5 font-medium text-gray-800">
                     {c.participantLastName && c.participantFirstName
                       ? `${c.participantLastName}, ${c.participantFirstName}`

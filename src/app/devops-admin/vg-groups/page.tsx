@@ -51,6 +51,7 @@ export default async function VgGroupsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
               <tr>
+                <th className="px-4 py-2 text-left font-medium">ID</th>
                 <th className="px-4 py-2 text-left font-medium">Leader</th>
                 <th className="px-4 py-2 text-left font-medium">Place</th>
                 <th className="px-4 py-2 text-left font-medium">Day</th>
@@ -63,6 +64,7 @@ export default async function VgGroupsPage() {
             <tbody className="divide-y divide-gray-100">
               {groups.map((g) => (
                 <tr key={g.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-2.5 text-gray-400 font-mono text-xs">{g.id}</td>
                   <td className="px-4 py-2.5 font-medium text-gray-800">
                     {g.leaderLastName && g.leaderFirstName ? `${g.leaderLastName}, ${g.leaderFirstName}` : "—"}
                   </td>

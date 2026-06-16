@@ -21,6 +21,7 @@ export default async function DisciplersPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
               <tr>
+                <th className="px-4 py-2 text-left font-medium">ID</th>
                 <th className="px-4 py-2 text-left font-medium">Last Name</th>
                 <th className="px-4 py-2 text-left font-medium">First Name</th>
                 <th className="px-4 py-2 text-left font-medium">Mobile</th>
@@ -31,6 +32,7 @@ export default async function DisciplersPage() {
             <tbody className="divide-y divide-gray-100">
               {rows.map((d) => (
                 <tr key={d.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-2.5 text-gray-400 font-mono text-xs">{d.id}</td>
                   <td className="px-4 py-2.5 font-medium text-gray-800">{d.lastName}</td>
                   <td className="px-4 py-2.5 text-gray-700">{d.firstName}</td>
                   <td className="px-4 py-2.5 text-gray-500 font-mono text-xs">{d.mobileNumber}</td>

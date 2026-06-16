@@ -26,6 +26,7 @@ export default async function ClassSessionsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
               <tr>
+                <th className="px-4 py-2 text-left font-medium">ID</th>
                 <th className="px-4 py-2 text-left font-medium">Name</th>
                 <th className="px-4 py-2 text-left font-medium">Date</th>
                 <th className="px-4 py-2 text-center font-medium">Victory Day</th>
@@ -36,6 +37,7 @@ export default async function ClassSessionsPage() {
             <tbody className="divide-y divide-gray-100">
               {sessions.map((s) => (
                 <tr key={s.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-2.5 text-gray-400 font-mono text-xs">{s.id}</td>
                   <td className="px-4 py-2.5 font-medium text-gray-800">{s.name}</td>
                   <td className="px-4 py-2.5 text-gray-500">{s.sessionDate}</td>
                   <td className="px-4 py-2.5 text-center">

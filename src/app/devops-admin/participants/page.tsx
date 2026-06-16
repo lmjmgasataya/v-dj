@@ -81,6 +81,7 @@ export default async function ParticipantsPage({
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
                 <tr>
+                  <th className="px-4 py-2 text-left font-medium">ID</th>
                   <th className="px-4 py-2 text-left font-medium">Name</th>
                   <th className="px-4 py-2 text-left font-medium">Mobile</th>
                   <th className="px-4 py-2 text-left font-medium">Fee</th>
@@ -91,6 +92,7 @@ export default async function ParticipantsPage({
               <tbody className="divide-y divide-gray-100">
                 {rows.map((p) => (
                   <tr key={p.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2.5 text-gray-400 font-mono text-xs">{p.id}</td>
                     <td className="px-4 py-2.5 font-medium text-gray-800">
                       <Link href={`/participants/${p.id}/edit`} className="hover:text-indigo-600 transition">
                         {p.lastName}, {p.firstName}
@@ -155,6 +157,7 @@ export default async function ParticipantsPage({
               <tbody className="divide-y divide-gray-100">
                 {archived.map((p) => (
                   <tr key={p.id} className="opacity-60 hover:opacity-100 transition-opacity">
+                    <td className="px-4 py-2.5 text-gray-400 font-mono text-xs">{p.id}</td>
                     <td className="px-4 py-2.5 text-gray-500">{p.lastName}, {p.firstName}</td>
                     <td className="px-4 py-2.5 text-gray-400 font-mono text-xs">{p.mobileNumber ?? "—"}</td>
                     <td className="px-4 py-2.5 text-right">

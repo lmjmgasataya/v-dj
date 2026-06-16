@@ -8,9 +8,9 @@ import { ParticipantFilters } from "./ParticipantFilters";
 export default async function ParticipantsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string; lifestage?: string; fee?: string; gender?: string; service?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; lifestage?: string; fee?: string; gender?: string; service?: string; previousChurch?: string; waterBaptism?: string }>;
 }) {
-  const [{ q = "", page: pageParam, lifestage = "", fee = "", gender = "", service = "" }, session] = await Promise.all([searchParams, getSession()]);
+  const [{ q = "", page: pageParam, lifestage = "", fee = "", gender = "", service = "", previousChurch = "", waterBaptism = "" }, session] = await Promise.all([searchParams, getSession()]);
   const isDeveloper = session?.role === "developer";
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
 
@@ -41,16 +41,18 @@ export default async function ParticipantsPage({
       </div>
 
       <ParticipantFilters
-        key={`${q}-${lifestage}-${fee}-${gender}-${service}`}
+        key={`${q}-${lifestage}-${fee}-${gender}-${service}-${previousChurch}-${waterBaptism}`}
         q={q}
         lifestage={lifestage}
         fee={fee}
         gender={gender}
         service={service}
+        previousChurch={previousChurch}
+        waterBaptism={waterBaptism}
       />
 
-      <Suspense key={`${q}-${lifestage}-${fee}-${gender}-${service}-${page}`} fallback={<ParticipantListSkeleton />}>
-        <ParticipantList q={q} lifestage={lifestage} fee={fee} gender={gender} service={service} page={page} isDeveloper={isDeveloper} />
+      <Suspense key={`${q}-${lifestage}-${fee}-${gender}-${service}-${previousChurch}-${waterBaptism}-${page}`} fallback={<ParticipantListSkeleton />}>
+        <ParticipantList q={q} lifestage={lifestage} fee={fee} gender={gender} service={service} previousChurch={previousChurch} waterBaptism={waterBaptism} page={page} isDeveloper={isDeveloper} />
       </Suspense>
     </div>
   );

@@ -23,23 +23,29 @@ export function ParticipantFilters({
   fee,
   gender,
   service,
+  previousChurch,
+  waterBaptism,
 }: {
   q: string;
   lifestage: string;
   fee: string;
   gender: string;
   service: string;
+  previousChurch: string;
+  waterBaptism: string;
 }) {
   const router = useRouter();
 
   function buildUrl(overrides: Record<string, string>) {
-    const vals = { q, lifestage, fee, gender, service, ...overrides };
+    const vals = { q, lifestage, fee, gender, service, previousChurch, waterBaptism, ...overrides };
     const params = new URLSearchParams();
     if (vals.q) params.set("q", vals.q);
     if (vals.lifestage) params.set("lifestage", vals.lifestage);
     if (vals.fee) params.set("fee", vals.fee);
     if (vals.gender) params.set("gender", vals.gender);
     if (vals.service) params.set("service", vals.service);
+    if (vals.previousChurch) params.set("previousChurch", vals.previousChurch);
+    if (vals.waterBaptism) params.set("waterBaptism", vals.waterBaptism);
     const qs = params.toString();
     return `/participants${qs ? `?${qs}` : ""}`;
   }
@@ -47,10 +53,10 @@ export function ParticipantFilters({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
-    router.push(buildUrl({ q: (data.get("q") as string) ?? "" }));
+    router.push(buildUrl({ q: (data.get("q") as string) ?? "", previousChurch: (data.get("previousChurch") as string) ?? "" }));
   }
 
-  const hasFilters = q || lifestage || fee || gender || service;
+  const hasFilters = q || lifestage || fee || gender || service || previousChurch || waterBaptism;
 
   return (
     <div className="flex flex-col gap-2">
@@ -60,6 +66,12 @@ export function ParticipantFilters({
           defaultValue={q}
           placeholder="Search by name or mobile number..."
           className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+        />
+        <input
+          name="previousChurch"
+          defaultValue={previousChurch}
+          placeholder="Previous church..."
+          className="w-48 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
         />
         <button
           type="submit"
@@ -119,6 +131,16 @@ export function ParticipantFilters({
           {SERVICE_OPTIONS.map((s) => (
             <option key={s} value={s}>{s}</option>
           ))}
+        </select>
+
+        <select
+          defaultValue={waterBaptism}
+          onChange={(e) => router.push(buildUrl({ waterBaptism: e.target.value }))}
+          className={selectCls}
+        >
+          <option value="">All (Water Baptism)</option>
+          <option value="yes">Will undergo water baptism</option>
+          <option value="no">Will not undergo water baptism</option>
         </select>
       </div>
     </div>

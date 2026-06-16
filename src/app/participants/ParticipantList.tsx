@@ -29,6 +29,8 @@ export async function ParticipantList({
   fee,
   gender,
   service,
+  previousChurch,
+  waterBaptism,
   page,
   isDeveloper,
 }: {
@@ -37,6 +39,8 @@ export async function ParticipantList({
   fee: string;
   gender: string;
   service: string;
+  previousChurch: string;
+  waterBaptism: string;
   page: number;
   isDeveloper: boolean;
 }) {
@@ -64,6 +68,8 @@ export async function ParticipantList({
     fee ? eq(participants.registrationFee, fee) : undefined,
     gender ? eq(participants.gender, gender) : undefined,
     service ? eq(participants.serviceAttending, service) : undefined,
+    previousChurch.trim() ? ilike(participants.previousChurch, `%${previousChurch}%`) : undefined,
+    waterBaptism === "yes" ? eq(participants.willUndergoWaterBaptism, true) : waterBaptism === "no" ? eq(participants.willUndergoWaterBaptism, false) : undefined,
   );
 
   const [rows, [{ total }]] = await Promise.all([
@@ -141,13 +147,15 @@ export async function ParticipantList({
     if (fee) params.set("fee", fee);
     if (gender) params.set("gender", gender);
     if (service) params.set("service", service);
+    if (previousChurch) params.set("previousChurch", previousChurch);
+    if (waterBaptism) params.set("waterBaptism", waterBaptism);
     if (p > 1) params.set("page", String(p));
     const qs = params.toString();
     return `/participants${qs ? `?${qs}` : ""}`;
   }
 
   if (rows.length === 0) {
-    const hasFilters = q || lifestage || fee || gender || service;
+    const hasFilters = q || lifestage || fee || gender || service || previousChurch || waterBaptism;
     return (
       <p className="text-sm text-gray-400">{hasFilters ? "No participants match the current filters." : "No participants registered yet."}</p>
     );

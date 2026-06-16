@@ -60,14 +60,13 @@ export function EditForm({ participant, newDatePicker }: { participant: Particip
           ))}
         </select>
         {isAB && (
-          <CheckboxOption
-            name="isDoneWithVictoryWeekend"
-            checked={isDoneWithVictoryWeekend}
-            onChange={(e) => setIsDoneWithVictoryWeekend(e.target.checked)}
-            align="center"
-          >
-            Have you gone through Victory Weekend before?
-          </CheckboxOption>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm text-gray-700">Have you gone through Victory Weekend before?</span>
+            <div className="flex gap-4">
+              <RadioOption name="isDoneWithVictoryWeekend" value="yes" label="Yes" checked={isDoneWithVictoryWeekend} onChange={() => setIsDoneWithVictoryWeekend(true)} />
+              <RadioOption name="isDoneWithVictoryWeekend" value="no" label="No" checked={!isDoneWithVictoryWeekend} onChange={() => setIsDoneWithVictoryWeekend(false)} />
+            </div>
+          </div>
         )}
       </div>
 

@@ -11,6 +11,7 @@ const FLAG_LABELS: Record<string, string> = {
   autocomplete_disciplers: "Discipler autocomplete",
   new_date_picker: "New date picker (calendar popover)",
   qr_checkin: "QR code check-in (scan to check in + QR on participant page)",
+  print_id_show_fullname: "Print IDs — show full name at bottom of card",
 };
 
 async function getDbStats() {

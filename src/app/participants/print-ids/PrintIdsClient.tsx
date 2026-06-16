@@ -101,7 +101,7 @@ function IdCard({ participant }: { participant: Participant }) {
 
       {/* Preferred name centered */}
       <div className="flex-1 flex items-center justify-center px-10">
-        <p className="text-5xl font-bold text-gray-900 leading-tight text-center uppercase">{displayName}</p>
+        <p className="text-6xl font-bold text-gray-900 leading-tight text-center capitalize">{displayName.toLowerCase()}</p>
       </div>
 
       {/* Bottom: event label left, QR right — aligned at bottom */}
@@ -114,7 +114,7 @@ function IdCard({ participant }: { participant: Participant }) {
             <QRCode value={qrValue} size={130} />
           </div>
         </div>
-        <p className="text-xs text-gray-500 capitalize text-right mt-1">{fullName}</p>
+        <p className="text-xs text-gray-500 capitalize text-right mt-1">{fullName.toLowerCase()}</p>
       </div>
     </div>
   );

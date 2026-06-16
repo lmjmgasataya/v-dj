@@ -1,6 +1,7 @@
 "use client";
 
 import QRCode from "react-qr-code";
+import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 type Participant = {
@@ -60,12 +61,17 @@ export function PrintIdsClient({ participants }: { participants: Participant[] }
               {" · "}4 per A4 page
             </p>
           </div>
-          <button
-            onClick={() => window.print()}
-            className="bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
-          >
-            Print
-          </button>
+          <div className="flex flex-col items-end gap-1.5">
+            <button
+              onClick={() => window.print()}
+              className="bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
+            >
+              Print
+            </button>
+            <Link href="/participants/print-ids/back" className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline">
+              Print Back Page →
+            </Link>
+          </div>
         </div>
       </div>
 

@@ -41,15 +41,6 @@ export function PrintIdsClient({ participants }: { participants: Participant[] }
             box-shadow: none !important;
             border: 0.5pt solid #e5e7eb !important;
           }
-          .id-card-header {
-            background-color: #00428E !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          .id-card-header * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
         }
       `}</style>
 
@@ -94,25 +85,36 @@ function IdCard({ participant }: { participant: Participant }) {
   const displayName =
     participant.preferredNameOnId?.trim() ||
     `${participant.firstName} ${participant.lastName}`;
+  const fullName = `${participant.firstName} ${participant.lastName}`;
   const qrValue = `dj:participant:${participant.id}`;
 
   return (
     <div className="id-card flex flex-col border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
-      <div className="id-card-header px-4 py-3 text-center rounded-b-2xl" style={{ backgroundColor: "#00428E" }}>
-        <p className="text-lg font-bold uppercase tracking-widest text-white">
-          Spiritual <br></br> Foundations
+      {/* Header: logo left, event title right */}
+      <div className="flex items-center justify-between px-8 py-6 border-gray-100">
+        {/* Replace /dj-logo.png with your actual logo file in the public/ folder */}
+        <img src="/dj-logo.png" alt="" className="h-20 w-auto object-contain" />
+        <p className="text-right text-xl font-normal uppercase tracking-widest text-gray-800 leading-tight">
+          DISCIPLESHIP<br />JOURNEY<br />WEEKENDS
         </p>
-        <p className="text-xs mt-0.5" style={{ color: "#a8c4e0" }}>Victory Iloilo</p>
       </div>
-      <div className="flex flex-col flex-1 p-4 min-h-52">
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-5xl font-bold text-gray-900 leading-tight text-center uppercase">{displayName}</p>
-        </div>
-        <div className="flex justify-end">
+
+      {/* Preferred name centered */}
+      <div className="flex-1 flex items-center justify-center px-8">
+        <p className="text-5xl font-bold text-gray-900 leading-tight text-center uppercase">{displayName}</p>
+      </div>
+
+      {/* Bottom: event label left, QR right — aligned at bottom */}
+      <div className="px-8 pb-4">
+        <div className="flex items-end justify-between">
+          <p className="text-sm font-semibold text-gray-700 leading-snug">
+            1st Discipleship<br />Journey of 2026
+          </p>
           <div className="p-1.5 border border-gray-100 rounded-md bg-white">
-            <QRCode value={qrValue} size={115} />
+            <QRCode value={qrValue} size={130} />
           </div>
         </div>
+        <p className="text-xs text-gray-500 capitalize text-right mt-1">{fullName}</p>
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ const allLinks = [
   { href: "/report/class-category", label: "Class Category", icon: "💰", adminOnly: true },
   { href: "/report/funnel", label: "Completion Funnel", icon: "📉", adminOnly: true },
   { href: "/report/demographics", label: "Demographics", icon: "👥", adminOnly: true },
+  { href: "/report/remittance", label: "Remittance", icon: "💵", adminOnly: true },
 ];
 
 export function ReportNav({ role }: { role: string }) {

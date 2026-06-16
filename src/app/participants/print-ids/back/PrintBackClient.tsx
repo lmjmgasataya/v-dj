@@ -44,6 +44,7 @@ export function PrintBackClient({ count }: { count: number }) {
           .back-card {
             width: 102mm !important;
             height: 145.5mm !important;
+            min-height: 0 !important;
             box-sizing: border-box !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;

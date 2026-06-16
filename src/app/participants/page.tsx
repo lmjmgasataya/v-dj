@@ -3,13 +3,14 @@ import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";
 import { ParticipantList, ParticipantListSkeleton } from "./ParticipantList";
+import { ParticipantFilters } from "./ParticipantFilters";
 
 export default async function ParticipantsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; lifestage?: string; fee?: string; gender?: string; service?: string }>;
 }) {
-  const [{ q = "", page: pageParam }, session] = await Promise.all([searchParams, getSession()]);
+  const [{ q = "", page: pageParam, lifestage = "", fee = "", gender = "", service = "" }, session] = await Promise.all([searchParams, getSession()]);
   const isDeveloper = session?.role === "developer";
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
 
@@ -39,31 +40,17 @@ export default async function ParticipantsPage({
         </div>
       </div>
 
-      <form method="GET" className="flex gap-2">
-        <input
-          name="q"
-          defaultValue={q}
-          placeholder="Search by name or mobile number..."
-          className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-        />
-        <button
-          type="submit"
-          className="bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
-        >
-          Search
-        </button>
-        {q && (
-          <Link
-            href="/participants"
-            className="bg-white border border-gray-300 text-gray-600 text-sm font-semibold px-4 py-2 rounded-lg hover:bg-gray-50 transition"
-          >
-            Clear
-          </Link>
-        )}
-      </form>
+      <ParticipantFilters
+        key={`${q}-${lifestage}-${fee}-${gender}-${service}`}
+        q={q}
+        lifestage={lifestage}
+        fee={fee}
+        gender={gender}
+        service={service}
+      />
 
-      <Suspense key={`${q}-${page}`} fallback={<ParticipantListSkeleton />}>
-        <ParticipantList q={q} page={page} isDeveloper={isDeveloper} />
+      <Suspense key={`${q}-${lifestage}-${fee}-${gender}-${service}-${page}`} fallback={<ParticipantListSkeleton />}>
+        <ParticipantList q={q} lifestage={lifestage} fee={fee} gender={gender} service={service} page={page} isDeveloper={isDeveloper} />
       </Suspense>
     </div>
   );

@@ -25,10 +25,18 @@ export function ParticipantListSkeleton() {
 
 export async function ParticipantList({
   q,
+  lifestage,
+  fee,
+  gender,
+  service,
   page,
   isDeveloper,
 }: {
   q: string;
+  lifestage: string;
+  fee: string;
+  gender: string;
+  service: string;
   page: number;
   isDeveloper: boolean;
 }) {
@@ -45,16 +53,18 @@ export async function ParticipantList({
     vgLeaderMessengerName: victoryGroupLeaders.facebookMessengerName,
   };
 
-  const baseWhere = q.trim()
-    ? and(
-        isNull(participants.deletedAt),
-        or(
-          ilike(participants.lastName, `%${q}%`),
-          ilike(participants.firstName, `%${q}%`),
-          ilike(participants.mobileNumber, `%${q}%`)
-        )
-      )
-    : isNull(participants.deletedAt);
+  const baseWhere = and(
+    isNull(participants.deletedAt),
+    q.trim() ? or(
+      ilike(participants.lastName, `%${q}%`),
+      ilike(participants.firstName, `%${q}%`),
+      ilike(participants.mobileNumber, `%${q}%`)
+    ) : undefined,
+    lifestage ? eq(participants.lifestage, lifestage as "Student (JHS/SHS)" | "Student (College)" | "Single" | "Married" | "Single Parent" | "Widow/Widower" | "Senior") : undefined,
+    fee ? eq(participants.registrationFee, fee) : undefined,
+    gender ? eq(participants.gender, gender) : undefined,
+    service ? eq(participants.serviceAttending, service) : undefined,
+  );
 
   const [rows, [{ total }]] = await Promise.all([
     db
@@ -127,14 +137,19 @@ export async function ParticipantList({
   function pageHref(p: number) {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
+    if (lifestage) params.set("lifestage", lifestage);
+    if (fee) params.set("fee", fee);
+    if (gender) params.set("gender", gender);
+    if (service) params.set("service", service);
     if (p > 1) params.set("page", String(p));
     const qs = params.toString();
     return `/participants${qs ? `?${qs}` : ""}`;
   }
 
   if (rows.length === 0) {
+    const hasFilters = q || lifestage || fee || gender || service;
     return (
-      <p className="text-sm text-gray-400">{q ? `No results for "${q}".` : "No participants registered yet."}</p>
+      <p className="text-sm text-gray-400">{hasFilters ? "No participants match the current filters." : "No participants registered yet."}</p>
     );
   }
 

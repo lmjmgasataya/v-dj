@@ -21,6 +21,13 @@ const FREQUENCIES: (typeof vgFrequencyEnum.enumValues)[number][] = [
 
 const LIFESTAGES = lifestageEnum.enumValues;
 
+const HOURS = Array.from({ length: 18 }, (_, i) => {
+  const h = i + 5; // 5 AM to 10 PM
+  const ampm = h < 12 ? "AM" : "PM";
+  const display = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${display}:00 ${ampm}`;
+});
+
 function GroupForm({
   defaultValues,
   onSave,
@@ -59,7 +66,10 @@ function GroupForm({
       </div>
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">Time <span className="text-red-500">*</span></label>
-        <input name="time" required defaultValue={defaultValues?.time ?? ""} placeholder="e.g. 7:00 PM" className={inputCls} />
+        <select name="time" required defaultValue={defaultValues?.time ?? ""} className={selectCls}>
+          <option value="" disabled>Select time</option>
+          {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
+        </select>
       </div>
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">Frequency <span className="text-red-500">*</span></label>

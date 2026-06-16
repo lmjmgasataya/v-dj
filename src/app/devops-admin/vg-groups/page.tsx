@@ -10,6 +10,12 @@ const select = input + " bg-white";
 const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 const FREQUENCIES = ["Weekly","Every other week","Once a month","Others"];
 const LIFESTAGES = lifestageEnum.enumValues;
+const HOURS = Array.from({ length: 18 }, (_, i) => {
+  const h = i + 5;
+  const ampm = h < 12 ? "AM" : "PM";
+  const display = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${display}:00 ${ampm}`;
+});
 
 export default async function VgGroupsPage() {
   const [groups, leaders] = await Promise.all([
@@ -101,7 +107,10 @@ export default async function VgGroupsPage() {
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Time</label>
-            <input name="time" required placeholder="e.g. 7:00 PM" className={input} />
+            <select name="time" required className={select}>
+              <option value="">-- Select time --</option>
+              {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
+            </select>
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Day</label>

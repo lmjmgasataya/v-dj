@@ -24,7 +24,7 @@ export function PrintBackClient({ count }: { count: number }) {
     <>
       <style>{`
         @media print {
-          @page { size: A4 portrait; margin: 0; }
+          @page { size: A4 portrait; margin: 3mm; }
           header { display: none !important; }
           main {
             max-width: none !important;
@@ -35,15 +35,15 @@ export function PrintBackClient({ count }: { count: number }) {
           .back-preview { display: none !important; }
           .back-grid {
             display: grid !important;
-            grid-template-columns: 105mm 105mm !important;
+            grid-template-columns: 102mm 102mm !important;
             gap: 0 !important;
-            width: 210mm !important;
+            width: 204mm !important;
             padding: 0 !important;
             margin: 0 !important;
           }
           .back-card {
-            width: 105mm !important;
-            height: 148.5mm !important;
+            width: 102mm !important;
+            height: 145.5mm !important;
             box-sizing: border-box !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;

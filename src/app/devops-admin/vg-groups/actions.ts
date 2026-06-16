@@ -15,6 +15,7 @@ async function requireDeveloper() {
 export async function createVgGroup(formData: FormData) {
   await requireDeveloper();
   const frequency = formData.get("frequency") as "Weekly" | "Every other week" | "Once a month" | "Others";
+  const lifeStage = (formData.get("lifeStage") as string) || null;
   await db.insert(victoryGroups).values({
     vgLeaderId: Number(formData.get("vgLeaderId")),
     place: formData.get("place") as string,
@@ -22,6 +23,7 @@ export async function createVgGroup(formData: FormData) {
     time: formData.get("time") as string,
     frequency,
     otherFrequency: frequency === "Others" ? (formData.get("otherFrequency") as string) || null : null,
+    lifeStage: lifeStage as typeof victoryGroups.$inferInsert["lifeStage"],
   });
   revalidatePath("/devops-admin/vg-groups");
 }

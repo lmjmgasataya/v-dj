@@ -75,6 +75,7 @@ export const victoryGroups = pgTable("victory_groups", {
   time: text("time").notNull(),
   frequency: vgFrequencyEnum("frequency").notNull(),
   otherFrequency: text("other_frequency"),
+  lifeStage: lifestageEnum("life_stage"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
 });

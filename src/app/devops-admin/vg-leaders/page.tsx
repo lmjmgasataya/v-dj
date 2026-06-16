@@ -1,21 +1,21 @@
 import { db } from "@/db";
 import { victoryGroupLeaders } from "@/db/schema";
 import { asc } from "drizzle-orm";
-import { createVgLeader, archiveVgLeader, restoreVgLeader } from "./actions";
+import { createVgLeader, deleteVgLeader } from "./actions";
+import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
 
 const input = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400";
 
 export default async function VgLeadersPage() {
   const rows = await db.select().from(victoryGroupLeaders).orderBy(asc(victoryGroupLeaders.lastName));
   const active = rows.filter((r) => !r.deletedAt);
-  const archived = rows.filter((r) => r.deletedAt);
 
   return (
     <div className="flex flex-col gap-4">
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h3 className="font-semibold text-gray-800">VG Leaders</h3>
-          <span className="text-xs text-gray-400">{active.length} active · {archived.length} archived</span>
+          <span className="text-xs text-gray-400">{active.length} active</span>
         </div>
 
         {active.length > 0 ? (
@@ -38,10 +38,11 @@ export default async function VgLeadersPage() {
                     <td className="px-4 py-2.5 text-gray-500 font-mono text-xs">{v.mobileNumber}</td>
                     <td className="px-4 py-2.5 text-gray-500">{v.facebookMessengerName ?? "—"}</td>
                     <td className="px-4 py-2.5 text-right">
-                      <form action={archiveVgLeader}>
-                        <input type="hidden" name="id" value={v.id} />
-                        <button type="submit" className="text-xs px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded transition">Archive</button>
-                      </form>
+                      <ConfirmDeleteButton
+                        action={deleteVgLeader}
+                        hiddenFields={{ id: String(v.id) }}
+                        message={`Delete ${v.firstName} ${v.lastName}? This cannot be undone.`}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -81,32 +82,6 @@ export default async function VgLeadersPage() {
           </form>
         </div>
       </div>
-
-      {archived.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-500">Archived VG Leaders</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <tbody className="divide-y divide-gray-100">
-                {archived.map((v) => (
-                  <tr key={v.id} className="opacity-60">
-                    <td className="px-4 py-2.5 text-gray-500">{v.lastName}, {v.firstName}</td>
-                    <td className="px-4 py-2.5 text-gray-400 font-mono text-xs">{v.mobileNumber}</td>
-                    <td className="px-4 py-2.5 text-right">
-                      <form action={restoreVgLeader}>
-                        <input type="hidden" name="id" value={v.id} />
-                        <button type="submit" className="text-xs px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition">Restore</button>
-                      </form>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

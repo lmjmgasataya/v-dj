@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { addVictoryGroup, updateVictoryGroup, deleteVictoryGroup } from "./victoryGroupActions";
 import { inputCls, selectCls } from "@/components/form";
 import type { VictoryGroup } from "@/db/schema";
-import { dayOfWeekEnum, vgFrequencyEnum } from "@/db/schema";
+import { dayOfWeekEnum, vgFrequencyEnum, lifestageEnum } from "@/db/schema";
 
 const DAYS: (typeof dayOfWeekEnum.enumValues)[number][] = [
   "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
@@ -18,6 +18,8 @@ const DAY_ABBR: Record<string, string> = {
 const FREQUENCIES: (typeof vgFrequencyEnum.enumValues)[number][] = [
   "Weekly", "Every other week", "Once a month", "Others",
 ];
+
+const LIFESTAGES = lifestageEnum.enumValues;
 
 function GroupForm({
   defaultValues,
@@ -72,6 +74,13 @@ function GroupForm({
           <input name="otherFrequency" required defaultValue={defaultValues?.otherFrequency ?? ""} placeholder="e.g. Every 3rd Sunday of the month" className={inputCls} />
         </div>
       )}
+      <div className="sm:col-span-2">
+        <label className="block text-xs font-medium text-gray-700 mb-1">Life Stage</label>
+        <select name="lifeStage" defaultValue={defaultValues?.lifeStage ?? ""} className={selectCls}>
+          <option value="">— Any —</option>
+          {LIFESTAGES.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+      </div>
       <div className="sm:col-span-2 flex justify-end gap-2 pt-1">
         <button type="button" onClick={onCancel} className="text-sm text-gray-600 hover:text-gray-800 px-4 py-1.5 rounded-lg border border-gray-300 bg-white">
           Cancel
@@ -116,6 +125,7 @@ function GroupRow({
         <p className="text-sm font-semibold text-gray-900">{group.place}</p>
         <p className="text-xs text-gray-500">
           {group.day} · {group.time} · {group.frequency === "Others" ? (group.otherFrequency ?? "Others") : group.frequency}
+          {group.lifeStage ? ` · ${group.lifeStage}` : ""}
         </p>
       </div>
       <div className="flex items-center gap-3 shrink-0 ml-4">

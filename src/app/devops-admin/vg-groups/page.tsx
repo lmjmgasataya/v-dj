@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { victoryGroups, victoryGroupLeaders } from "@/db/schema";
+import { victoryGroups, victoryGroupLeaders, lifestageEnum } from "@/db/schema";
 import { eq, isNull, asc } from "drizzle-orm";
 import { createVgGroup, deleteVgGroup } from "./actions";
 import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
@@ -9,6 +9,7 @@ const select = input + " bg-white";
 
 const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 const FREQUENCIES = ["Weekly","Every other week","Once a month","Others"];
+const LIFESTAGES = lifestageEnum.enumValues;
 
 export default async function VgGroupsPage() {
   const [groups, leaders] = await Promise.all([
@@ -19,6 +20,7 @@ export default async function VgGroupsPage() {
       time: victoryGroups.time,
       frequency: victoryGroups.frequency,
       otherFrequency: victoryGroups.otherFrequency,
+      lifeStage: victoryGroups.lifeStage,
       leaderLastName: victoryGroupLeaders.lastName,
       leaderFirstName: victoryGroupLeaders.firstName,
     })
@@ -48,6 +50,7 @@ export default async function VgGroupsPage() {
                 <th className="px-4 py-2 text-left font-medium">Day</th>
                 <th className="px-4 py-2 text-left font-medium">Time</th>
                 <th className="px-4 py-2 text-left font-medium">Frequency</th>
+                <th className="px-4 py-2 text-left font-medium">Life Stage</th>
                 <th className="px-4 py-2" />
               </tr>
             </thead>
@@ -63,6 +66,7 @@ export default async function VgGroupsPage() {
                   <td className="px-4 py-2.5 text-gray-500">
                     {g.frequency === "Others" && g.otherFrequency ? g.otherFrequency : g.frequency}
                   </td>
+                  <td className="px-4 py-2.5 text-gray-500">{g.lifeStage ?? "—"}</td>
                   <td className="px-4 py-2.5 text-right">
                     <ConfirmDeleteButton
                       action={deleteVgGroup}
@@ -116,6 +120,13 @@ export default async function VgGroupsPage() {
           <div className="col-span-2">
             <label className="block text-xs text-gray-500 mb-1">Other Frequency (if Others)</label>
             <input name="otherFrequency" className={input} />
+          </div>
+          <div className="col-span-2">
+            <label className="block text-xs text-gray-500 mb-1">Life Stage</label>
+            <select name="lifeStage" className={select}>
+              <option value="">-- Any --</option>
+              {LIFESTAGES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
           </div>
           <div className="col-span-2">
             <button type="submit" className="px-4 py-2 bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold rounded-lg transition">Add</button>

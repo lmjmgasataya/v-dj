@@ -24,18 +24,9 @@ export async function createVgLeader(formData: FormData) {
   revalidatePath("/devops-admin/vg-leaders");
 }
 
-export async function archiveVgLeader(formData: FormData) {
+export async function deleteVgLeader(formData: FormData) {
   await requireDeveloper();
-  await db.update(victoryGroupLeaders)
-    .set({ deletedAt: new Date() })
-    .where(eq(victoryGroupLeaders.id, Number(formData.get("id"))));
-  revalidatePath("/devops-admin/vg-leaders");
-}
-
-export async function restoreVgLeader(formData: FormData) {
-  await requireDeveloper();
-  await db.update(victoryGroupLeaders)
-    .set({ deletedAt: null })
+  await db.delete(victoryGroupLeaders)
     .where(eq(victoryGroupLeaders.id, Number(formData.get("id"))));
   revalidatePath("/devops-admin/vg-leaders");
 }

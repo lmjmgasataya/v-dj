@@ -1,0 +1,1 @@
+ALTER TABLE "victory_groups" ADD COLUMN "life_stage" "lifestage";

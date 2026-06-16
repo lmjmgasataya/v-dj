@@ -177,9 +177,9 @@ export function EditForm({ participant, newDatePicker }: { participant: Particip
           <Field label="VG Leader's Messenger / Facebook Name">
             <input name="vgLeaderMessengerName" defaultValue={participant.vgLeaderMessengerName ?? ""} className={inputCls} />
           </Field>
-          <Field label="Victory Weekend / Victory Day Date" className="sm:col-span-2">
+          {/* <Field label="Victory Weekend / Victory Day Date" className="sm:col-span-2">
             <DatePickerField name="victoryDate" defaultValue={participant.victoryDate ?? ""} className={inputCls} newDatePicker={newDatePicker} />
-          </Field>
+          </Field> */}
         </Section>
       ) : (
         <Section title="One2One Discipler Information" important="To be filled up by the One2One discipler">

@@ -69,7 +69,7 @@ export function PrintIdsClient({ participants }: { participants: Participant[] }
         </div>
       </div>
 
-      <div className="id-grid grid grid-cols-2 gap-3">
+      <div className="id-grid grid grid-cols-2 gap-3 pt-6">
         {participants.map((p) => (
           <IdCard key={p.id} participant={p} />
         ))}
@@ -91,24 +91,24 @@ function IdCard({ participant }: { participant: Participant }) {
   return (
     <div className="id-card flex flex-col border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
       {/* Header: logo left, event title right */}
-      <div className="flex items-center justify-between px-8 py-6 border-gray-100">
+      <div className="flex items-center justify-between px-10 py-8 border-gray-100">
         {/* Replace /dj-logo.png with your actual logo file in the public/ folder */}
-        <img src="/dj-logo.png" alt="" className="h-20 w-auto object-contain" />
+        <img src="/dj-logo.png" alt="" className="h-28 w-auto object-contain" />
         <p className="text-right text-xl font-normal uppercase tracking-widest text-gray-800 leading-tight">
-          DISCIPLESHIP<br />JOURNEY<br />WEEKENDS
+          DISCIPLESHIP<br />JOURNEY<br />CLASSES
         </p>
       </div>
 
       {/* Preferred name centered */}
-      <div className="flex-1 flex items-center justify-center px-8">
+      <div className="flex-1 flex items-center justify-center px-10">
         <p className="text-5xl font-bold text-gray-900 leading-tight text-center uppercase">{displayName}</p>
       </div>
 
       {/* Bottom: event label left, QR right — aligned at bottom */}
-      <div className="px-8 pb-4">
+      <div className="px-10 pb-4">
         <div className="flex items-end justify-between">
           <p className="text-sm font-semibold text-gray-700 leading-snug">
-            1st Discipleship<br />Journey of 2026
+            June-Oct 2026<br />Discipleship Journey<br />Classes
           </p>
           <div className="p-1.5 border border-gray-100 rounded-md bg-white">
             <QRCode value={qrValue} size={130} />

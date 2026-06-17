@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const NAV = [
   { href: "/devops-admin", label: "Overview" },
+  { href: "/devops-admin/batches", label: "Batches" },
   { href: "/devops-admin/class-sessions", label: "Class Sessions" },
   { href: "/devops-admin/disciplers", label: "Disciplers" },
   { href: "/devops-admin/vg-leaders", label: "VG Leaders" },

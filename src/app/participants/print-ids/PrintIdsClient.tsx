@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import QRCode from "react-qr-code";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -10,9 +11,38 @@ type Participant = {
   firstName: string;
   lastName: string;
   preferredNameOnId: string | null;
+  batchId: number | null;
 };
 
-export function PrintIdsClient({ participants, showFullName }: { participants: Participant[]; showFullName: boolean }) {
+type Batch = {
+  id: number;
+  name: string;
+  classStartDate: string;
+  classEndDate: string;
+  isDefault: boolean;
+};
+
+
+
+export function PrintIdsClient({
+  participants,
+  batches,
+  showFullName,
+}: {
+  participants: Participant[];
+  batches: Batch[];
+  showFullName: boolean;
+}) {
+  const defaultBatch = batches.find((b) => b.isDefault) ?? batches[0] ?? null;
+  const [selectedBatchId, setSelectedBatchId] = useState<number | null>(defaultBatch?.id ?? null);
+
+  const selectedBatch = batches.find((b) => b.id === selectedBatchId) ?? null;
+
+  const filtered = useMemo(
+    () => participants.filter((p) => p.batchId === selectedBatchId),
+    [participants, selectedBatchId]
+  );
+
   return (
     <>
       <style>{`
@@ -55,13 +85,35 @@ export function PrintIdsClient({ participants, showFullName }: { participants: P
           ]}
         />
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Print IDs</h2>
-            <p className="text-sm text-gray-500 mt-1">
-              {participants.length} participant{participants.length !== 1 ? "s" : ""}
-              {" · "}4 per A4 page
-            </p>
-            <form action={toggleShowFullName} className="flex items-center gap-2 mt-2">
+          <div className="flex flex-col gap-2">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Print IDs</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                {selectedBatchId === null
+                  ? "Select a batch to display IDs."
+                  : `${filtered.length} participant${filtered.length !== 1 ? "s" : ""} · 4 per A4 page`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Batch</label>
+              {batches.length === 0 ? (
+                <span className="text-sm text-gray-400">No batches yet — create one in devops-admin.</span>
+              ) : (
+                <select
+                  value={selectedBatchId ?? ""}
+                  onChange={(e) => setSelectedBatchId(e.target.value ? Number(e.target.value) : null)}
+                  className="border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#00428E]"
+                >
+                  <option value="">— select —</option>
+                  {batches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}{b.isDefault ? " (default)" : ""}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <form action={toggleShowFullName} className="flex items-center gap-2">
               <span className="text-xs text-gray-500">Show full name</span>
               <button
                 type="submit"
@@ -87,18 +139,22 @@ export function PrintIdsClient({ participants, showFullName }: { participants: P
       </div>
 
       <div className="id-grid grid grid-cols-2 gap-3 pt-6">
-        {participants.map((p) => (
-          <IdCard key={p.id} participant={p} showFullName={showFullName} />
+        {selectedBatchId !== null && filtered.map((p) => (
+          <IdCard key={p.id} participant={p} showFullName={showFullName} batchName={selectedBatch?.name ?? ""} />
         ))}
-        {participants.length === 0 && (
-          <p className="col-span-2 text-center text-gray-400 py-12">No participants found.</p>
+        {(selectedBatchId === null || filtered.length === 0) && (
+          <p className="col-span-2 text-center text-gray-400 py-12">
+            {selectedBatchId === null
+              ? "Select a batch to display IDs."
+              : "No participants in this batch."}
+          </p>
         )}
       </div>
     </>
   );
 }
 
-function IdCard({ participant, showFullName }: { participant: Participant; showFullName: boolean }) {
+function IdCard({ participant, showFullName, batchName }: { participant: Participant; showFullName: boolean; batchName: string }) {
   const displayName =
     participant.preferredNameOnId?.trim() ||
     `${participant.firstName} ${participant.lastName}`;
@@ -107,31 +163,27 @@ function IdCard({ participant, showFullName }: { participant: Participant; showF
 
   return (
     <div className="id-card flex flex-col border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
-      {/* Header: logo left, event title right */}
       <div className="flex items-center justify-between px-10 pt-8 border-gray-100">
-        {/* Replace /dj-logo.png with your actual logo file in the public/ folder */}
         <img src="/dj-logo.png" alt="" className="h-28 w-auto object-contain" />
         <p className="text-right text-xl font-normal uppercase tracking-widest text-gray-800 leading-tight">
           DISCIPLESHIP<br />JOURNEY<br />CLASSES
         </p>
       </div>
 
-      {/* Preferred name centered */}
       <div className="flex-1 flex items-center justify-center px-10 min-h-48">
         <p className="text-6xl font-bold text-gray-900 leading-normal text-center capitalize" style={{ transform: "scale(1.1, 1.2)", display: "inline-block" }}>{displayName.toLowerCase()}</p>
       </div>
 
-      {/* Bottom: event label left, QR right — aligned at bottom */}
       <div className="px-10 pb-4">
         <div className="flex items-end justify-between">
           <p className="text-sm font-semibold text-gray-700 leading-snug">
-            June-Oct 2026<br />Discipleship Journey<br />Classes
+            {batchName}<br />Discipleship Journey<br />Classes
           </p>
           <div className="p-1.5 border border-gray-100 rounded-md bg-white">
             <QRCode value={qrValue} size={130} />
           </div>
         </div>
-        <p className={`text-xs text-gray-500 capitalize text-right mt-1 ${showFullName ? "" : "invisible"}`}>{fullName.toLowerCase()}</p>
+        <p className={`text-xs text-gray-500 capitalize text-right ${showFullName ? "" : "invisible"}`}>{fullName.toLowerCase()}</p>
       </div>
     </div>
   );

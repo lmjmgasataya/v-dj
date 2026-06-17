@@ -80,6 +80,16 @@ export const victoryGroups = pgTable("victory_groups", {
   deletedAt: timestamp("deleted_at"),
 });
 
+export const batches = pgTable("batches", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  classStartDate: date("class_start_date").notNull(),
+  classEndDate: date("class_end_date").notNull(),
+  registrationStartDate: date("registration_start_date"),
+  isDefault: boolean("is_default").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const participants = pgTable("participants", {
   id: serial("id").primaryKey(),
   lastName: text("last_name").notNull(),
@@ -104,6 +114,7 @@ export const participants = pgTable("participants", {
   isDoneWithVictoryWeekend: boolean("is_done_with_victory_weekend"),
   isWalkIn: boolean("is_walk_in").default(false).notNull(),
   victoryDate: text("victory_date"),
+  batchId: integer("batch_id").references(() => batches.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
 }, (t) => [
@@ -175,3 +186,4 @@ export type User = typeof users.$inferSelect;
 export type LoginLog = typeof loginLogs.$inferSelect;
 export type VictoryGroupLeader = typeof victoryGroupLeaders.$inferSelect;
 export type VictoryGroup = typeof victoryGroups.$inferSelect;
+export type Batch = typeof batches.$inferSelect;

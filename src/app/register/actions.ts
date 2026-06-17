@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { participants, disciplers, victoryGroupLeaders, type lifestageEnum } from "@/db/schema";
+import { participants, disciplers, victoryGroupLeaders, batches, type lifestageEnum } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
@@ -66,6 +66,13 @@ export async function registerParticipant(formData: FormData) {
     );
   }
 
+  const defaultBatch = await db
+    .select({ id: batches.id })
+    .from(batches)
+    .where(eq(batches.isDefault, true))
+    .limit(1)
+    .then((rows) => rows[0] ?? null);
+
   await db.insert(participants).values({
     lastName: formData.get("lastName") as string,
     firstName: formData.get("firstName") as string,
@@ -88,6 +95,7 @@ export async function registerParticipant(formData: FormData) {
     registrationFee,
     victoryDate: (formData.get("victoryDate") as string) || null,
     adminVolunteerName: formData.get("adminVolunteerName") as string,
+    batchId: defaultBatch?.id ?? null,
   });
 
   redirect("/register/success");

@@ -1,48 +1,44 @@
 import { db } from "@/db";
-import { classSessions, checkIns } from "@/db/schema";
-import { and, count, eq, gte, lt, max, min, sql } from "drizzle-orm";
-import { currentYearPH } from "@/lib/date";
+import { classSessions, checkIns, batches } from "@/db/schema";
+import { and, count, eq, max, min, sql } from "drizzle-orm";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { SessionPicker } from "./SessionPicker";
 import { CheckInsChart } from "./CheckInsChart";
+import { BatchPicker } from "../BatchPicker";
 
 export default async function CheckInsReportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ year?: string; session?: string }>;
+  searchParams: Promise<{ batch?: string; session?: string }>;
 }) {
   const authSession = await getSession();
   if (!authSession) redirect("/");
 
-  const { year: yearParam, session: sessionParam } = await searchParams;
-  const currentYear = currentYearPH();
-  const year = yearParam ? parseInt(yearParam, 10) : currentYear;
+  const { batch: batchParam, session: sessionParam } = await searchParams;
   const selectedId = sessionParam ? parseInt(sessionParam, 10) : null;
 
-  const [sessions, availableYears] = await Promise.all([
-    db
-      .select({
-        id: classSessions.id,
-        name: classSessions.name,
-        sessionDate: classSessions.sessionDate,
-      })
-      .from(classSessions)
-      .where(
-        and(
-          gte(classSessions.sessionDate, `${year}-01-01`),
-          lt(classSessions.sessionDate, `${year + 1}-01-01`)
-        )
-      )
-      .orderBy(classSessions.sessionDate, classSessions.id),
+  const allBatches = await db
+    .select({ id: batches.id, name: batches.name, isDefault: batches.isDefault })
+    .from(batches)
+    .orderBy(batches.createdAt);
 
-    db
-      .selectDistinct({ year: sql<number>`EXTRACT(YEAR FROM ${classSessions.sessionDate})::int` })
-      .from(classSessions)
-      .orderBy(sql`1 ASC`),
-  ]);
+  const defaultBatch = allBatches.find((b) => b.isDefault) ?? allBatches[0] ?? null;
+  const selectedBatchId = batchParam ? parseInt(batchParam, 10) : (defaultBatch?.id ?? null);
+
+  const sessions =
+    selectedBatchId !== null
+      ? await db
+          .select({
+            id: classSessions.id,
+            name: classSessions.name,
+            sessionDate: classSessions.sessionDate,
+          })
+          .from(classSessions)
+          .where(eq(classSessions.batchId, selectedBatchId))
+          .orderBy(classSessions.sessionDate, classSessions.id)
+      : [];
 
   const selectedSession = sessions.find((s) => s.id === selectedId) ?? null;
 
@@ -122,23 +118,7 @@ export default async function CheckInsReportPage({
         </p>
       </div>
 
-      {availableYears.length > 1 && (
-        <div className="flex items-center gap-3">
-          {availableYears.map(({ year: y }) => (
-            <Link
-              key={y}
-              href={y === currentYear ? "/report/checkins" : `/report/checkins?year=${y}`}
-              className={`text-sm font-semibold px-4 py-1.5 rounded-lg border transition ${
-                y === year
-                  ? "bg-[#00428E] text-white border-indigo-600"
-                  : "bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600"
-              }`}
-            >
-              {y}
-            </Link>
-          ))}
-        </div>
-      )}
+      <BatchPicker batches={allBatches} selectedId={selectedBatchId} />
 
       <div className="flex flex-col gap-2">
         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">

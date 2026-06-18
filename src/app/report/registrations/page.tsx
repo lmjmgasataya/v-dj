@@ -1,54 +1,55 @@
 import { db } from "@/db";
-import { participants, classSessions } from "@/db/schema";
-import { and, count, isNull, eq, gte, lt, sql } from "drizzle-orm";
-import { currentYearPH } from "@/lib/date";
+import { participants, batches } from "@/db/schema";
+import { and, count, eq, isNull, sql } from "drizzle-orm";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { RegistrationsChart, type DayBreakdown } from "./RegistrationsChart";
+import { BatchPicker } from "../BatchPicker";
 
 const FEE_AMOUNTS: Record<string, number> = { A: 1200, B: 900, C: 900, D: 700 };
 
 export default async function RegistrationsReportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ year?: string }>;
+  searchParams: Promise<{ batch?: string }>;
 }) {
   const authSession = await getSession();
   if (!authSession) redirect("/");
 
-  const { year: yearParam } = await searchParams;
-  const currentYear = currentYearPH();
-  const year = yearParam ? parseInt(yearParam, 10) : currentYear;
+  const { batch: batchParam } = await searchParams;
 
-  const [breakdown, availableYears] = await Promise.all([
-    db
-      .select({
-        date: sql<string>`DATE(${participants.createdAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila')`,
-        fee: participants.registrationFee,
-        count: count(),
-      })
-      .from(participants)
-      .where(
-        and(
-          isNull(participants.deletedAt),
-          eq(participants.isWalkIn, false),
-          gte(participants.createdAt, new Date(`${year}-01-01`)),
-          lt(participants.createdAt, new Date(`${year + 1}-01-01`))
-        )
-      )
-      .groupBy(
-        sql`DATE(${participants.createdAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila')`,
-        participants.registrationFee
-      )
-      .orderBy(sql`DATE(${participants.createdAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila')`),
+  const allBatches = await db
+    .select({ id: batches.id, name: batches.name, isDefault: batches.isDefault })
+    .from(batches)
+    .orderBy(batches.createdAt);
 
-    db
-      .selectDistinct({ year: sql<number>`EXTRACT(YEAR FROM ${classSessions.sessionDate})::int` })
-      .from(classSessions)
-      .orderBy(sql`1 ASC`),
-  ]);
+  const defaultBatch = allBatches.find((b) => b.isDefault) ?? allBatches[0] ?? null;
+  const selectedBatchId = batchParam ? parseInt(batchParam, 10) : (defaultBatch?.id ?? null);
+  const selectedBatch = allBatches.find((b) => b.id === selectedBatchId) ?? null;
+
+  const breakdown =
+    selectedBatchId !== null
+      ? await db
+          .select({
+            date: sql<string>`DATE(${participants.createdAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila')`,
+            fee: participants.registrationFee,
+            count: count(),
+          })
+          .from(participants)
+          .where(
+            and(
+              isNull(participants.deletedAt),
+              eq(participants.isWalkIn, false),
+              eq(participants.batchId, selectedBatchId)
+            )
+          )
+          .groupBy(
+            sql`DATE(${participants.createdAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila')`,
+            participants.registrationFee
+          )
+          .orderBy(sql`DATE(${participants.createdAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila')`)
+      : [];
 
   // Pivot into per-day objects
   const dayMap = new Map<string, DayBreakdown>();
@@ -84,26 +85,12 @@ export default async function RegistrationsReportPage({
       <div>
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Reports", href: "/report" }, { label: "Registrations" }]} />
         <h2 className="text-2xl font-bold text-gray-900">Registrations</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Daily sign-ups for {year}</p>
+        <p className="text-sm text-gray-500 mt-0.5">
+          Daily sign-ups for {selectedBatch?.name ?? "—"}
+        </p>
       </div>
 
-      {availableYears.length > 1 && (
-        <div className="flex items-center gap-3">
-          {availableYears.map(({ year: y }) => (
-            <Link
-              key={y}
-              href={y === currentYear ? "/report/registrations" : `/report/registrations?year=${y}`}
-              className={`text-sm font-semibold px-4 py-1.5 rounded-lg border transition ${
-                y === year
-                  ? "bg-[#00428E] text-white border-indigo-600"
-                  : "bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600"
-              }`}
-            >
-              {y}
-            </Link>
-          ))}
-        </div>
-      )}
+      <BatchPicker batches={allBatches} selectedId={selectedBatchId} />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[

@@ -14,7 +14,10 @@ async function upsertDiscipler(
   mobileNumber: string,
   messengerName: string | null,
 ): Promise<number> {
-  await db.insert(disciplers).values({ lastName, firstName, mobileNumber, messengerName }).onConflictDoNothing();
+  await db.insert(disciplers).values({ lastName, firstName, mobileNumber, messengerName }).onConflictDoUpdate({
+    target: [disciplers.lastName, disciplers.firstName, disciplers.mobileNumber],
+    set: { messengerName },
+  });
   const [d] = await db
     .select({ id: disciplers.id })
     .from(disciplers)
@@ -28,7 +31,10 @@ async function upsertVgLeader(
   mobileNumber: string,
   messengerName: string | null,
 ): Promise<number> {
-  await db.insert(victoryGroupLeaders).values({ lastName, firstName, mobileNumber, facebookMessengerName: messengerName }).onConflictDoNothing();
+  await db.insert(victoryGroupLeaders).values({ lastName, firstName, mobileNumber, facebookMessengerName: messengerName }).onConflictDoUpdate({
+    target: [victoryGroupLeaders.lastName, victoryGroupLeaders.firstName, victoryGroupLeaders.mobileNumber],
+    set: { facebookMessengerName: messengerName },
+  });
   const [v] = await db
     .select({ id: victoryGroupLeaders.id })
     .from(victoryGroupLeaders)
@@ -40,7 +46,7 @@ export async function registerParticipant(formData: FormData) {
   const registrationFee = formData.get("registrationFee") as string;
   const isAB = registrationFee === "A" || registrationFee === "B";
   const needsVictoryDate = registrationFee === "C" || registrationFee === "D";
-  const isDoneWithVictoryWeekend = isAB && formData.get("isDoneWithVictoryWeekend") === "on";
+  const isDoneWithVictoryWeekend = isAB && formData.get("isDoneWithVictoryWeekend") === "yes";
   const showVgLeader = needsVictoryDate || isDoneWithVictoryWeekend;
 
   const previousChurchRaw = formData.get("previousChurch") as string;
@@ -52,19 +58,29 @@ export async function registerParticipant(formData: FormData) {
   let vgLeaderId: number | null = null;
 
   if (showVgLeader) {
-    vgLeaderId = await upsertVgLeader(
-      toTitleCase(formData.get("vgLeaderLastName") as string),
-      toTitleCase(formData.get("vgLeaderFirstName") as string),
-      formData.get("vgLeaderMobileNumber") as string,
-      (formData.get("vgLeaderMessengerName") as string) || null,
-    );
+    const vgLastName = toTitleCase(formData.get("vgLeaderLastName") as string);
+    const vgFirstName = toTitleCase(formData.get("vgLeaderFirstName") as string);
+    const vgMobile = (formData.get("vgLeaderMobileNumber") as string) || "";
+    if (vgLastName && vgFirstName && vgMobile) {
+      vgLeaderId = await upsertVgLeader(
+        vgLastName,
+        vgFirstName,
+        vgMobile,
+        (formData.get("vgLeaderMessengerName") as string) || null,
+      );
+    }
   } else {
-    disciplerId = await upsertDiscipler(
-      toTitleCase(formData.get("disciplerLastName") as string),
-      toTitleCase(formData.get("disciplerFirstName") as string),
-      formData.get("disciplerMobileNumber") as string,
-      (formData.get("disciplerMessengerName") as string) || null,
-    );
+    const discLastName = toTitleCase(formData.get("disciplerLastName") as string);
+    const discFirstName = toTitleCase(formData.get("disciplerFirstName") as string);
+    const discMobile = (formData.get("disciplerMobileNumber") as string) || "";
+    if (discLastName && discFirstName && discMobile) {
+      disciplerId = await upsertDiscipler(
+        discLastName,
+        discFirstName,
+        discMobile,
+        (formData.get("disciplerMessengerName") as string) || null,
+      );
+    }
   }
 
   const defaultBatch = await db
@@ -85,7 +101,7 @@ export async function registerParticipant(formData: FormData) {
     gender: formData.get("gender") as string,
     serviceAttending: formData.get("serviceAttending") as string,
     completedOne2One: !showVgLeader ? formData.get("completedOne2One") === "yes" : null,
-    willUndergoWaterBaptism: !showVgLeader ? formData.get("willUndergoWaterBaptism") === "yes" : null,
+    willUndergoWaterBaptism: isAB ? formData.get("willUndergoWaterBaptism") === "yes" : null,
     previousChurch: !showVgLeader ? previousChurch : null,
     isDoneWithVictoryWeekend: isAB ? isDoneWithVictoryWeekend : null,
     preferredNameOnId: toTitleCase(formData.get("preferredNameOnId") as string),

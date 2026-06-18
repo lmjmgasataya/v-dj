@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { checkIns, participants } from "@/db/schema";
 import { toTitleCase } from "@/lib/text";
-import { and, eq, gte, ilike, inArray, isNull, lt, or } from "drizzle-orm";
+import { and, eq, ilike, inArray, isNull, or } from "drizzle-orm";
 import type { ClassSession } from "@/db/schema";
 
 export function abbrev(name: string): string {
@@ -80,11 +80,11 @@ export function TableSkeleton({ sessions }: { sessions: ClassSession[] }) {
 }
 
 export async function AttendanceTable({
-  year,
+  batchId,
   query,
   sessions,
 }: {
-  year: number;
+  batchId: number;
   query: string;
   sessions: ClassSession[];
 }) {
@@ -103,8 +103,7 @@ export async function AttendanceTable({
         and(
           isNull(participants.deletedAt),
           eq(participants.isWalkIn, false),
-          gte(participants.createdAt, new Date(`${year}-01-01`)),
-          lt(participants.createdAt, new Date(`${year + 1}-01-01`)),
+          eq(participants.batchId, batchId),
           or(
             ilike(participants.lastName, `%${query}%`),
             ilike(participants.firstName, `%${query}%`)

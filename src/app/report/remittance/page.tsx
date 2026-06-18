@@ -7,6 +7,7 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { todayPH } from "@/lib/date";
 import { FEE_CATEGORIES } from "@/components/form";
 import { DatePicker } from "./DatePicker";
+import { toTitleCase } from "@/lib/text";
 
 export default async function RemittancePage({
   searchParams,
@@ -97,8 +98,8 @@ export default async function RemittancePage({
                 return (
                   <tr key={p.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-gray-400">{i + 1}</td>
-                    <td className="px-4 py-3 font-medium text-gray-900 capitalize">{p.lastName}</td>
-                    <td className="px-4 py-3 text-gray-700 capitalize">{p.firstName}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900">{toTitleCase(p.lastName)}</td>
+                    <td className="px-4 py-3 text-gray-700">{toTitleCase(p.firstName)}</td>
                     <td className="px-4 py-3 text-gray-700">
                       {cat ? `${cat.amount} (Class ${cat.value})` : (p.registrationFee ?? "—")}
                     </td>

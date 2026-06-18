@@ -1,71 +1,77 @@
 import { db } from "@/db";
-import { participants, classSessions, checkIns } from "@/db/schema";
-import { and, eq, exists, gte, isNull, lt, sql } from "drizzle-orm";
-import { currentYearPH } from "@/lib/date";
+import { participants, classSessions, checkIns, batches } from "@/db/schema";
+import { and, eq, exists, isNull, sql } from "drizzle-orm";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { FunnelChart } from "./FunnelChart";
+import { BatchPicker } from "../BatchPicker";
 
 export default async function FunnelReportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ year?: string }>;
+  searchParams: Promise<{ batch?: string }>;
 }) {
   const authSession = await getSession();
   if (!authSession) redirect("/");
 
-  const { year: yearParam } = await searchParams;
-  const currentYear = currentYearPH();
-  const year = yearParam ? parseInt(yearParam, 10) : currentYear;
+  const { batch: batchParam } = await searchParams;
 
-  const yearFilter = and(
-    gte(classSessions.sessionDate, `${year}-01-01`),
-    lt(classSessions.sessionDate, `${year + 1}-01-01`)
-  );
+  const allBatches = await db
+    .select({ id: batches.id, name: batches.name, isDefault: batches.isDefault })
+    .from(batches)
+    .orderBy(batches.createdAt);
 
-  const [availableYears, totalSessionsResult, participantRows] = await Promise.all([
-    db
-      .selectDistinct({ year: sql<number>`EXTRACT(YEAR FROM ${classSessions.sessionDate})::int` })
-      .from(classSessions)
-      .orderBy(sql`1 ASC`),
+  const defaultBatch = allBatches.find((b) => b.isDefault) ?? allBatches[0] ?? null;
+  const selectedBatchId = batchParam ? parseInt(batchParam, 10) : (defaultBatch?.id ?? null);
+  const selectedBatch = allBatches.find((b) => b.id === selectedBatchId) ?? null;
 
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(classSessions)
-      .where(yearFilter),
+  let totalSessions = 0;
+  let participantRows: { id: number; checkInCount: number }[] = [];
 
-    db
-      .select({
-        id: participants.id,
-        checkInCount: sql<number>`COUNT(${checkIns.id})::int`,
-      })
-      .from(participants)
-      .leftJoin(
-        checkIns,
-        and(
-          eq(checkIns.participantId, participants.id),
-          exists(
-            db
-              .select({ one: sql`1` })
-              .from(classSessions)
-              .where(and(eq(classSessions.id, checkIns.classSessionId), yearFilter))
+  if (selectedBatchId !== null) {
+    const [totalResult, pRows] = await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(classSessions)
+        .where(eq(classSessions.batchId, selectedBatchId)),
+
+      db
+        .select({
+          id: participants.id,
+          checkInCount: sql<number>`COUNT(${checkIns.id})::int`,
+        })
+        .from(participants)
+        .leftJoin(
+          checkIns,
+          and(
+            eq(checkIns.participantId, participants.id),
+            exists(
+              db
+                .select({ one: sql`1` })
+                .from(classSessions)
+                .where(
+                  and(
+                    eq(classSessions.id, checkIns.classSessionId),
+                    eq(classSessions.batchId, selectedBatchId)
+                  )
+                )
+            )
           )
         )
-      )
-      .where(
-        and(
-          isNull(participants.deletedAt),
-          eq(participants.isWalkIn, false),
-          gte(participants.createdAt, new Date(`${year}-01-01`)),
-          lt(participants.createdAt, new Date(`${year + 1}-01-01`))
+        .where(
+          and(
+            isNull(participants.deletedAt),
+            eq(participants.isWalkIn, false),
+            eq(participants.batchId, selectedBatchId)
+          )
         )
-      )
-      .groupBy(participants.id),
-  ]);
+        .groupBy(participants.id),
+    ]);
 
-  const totalSessions = totalSessionsResult[0].count;
+    totalSessions = totalResult[0].count;
+    participantRows = pRows;
+  }
 
   const distribution = new Map<number, number>();
   for (const p of participantRows) {
@@ -98,27 +104,11 @@ export default async function FunnelReportPage({
         />
         <h2 className="text-2xl font-bold text-gray-900">Completion Funnel</h2>
         <p className="text-sm text-gray-500 mt-0.5">
-          {registrantCount} participant{registrantCount !== 1 ? "s" : ""} · {totalSessions} session{totalSessions !== 1 ? "s" : ""} in {year}
+          {registrantCount} participant{registrantCount !== 1 ? "s" : ""} · {totalSessions} session{totalSessions !== 1 ? "s" : ""} in {selectedBatch?.name ?? "—"}
         </p>
       </div>
 
-      {availableYears.length > 1 && (
-        <div className="flex items-center gap-3">
-          {availableYears.map(({ year: y }) => (
-            <Link
-              key={y}
-              href={y === currentYear ? "/report/funnel" : `/report/funnel?year=${y}`}
-              className={`text-sm font-semibold px-4 py-1.5 rounded-lg border transition ${
-                y === year
-                  ? "bg-[#00428E] text-white border-indigo-600"
-                  : "bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600"
-              }`}
-            >
-              {y}
-            </Link>
-          ))}
-        </div>
-      )}
+      <BatchPicker batches={allBatches} selectedId={selectedBatchId} />
 
       <div className="grid grid-cols-3 gap-4">
         {[

@@ -14,8 +14,10 @@ export async function updateSession(id: number, _: unknown, formData: FormData) 
 
   const isVictoryDay = name.includes("Victory Day");
   const allowsWalkIn = formData.get("allowsWalkIn") === "true";
+  const batchIdRaw = formData.get("batchId") as string;
+  const batchId = batchIdRaw ? Number(batchIdRaw) : null;
 
-  await db.update(classSessions).set({ name, sessionDate, isVictoryDay, allowsWalkIn }).where(eq(classSessions.id, id));
+  await db.update(classSessions).set({ name, sessionDate, isVictoryDay, allowsWalkIn, batchId }).where(eq(classSessions.id, id));
 
   revalidatePath("/sessions");
   redirect(`/sessions/${id}?updated=1`);

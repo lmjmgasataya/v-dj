@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { toTitleCase } from "@/lib/text";
 import type { VictoryGroupLeader, VictoryGroup } from "@/db/schema";
 
 function Detail({ label, value }: { label: string; value: React.ReactNode }) {
@@ -26,7 +27,7 @@ export function VGLeaderTable({
     <div className="flex flex-col divide-y divide-gray-100 rounded-xl border border-gray-200 shadow-sm bg-white overflow-hidden">
       {rows.map((leader) => {
         const isExpanded = expandedId === leader.id;
-        const fullName = `${leader.lastName}, ${leader.firstName}${leader.middleInitial ? ` ${leader.middleInitial}.` : ""}`;
+        const fullName = `${toTitleCase(leader.lastName)}, ${toTitleCase(leader.firstName)}${leader.middleInitial ? ` ${toTitleCase(leader.middleInitial)}.` : ""}`;
 
         const groups = groupsByLeader[leader.id] ?? [];
 
@@ -46,8 +47,8 @@ export function VGLeaderTable({
             {isExpanded && (
               <div className="border-t border-gray-100 bg-gray-50 px-4 py-4 flex flex-col gap-4">
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <Detail label="Last Name" value={leader.lastName} />
-                  <Detail label="First Name" value={leader.firstName} />
+                  <Detail label="Last Name" value={toTitleCase(leader.lastName)} />
+                  <Detail label="First Name" value={toTitleCase(leader.firstName)} />
                   <Detail label="Middle Initial" value={leader.middleInitial} />
                   <Detail label="Mobile Number" value={leader.mobileNumber} />
                   <Detail label="Age" value={leader.age} />

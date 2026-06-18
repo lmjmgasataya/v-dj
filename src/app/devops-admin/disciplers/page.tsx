@@ -3,6 +3,7 @@ import { disciplers } from "@/db/schema";
 import { asc } from "drizzle-orm";
 import { createDiscipler, deleteDiscipler } from "./actions";
 import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
+import { toTitleCase } from "@/lib/text";
 
 const input = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400";
 
@@ -33,15 +34,15 @@ export default async function DisciplersPage() {
               {rows.map((d) => (
                 <tr key={d.id} className="hover:bg-gray-50">
                   <td className="px-4 py-2.5 text-gray-400 font-mono text-xs">{d.id}</td>
-                  <td className="px-4 py-2.5 font-medium text-gray-800">{d.lastName}</td>
-                  <td className="px-4 py-2.5 text-gray-700">{d.firstName}</td>
+                  <td className="px-4 py-2.5 font-medium text-gray-800">{toTitleCase(d.lastName)}</td>
+                  <td className="px-4 py-2.5 text-gray-700">{toTitleCase(d.firstName)}</td>
                   <td className="px-4 py-2.5 text-gray-500 font-mono text-xs">{d.mobileNumber}</td>
                   <td className="px-4 py-2.5 text-gray-500">{d.messengerName ?? "—"}</td>
                   <td className="px-4 py-2.5 text-right">
                     <ConfirmDeleteButton
                       action={deleteDiscipler}
                       hiddenFields={{ id: String(d.id) }}
-                      message={`Delete discipler "${d.lastName}, ${d.firstName}"?`}
+                      message={`Delete discipler "${toTitleCase(d.lastName)}, ${toTitleCase(d.firstName)}"?`}
                     />
                   </td>
                 </tr>

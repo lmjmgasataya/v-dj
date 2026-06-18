@@ -3,6 +3,7 @@ import { victoryGroups, victoryGroupLeaders, lifestageEnum } from "@/db/schema";
 import { eq, isNull, asc } from "drizzle-orm";
 import { createVgGroup, deleteVgGroup } from "./actions";
 import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
+import { toTitleCase } from "@/lib/text";
 
 const input = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400";
 const select = input + " bg-white";
@@ -66,7 +67,7 @@ export default async function VgGroupsPage() {
                 <tr key={g.id} className="hover:bg-gray-50">
                   <td className="px-4 py-2.5 text-gray-400 font-mono text-xs">{g.id}</td>
                   <td className="px-4 py-2.5 font-medium text-gray-800">
-                    {g.leaderLastName && g.leaderFirstName ? `${g.leaderLastName}, ${g.leaderFirstName}` : "—"}
+                    {g.leaderLastName && g.leaderFirstName ? `${toTitleCase(g.leaderLastName)}, ${toTitleCase(g.leaderFirstName)}` : "—"}
                   </td>
                   <td className="px-4 py-2.5 text-gray-700">{g.place}</td>
                   <td className="px-4 py-2.5 text-gray-500">{g.day}</td>
@@ -99,7 +100,7 @@ export default async function VgGroupsPage() {
             <select name="vgLeaderId" required className={select}>
               <option value="">-- Select leader --</option>
               {leaders.map((l) => (
-                <option key={l.id} value={l.id}>{l.lastName}, {l.firstName}</option>
+                <option key={l.id} value={l.id}>{toTitleCase(l.lastName)}, {toTitleCase(l.firstName)}</option>
               ))}
             </select>
           </div>

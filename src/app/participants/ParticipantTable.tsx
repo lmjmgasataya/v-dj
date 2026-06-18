@@ -15,6 +15,7 @@ type ParticipantRow = Participant & {
   vgLeaderMessengerName: string | null;
 };
 import { FEE_CATEGORIES } from "@/components/form";
+import { toTitleCase } from "@/lib/text";
 
 type Attendance = { sessionName: string; sessionDate: string };
 
@@ -61,7 +62,7 @@ export function ParticipantTable({
             >
               <div>
                 <p className="font-semibold text-gray-900 text-sm capitalize">
-                  {p.lastName}, {p.firstName}{p.middleInitial ? ` ${p.middleInitial}.` : ""}
+                  {toTitleCase(p.lastName)}, {toTitleCase(p.firstName)}{p.middleInitial ? ` ${toTitleCase(p.middleInitial)}.` : ""}
                 </p>
                 <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>
               </div>
@@ -119,7 +120,7 @@ export function ParticipantTable({
                     <>
                       <Detail label="VG Leader" className="capitalize" value={
                         p.vgLeaderLastName && p.vgLeaderFirstName
-                          ? `${p.vgLeaderLastName}, ${p.vgLeaderFirstName}`
+                          ? `${toTitleCase(p.vgLeaderLastName)}, ${toTitleCase(p.vgLeaderFirstName)}`
                           : null
                       } />
                       <Detail label="VG Leader Mobile" value={p.vgLeaderMobileNumber} />
@@ -129,7 +130,7 @@ export function ParticipantTable({
                     <>
                       <Detail label="Discipler" className="capitalize" value={
                         p.disciplerLastName && p.disciplerFirstName
-                          ? `${p.disciplerLastName}, ${p.disciplerFirstName}`
+                          ? `${toTitleCase(p.disciplerLastName)}, ${toTitleCase(p.disciplerFirstName)}`
                           : null
                       } />
                       <Detail label="Discipler Mobile" value={p.disciplerMobileNumber} />

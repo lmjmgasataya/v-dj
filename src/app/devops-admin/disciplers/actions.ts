@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { toTitleCase } from "@/lib/text";
 
 async function requireDeveloper() {
   const session = await getSession();
@@ -15,8 +16,8 @@ async function requireDeveloper() {
 export async function createDiscipler(formData: FormData) {
   await requireDeveloper();
   await db.insert(disciplers).values({
-    lastName: formData.get("lastName") as string,
-    firstName: formData.get("firstName") as string,
+    lastName: toTitleCase(formData.get("lastName") as string),
+    firstName: toTitleCase(formData.get("firstName") as string),
     mobileNumber: formData.get("mobileNumber") as string,
     messengerName: (formData.get("messengerName") as string) || null,
   }).onConflictDoNothing();

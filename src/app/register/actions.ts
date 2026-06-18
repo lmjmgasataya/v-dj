@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { participants, disciplers, victoryGroupLeaders, batches, type lifestageEnum } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { toTitleCase } from "@/lib/text";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
 
@@ -52,15 +53,15 @@ export async function registerParticipant(formData: FormData) {
 
   if (showVgLeader) {
     vgLeaderId = await upsertVgLeader(
-      formData.get("vgLeaderLastName") as string,
-      formData.get("vgLeaderFirstName") as string,
+      toTitleCase(formData.get("vgLeaderLastName") as string),
+      toTitleCase(formData.get("vgLeaderFirstName") as string),
       formData.get("vgLeaderMobileNumber") as string,
       (formData.get("vgLeaderMessengerName") as string) || null,
     );
   } else {
     disciplerId = await upsertDiscipler(
-      formData.get("disciplerLastName") as string,
-      formData.get("disciplerFirstName") as string,
+      toTitleCase(formData.get("disciplerLastName") as string),
+      toTitleCase(formData.get("disciplerFirstName") as string),
       formData.get("disciplerMobileNumber") as string,
       (formData.get("disciplerMessengerName") as string) || null,
     );
@@ -74,9 +75,9 @@ export async function registerParticipant(formData: FormData) {
     .then((rows) => rows[0] ?? null);
 
   await db.insert(participants).values({
-    lastName: formData.get("lastName") as string,
-    firstName: formData.get("firstName") as string,
-    middleInitial: (formData.get("middleInitial") as string) || null,
+    lastName: toTitleCase(formData.get("lastName") as string),
+    firstName: toTitleCase(formData.get("firstName") as string),
+    middleInitial: toTitleCase((formData.get("middleInitial") as string) || "") || null,
     mobileNumber: formData.get("mobileNumber") as string,
     facebookMessengerName: (formData.get("facebookMessengerName") as string) || null,
     lifestage: formData.get("lifestage") as Lifestage,
@@ -87,14 +88,14 @@ export async function registerParticipant(formData: FormData) {
     willUndergoWaterBaptism: !showVgLeader ? formData.get("willUndergoWaterBaptism") === "yes" : null,
     previousChurch: !showVgLeader ? previousChurch : null,
     isDoneWithVictoryWeekend: isAB ? isDoneWithVictoryWeekend : null,
-    preferredNameOnId: formData.get("preferredNameOnId") as string,
+    preferredNameOnId: toTitleCase(formData.get("preferredNameOnId") as string),
     disciplerId,
     confirmedReadiness: !showVgLeader ? formData.get("confirmedReadiness") === "on" : null,
     vgLeaderId,
     acknowledgementReceiptNumber: formData.get("acknowledgementReceiptNumber") as string,
     registrationFee,
     victoryDate: (formData.get("victoryDate") as string) || null,
-    adminVolunteerName: formData.get("adminVolunteerName") as string,
+    adminVolunteerName: toTitleCase(formData.get("adminVolunteerName") as string),
     batchId: defaultBatch?.id ?? null,
   });
 

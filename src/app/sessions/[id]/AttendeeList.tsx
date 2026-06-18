@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { toTitleCase } from "@/lib/text";
 
 export interface Attendee {
   checkInId: number;
@@ -51,7 +52,7 @@ export function AttendeeList({ attendees }: { attendees: Attendee[] }) {
     <div className="flex flex-col divide-y divide-gray-100 rounded-xl border border-gray-200 shadow-sm bg-white overflow-hidden">
       {attendees.map((a, i) => {
         const isExpanded = expandedId === a.checkInId;
-        const fullName = `${a.lastName}, ${a.firstName}${a.middleInitial ? ` ${a.middleInitial}.` : ""}`;
+        const fullName = `${toTitleCase(a.lastName)}, ${toTitleCase(a.firstName)}${a.middleInitial ? ` ${toTitleCase(a.middleInitial)}.` : ""}`;
         const checkInTime = new Date(a.checkedInAt).toLocaleTimeString("en-PH", {
           hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Manila",
         });
@@ -111,7 +112,7 @@ export function AttendeeList({ attendees }: { attendees: Attendee[] }) {
                     <>
                       <Detail label="VG Leader" value={
                         a.vgLeaderLastName && a.vgLeaderFirstName
-                          ? `${a.vgLeaderLastName}, ${a.vgLeaderFirstName}`
+                          ? `${toTitleCase(a.vgLeaderLastName)}, ${toTitleCase(a.vgLeaderFirstName)}`
                           : null
                       } />
                       <Detail label="Victory Date" value={a.victoryDate} />
@@ -136,7 +137,7 @@ export function AttendeeList({ attendees }: { attendees: Attendee[] }) {
                   <div className="border-t border-gray-200 pt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <Detail label="Discipler" value={
                       a.disciplerLastName && a.disciplerFirstName
-                        ? `${a.disciplerLastName}, ${a.disciplerFirstName}`
+                        ? `${toTitleCase(a.disciplerLastName)}, ${toTitleCase(a.disciplerFirstName)}`
                         : null
                     } />
                     <Detail label="Discipler Mobile" value={a.disciplerMobileNumber} />

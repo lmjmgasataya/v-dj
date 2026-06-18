@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { participants } from "@/db/schema";
 import { isNotNull, desc } from "drizzle-orm";
 import { RestoreButton } from "./RestoreButton";
+import { toTitleCase } from "@/lib/text";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 export default async function DeletedParticipantsPage() {
@@ -41,12 +42,12 @@ export default async function DeletedParticipantsPage() {
               >
                 <div>
                   <p className="font-semibold text-gray-900 capitalize">
-                    {p.lastName}, {p.firstName} {p.middleInitial ? `${p.middleInitial}.` : ""}
+                    {toTitleCase(p.lastName)}, {toTitleCase(p.firstName)} {p.middleInitial ? `${toTitleCase(p.middleInitial)}.` : ""}
                   </p>
                   <p className="text-sm text-gray-500 mt-0.5">{p.mobileNumber} · {p.lifestage}</p>
                   <p className="text-xs text-red-400 mt-1">Deleted {deletedAt}</p>
                 </div>
-                <RestoreButton id={p.id} name={`${p.lastName}, ${p.firstName}`} />
+                <RestoreButton id={p.id} name={`${toTitleCase(p.lastName)}, ${toTitleCase(p.firstName)}`} />
               </div>
             );
           })}

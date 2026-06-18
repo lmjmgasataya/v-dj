@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { checkInParticipant, removeCheckIn } from "./actions";
+import { toTitleCase } from "@/lib/text";
 import type { Participant, ClassSession, CheckIn } from "@/db/schema";
 import { FEE_CATEGORIES } from "@/components/form";
 
@@ -42,8 +43,8 @@ export function CheckInPanel({ participant, sessions, checkIns, hasVictoryDay }:
         <div className="bg-indigo-50 border-b border-indigo-100 px-6 py-4">
           <p className="text-xs text-indigo-400 uppercase tracking-widest font-medium">Selected Participant</p>
           <h3 className="text-lg font-bold text-gray-900 mt-0.5 capitalize">
-            {participant.lastName}, {participant.firstName}{" "}
-            {participant.middleInitial ? `${participant.middleInitial}.` : ""}
+            {toTitleCase(participant.lastName)}, {toTitleCase(participant.firstName)}{" "}
+            {participant.middleInitial ? `${toTitleCase(participant.middleInitial)}.` : ""}
           </h3>
           <div className="mt-2 flex flex-wrap gap-3 text-sm text-gray-600">
             <span>📱 {participant.mobileNumber}</span>

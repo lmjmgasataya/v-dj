@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { getSessionCheckIns } from "./actions";
+import { toTitleCase } from "@/lib/text";
 
 type CheckIn = Awaited<ReturnType<typeof getSessionCheckIns>>[number];
 
@@ -100,7 +101,7 @@ export function SessionAttendeesModal({
               ) : (
                 <ul className="divide-y divide-gray-100">
                   {data.map((c, i) => {
-                    const name = `${c.lastName}, ${c.firstName}${c.middleInitial ? ` ${c.middleInitial}.` : ""}`;
+                    const name = `${toTitleCase(c.lastName)}, ${toTitleCase(c.firstName)}${c.middleInitial ? ` ${toTitleCase(c.middleInitial)}.` : ""}`;
                     const time = new Date(c.checkedInAt).toLocaleTimeString("en-PH", {
                       hour: "2-digit", minute: "2-digit", timeZone: "Asia/Manila",
                     });

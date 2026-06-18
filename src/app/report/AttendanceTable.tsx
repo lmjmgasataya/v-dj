@@ -1,5 +1,6 @@
 import { db } from "@/db";
 import { checkIns, participants } from "@/db/schema";
+import { toTitleCase } from "@/lib/text";
 import { and, eq, gte, ilike, inArray, isNull, lt, or } from "drizzle-orm";
 import type { ClassSession } from "@/db/schema";
 
@@ -139,8 +140,8 @@ export async function AttendanceTable({
             return (
               <tr key={p.id} className={rowBg}>
                 <td className={`sticky left-0 z-10 ${rowBg} border-r-2 border-b border-gray-100 px-4 py-2.5 font-medium text-gray-900 whitespace-nowrap capitalize`}>
-                  {p.lastName}, {p.firstName}
-                  {p.middleInitial ? ` ${p.middleInitial}.` : ""}
+                  {toTitleCase(p.lastName)}, {toTitleCase(p.firstName)}
+                  {p.middleInitial ? ` ${toTitleCase(p.middleInitial)}.` : ""}
                 </td>
                 {sessions.map((s) => {
                   const done = attended.has(`${p.id}-${s.id}`);

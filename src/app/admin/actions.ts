@@ -3,6 +3,7 @@
 import { db } from "@/db";
 import { participants, checkIns, classSessions, victoryGroupLeaders, type lifestageEnum } from "@/db/schema";
 import { currentYearPH } from "@/lib/date";
+import { toTitleCase } from "@/lib/text";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
 import { and, count, eq, gte, ilike, inArray, isNull, lt, notInArray, or } from "drizzle-orm";
@@ -223,9 +224,9 @@ export async function addWalkIn(classSessionId: number, formData: FormData) {
   const [inserted] = await db
     .insert(participants)
     .values({
-      lastName: formData.get("lastName") as string,
-      firstName: formData.get("firstName") as string,
-      middleInitial: (formData.get("middleInitial") as string) || null,
+      lastName: toTitleCase(formData.get("lastName") as string),
+      firstName: toTitleCase(formData.get("firstName") as string),
+      middleInitial: toTitleCase((formData.get("middleInitial") as string) || "") || null,
       mobileNumber: (formData.get("mobileNumber") as string) || null,
       lifestage: ((formData.get("lifestage") as string) || null) as Lifestage | null,
       age: Number(formData.get("age")),

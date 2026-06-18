@@ -5,6 +5,7 @@ import Link from "next/link";
 import { SearchInput } from "./SearchInput";
 import { archiveParticipant, restoreParticipant, deleteParticipant } from "./actions";
 import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
+import { toTitleCase } from "@/lib/text";
 
 const PAGE_SIZE = 10;
 
@@ -95,7 +96,7 @@ export default async function ParticipantsPage({
                     <td className="px-4 py-2.5 text-gray-400 font-mono text-xs">{p.id}</td>
                     <td className="px-4 py-2.5 font-medium text-gray-800">
                       <Link href={`/participants/${p.id}/edit`} className="hover:text-indigo-600 transition">
-                        {p.lastName}, {p.firstName}
+                        {toTitleCase(p.lastName)}, {toTitleCase(p.firstName)}
                       </Link>
                     </td>
                     <td className="px-4 py-2.5 text-gray-500 font-mono text-xs">{p.mobileNumber ?? "—"}</td>
@@ -112,7 +113,7 @@ export default async function ParticipantsPage({
                         <ConfirmDeleteButton
                           action={deleteParticipant}
                           hiddenFields={{ id: String(p.id) }}
-                          message={`Delete participant "${p.lastName}, ${p.firstName}"?`}
+                          message={`Delete participant "${toTitleCase(p.lastName)}, ${toTitleCase(p.firstName)}"?`}
                         />
                       </div>
                     </td>
@@ -158,7 +159,7 @@ export default async function ParticipantsPage({
                 {archived.map((p) => (
                   <tr key={p.id} className="opacity-60 hover:opacity-100 transition-opacity">
                     <td className="px-4 py-2.5 text-gray-400 font-mono text-xs">{p.id}</td>
-                    <td className="px-4 py-2.5 text-gray-500">{p.lastName}, {p.firstName}</td>
+                    <td className="px-4 py-2.5 text-gray-500">{toTitleCase(p.lastName)}, {toTitleCase(p.firstName)}</td>
                     <td className="px-4 py-2.5 text-gray-400 font-mono text-xs">{p.mobileNumber ?? "—"}</td>
                     <td className="px-4 py-2.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
@@ -169,7 +170,7 @@ export default async function ParticipantsPage({
                         <ConfirmDeleteButton
                           action={deleteParticipant}
                           hiddenFields={{ id: String(p.id) }}
-                          message={`Delete participant "${p.lastName}, ${p.firstName}"?`}
+                          message={`Delete participant "${toTitleCase(p.lastName)}, ${toTitleCase(p.firstName)}"?`}
                         />
                       </div>
                     </td>

@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { victoryGroupLeaders, type lifestageEnum } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { toTitleCase } from "@/lib/text";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
 
@@ -11,9 +12,9 @@ export async function updateVGLeader(id: number, formData: FormData) {
   await db
     .update(victoryGroupLeaders)
     .set({
-      lastName: formData.get("lastName") as string,
-      firstName: formData.get("firstName") as string,
-      middleInitial: (formData.get("middleInitial") as string) || null,
+      lastName: toTitleCase(formData.get("lastName") as string),
+      firstName: toTitleCase(formData.get("firstName") as string),
+      middleInitial: toTitleCase((formData.get("middleInitial") as string) || "") || null,
       mobileNumber: formData.get("mobileNumber") as string,
       age: Number(formData.get("age")),
       gender: formData.get("gender") as string,

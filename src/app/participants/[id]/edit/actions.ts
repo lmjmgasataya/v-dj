@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { participants, disciplers, victoryGroupLeaders, type lifestageEnum } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { toTitleCase } from "@/lib/text";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
 
@@ -51,15 +52,15 @@ export async function updateParticipant(id: number, formData: FormData) {
   let vgLeaderId: number | null = null;
 
   if (showVgLeader) {
-    const lastName = (formData.get("vgLeaderLastName") as string) || "";
-    const firstName = (formData.get("vgLeaderFirstName") as string) || "";
+    const lastName = toTitleCase((formData.get("vgLeaderLastName") as string) || "");
+    const firstName = toTitleCase((formData.get("vgLeaderFirstName") as string) || "");
     const mobileNumber = (formData.get("vgLeaderMobileNumber") as string) || "";
     if (lastName && firstName && mobileNumber) {
       vgLeaderId = await upsertVgLeader(lastName, firstName, mobileNumber, (formData.get("vgLeaderMessengerName") as string) || null);
     }
   } else {
-    const lastName = (formData.get("disciplerLastName") as string) || "";
-    const firstName = (formData.get("disciplerFirstName") as string) || "";
+    const lastName = toTitleCase((formData.get("disciplerLastName") as string) || "");
+    const firstName = toTitleCase((formData.get("disciplerFirstName") as string) || "");
     const mobileNumber = (formData.get("disciplerMobileNumber") as string) || "";
     if (lastName && firstName && mobileNumber) {
       disciplerId = await upsertDiscipler(lastName, firstName, mobileNumber, (formData.get("disciplerMessengerName") as string) || null);
@@ -67,9 +68,9 @@ export async function updateParticipant(id: number, formData: FormData) {
   }
 
   await db.update(participants).set({
-    lastName: formData.get("lastName") as string,
-    firstName: formData.get("firstName") as string,
-    middleInitial: (formData.get("middleInitial") as string) || null,
+    lastName: toTitleCase(formData.get("lastName") as string),
+    firstName: toTitleCase(formData.get("firstName") as string),
+    middleInitial: toTitleCase((formData.get("middleInitial") as string) || "") || null,
     mobileNumber: formData.get("mobileNumber") as string,
     facebookMessengerName: (formData.get("facebookMessengerName") as string) || null,
     lifestage: formData.get("lifestage") as Lifestage,
@@ -80,13 +81,13 @@ export async function updateParticipant(id: number, formData: FormData) {
     willUndergoWaterBaptism: !showVgLeader ? formData.get("willUndergoWaterBaptism") === "yes" : null,
     previousChurch: !showVgLeader ? previousChurch : null,
     isDoneWithVictoryWeekend: isAB ? isDoneWithVictoryWeekend : null,
-    preferredNameOnId: formData.get("preferredNameOnId") as string,
+    preferredNameOnId: toTitleCase(formData.get("preferredNameOnId") as string),
     disciplerId,
     confirmedReadiness: !showVgLeader ? formData.get("confirmedReadiness") === "on" : null,
     vgLeaderId,
     acknowledgementReceiptNumber: formData.get("acknowledgementReceiptNumber") as string,
     registrationFee,
-    adminVolunteerName: formData.get("adminVolunteerName") as string,
+    adminVolunteerName: toTitleCase(formData.get("adminVolunteerName") as string),
     victoryDate: (formData.get("victoryDate") as string) || null,
   }).where(eq(participants.id, id));
 

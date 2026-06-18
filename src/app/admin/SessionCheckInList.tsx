@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { checkInParticipant, removeCheckIn } from "./actions";
+import { toTitleCase } from "@/lib/text";
 
 interface ParticipantWithStatus {
   id: number;
@@ -47,7 +48,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, onAction }: { p: ParticipantWi
         <div>
           <p className="font-semibold text-gray-900 text-sm capitalize">
             {p.gender === "Male" ? "👨🏻" : "👩🏻"}{" "}
-            {p.lastName}, {p.firstName}{p.middleInitial ? ` ${p.middleInitial}.` : ""}
+            {toTitleCase(p.lastName)}, {toTitleCase(p.firstName)}{p.middleInitial ? ` ${toTitleCase(p.middleInitial)}.` : ""}
           </p>
           <p className="text-xs text-gray-500 mt-0.5">
             {p.mobileNumber} · {p.lifestage}
@@ -87,7 +88,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, onAction }: { p: ParticipantWi
               </div>
               <button
                 onClick={() => {
-                  if (!confirm(`Remove check-in for ${p.firstName} ${p.lastName}?`)) return;
+                  if (!confirm(`Remove check-in for ${toTitleCase(p.firstName)} ${toTitleCase(p.lastName)}?`)) return;
                   startTransition(async () => { await removeCheckIn(p.id, sessionId); onAction?.(); });
                 }}
                 disabled={pending}
@@ -118,7 +119,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, onAction }: { p: ParticipantWi
             <div>
               <h3 className="text-base font-bold text-gray-900">Check In</h3>
               <p className="text-sm text-gray-600 mt-0.5 capitalize">
-                {p.lastName}, {p.firstName}{p.middleInitial ? ` ${p.middleInitial}.` : ""}
+                {toTitleCase(p.lastName)}, {toTitleCase(p.firstName)}{p.middleInitial ? ` ${toTitleCase(p.middleInitial)}.` : ""}
               </p>
             </div>
             <div className="flex flex-col gap-1">

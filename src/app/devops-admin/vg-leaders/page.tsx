@@ -3,6 +3,7 @@ import { victoryGroupLeaders } from "@/db/schema";
 import { asc } from "drizzle-orm";
 import { createVgLeader, deleteVgLeader } from "./actions";
 import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
+import { toTitleCase } from "@/lib/text";
 
 const input = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400";
 
@@ -35,15 +36,15 @@ export default async function VgLeadersPage() {
                 {active.map((v) => (
                   <tr key={v.id} className="hover:bg-gray-50">
                     <td className="px-4 py-2.5 text-gray-400 font-mono text-xs">{v.id}</td>
-                    <td className="px-4 py-2.5 font-medium text-gray-800">{v.lastName}</td>
-                    <td className="px-4 py-2.5 text-gray-700">{v.firstName}</td>
+                    <td className="px-4 py-2.5 font-medium text-gray-800">{toTitleCase(v.lastName)}</td>
+                    <td className="px-4 py-2.5 text-gray-700">{toTitleCase(v.firstName)}</td>
                     <td className="px-4 py-2.5 text-gray-500 font-mono text-xs">{v.mobileNumber}</td>
                     <td className="px-4 py-2.5 text-gray-500">{v.facebookMessengerName ?? "—"}</td>
                     <td className="px-4 py-2.5 text-right">
                       <ConfirmDeleteButton
                         action={deleteVgLeader}
                         hiddenFields={{ id: String(v.id) }}
-                        message={`Delete ${v.firstName} ${v.lastName}? This cannot be undone.`}
+                        message={`Delete ${toTitleCase(v.firstName)} ${toTitleCase(v.lastName)}? This cannot be undone.`}
                       />
                     </td>
                   </tr>

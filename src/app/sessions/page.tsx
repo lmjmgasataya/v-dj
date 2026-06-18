@@ -1,27 +1,26 @@
 import { db } from "@/db";
-import { classSessions, checkIns } from "@/db/schema";
-import { and, eq, gte, lt, sql } from "drizzle-orm";
+import { classSessions, checkIns, batches } from "@/db/schema";
+import { and, eq, sql } from "drizzle-orm";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { todayPH, currentYearPH } from "@/lib/date";
+import { todayPH } from "@/lib/date";
+import { BatchSelector } from "./BatchSelector";
+import { SessionsNav } from "./SessionsNav";
 
 export default async function SessionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ year?: string; created?: string }>;
+  searchParams: Promise<{ batch?: string; created?: string }>;
 }) {
-  const { year: yearParam, created } = await searchParams;
-  const currentYear = currentYearPH();
-  const year = yearParam ? parseInt(yearParam, 10) : currentYear;
+  const { batch: batchParam, created } = await searchParams;
+  const batchId = batchParam ? parseInt(batchParam, 10) : null;
+
   const session = await getSession();
   const isDeveloper = session?.role === "developer";
 
-  const [availableYears, sessions] = await Promise.all([
-    db
-      .selectDistinct({ year: sql<number>`EXTRACT(YEAR FROM ${classSessions.sessionDate})::int` })
-      .from(classSessions)
-      .orderBy(sql`1 ASC`),
+  const [allBatches, sessions] = await Promise.all([
+    db.select({ id: batches.id, name: batches.name }).from(batches).orderBy(batches.classStartDate),
 
     db
       .select({
@@ -33,17 +32,13 @@ export default async function SessionsPage({
       })
       .from(classSessions)
       .leftJoin(checkIns, eq(checkIns.classSessionId, classSessions.id))
-      .where(
-        and(
-          gte(classSessions.sessionDate, `${year}-01-01`),
-          lt(classSessions.sessionDate, `${year + 1}-01-01`)
-        )
-      )
+      .where(batchId ? eq(classSessions.batchId, batchId) : undefined)
       .groupBy(classSessions.id)
       .orderBy(classSessions.sessionDate, classSessions.id),
   ]);
 
   const today = todayPH();
+  const selectedBatch = allBatches.find((b) => b.id === batchId) ?? null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -52,7 +47,10 @@ export default async function SessionsPage({
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Class Sessions</h2>
-            <p className="text-sm text-gray-500 mt-0.5">{sessions.length} session{sessions.length !== 1 ? "s" : ""} in {year}</p>
+            <p className="text-sm text-gray-500 mt-0.5">
+              {sessions.length} session{sessions.length !== 1 ? "s" : ""}
+              {selectedBatch ? ` in ${selectedBatch.name}` : ""}
+            </p>
           </div>
           {isDeveloper && (
             <Link
@@ -71,50 +69,39 @@ export default async function SessionsPage({
         </div>
       )}
 
-      {/* Year selector */}
-      <div className="flex items-center gap-3">
-        {availableYears.map(({ year: y }) => (
-          <Link
-            key={y}
-            href={y === currentYear ? "/sessions" : `/sessions?year=${y}`}
-            className={`text-sm font-semibold px-4 py-1.5 rounded-lg border transition ${
-              y === year
-                ? "bg-[#00428E] text-white border-indigo-600"
-                : "bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600"
-            }`}
-          >
-            {y}
-          </Link>
-        ))}
-      </div>
+      <SessionsNav />
+
+      <BatchSelector batches={allBatches} selectedId={batchId} />
 
       <div className="flex flex-col gap-3">
         {sessions.length === 0 ? (
-          <p className="text-sm text-gray-400">No sessions scheduled for {year}.</p>
+          <p className="text-sm text-gray-400">
+            {batchId ? "No sessions in this batch." : "No sessions found."}
+          </p>
         ) : (
-          sessions.map((session) => {
-            const dateStr = new Date(session.sessionDate + "T00:00:00").toLocaleDateString("en-PH", {
+          sessions.map((s) => {
+            const dateStr = new Date(s.sessionDate + "T00:00:00").toLocaleDateString("en-PH", {
               weekday: "long",
               month: "long",
               day: "numeric",
               year: "numeric",
               timeZone: "Asia/Manila",
             });
-            const isToday = session.sessionDate === today;
-            const isPast = session.sessionDate < today;
+            const isToday = s.sessionDate === today;
+            const isPast = s.sessionDate < today;
 
             return (
               <Link
-                key={session.id}
-                href={`/sessions/${session.id}`}
+                key={s.id}
+                href={`/sessions/${s.id}`}
                 className={`flex items-center justify-between rounded-xl border px-5 py-4 shadow-sm transition hover:shadow-md hover:border-indigo-300 ${
                   isToday ? "bg-indigo-50 border-indigo-300" : "bg-white border-gray-200"
                 }`}
               >
                 <div className="flex flex-col gap-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-gray-900">{session.name}</span>
-                    {session.isVictoryDay && (
+                    <span className="font-semibold text-gray-900">{s.name}</span>
+                    {s.isVictoryDay && (
                       <span className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
                         Victory Day
                       </span>
@@ -131,7 +118,7 @@ export default async function SessionsPage({
                 </div>
                 <div className="flex items-center gap-3 shrink-0 ml-4">
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-indigo-600">{session.checkInCount}</p>
+                    <p className="text-2xl font-bold text-indigo-600">{s.checkInCount}</p>
                     <p className="text-xs text-gray-400">checked in</p>
                   </div>
                   <span className="text-gray-300">›</span>

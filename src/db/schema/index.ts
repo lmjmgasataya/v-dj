@@ -127,6 +127,7 @@ export const classSessions = pgTable("class_sessions", {
   sessionDate: date("session_date").notNull(),
   isVictoryDay: boolean("is_victory_day").default(false).notNull(),
   allowsWalkIn: boolean("allows_walk_in").default(false).notNull(),
+  batchId: integer("batch_id").references(() => batches.id),
 }, (t) => [
   index("class_sessions_session_date_idx").on(t.sessionDate),
 ]);

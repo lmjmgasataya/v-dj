@@ -45,7 +45,7 @@ export default async function Home() {
         >
           <span className="text-4xl">📅</span>
           <span className="text-lg font-semibold text-gray-900">Sessions</span>
-          <span className="text-sm text-gray-500 text-center">View attendance per session</span>
+          <span className="text-sm text-gray-500 text-center">Manage sessions and batches</span>
         </Link>
         {isAdmin && (
           <Link

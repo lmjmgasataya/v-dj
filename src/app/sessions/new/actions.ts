@@ -10,10 +10,12 @@ export async function createSession(_: unknown, formData: FormData) {
   const sessionDate = formData.get("sessionDate") as string;
   const isVictoryDay = name.includes("Victory Day");
   const allowsWalkIn = formData.get("allowsWalkIn") === "true";
+  const batchIdRaw = formData.get("batchId") as string;
+  const batchId = batchIdRaw ? Number(batchIdRaw) : null;
 
   if (!name || !sessionDate) return { error: "Name and date are required." };
 
-  await db.insert(classSessions).values({ name, sessionDate, isVictoryDay, allowsWalkIn });
+  await db.insert(classSessions).values({ name, sessionDate, isVictoryDay, allowsWalkIn, batchId });
 
   revalidatePath("/sessions");
   redirect(`/sessions?created=${encodeURIComponent(name)}`);

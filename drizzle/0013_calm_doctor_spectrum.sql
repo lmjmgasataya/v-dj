@@ -1,0 +1,2 @@
+ALTER TABLE "class_sessions" ADD COLUMN "batch_id" integer;--> statement-breakpoint
+ALTER TABLE "class_sessions" ADD CONSTRAINT "class_sessions_batch_id_batches_id_fk" FOREIGN KEY ("batch_id") REFERENCES "public"."batches"("id") ON DELETE no action ON UPDATE no action;

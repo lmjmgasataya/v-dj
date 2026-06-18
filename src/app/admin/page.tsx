@@ -1,12 +1,10 @@
 import { db } from "@/db";
 import { classSessions, checkIns, participants, featureFlags, batches } from "@/db/schema";
 import { and, count, eq, isNull } from "drizzle-orm";
-import Link from "next/link";
 import { FEE_CATEGORIES } from "@/components/form";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ParticipantSearch } from "./ParticipantSearch";
-import { SessionSelect } from "./SessionSelect";
-import { SessionAttendeesModal } from "./SessionAttendeesModal";
+import { AdminSessionArea } from "./AdminSessionArea";
 import { WalkInForm } from "./WalkInForm";
 
 export default async function AdminPage({
@@ -99,51 +97,44 @@ export default async function AdminPage({
         )}
       </div>
 
-      {/* Step 1: Select session */}
-      <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00428E] text-white text-xs font-bold shrink-0">1</span>
-          <p className="text-sm font-semibold text-gray-700">
-            Select a Session{defaultBatch ? <span className="font-normal text-gray-400"> ({defaultBatch.name})</span> : null}
-          </p>
-        </div>
-        <SessionSelect sessions={sessions} selectedId={sessionId} />
-        {selectedSession && (
-          <SessionAttendeesModal
-            sessionId={selectedSession.id}
-            sessionName={selectedSession.name}
-            attendeeCount={attendeeCount}
-          />
+      <AdminSessionArea
+        sessions={sessions}
+        selectedId={sessionId}
+        batchName={defaultBatch?.name}
+        attendeeInfo={
+          selectedSession
+            ? { sessionId: selectedSession.id, sessionName: selectedSession.name, attendeeCount }
+            : null
+        }
+      >
+        {/* Step 2: Search participant */}
+        {selectedSession && !selectedSession.allowsWalkIn && (
+          <div id="search-participant" className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00428E] text-white text-xs font-bold shrink-0">2</span>
+              <p className="text-sm font-semibold text-gray-700">
+                Search Participant —{" "}
+                <span className="text-indigo-600 font-medium">{selectedSession.name}</span>
+              </p>
+            </div>
+            <ParticipantSearch key={selectedSession.id} sessionId={selectedSession.id} sessionName={selectedSession.name} isVictoryDay={selectedSession.isVictoryDay} initialQ={initialQ} qrCheckin={flagMap["qr_checkin"] ?? false} />
+          </div>
         )}
-      </div>
 
-      {/* Step 2: Search participant */}
-      {selectedSession && !selectedSession.allowsWalkIn && (
-        <div id="search-participant" className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00428E] text-white text-xs font-bold shrink-0">2</span>
-            <p className="text-sm font-semibold text-gray-700">
-              Search Participant —{" "}
-              <span className="text-indigo-600 font-medium">{selectedSession.name}</span>
-            </p>
+        {/* Step 2: Add walk-in */}
+        {selectedSession && selectedSession.allowsWalkIn && (
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00428E] text-white text-xs font-bold shrink-0">2.1</span>
+              <p className="text-sm font-semibold text-gray-700">
+                Add Walk-in —{" "}
+                <span className="text-indigo-600 font-medium">{selectedSession.name}</span>
+              </p>
+            </div>
+            <WalkInForm sessionId={selectedSession.id} newDatePicker={flagMap["new_date_picker"] ?? false} />
           </div>
-          <ParticipantSearch key={selectedSession.id} sessionId={selectedSession.id} sessionName={selectedSession.name} isVictoryDay={selectedSession.isVictoryDay} initialQ={initialQ} qrCheckin={flagMap["qr_checkin"] ?? false} />
-        </div>
-      )}
-
-      {/* Step 2: Add walk-in */}
-      {selectedSession && selectedSession.allowsWalkIn && (
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00428E] text-white text-xs font-bold shrink-0">2.1</span>
-            <p className="text-sm font-semibold text-gray-700">
-              Add Walk-in —{" "}
-              <span className="text-indigo-600 font-medium">{selectedSession.name}</span>
-            </p>
-          </div>
-          <WalkInForm sessionId={selectedSession.id} newDatePicker={flagMap["new_date_picker"] ?? false} />
-        </div>
-      )}
+        )}
+      </AdminSessionArea>
     </div>
   );
 }

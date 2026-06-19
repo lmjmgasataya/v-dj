@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { classSessions, featureFlags, batches } from "@/db/schema";
+import { classSessions, featureFlags } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { EditSessionForm } from "./EditSessionForm";
@@ -8,7 +8,7 @@ export default async function EditSessionPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const sessionId = parseInt(id, 10);
 
-  const [[session], nameRows, flags, allBatches] = await Promise.all([
+  const [[session], nameRows, flags] = await Promise.all([
     db
       .select({ id: classSessions.id, name: classSessions.name, sessionDate: classSessions.sessionDate, allowsWalkIn: classSessions.allowsWalkIn, batchId: classSessions.batchId })
       .from(classSessions)
@@ -22,13 +22,11 @@ export default async function EditSessionPage({ params }: { params: Promise<{ id
       .orderBy(sql`min(${classSessions.id})`),
 
     db.select().from(featureFlags),
-
-    db.select({ id: batches.id, name: batches.name }).from(batches).orderBy(batches.classStartDate),
   ]);
 
   if (!session) notFound();
 
   const flagMap = Object.fromEntries(flags.map((f) => [f.key, f.enabled]));
 
-  return <EditSessionForm session={session} existingNames={nameRows.map((r) => r.name)} newDatePicker={flagMap["new_date_picker"] ?? false} batches={allBatches} />;
+  return <EditSessionForm session={session} existingNames={nameRows.map((r) => r.name)} newDatePicker={flagMap["new_date_picker"] ?? false} />;
 }

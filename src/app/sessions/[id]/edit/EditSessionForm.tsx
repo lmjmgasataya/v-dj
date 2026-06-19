@@ -8,18 +8,14 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { CheckboxOption } from "@/components/form";
 import { DatePickerField } from "@/components/DatePickerField";
 
-type Batch = { id: number; name: string };
-
 export function EditSessionForm({
   session,
   existingNames,
   newDatePicker,
-  batches,
 }: {
   session: { id: number; name: string; sessionDate: string; allowsWalkIn: boolean; batchId: number | null };
   existingNames: string[];
   newDatePicker: boolean;
-  batches: Batch[];
 }) {
   const isCustom = !existingNames.includes(session.name);
   const [mode, setMode] = useState<"existing" | "custom">(isCustom ? "custom" : "existing");
@@ -52,19 +48,7 @@ export function EditSessionForm({
       </div>
 
       <form action={formAction} className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col gap-5">
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Batch</label>
-          <select
-            name="batchId"
-            defaultValue={session.batchId ?? ""}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
-          >
-            <option value="">— No batch —</option>
-            {batches.map((b) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-        </div>
+        {session.batchId && <input type="hidden" name="batchId" value={session.batchId} />}
 
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Session Name</label>

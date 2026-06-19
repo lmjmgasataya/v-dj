@@ -52,9 +52,9 @@ export default async function SessionsPage({
               {selectedBatch ? ` in ${selectedBatch.name}` : ""}
             </p>
           </div>
-          {isDeveloper && (
+          {isDeveloper && batchId && (
             <Link
-              href="/sessions/new"
+              href={`/sessions/new?batch=${batchId}`}
               className="bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
             >
               + New Session

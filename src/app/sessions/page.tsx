@@ -52,14 +52,6 @@ export default async function SessionsPage({
               {selectedBatch ? ` in ${selectedBatch.name}` : ""}
             </p>
           </div>
-          {isDeveloper && batchId && (
-            <Link
-              href={`/sessions/new?batch=${batchId}`}
-              className="bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
-            >
-              + New Session
-            </Link>
-          )}
         </div>
       </div>
 
@@ -71,7 +63,17 @@ export default async function SessionsPage({
 
       <SessionsNav />
 
-      <BatchSelector batches={allBatches} selectedId={batchId} />
+      <div className="flex items-center gap-3">
+        <BatchSelector batches={allBatches} selectedId={batchId} />
+        {isDeveloper && batchId && (
+          <Link
+            href={`/sessions/new?batch=${batchId}`}
+            className="bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-4 py-2 rounded-lg transition shrink-0"
+          >
+            + New Session
+          </Link>
+        )}
+      </div>
 
       <div className="flex flex-col gap-3">
         {sessions.length === 0 ? (

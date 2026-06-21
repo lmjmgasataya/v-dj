@@ -11,6 +11,7 @@ const allLinks = [
   { href: "/report/funnel", label: "Completion Funnel", icon: "📉", adminOnly: true },
   { href: "/report/demographics", label: "Demographics", icon: "👥", adminOnly: true },
   { href: "/report/remittance", label: "Remittance", icon: "💵", adminOnly: true },
+  { href: "/report/collection-monitoring", label: "Collection Monitoring", icon: "📊", adminOnly: true },
 ];
 
 export function ReportNav({ role }: { role: string }) {

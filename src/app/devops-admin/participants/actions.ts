@@ -33,3 +33,11 @@ export async function deleteParticipant(formData: FormData) {
   await db.delete(participants).where(eq(participants.id, Number(formData.get("id"))));
   revalidatePath("/devops-admin/participants");
 }
+
+export async function updateWorshipService(id: number, value: string | null) {
+  await requireDeveloper();
+  await db.update(participants)
+    .set({ worshipServiceRegistered: value || null })
+    .where(eq(participants.id, id));
+  revalidatePath("/devops-admin/participants");
+}

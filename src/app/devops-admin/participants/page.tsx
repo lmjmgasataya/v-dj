@@ -3,6 +3,7 @@ import { participants } from "@/db/schema";
 import { desc, ilike, or, isNull, isNotNull, and, count } from "drizzle-orm";
 import Link from "next/link";
 import { SearchInput } from "./SearchInput";
+import { WorshipServiceSelect } from "./WorshipServiceSelect";
 import { archiveParticipant, restoreParticipant, deleteParticipant } from "./actions";
 import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
 import { toTitleCase } from "@/lib/text";
@@ -36,8 +37,8 @@ export default async function ParticipantsPage({
       id: participants.id,
       lastName: participants.lastName,
       firstName: participants.firstName,
-      mobileNumber: participants.mobileNumber,
       registrationFee: participants.registrationFee,
+      worshipServiceRegistered: participants.worshipServiceRegistered,
       createdAt: participants.createdAt,
     })
     .from(participants)
@@ -84,7 +85,7 @@ export default async function ParticipantsPage({
                 <tr>
                   <th className="px-4 py-2 text-left font-medium">ID</th>
                   <th className="px-4 py-2 text-left font-medium">Name</th>
-                  <th className="px-4 py-2 text-left font-medium">Mobile</th>
+                  <th className="px-4 py-2 text-left font-medium">Worship Service</th>
                   <th className="px-4 py-2 text-left font-medium">Fee</th>
                   <th className="px-4 py-2 text-left font-medium">Registered</th>
                   <th className="px-4 py-2" />
@@ -99,10 +100,14 @@ export default async function ParticipantsPage({
                         {toTitleCase(p.lastName)}, {toTitleCase(p.firstName)}
                       </Link>
                     </td>
-                    <td className="px-4 py-2.5 text-gray-500 font-mono text-xs">{p.mobileNumber ?? "—"}</td>
+                    <td className="px-4 py-2.5">
+                      <WorshipServiceSelect id={p.id} value={p.worshipServiceRegistered} />
+                    </td>
                     <td className="px-4 py-2.5 text-gray-500">{p.registrationFee ?? "—"}</td>
-                    <td className="px-4 py-2.5 text-gray-400 text-xs">
-                      {p.createdAt.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+                    <td className="px-4 py-2.5 text-gray-400 text-xs whitespace-nowrap">
+                      {p.createdAt.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila" })}
+                      {" · "}
+                      {p.createdAt.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Manila" })}
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">

@@ -1,10 +1,13 @@
 import { db } from "@/db";
 import { participants } from "@/db/schema";
-import { isNull, and, gte, lt } from "drizzle-orm";
+import { isNull, and, gte, lt, asc, desc, sql } from "drizzle-orm";
 import * as XLSX from "xlsx";
 import { todayPH } from "@/lib/date";
 import { FEE_CATEGORIES } from "@/components/form";
 import { getSession } from "@/lib/auth";
+
+type SortKey = "ar" | "lastName" | "firstName" | "amount";
+type SortDir = "asc" | "desc";
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -12,9 +15,28 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const date = searchParams.get("date") || todayPH();
+  const sortKey: SortKey = (["ar", "lastName", "firstName", "amount"] as SortKey[]).includes(
+    searchParams.get("sort") as SortKey
+  )
+    ? (searchParams.get("sort") as SortKey)
+    : "ar";
+  const sortDir: SortDir = searchParams.get("dir") === "desc" ? "desc" : "asc";
 
   const startUtc = new Date(`${date}T00:00:00+08:00`);
   const endUtc = new Date(startUtc.getTime() + 86_400_000);
+
+  const orderExpr = (() => {
+    const fn = sortDir === "asc" ? asc : desc;
+    const nullsLast = (col: Parameters<typeof asc>[0]) =>
+      sql`${col} ${sql.raw(sortDir.toUpperCase())} NULLS LAST`;
+    switch (sortKey) {
+      case "lastName":  return fn(participants.lastName);
+      case "firstName": return fn(participants.firstName);
+      case "amount":    return fn(participants.registrationFee);
+      case "ar":
+      default:          return nullsLast(participants.acknowledgementReceiptNumber);
+    }
+  })();
 
   const rows = await db
     .select({
@@ -32,7 +54,7 @@ export async function GET(request: Request) {
         lt(participants.createdAt, endUtc),
       )
     )
-    .orderBy(participants.id);
+    .orderBy(orderExpr);
 
   let totalAmount = 0;
 

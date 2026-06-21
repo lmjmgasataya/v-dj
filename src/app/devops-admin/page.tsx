@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { sql } from "drizzle-orm";
 import { toggleFlag, createFlag, deleteFlag, changeRole, resetPassword, deleteUser, createUser } from "./actions";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
+import { SmsTester } from "./SmsTester";
 // session is read here (not in layout) because we need session.userId to hide delete-self button
 
 const FLAG_LABELS: Record<string, string> = {
@@ -226,6 +227,9 @@ export default async function DevopsAdminPage() {
           </form>
         </div>
       </div>
+
+      {/* SMS Tester */}
+      <SmsTester />
 
       {/* Database Stats */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">

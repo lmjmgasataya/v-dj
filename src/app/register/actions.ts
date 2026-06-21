@@ -111,6 +111,8 @@ export async function registerParticipant(formData: FormData) {
     acknowledgementReceiptNumber: formData.get("acknowledgementReceiptNumber") as string,
     registrationFee,
     victoryDate: (formData.get("victoryDate") as string) || null,
+    email: (formData.get("email") as string) || null,
+    worshipServiceRegistered: (formData.get("worshipServiceRegistered") as string) || null,
     adminVolunteerName: toTitleCase(formData.get("adminVolunteerName") as string),
     batchId: defaultBatch?.id ?? null,
   });

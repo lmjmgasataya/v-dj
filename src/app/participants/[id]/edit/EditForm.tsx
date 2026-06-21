@@ -83,8 +83,11 @@ export function EditForm({ participant, newDatePicker }: { participant: Particip
         <Field label="Mobile Number">
           <input name="mobileNumber" type="tel" defaultValue={participant.mobileNumber ?? ""} className={inputCls} />
         </Field>
-        <Field label="Facebook / Messenger Name" className="sm:col-span-2">
+        <Field label="Facebook / Messenger Name">
           <input name="facebookMessengerName" defaultValue={participant.facebookMessengerName ?? ""} className={inputCls} />
+        </Field>
+        <Field label="Email Address">
+          <input name="email" type="email" defaultValue={participant.email ?? ""} className={inputCls} />
         </Field>
         <Field label="Lifestage">
           <select name="lifestage" defaultValue={participant.lifestage ?? ""} className={selectCls}>
@@ -207,6 +210,12 @@ export function EditForm({ participant, newDatePicker }: { participant: Particip
       <Section title="Payment &amp; Admin">
         <Field label="Acknowledgement Receipt Number">
           <input name="acknowledgementReceiptNumber" defaultValue={participant.acknowledgementReceiptNumber ?? ""} className={inputCls} />
+        </Field>
+        <Field label="Worship Service Registered">
+          <select name="worshipServiceRegistered" defaultValue={participant.worshipServiceRegistered ?? ""} className={selectCls}>
+            <option value="">-- Select --</option>
+            {SERVICE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
         </Field>
         <Field label="Registration Fee">
           <select

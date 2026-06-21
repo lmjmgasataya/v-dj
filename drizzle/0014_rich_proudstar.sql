@@ -1,0 +1,1 @@
+ALTER TABLE "participants" ADD COLUMN "worship_service_registered" text;

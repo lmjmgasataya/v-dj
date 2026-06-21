@@ -99,6 +99,13 @@
       "when": 1781742985031,
       "tag": "0013_calm_doctor_spectrum",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1782051342748,
+      "tag": "0014_rich_proudstar",
+      "breakpoints": true
     }
   ]
 }

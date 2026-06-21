@@ -8,6 +8,21 @@ import { VgLeaderFields } from "@/components/VgLeaderFields";
 import { DisciplerFields } from "@/components/DisciplerFields";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 
+function getDefaultService(): string {
+  const hour = parseInt(
+    new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: "Asia/Manila" }).format(new Date()),
+    10,
+  );
+  if (hour === 10) return "9AM - Mandurriao";
+  if (hour === 11) return "10AM - Lapaz";
+  if (hour === 12) return "11AM - Mandurriao";
+  if (hour === 14) return "1PM - Lapaz";
+  if (hour === 15) return "2PM - Mandurriao";
+  if (hour === 17) return "4PM - Mandurriao";
+  if (hour === 19) return "6PM - Mandurriao";
+  return "";
+}
+
 const LIFESTAGES = [
   "Student (JHS/SHS)",
   "Student (College)",
@@ -48,6 +63,7 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
   const [previousChurch, setPreviousChurch] = useState("");
   const [registrationFee, setRegistrationFee] = useState("");
   const [isDoneWithVictoryWeekend, setIsDoneWithVictoryWeekend] = useState(false);
+  const [worshipService, setWorshipService] = useState("");
   const [step, setStep] = useState<"form" | "review">("form");
   const [captured, setCaptured] = useState<Record<string, string>>({});
   const [isPending, startTransition] = useTransition();
@@ -56,6 +72,10 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
   const needsVictoryDate = registrationFee === "C" || registrationFee === "D";
   const isAB = registrationFee === "A" || registrationFee === "B";
   const showVgLeader = needsVictoryDate || isDoneWithVictoryWeekend;
+
+  useEffect(() => {
+    setWorshipService(getDefaultService());
+  }, []);
 
   const isDirty = useRef(false);
   useEffect(() => {
@@ -208,8 +228,11 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
             <Field label="Mobile Number" required>
               <input name="mobileNumber" required type="tel" className={inputCls} />
             </Field>
-            <Field label="Facebook / Messenger Name" required className="sm:col-span-2">
+            <Field label="Facebook / Messenger Name" required>
               <input name="facebookMessengerName" required className={inputCls} />
+            </Field>
+            <Field label="Email Address">
+              <input name="email" type="email" className={inputCls} />
             </Field>
             <Field label="Lifestage" required>
               <select name="lifestage" required className={selectCls}>
@@ -317,6 +340,18 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
                 ))}
               </select>
             </Field>
+            <Field label="Worship Service Registered" required>
+              <select
+                name="worshipServiceRegistered"
+                required
+                className={selectCls}
+                value={worshipService}
+                onChange={(e) => setWorshipService(e.target.value)}
+              >
+                <option value="">-- Select --</option>
+                {SERVICE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </Field>
             <Field label="Acknowledgement Receipt Number" required>
               <input name="acknowledgementReceiptNumber" required autoComplete="off" className={inputCls} />
             </Field>
@@ -362,7 +397,8 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
               <ReviewRow label="Middle Initial" value={captured.middleInitial} />
             )}
             <ReviewRow label="Mobile Number" value={captured.mobileNumber} />
-            <ReviewRow label="Facebook / Messenger Name" value={captured.facebookMessengerName} span />
+            <ReviewRow label="Facebook / Messenger Name" value={captured.facebookMessengerName} />
+            {captured.email && <ReviewRow label="Email Address" value={captured.email} />}
             <ReviewRow label="Lifestage" value={captured.lifestage} />
             <ReviewRow label="Age" value={captured.age} />
             <ReviewRow label="Gender" value={captured.gender} />
@@ -406,6 +442,7 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
               label="Fee Category"
               value={rCat ? `${rCat.label} — ${rCat.amount}` : captured.registrationFee}
             />
+            <ReviewRow label="Worship Service Registered" value={captured.worshipServiceRegistered} />
             <ReviewRow label="AR Number" value={captured.acknowledgementReceiptNumber} />
             <ReviewRow label="Admin Service Team Member" value={captured.adminVolunteerName} span />
           </ReviewSection>

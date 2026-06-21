@@ -85,8 +85,10 @@ export async function updateParticipant(id: number, formData: FormData) {
     disciplerId,
     confirmedReadiness: !showVgLeader ? formData.get("confirmedReadiness") === "on" : null,
     vgLeaderId,
+    email: (formData.get("email") as string) || null,
     acknowledgementReceiptNumber: formData.get("acknowledgementReceiptNumber") as string,
     registrationFee,
+    worshipServiceRegistered: (formData.get("worshipServiceRegistered") as string) || null,
     adminVolunteerName: toTitleCase(formData.get("adminVolunteerName") as string),
     victoryDate: (formData.get("victoryDate") as string) || null,
   }).where(eq(participants.id, id));

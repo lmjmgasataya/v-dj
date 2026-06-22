@@ -181,6 +181,13 @@ export const featureFlags = pgTable("feature_flags", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const smsMessageTemplates = pgTable("sms_message_templates", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export type Participant = typeof participants.$inferSelect;
 export type ClassSession = typeof classSessions.$inferSelect;
 export type CheckIn = typeof checkIns.$inferSelect;
@@ -190,3 +197,4 @@ export type LoginLog = typeof loginLogs.$inferSelect;
 export type VictoryGroupLeader = typeof victoryGroupLeaders.$inferSelect;
 export type VictoryGroup = typeof victoryGroups.$inferSelect;
 export type Batch = typeof batches.$inferSelect;
+export type SmsMessageTemplate = typeof smsMessageTemplates.$inferSelect;

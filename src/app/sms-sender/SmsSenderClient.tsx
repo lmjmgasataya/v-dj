@@ -5,6 +5,7 @@ import { getParticipantsByBatch, getDisciplersByBatch, getVGLeadersByBatch } fro
 import { toTitleCase } from "@/lib/text";
 
 type Batch = { id: number; name: string; classStartDate: string; isDefault: boolean };
+type MessageTemplate = { id: number; title: string; message: string };
 type PersonRow = { id: number; lastName: string; firstName: string; mobileNumber: string | null };
 type Recipient = { id: number; name: string; phone: string };
 type SendResult = Recipient & { status: "pending" | "sending" | "sent" | "failed"; error?: string };
@@ -47,7 +48,7 @@ const TAB_LABELS: Record<RecipientTab, string> = {
   others: "Others",
 };
 
-export function SmsSenderClient({ batches }: { batches: Batch[] }) {
+export function SmsSenderClient({ batches, templates }: { batches: Batch[]; templates: MessageTemplate[] }) {
   const [view, setView] = useState<View>("compose");
   const [batchId, setBatchId] = useState<number | null>(null);
   const [tab, setTab] = useState<RecipientTab>("participants");
@@ -302,11 +303,34 @@ export function SmsSenderClient({ batches }: { batches: Batch[] }) {
 
             {/* 3. Message */}
             <div>
-              <SectionLabel n={3} label="Message" />
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-[#00428E] text-white text-xs font-semibold flex items-center justify-center shrink-0">3</span>
+                  <span className="text-sm font-semibold text-gray-700">Message</span>
+                </div>
+                <a href="/sms-sender/message-templates" className="text-xs text-[#00428E] hover:underline">
+                  Manage message templates
+                </a>
+              </div>
+              {templates.length > 0 && (
+                <select
+                  onChange={(e) => {
+                    const t = templates.find((t) => t.id === Number(e.target.value));
+                    if (t) setMessage(t.message);
+                  }}
+                  defaultValue=""
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#00428E]/20 focus:border-[#00428E] mb-2"
+                >
+                  <option value="">Use a template…</option>
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>{t.title}</option>
+                  ))}
+                </select>
+              )}
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                rows={4}
+                rows={10}
                 placeholder="Type your message here…"
                 className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-[#00428E]/20 focus:border-[#00428E]"
               />

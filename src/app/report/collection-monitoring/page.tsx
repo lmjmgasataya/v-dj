@@ -109,8 +109,7 @@ export default async function CollectionMonitoringPage({
         </p>
       </div>
 
-      <DatePicker date={date} />
-
+      <DatePicker date={date}>
       {activeServices.length === 0 ? (
         <p className="text-sm text-gray-400">
           No registrations on {formattedDate}.
@@ -346,6 +345,7 @@ export default async function CollectionMonitoringPage({
           </div>
         </div>
       )}
+      </DatePicker>
     </div>
   );
 }

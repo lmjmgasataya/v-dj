@@ -124,8 +124,7 @@ export default async function RemittancePage({
         </div>
       </div>
 
-      <DatePicker date={date} />
-
+      <DatePicker date={date}>
       {rows.length === 0 ? (
         <p className="text-sm text-gray-400">No participants registered on {formattedDate}.</p>
       ) : (
@@ -170,6 +169,7 @@ export default async function RemittancePage({
           </table>
         </div>
       )}
+      </DatePicker>
     </div>
   );
 }

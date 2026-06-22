@@ -9,8 +9,8 @@ import { FEE_CATEGORIES, SERVICE_OPTIONS } from "@/components/form";
 import { DatePicker } from "./DatePicker";
 import { Fragment } from "react";
 
-const CAT_W = 284;
-const FEE_W = 104;
+const CAT_W = 250;
+const FEE_W = 80;
 const SVC_QTY_W = 80;
 const SVC_AMT_W = 100;
 const GRAND_QTY_W = 80;
@@ -53,12 +53,15 @@ export default async function CollectionMonitoringPage({
     pivot[svc][fee] = (pivot[svc][fee] ?? 0) + 1;
   }
 
-  // Known services first, then any that appear in data but not in SERVICE_OPTIONS
   const knownServices = SERVICE_OPTIONS as unknown as string[];
-  const activeServices = [
-    ...knownServices.filter((s) => pivot[s]),
-    ...Object.keys(pivot).filter((s) => !knownServices.includes(s)),
-  ];
+  const hasAnyData = Object.keys(pivot).length > 0;
+  // Show all known services only if there's at least one registration; append unknown ones from data
+  const activeServices = hasAnyData
+    ? [
+        ...knownServices,
+        ...Object.keys(pivot).filter((s) => !knownServices.includes(s)),
+      ]
+    : [];
 
   const catRows = FEE_CATEGORIES.map((cat) => {
     const unitAmount = parseInt(cat.amount.replace(/[^\d]/g, ""), 10);
@@ -111,11 +114,9 @@ export default async function CollectionMonitoringPage({
 
       <DatePicker date={date}>
       {activeServices.length === 0 ? (
-        <p className="text-sm text-gray-400">
-          No registrations on {formattedDate}.
-        </p>
+        <p className="text-sm text-gray-400">No registrations on {formattedDate}.</p>
       ) : (
-        <div className="rounded-xl border border-gray-200 shadow-sm bg-white overflow-hidden">
+      <div className="rounded-xl border border-gray-200 shadow-sm bg-white overflow-hidden">
           <div className="overflow-x-auto">
             <table
               className="text-sm"
@@ -236,7 +237,16 @@ export default async function CollectionMonitoringPage({
                         <span className="font-bold">{cat.value}</span>
                         <span className="text-gray-500 font-normal">
                           {" "}
-                          — {cat.description}
+                          —{" "}
+                          {cat.description
+                            .split(/(with(?:out)?)/i)
+                            .map((part, i) =>
+                              /^with(?:out)?$/i.test(part) ? (
+                                <strong key={i} className="font-bold text-gray-700">{part}</strong>
+                              ) : (
+                                part
+                              )
+                            )}
                         </span>
                       </td>
                       <td

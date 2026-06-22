@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const { to, message, endpoint, authorization } = await req.json();
+  const body = await req.json();
+  const { to, message } = body;
+  const endpoint = body.endpoint ?? process.env.SMS_ENDPOINT;
+  const authorization = body.authorization ?? process.env.SMS_API_KEY;
+
+  if (!endpoint) {
+    return NextResponse.json({ error: "No SMS endpoint configured" }, { status: 500 });
+  }
 
   const res = await fetch(endpoint, {
     method: "POST",

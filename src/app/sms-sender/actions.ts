@@ -1,0 +1,64 @@
+"use server";
+
+import { db } from "@/db";
+import { participants, disciplers, victoryGroupLeaders } from "@/db/schema";
+import { eq, isNull, and, isNotNull } from "drizzle-orm";
+
+export async function getParticipantsByBatch(batchId: number) {
+  return db
+    .select({
+      id: participants.id,
+      lastName: participants.lastName,
+      firstName: participants.firstName,
+      mobileNumber: participants.mobileNumber,
+    })
+    .from(participants)
+    .where(
+      and(
+        eq(participants.batchId, batchId),
+        isNull(participants.deletedAt),
+        isNotNull(participants.mobileNumber)
+      )
+    )
+    .orderBy(participants.lastName, participants.firstName);
+}
+
+export async function getDisciplersByBatch(batchId: number) {
+  return db
+    .selectDistinct({
+      id: disciplers.id,
+      lastName: disciplers.lastName,
+      firstName: disciplers.firstName,
+      mobileNumber: disciplers.mobileNumber,
+    })
+    .from(disciplers)
+    .innerJoin(participants, eq(participants.disciplerId, disciplers.id))
+    .where(
+      and(
+        eq(participants.batchId, batchId),
+        isNull(participants.deletedAt),
+        isNotNull(participants.disciplerId)
+      )
+    )
+    .orderBy(disciplers.lastName, disciplers.firstName);
+}
+
+export async function getVGLeadersByBatch(batchId: number) {
+  return db
+    .selectDistinct({
+      id: victoryGroupLeaders.id,
+      lastName: victoryGroupLeaders.lastName,
+      firstName: victoryGroupLeaders.firstName,
+      mobileNumber: victoryGroupLeaders.mobileNumber,
+    })
+    .from(victoryGroupLeaders)
+    .innerJoin(participants, eq(participants.vgLeaderId, victoryGroupLeaders.id))
+    .where(
+      and(
+        eq(participants.batchId, batchId),
+        isNull(participants.deletedAt),
+        isNotNull(participants.vgLeaderId)
+      )
+    )
+    .orderBy(victoryGroupLeaders.lastName, victoryGroupLeaders.firstName);
+}

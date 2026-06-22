@@ -13,13 +13,16 @@ export function SmsTester() {
     setStatus("sending");
     setResponse("");
     try {
-      const res = await fetch("https://smsapiph.onrender.com/api/v1/send/sms", {
+      const res = await fetch("/api/sms", {
         method: "POST",
-        headers: {
-          "x-api-key": apiKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ recipient, message }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          // endpoint: "http://192.168.55.104:8082",
+          endpoint: "https://www.traccar.org/sms",
+          authorization: apiKey,
+          to: recipient,
+          message,
+        }),
       });
       const data = await res.json();
       setResponse(JSON.stringify(data, null, 2));
@@ -34,7 +37,7 @@ export function SmsTester() {
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100">
         <h3 className="font-semibold text-gray-800">SMS Tester</h3>
-        <p className="text-xs text-gray-500 mt-0.5">Send a test SMS via smsapiph.</p>
+        <p className="text-xs text-gray-500 mt-0.5">Send a test SMS via Traccar.</p>
       </div>
 
       <div className="px-6 py-5 flex flex-col gap-4">
@@ -44,7 +47,7 @@ export function SmsTester() {
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder="your-api-key"
+            placeholder="Authorization value"
             className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 font-mono"
           />
         </div>

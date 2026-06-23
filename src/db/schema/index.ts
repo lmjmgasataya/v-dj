@@ -188,6 +188,14 @@ export const smsMessageTemplates = pgTable("sms_message_templates", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const smsApiKeys = pgTable("sms_api_keys", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  apiKey: text("api_key").notNull(),
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export type Participant = typeof participants.$inferSelect;
 export type ClassSession = typeof classSessions.$inferSelect;
 export type CheckIn = typeof checkIns.$inferSelect;
@@ -198,3 +206,4 @@ export type VictoryGroupLeader = typeof victoryGroupLeaders.$inferSelect;
 export type VictoryGroup = typeof victoryGroups.$inferSelect;
 export type Batch = typeof batches.$inferSelect;
 export type SmsMessageTemplate = typeof smsMessageTemplates.$inferSelect;
+export type SmsApiKey = typeof smsApiKeys.$inferSelect;

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { featureFlags, users } from "@/db/schema";
+import { featureFlags, smsApiKeys, users } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getSession, type Role } from "@/lib/auth";
@@ -63,6 +63,30 @@ export async function deleteUser(formData: FormData) {
   const userId = Number(formData.get("userId"));
   if (userId === session.userId) return;
   await db.delete(users).where(eq(users.id, userId));
+  revalidatePath("/devops-admin");
+}
+
+export async function createSmsApiKey(formData: FormData) {
+  await requireDeveloper();
+  const name = (formData.get("name") as string ?? "").trim();
+  const apiKey = (formData.get("apiKey") as string ?? "").trim();
+  if (!name || !apiKey) return;
+  await db.insert(smsApiKeys).values({ name, apiKey });
+  revalidatePath("/devops-admin");
+}
+
+export async function deleteSmsApiKey(id: number) {
+  await requireDeveloper();
+  await db.delete(smsApiKeys).where(eq(smsApiKeys.id, id));
+  revalidatePath("/devops-admin");
+}
+
+export async function setSmsApiKeyDefault(id: number) {
+  await requireDeveloper();
+  await db.transaction(async (tx) => {
+    await tx.update(smsApiKeys).set({ isDefault: false });
+    await tx.update(smsApiKeys).set({ isDefault: true }).where(eq(smsApiKeys.id, id));
+  });
   revalidatePath("/devops-admin");
 }
 

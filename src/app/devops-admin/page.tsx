@@ -1,8 +1,8 @@
 import { db } from "@/db";
-import { featureFlags, users } from "@/db/schema";
+import { featureFlags, smsApiKeys, users } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { sql } from "drizzle-orm";
-import { toggleFlag, createFlag, deleteFlag, changeRole, resetPassword, deleteUser, createUser } from "./actions";
+import { toggleFlag, createFlag, deleteFlag, changeRole, resetPassword, deleteUser, createUser, createSmsApiKey, deleteSmsApiKey, setSmsApiKeyDefault } from "./actions";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 import { SmsTester } from "./SmsTester";
 // session is read here (not in layout) because we need session.userId to hide delete-self button
@@ -13,6 +13,7 @@ const FLAG_LABELS: Record<string, string> = {
   new_date_picker: "New date picker (calendar popover)",
   qr_checkin: "QR code check-in (scan to check in + QR on participant page)",
   print_id_show_fullname: "Print IDs — show full name at bottom of card",
+  sms_sender: "SMS Sender (show on home page)",
 };
 
 async function getDbStats() {
@@ -33,10 +34,11 @@ async function getDbStats() {
 export default async function DevopsAdminPage() {
   const session = await getSession();
 
-  const [{ dbSize, tables }, flags, allUsers] = await Promise.all([
+  const [{ dbSize, tables }, flags, allUsers, allSmsApiKeys] = await Promise.all([
     getDbStats(),
     db.select().from(featureFlags).orderBy(featureFlags.key),
     db.select({ id: users.id, username: users.username, name: users.name, role: users.role, createdAt: users.createdAt }).from(users).orderBy(users.createdAt),
+    db.select().from(smsApiKeys).orderBy(smsApiKeys.createdAt),
   ]);
 
   return (
@@ -222,6 +224,66 @@ export default async function DevopsAdminPage() {
             <div className="col-span-2">
               <button type="submit" className="px-4 py-2 bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold rounded-lg transition">
                 Create User
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* SMS API Keys */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-800">SMS API Keys</h3>
+          <p className="text-xs text-gray-500 mt-0.5">Stored keys are used by the SMS route when no key is passed in the request.</p>
+        </div>
+        {allSmsApiKeys.length === 0 ? (
+          <p className="px-6 py-4 text-sm text-gray-400">No API keys configured.</p>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {allSmsApiKeys.map((k) => (
+              <li key={k.id} className="flex items-center justify-between px-6 py-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-gray-800">{k.name}</p>
+                    {k.isDefault && (
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">default</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 font-mono mt-0.5">
+                    {k.apiKey.slice(0, 6)}{"•".repeat(Math.min(k.apiKey.length - 6, 20))}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {!k.isDefault && (
+                    <form action={setSmsApiKeyDefault.bind(null, k.id)}>
+                      <button type="submit" className="text-xs px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
+                        Set default
+                      </button>
+                    </form>
+                  )}
+                  <ConfirmDeleteButton
+                    action={deleteSmsApiKey.bind(null, k.id)}
+                    message={`Delete API key "${k.name}"?`}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="px-6 py-5 border-t border-gray-100 bg-gray-50">
+          <p className="text-sm font-semibold text-gray-700 mb-3">Add API Key</p>
+          <form action={createSmsApiKey} className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Name</label>
+              <input name="name" required placeholder="e.g. Traccar Production" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">API Key</label>
+              <input name="apiKey" required type="password" autoComplete="new-password" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 font-mono" />
+            </div>
+            <div className="col-span-2">
+              <button type="submit" className="px-4 py-2 bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold rounded-lg transition">
+                Add Key
               </button>
             </div>
           </form>

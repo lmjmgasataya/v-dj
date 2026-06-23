@@ -1,0 +1,1 @@
+ALTER TABLE "sms_api_keys" ADD COLUMN "is_default" boolean DEFAULT false NOT NULL;

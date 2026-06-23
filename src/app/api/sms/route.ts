@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/db";
+import { smsApiKeys } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const { to, message } = body;
   const endpoint = body.endpoint ?? process.env.SMS_ENDPOINT;
-  const authorization = body.authorization ?? process.env.SMS_API_KEY;
+
+  let authorization: string | undefined = body.authorization ?? process.env.SMS_API_KEY;
+  if (!authorization) {
+    const [stored] = await db.select({ apiKey: smsApiKeys.apiKey }).from(smsApiKeys).where(eq(smsApiKeys.isDefault, true)).limit(1);
+    authorization = stored?.apiKey;
+  }
 
   if (!endpoint) {
     return NextResponse.json({ error: "No SMS endpoint configured" }, { status: 500 });

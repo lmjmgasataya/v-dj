@@ -56,11 +56,15 @@ export async function GET(request: Request) {
     )
     .orderBy(orderExpr);
 
+  function feeAmount(fee: string | null): number {
+    const cat = FEE_CATEGORIES.find((f) => f.value === fee);
+    return cat ? parseInt(cat.amount.replace(/[^\d]/g, ""), 10) : 0;
+  }
+
   let totalAmount = 0;
 
   const data = rows.map((p, i) => {
-    const cat = FEE_CATEGORIES.find((f) => f.value === p.registrationFee);
-    const amount = cat ? parseInt(cat.amount.replace(/[^\d]/g, ""), 10) : 0;
+    const amount = feeAmount(p.registrationFee);
     totalAmount += amount;
     return {
       "#": i + 1,
@@ -81,13 +85,64 @@ export async function GET(request: Request) {
     "AR Number": "",
   });
 
+  // AR range grouping — same logic as the page
+  type ArBucket = { min: number; max: number; count: number; amount: number };
+  const bucketMap = new Map<number, ArBucket>();
+  let noArCount = 0;
+  let noArAmount = 0;
+
+  for (const p of rows) {
+    const amt = feeAmount(p.registrationFee);
+    const raw = p.acknowledgementReceiptNumber;
+    if (!raw) { noArCount++; noArAmount += amt; continue; }
+    const num = parseInt(raw, 10);
+    if (isNaN(num)) { noArCount++; noArAmount += amt; continue; }
+    const bucket = Math.ceil(num / 10) || 1;
+    const b = bucketMap.get(bucket);
+    if (b) {
+      b.min = Math.min(b.min, num);
+      b.max = Math.max(b.max, num);
+      b.count++;
+      b.amount += amt;
+    } else {
+      bucketMap.set(bucket, { min: num, max: num, count: 1, amount: amt });
+    }
+  }
+
+  const arGroups = Array.from(bucketMap.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([, g]) => g);
+
+  type ArRow = { "AR From": number | string; "AR To": number | string; "No. of ARs": number | string; "Amount (PHP)": number | string };
+  const arData: ArRow[] = arGroups.map((g) => ({
+    "AR From": g.min,
+    "AR To": g.count > 1 ? g.max : "",
+    "No. of ARs": g.count,
+    "Amount (PHP)": g.amount,
+  }));
+  if (noArCount > 0) {
+    arData.push({ "AR From": "No AR number", "AR To": "", "No. of ARs": noArCount, "Amount (PHP)": noArAmount });
+  }
+  arData.push({
+    "AR From": "Total",
+    "AR To": "",
+    "No. of ARs": arGroups.reduce((s, g) => s + g.count, 0) + noArCount,
+    "Amount (PHP)": totalAmount,
+  });
+
   const ws = XLSX.utils.json_to_sheet(data);
+  const wsAr = XLSX.utils.json_to_sheet(arData);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Remittance");
+  XLSX.utils.book_append_sheet(wb, wsAr, "AR Range Summary");
 
   const allKeys = Object.keys(data[0] ?? {});
   ws["!cols"] = allKeys.map((key) => ({
     wch: Math.max(key.length, ...data.map((r) => String((r as Record<string, unknown>)[key] ?? "").length)) + 2,
+  }));
+  const arKeys = Object.keys(arData[0] ?? {}) as (keyof ArRow)[];
+  wsAr["!cols"] = arKeys.map((key) => ({
+    wch: Math.max(key.length, ...arData.map((r) => String(r[key] ?? "").length)) + 2,
   }));
 
   const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });

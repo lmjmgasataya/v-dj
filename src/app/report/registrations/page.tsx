@@ -5,6 +5,8 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { RegistrationsChart, type DayBreakdown } from "./RegistrationsChart";
+import { ServiceChart, type ServiceCount } from "./ServiceChart";
+import { VictoryWeekendChart } from "./VictoryWeekendChart";
 import { BatchPicker } from "../BatchPicker";
 
 const FEE_AMOUNTS: Record<string, number> = { A: 1200, B: 900, C: 900, D: 700 };
@@ -69,6 +71,55 @@ export default async function RegistrationsReportPage({
 
   const chartData = Array.from(dayMap.values());
 
+  // Service breakdown
+  const serviceRows =
+    selectedBatchId !== null
+      ? await db
+          .select({
+            service: sql<string>`COALESCE(${participants.worshipServiceRegistered}, 'Not specified')`,
+            count: count(),
+          })
+          .from(participants)
+          .where(
+            and(
+              isNull(participants.deletedAt),
+              eq(participants.isWalkIn, false),
+              eq(participants.batchId, selectedBatchId)
+            )
+          )
+          .groupBy(sql`COALESCE(${participants.worshipServiceRegistered}, 'Not specified')`)
+          .orderBy(sql`COUNT(*) ASC`)
+      : [];
+
+  const serviceData: ServiceCount[] = serviceRows.map((r) => ({
+    service: r.service,
+    count: Number(r.count),
+  }));
+
+  // Victory Weekend / Victory Day status
+  const victoryRows =
+    selectedBatchId !== null
+      ? await db
+          .select({
+            status: sql<string>`CASE WHEN ${participants.isDoneWithVictoryWeekend} = true OR ${participants.victoryDate} IS NOT NULL THEN 'done' ELSE 'not_done' END`,
+            count: count(),
+          })
+          .from(participants)
+          .where(
+            and(
+              isNull(participants.deletedAt),
+              eq(participants.isWalkIn, false),
+              eq(participants.batchId, selectedBatchId)
+            )
+          )
+          .groupBy(
+            sql`CASE WHEN ${participants.isDoneWithVictoryWeekend} = true OR ${participants.victoryDate} IS NOT NULL THEN 'done' ELSE 'not_done' END`
+          )
+      : [];
+
+  const victoryDone = Number(victoryRows.find((r) => r.status === "done")?.count ?? 0);
+  const victoryNotDone = Number(victoryRows.find((r) => r.status === "not_done")?.count ?? 0);
+
   const totals = { A: 0, B: 0, C: 0, D: 0 };
   for (const d of chartData) {
     totals.A += d.A;
@@ -109,6 +160,16 @@ export default async function RegistrationsReportPage({
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
         <p className="text-sm font-semibold text-gray-700 mb-4">Registrations per day by class</p>
         <RegistrationsChart data={chartData} />
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
+        <p className="text-sm font-semibold text-gray-700 mb-4">Registrations per worship service</p>
+        <ServiceChart data={serviceData} />
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
+        <p className="text-sm font-semibold text-gray-700 mb-4">Victory Weekend / Victory Day status</p>
+        <VictoryWeekendChart done={victoryDone} notDone={victoryNotDone} />
       </div>
 
       {chartData.length > 0 && (

@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { batches, smsMessageTemplates } from "@/db/schema";
-import { desc } from "drizzle-orm";
+import { batches, smsApiKeys, smsMessageTemplates } from "@/db/schema";
+import { desc, eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -10,7 +10,7 @@ export default async function SmsSenderPage() {
   const session = await getSession();
   if (!session || session.role !== "developer") redirect("/");
 
-  const [batchList, templateList] = await Promise.all([
+  const [batchList, templateList, defaultKey] = await Promise.all([
     db
       .select({
         id: batches.id,
@@ -28,6 +28,12 @@ export default async function SmsSenderPage() {
       })
       .from(smsMessageTemplates)
       .orderBy(desc(smsMessageTemplates.id)),
+    db
+      .select({ id: smsApiKeys.id, name: smsApiKeys.name })
+      .from(smsApiKeys)
+      .where(eq(smsApiKeys.isDefault, true))
+      .limit(1)
+      .then((r) => r[0] ?? null),
   ]);
 
   return (
@@ -36,6 +42,12 @@ export default async function SmsSenderPage() {
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "SMS Sender" }]} />
         <h2 className="text-2xl font-bold text-gray-900">SMS Sender</h2>
         <p className="text-xs font-semibold text-gray-400 tracking-widest mb-1">Send SMS to participants/other contacts in a batch.</p>
+        <p className="text-xs text-gray-400 mt-1">
+          {defaultKey
+            ? <>Using API key: <span className="font-mono font-semibold text-gray-600">{defaultKey.name}</span></>
+            : <span className="text-amber-600">No default SMS API key set. Configure one in <a href="/devops-admin" className="underline">DevOps Admin</a>.</span>
+          }
+        </p>
       </div>
       <SmsSenderClient batches={batchList} templates={templateList} />
     </div>

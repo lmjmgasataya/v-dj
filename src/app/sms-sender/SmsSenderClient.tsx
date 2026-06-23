@@ -137,9 +137,29 @@ export function SmsSenderClient({ batches, templates }: { batches: Batch[]; temp
           body: JSON.stringify({ to: r.phone, message }),
         });
         const text = await res.text();
+        let ok = res.ok;
+        let errorMsg: string | undefined;
+        try {
+          const json = JSON.parse(text) as {
+            successCount?: number;
+            failureCount?: number;
+            responses?: { success: boolean; error?: { code?: string; message?: string } }[];
+          };
+          if (Array.isArray(json.responses)) {
+            ok = json.responses[0]?.success === true;
+            if (!ok) {
+              const e = json.responses[0]?.error;
+              errorMsg = e?.message ?? e?.code ?? text;
+            }
+          } else if (!res.ok) {
+            errorMsg = text;
+          }
+        } catch {
+          if (!res.ok) errorMsg = text;
+        }
         setResults((prev) =>
           prev.map((x) =>
-            x.id === r.id ? { ...x, status: res.ok ? "sent" : "failed", error: res.ok ? undefined : text } : x
+            x.id === r.id ? { ...x, status: ok ? "sent" : "failed", error: errorMsg } : x
           )
         );
       } catch (e) {

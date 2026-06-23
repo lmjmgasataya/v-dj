@@ -291,7 +291,7 @@ export default async function DevopsAdminPage() {
       </div>
 
       {/* SMS Tester */}
-      <SmsTester />
+      {/* <SmsTester /> */}
 
       {/* Database Stats */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">

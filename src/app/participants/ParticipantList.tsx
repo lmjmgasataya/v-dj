@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { participants, disciplers, victoryGroupLeaders, checkIns, classSessions } from "@/db/schema";
-import { ilike, or, isNull, and, count, gte, lt, eq, inArray, getTableColumns } from "drizzle-orm";
+import { ilike, or, isNull, and, count, gte, lt, eq, inArray, getTableColumns, desc } from "drizzle-orm";
 import Link from "next/link";
 import { ParticipantTable } from "./ParticipantTable";
 import { currentYearPH } from "@/lib/date";
@@ -9,14 +9,21 @@ const PAGE_SIZE = 20;
 
 export function ParticipantListSkeleton() {
   return (
-    <div className="flex flex-col divide-y divide-gray-100 rounded-xl border border-gray-200 shadow-sm bg-white overflow-hidden">
+    <div className="rounded-xl border border-gray-200 shadow-sm bg-white overflow-hidden">
+      <div className="border-b border-gray-200 bg-gray-50 px-3 py-2.5 flex gap-6 animate-pulse">
+        {[120, 88, 96, 48, 64, 80, 72].map((w, i) => (
+          <div key={i} className="h-3 rounded bg-gray-200" style={{ width: w }} />
+        ))}
+      </div>
       {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-        <div key={i} className="flex items-center justify-between px-4 py-3 animate-pulse">
-          <div className="flex flex-col gap-1.5">
-            <div className="h-4 w-48 rounded bg-gray-200" />
-            <div className="h-3 w-36 rounded bg-gray-100" />
-          </div>
-          <div className="h-4 w-4 rounded bg-gray-100 shrink-0" />
+        <div key={i} className="flex gap-6 px-3 py-3 border-b border-gray-100 animate-pulse">
+          <div className="h-4 w-36 rounded bg-gray-200" />
+          <div className="h-4 w-24 rounded bg-gray-100" />
+          <div className="h-4 w-28 rounded bg-gray-100" />
+          <div className="h-4 w-12 rounded bg-gray-100" />
+          <div className="h-4 w-16 rounded bg-gray-100" />
+          <div className="h-4 w-20 rounded bg-gray-100" />
+          <div className="h-4 w-20 rounded bg-gray-100" />
         </div>
       ))}
     </div>
@@ -79,7 +86,7 @@ export async function ParticipantList({
       .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
       .leftJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
       .where(baseWhere)
-      .orderBy(participants.id)
+      .orderBy(desc(participants.createdAt))
       .limit(PAGE_SIZE)
       .offset(offset),
 

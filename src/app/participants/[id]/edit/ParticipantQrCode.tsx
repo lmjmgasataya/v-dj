@@ -16,9 +16,9 @@ export function ParticipantQrCode({ participantId, name }: { participantId: numb
           <p className="text-sm font-medium text-gray-800">{name}</p>
           <p className="text-xs text-gray-400 font-mono mt-0.5">ID #{participantId}</p>
         </div>
-        <p className="text-xs text-gray-400 text-center">
+        {/* <p className="text-xs text-gray-400 text-center">
           Show this QR code to an admin volunteer during check-in.
-        </p>
+        </p> */}
       </div>
     </div>
   );

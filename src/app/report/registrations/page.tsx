@@ -8,18 +8,20 @@ import { RegistrationsChart, type DayBreakdown } from "./RegistrationsChart";
 import { ServiceChart, type ServiceCount } from "./ServiceChart";
 import { VictoryWeekendChart } from "./VictoryWeekendChart";
 import { BatchPicker } from "../BatchPicker";
+import { SERVICE_OPTIONS } from "@/components/form";
+import { ServiceDatePicker } from "./ServiceDatePicker";
 
 const FEE_AMOUNTS: Record<string, number> = { A: 1200, B: 900, C: 900, D: 700 };
 
 export default async function RegistrationsReportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ batch?: string }>;
+  searchParams: Promise<{ batch?: string; service_date?: string }>;
 }) {
   const authSession = await getSession();
   if (!authSession) redirect("/");
 
-  const { batch: batchParam } = await searchParams;
+  const { batch: batchParam, service_date: serviceDateParam } = await searchParams;
 
   const allBatches = await db
     .select({ id: batches.id, name: batches.name, isDefault: batches.isDefault })
@@ -71,6 +73,17 @@ export default async function RegistrationsReportPage({
 
   const chartData = Array.from(dayMap.values());
 
+  // Date options for the service chart filter (only dates with registrations)
+  const serviceDateOptions = Array.from(dayMap.keys()).map((raw) => ({
+    value: raw,
+    label: new Date(raw + "T00:00:00").toLocaleDateString("en-PH", {
+      month: "short", day: "numeric", timeZone: "Asia/Manila",
+    }),
+  }));
+  const selectedServiceDate = serviceDateOptions.some((d) => d.value === serviceDateParam)
+    ? serviceDateParam!
+    : null;
+
   // Service breakdown
   const serviceRows =
     selectedBatchId !== null
@@ -84,17 +97,20 @@ export default async function RegistrationsReportPage({
             and(
               isNull(participants.deletedAt),
               eq(participants.isWalkIn, false),
-              eq(participants.batchId, selectedBatchId)
+              eq(participants.batchId, selectedBatchId),
+              selectedServiceDate
+                ? sql`DATE(${participants.createdAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') = ${selectedServiceDate}`
+                : undefined
             )
           )
           .groupBy(sql`COALESCE(${participants.worshipServiceRegistered}, 'Not specified')`)
-          .orderBy(sql`COUNT(*) ASC`)
       : [];
 
-  const serviceData: ServiceCount[] = serviceRows.map((r) => ({
-    service: r.service,
-    count: Number(r.count),
-  }));
+  const serviceCountMap = new Map(serviceRows.map((r) => [r.service, Number(r.count)]));
+  const serviceData: ServiceCount[] = [
+    ...SERVICE_OPTIONS.map((s) => ({ service: s, count: serviceCountMap.get(s) ?? 0 })),
+    ...(serviceCountMap.has("Not specified") ? [{ service: "Not specified", count: serviceCountMap.get("Not specified")! }] : []),
+  ];
 
   // Victory Weekend / Victory Day status
   const victoryRows =
@@ -163,7 +179,14 @@ export default async function RegistrationsReportPage({
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
-        <p className="text-sm font-semibold text-gray-700 mb-4">Registrations per worship service</p>
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm font-semibold text-gray-700">Registrations per worship service</p>
+          <ServiceDatePicker
+            dates={serviceDateOptions}
+            selected={selectedServiceDate}
+            batchId={selectedBatchId}
+          />
+        </div>
         <ServiceChart data={serviceData} />
       </div>
 

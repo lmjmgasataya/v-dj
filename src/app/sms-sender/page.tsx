@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { batches, smsApiKeys, smsMessageTemplates } from "@/db/schema";
+import { batches, featureFlags, smsApiKeys, smsMessageTemplates } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -9,6 +9,13 @@ import { SmsSenderClient } from "./SmsSenderClient";
 export default async function SmsSenderPage() {
   const session = await getSession();
   if (!session || session.role !== "developer") redirect("/");
+
+  const smsSenderFlag = await db
+    .select({ enabled: featureFlags.enabled })
+    .from(featureFlags)
+    .where(eq(featureFlags.key, "sms_sender"))
+    .then((r) => r[0]);
+  if (!smsSenderFlag?.enabled) redirect("/");
 
   const [batchList, templateList, defaultKey] = await Promise.all([
     db

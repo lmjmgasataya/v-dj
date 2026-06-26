@@ -180,6 +180,45 @@ export function SmsSenderClient({ batches, templates }: { batches: Batch[]; temp
   const failedCount = results.filter((r) => r.status === "failed").length;
   const progress = results.length > 0 ? Math.round((doneCount / results.length) * 100) : 0;
 
+  const resendOne = async (id: number) => {
+    const r = results.find((x) => x.id === id);
+    if (!r) return;
+    setResults((prev) => prev.map((x) => (x.id === id ? { ...x, status: "sending", error: undefined } : x)));
+    try {
+      const res = await fetch("/api/sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: r.phone, message }),
+      });
+      const text = await res.text();
+      let ok = res.ok;
+      let errorMsg: string | undefined;
+      try {
+        const json = JSON.parse(text) as {
+          responses?: { success: boolean; error?: { code?: string; message?: string } }[];
+        };
+        if (Array.isArray(json.responses)) {
+          ok = json.responses[0]?.success === true;
+          if (!ok) {
+            const e = json.responses[0]?.error;
+            errorMsg = e?.message ?? e?.code ?? text;
+          }
+        } else if (!res.ok) {
+          errorMsg = text;
+        }
+      } catch {
+        if (!res.ok) errorMsg = text;
+      }
+      setResults((prev) =>
+        prev.map((x) => (x.id === id ? { ...x, status: ok ? "sent" : "failed", error: errorMsg } : x))
+      );
+    } catch (e) {
+      setResults((prev) =>
+        prev.map((x) => (x.id === id ? { ...x, status: "failed", error: String(e) } : x))
+      );
+    }
+  };
+
   const reset = () => {
     setView("compose");
     setBatchId(null);
@@ -438,6 +477,17 @@ export function SmsSenderClient({ batches, templates }: { batches: Batch[]; temp
                     {r.error && <p className="text-xs text-red-500 truncate">{r.error}</p>}
                   </div>
                   <span className="text-xs font-mono text-gray-400 shrink-0">{r.phone}</span>
+                  {r.status === "failed" && (
+                    <button
+                      onClick={() => resendOne(r.id)}
+                      title="Resend"
+                      className="shrink-0 text-gray-400 hover:text-[#00428E] transition"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
+                        <path fillRule="evenodd" d="M13.836 2.477a.75.75 0 0 1 .75.75v3.182a.75.75 0 0 1-.75.75h-3.182a.75.75 0 0 1 0-1.5h1.37l-.84-.841a4.5 4.5 0 0 0-7.08.932.75.75 0 0 1-1.3-.75 6 6 0 0 1 9.44-1.242l.842.84V3.227a.75.75 0 0 1 .75-.75Zm-.911 7.5A.75.75 0 0 1 13.199 11a6 6 0 0 1-9.44 1.241l-.84-.84v1.371a.75.75 0 0 1-1.5 0V9.591a.75.75 0 0 1 .75-.75H5.35a.75.75 0 0 1 0 1.5H3.98l.841.841a4.5 4.5 0 0 0 7.08-.932.75.75 0 0 1 1.025-.273Z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

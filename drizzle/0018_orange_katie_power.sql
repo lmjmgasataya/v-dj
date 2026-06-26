@@ -1,0 +1,1 @@
+ALTER TABLE "sms_api_keys" ADD COLUMN "endpoint" text;

@@ -252,6 +252,9 @@ export default async function DevopsAdminPage() {
                   <p className="text-xs text-gray-400 font-mono mt-0.5">
                     {k.apiKey.slice(0, 6)}{"•".repeat(Math.min(k.apiKey.length - 6, 20))}
                   </p>
+                  {k.endpoint && (
+                    <p className="text-xs text-gray-400 font-mono mt-0.5 truncate max-w-xs">{k.endpoint}</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   {!k.isDefault && (
@@ -282,6 +285,10 @@ export default async function DevopsAdminPage() {
               <input name="apiKey" required type="password" autoComplete="new-password" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 font-mono" />
             </div>
             <div className="col-span-2">
+              <label className="block text-xs text-gray-500 mb-1">Endpoint (optional)</label>
+              <input name="endpoint" type="url" placeholder="https://www.traccar.org/sms" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 font-mono" />
+            </div>
+            <div className="col-span-2">
               <button type="submit" className="px-4 py-2 bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold rounded-lg transition">
                 Add Key
               </button>
@@ -291,7 +298,7 @@ export default async function DevopsAdminPage() {
       </div>
 
       {/* SMS Tester */}
-      {/* <SmsTester /> */}
+      <SmsTester />
 
       {/* Database Stats */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">

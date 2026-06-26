@@ -36,7 +36,7 @@ export default async function SmsSenderPage() {
       .from(smsMessageTemplates)
       .orderBy(desc(smsMessageTemplates.id)),
     db
-      .select({ id: smsApiKeys.id, name: smsApiKeys.name })
+      .select({ id: smsApiKeys.id, name: smsApiKeys.name, endpoint: smsApiKeys.endpoint, apiKey: smsApiKeys.apiKey })
       .from(smsApiKeys)
       .where(eq(smsApiKeys.isDefault, true))
       .limit(1)
@@ -56,7 +56,7 @@ export default async function SmsSenderPage() {
           }
         </p>
       </div>
-      <SmsSenderClient batches={batchList} templates={templateList} />
+      <SmsSenderClient batches={batchList} templates={templateList} defaultKey={defaultKey} />
     </div>
   );
 }

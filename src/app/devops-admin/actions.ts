@@ -70,8 +70,9 @@ export async function createSmsApiKey(formData: FormData) {
   await requireDeveloper();
   const name = (formData.get("name") as string ?? "").trim();
   const apiKey = (formData.get("apiKey") as string ?? "").trim();
+  const endpoint = (formData.get("endpoint") as string ?? "").trim() || "https://www.traccar.org/sms";
   if (!name || !apiKey) return;
-  await db.insert(smsApiKeys).values({ name, apiKey });
+  await db.insert(smsApiKeys).values({ name, apiKey, endpoint });
   revalidatePath("/devops-admin");
 }
 

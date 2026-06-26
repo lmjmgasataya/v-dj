@@ -192,6 +192,7 @@ export const smsApiKeys = pgTable("sms_api_keys", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   apiKey: text("api_key").notNull(),
+  endpoint: text("endpoint"),
   isDefault: boolean("is_default").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

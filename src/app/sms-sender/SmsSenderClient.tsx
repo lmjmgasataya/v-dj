@@ -48,7 +48,9 @@ const TAB_LABELS: Record<RecipientTab, string> = {
   others: "Others",
 };
 
-export function SmsSenderClient({ batches, templates }: { batches: Batch[]; templates: MessageTemplate[] }) {
+type DefaultKey = { id: number; name: string; endpoint: string | null; apiKey: string } | null;
+
+export function SmsSenderClient({ batches, templates, defaultKey }: { batches: Batch[]; templates: MessageTemplate[]; defaultKey: DefaultKey }) {
   const [view, setView] = useState<View>("compose");
   const [batchId, setBatchId] = useState<number | null>(null);
   const [tab, setTab] = useState<RecipientTab>("participants");
@@ -134,7 +136,7 @@ export function SmsSenderClient({ batches, templates }: { batches: Batch[]; temp
         const res = await fetch("/api/sms", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ to: r.phone, message }),
+          body: JSON.stringify({ to: r.phone, message, ...(defaultKey?.endpoint ? { endpoint: defaultKey.endpoint } : {}), ...(defaultKey?.apiKey ? { authorization: defaultKey.apiKey } : {}) }),
         });
         const text = await res.text();
         let ok = res.ok;
@@ -188,7 +190,7 @@ export function SmsSenderClient({ batches, templates }: { batches: Batch[]; temp
       const res = await fetch("/api/sms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: r.phone, message }),
+        body: JSON.stringify({ to: r.phone, message, ...(defaultKey?.endpoint ? { endpoint: defaultKey.endpoint } : {}), ...(defaultKey?.apiKey ? { authorization: defaultKey.apiKey } : {}) }),
       });
       const text = await res.text();
       let ok = res.ok;

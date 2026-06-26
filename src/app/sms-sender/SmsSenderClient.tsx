@@ -168,7 +168,7 @@ export function SmsSenderClient({ batches, templates }: { batches: Batch[]; temp
         );
       }
       if (i < recipients.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
     }
 

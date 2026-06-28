@@ -99,7 +99,7 @@ export default async function RemittancePage({
     const amt = feeAmount(p.registrationFee);
     const raw = p.acknowledgementReceiptNumber;
     if (!raw) { noArCount++; noArAmount += amt; continue; }
-    const num = parseInt(raw, 10);
+    const num = parseInt(raw.replace(/[^\d]/g, ""), 10);
     if (isNaN(num)) { noArCount++; noArAmount += amt; continue; }
     const bucket = Math.ceil(num / 10) || 1; // avoid bucket 0 for num=0
     const b = bucketMap.get(bucket);

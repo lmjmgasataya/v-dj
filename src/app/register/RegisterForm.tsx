@@ -243,7 +243,23 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
               </select>
             </Field>
             <Field label="Age" required>
-              <input name="age" required type="number" min={1} max={120} className={inputCls} />
+              <input
+                name="age"
+                required
+                type="number"
+                min={13}
+                max={120}
+                className={inputCls}
+                onInvalid={(e) => {
+                  const input = e.currentTarget;
+                  if (input.validity.rangeUnderflow) {
+                    input.setCustomValidity("Participants must be at least 13 years old.");
+                  } else {
+                    input.setCustomValidity("");
+                  }
+                }}
+                onInput={(e) => e.currentTarget.setCustomValidity("")}
+              />
             </Field>
             <Field label="Gender" required>
               <select name="gender" required className={selectCls}>

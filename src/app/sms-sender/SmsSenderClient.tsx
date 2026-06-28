@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { getParticipantsByBatch, getDisciplersByBatch, getVGLeadersByBatch } from "./actions";
+import { getParticipantsByBatch, getDisciplersByBatch, getVGLeadersByBatch, getSessionsByBatch } from "./actions";
 import { toTitleCase } from "@/lib/text";
 
 type Batch = { id: number; name: string; classStartDate: string; isDefault: boolean };
@@ -11,6 +11,7 @@ type Recipient = { id: number; name: string; phone: string };
 type SendResult = Recipient & { status: "pending" | "sending" | "sent" | "failed"; error?: string };
 type View = "compose" | "review" | "sending" | "done";
 type RecipientTab = "participants" | "disciplers" | "vgleaders" | "others";
+type ClassSession = { id: number; name: string; sessionDate: string };
 
 function normalizePhone(raw: string): string | null {
   const d = raw.replace(/\D/g, "");
@@ -18,6 +19,17 @@ function normalizePhone(raw: string): string | null {
   if (d.length === 11 && d.startsWith("09")) return `+63${d.slice(1)}`;
   if (d.length === 10 && d.startsWith("9")) return `+63${d}`;
   return null;
+}
+
+function applySessionVars(template: string, session: ClassSession | null): string {
+  if (!session) return template;
+  const date = new Date(session.sessionDate + "T12:00:00");
+  const day = date.toLocaleDateString("en-US", { weekday: "long" });
+  const formattedDate = date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  return template
+    .replace(/\{session_name\}/gi, session.name)
+    .replace(/\{session_day\}/gi, day)
+    .replace(/\{session_date\}/gi, formattedDate);
 }
 
 function SectionLabel({ n, label }: { n: number; label: string }) {
@@ -57,8 +69,12 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
   const [rows, setRows] = useState<PersonRow[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [message, setMessage] = useState("");
+  const [rawTemplate, setRawTemplate] = useState<string | null>(null);
   const [othersText, setOthersText] = useState("");
   const [results, setResults] = useState<SendResult[]>([]);
+  const [sessions, setSessions] = useState<ClassSession[]>([]);
+  const [selectedSession, setSelectedSession] = useState<ClassSession | null>(null);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const loadRows = (id: number, t: RecipientTab) => {
@@ -77,7 +93,14 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
 
   const handleBatchChange = (id: number) => {
     setBatchId(id);
+    setSelectedSession(null);
+    setSessions([]);
     loadRows(id, tab);
+    setSessionsLoading(true);
+    getSessionsByBatch(id).then((s) => {
+      setSessions(s);
+      setSessionsLoading(false);
+    });
   };
 
   const handleTabChange = (t: RecipientTab) => {
@@ -228,7 +251,10 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
     setSelected(new Set());
     setOthersText("");
     setMessage("");
+    setRawTemplate(null);
     setResults([]);
+    setSessions([]);
+    setSelectedSession(null);
   };
 
   return (
@@ -362,11 +388,43 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
               )}
             </div>
 
-            {/* 3. Message */}
+            {/* 3. Session */}
+            <div>
+              <SectionLabel n={3} label="Session (optional)" />
+              {!batchId ? (
+                <p className="text-sm text-gray-400 py-2">Select a batch first.</p>
+              ) : sessionsLoading ? (
+                <div className="h-9 rounded-lg bg-gray-100 animate-pulse" />
+              ) : sessions.length === 0 ? (
+                <p className="text-sm text-gray-400 py-2">No sessions found for this batch.</p>
+              ) : (
+                <select
+                  value={selectedSession?.id ?? ""}
+                  onChange={(e) => {
+                    const id = Number(e.target.value);
+                    const s = sessions.find((s) => s.id === id) ?? null;
+                    setSelectedSession(s);
+                    if (rawTemplate !== null) {
+                      setMessage(applySessionVars(rawTemplate, s));
+                    }
+                  }}
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#00428E]/20 focus:border-[#00428E]"
+                >
+                  <option value="">Select a session (optional)…</option>
+                  {sessions.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} — {new Date(s.sessionDate + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* 4. Message */}
             <div>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-[#00428E] text-white text-xs font-semibold flex items-center justify-center shrink-0">3</span>
+                  <span className="w-5 h-5 rounded-full bg-[#00428E] text-white text-xs font-semibold flex items-center justify-center shrink-0">4</span>
                   <span className="text-sm font-semibold text-gray-700">Message</span>
                 </div>
                 <a href="/sms-sender/message-templates" className="text-xs text-[#00428E] hover:underline">
@@ -377,7 +435,10 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
                 <select
                   onChange={(e) => {
                     const t = templates.find((t) => t.id === Number(e.target.value));
-                    if (t) setMessage(t.message);
+                    if (t) {
+                      setRawTemplate(t.message);
+                      setMessage(applySessionVars(t.message, selectedSession));
+                    }
                   }}
                   defaultValue=""
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#00428E]/20 focus:border-[#00428E] mb-2"
@@ -390,7 +451,7 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
               )}
               <textarea
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={(e) => { setMessage(e.target.value); setRawTemplate(null); }}
                 rows={10}
                 placeholder="Type your message here…"
                 className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-[#00428E]/20 focus:border-[#00428E]"

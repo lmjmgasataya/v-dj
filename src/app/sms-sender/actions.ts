@@ -1,8 +1,20 @@
 "use server";
 
 import { db } from "@/db";
-import { participants, disciplers, victoryGroupLeaders, smsMessageTemplates } from "@/db/schema";
+import { participants, disciplers, victoryGroupLeaders, smsMessageTemplates, classSessions } from "@/db/schema";
 import { eq, isNull, and, isNotNull, desc } from "drizzle-orm";
+
+export async function getSessionsByBatch(batchId: number) {
+  return db
+    .select({
+      id: classSessions.id,
+      name: classSessions.name,
+      sessionDate: classSessions.sessionDate,
+    })
+    .from(classSessions)
+    .where(eq(classSessions.batchId, batchId))
+    .orderBy(classSessions.sessionDate);
+}
 
 export async function getMessageTemplates() {
   return db

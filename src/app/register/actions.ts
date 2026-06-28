@@ -132,6 +132,7 @@ export async function registerParticipant(formData: FormData) {
       }
     }
   } catch {
+    console.error("Failed to send registration SMS");
     // SMS failure must not block registration
   }
 

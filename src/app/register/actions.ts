@@ -5,6 +5,7 @@ import { participants, disciplers, victoryGroupLeaders, batches, type lifestageE
 import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { toTitleCase } from "@/lib/text";
+import { isRegistrationSmsEnabled, getRegistrationSmsTemplate, sendSms } from "@/lib/sms";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
 
@@ -116,6 +117,23 @@ export async function registerParticipant(formData: FormData) {
     adminVolunteerName: toTitleCase(formData.get("adminVolunteerName") as string),
     batchId: defaultBatch?.id ?? null,
   });
+
+  try {
+    if (await isRegistrationSmsEnabled()) {
+      const template = await getRegistrationSmsTemplate();
+      if (template) {
+        const firstName = toTitleCase(formData.get("firstName") as string);
+        const lastName = toTitleCase(formData.get("lastName") as string);
+        const message = template
+          .replace(/\{firstName\}/gi, firstName)
+          .replace(/\{lastName\}/gi, lastName)
+          .replace(/\{name\}/gi, `${firstName} ${lastName}`);
+        await sendSms(formData.get("mobileNumber") as string, message);
+      }
+    }
+  } catch {
+    // SMS failure must not block registration
+  }
 
   redirect("/register/success");
 }

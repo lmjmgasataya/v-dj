@@ -170,7 +170,7 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
         );
       }
       if (i < recipients.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, Number(process.env.NEXT_PUBLIC_SMS_SEND_DELAY_MS ?? 3000)));
       }
     }
 

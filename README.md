@@ -46,14 +46,16 @@ npm run db:seed       # seed database
 
 ## Features
 
-- **Public registration** — participants fill out a form; walk-ins are supported
-- **Admin check-in** — volunteers check participants in per session
-- **Participant management** — list, search, edit, soft-delete
-- **Session management** — create/edit class sessions with Victory Day and walk-in flags
+- **Public registration** — multi-step form with review page; walk-ins supported; minimum age 13
+- **Admin check-in** — volunteers check participants in per session; batch-filtered; optional QR scan (`qr_checkin` flag)
+- **Participant management** — table view, search, Victory Weekend done/not-done filter, edit, soft-delete
+- **Batch management** — class batches scope sessions, check-in, and all reports; default batch auto-selected
+- **Session management** — create/edit class sessions with Victory Day, walk-in, and batch assignment
 - **VG Leaders** — manage Victory Group leaders and their group schedules
-- **Reports** — check-ins, registrations, demographics, funnel, and class-category dashboards
-- **Developer admin** — full data access, exports, and login audit logs (`developer` role)
-- **Feature flags** — runtime toggles stored in the `feature_flags` table
+- **SMS sender** — blast SMS to a session's participants via Traccer API; reusable message templates; API key CRUD; gated by `sms_sender` feature flag
+- **Reports** — check-ins, registrations (per worship service), demographics, funnel, class-category, remittance (AR summary with date range), collection monitoring; all batch-scoped
+- **Developer admin** — full data access, exports, batches CRUD, and login audit logs (`developer` role)
+- **Feature flags** — runtime toggles stored in the `feature_flags` table (e.g. `qr_checkin`, `sms_sender`)
 
 ## Future ideas
 

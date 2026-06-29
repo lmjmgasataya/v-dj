@@ -40,25 +40,29 @@ docker compose up -d  # Starts postgres:16 on :5432 and Adminer on :8080
 - **Tailwind CSS 4** for styling
 
 ### Data model
-Eight tables:
-- `participants` — registrants with personal info, life stage, discipler/VG leader refs, baptism status, walk-in flag, etc. Notable fields: `preferredNameOnId` (used on printed ID cards), `registrationFee` (categories A–D), `isWalkIn`, `deletedAt` (soft-delete)
+Twelve tables:
+- `participants` — registrants with personal info, life stage, discipler/VG leader refs, baptism status, walk-in flag, etc. Notable fields: `preferredNameOnId` (used on printed ID cards), `registrationFee` (categories A–D), `isWalkIn`, `deletedAt` (soft-delete), `batchId` (FK to `batches`), `email`, `worshipServiceRegistered`, `isDoneWithVictoryWeekend`, `victoryDate` (age min 13 enforced at registration)
 - `disciplers` — people who disciple participants; referenced by `participants.disciplerId`
 - `victoryGroupLeaders` — VG leaders with personal info; referenced by `participants.vgLeaderId`
 - `victoryGroups` — VG schedules (place, day, time, frequency) owned by a `victoryGroupLeader`
-- `classSessions` — scheduled sessions (supports `isVictoryDay` and `allowsWalkIn` flags)
+- `batches` — class batch periods with `classStartDate`/`classEndDate`/`registrationStartDate`, `isDefault` flag; used to scope sessions and reports
+- `classSessions` — scheduled sessions (supports `isVictoryDay`, `allowsWalkIn`, and `batchId` FK)
 - `checkIns` — attendance junction: `participantId × classSessionId`
 - `users` — admin accounts with hashed passwords (bcryptjs); roles: `admin_volunteer`, `developer`
 - `loginLogs` — audit log for login attempts
-- `featureFlags` — key/boolean table for runtime feature toggles (e.g. new datepicker UI)
+- `featureFlags` — key/boolean table for runtime feature toggles (e.g. `qr_checkin`, `sms_sender`)
+- `smsMessageTemplates` — reusable SMS message templates with `title` and `message` body
+- `smsApiKeys` — Traccer SMS API keys with `name`, `apiKey`, `endpoint`, `isDefault` flag
 
 ### Route sections
-- `src/app/register/` — public registration form + success page
-- `src/app/admin/` — check-in workflow for `admin_volunteer` role; includes `QrScanner.tsx` (uses `html5-qrcode`, gated by `qr_checkin` feature flag)
-- `src/app/participants/` — participant list, detail (`[id]`), edit (`[id]/edit`), deleted list, and print IDs (`print-ids/`)
-- `src/app/sessions/` — session list, new session, and edit (`[id]/edit`)
+- `src/app/register/` — public registration form (with review page) + success page; minimum age 13 enforced
+- `src/app/admin/` — check-in workflow for `admin_volunteer` role; includes `QrScanner.tsx` (uses `html5-qrcode`, gated by `qr_checkin` feature flag); filtered by batch
+- `src/app/participants/` — participant list (table view, filterable by Victory Weekend done/not done), detail (`[id]`), edit (`[id]/edit`), deleted list, and print IDs (`print-ids/`)
+- `src/app/sessions/` — session list, new session, edit (`[id]/edit`), and batch management (`batches/`)
 - `src/app/vg-leaders/` — VG leader list, new (`new`), and edit (`[id]/edit`)
-- `src/app/report/` — reporting dashboards: `checkins`, `class-category`, `demographics`, `funnel`, `registrations`
-- `src/app/devops-admin/` — `developer`-role-only area: participants, class-sessions, check-ins, disciplers, VG groups/leaders, login-logs, data tools
+- `src/app/sms-sender/` — SMS blast tool (gated by `sms_sender` feature flag); select session, pick/edit message template, send via Traccer API; sub-route `message-templates/` for template CRUD
+- `src/app/report/` — reporting dashboards: `checkins`, `class-category`, `demographics`, `funnel`, `registrations` (per worship service), `remittance` (AR summary with date range), `collection-monitoring`; all filtered by batch
+- `src/app/devops-admin/` — `developer`-role-only area: participants, class-sessions, check-ins, disciplers, VG groups/leaders, login-logs, data tools, batches CRUD
 - `src/app/login/` — login page; Server Actions handle auth
 
 ### Patterns
@@ -79,6 +83,8 @@ Role checks: `session.role === "developer"` for developer-only pages. `!!session
 - `participants/export` — Excel export via `xlsx`
 - `sessions/[id]/export` — per-session Excel export
 - `devops-admin/export` — full data export for developers
+- `sms/` — SMS API key management (CRUD) and proxy to Traccer SMS endpoint
+- `report/remittance` — remittance report data endpoint
 
 **Auth flow:** `src/lib/auth.ts` exports `getSession()` (reads + verifies cookie) and `setSessionCookie()` / `clearSessionCookie()`. Pages call `getSession()` at the top to gate access; login/logout are Server Actions in `src/app/login/actions.ts`. Role `developer` gets access to `devops-admin`; `admin_volunteer` gets access to `admin`, `participants`, `sessions`, `vg-leaders`, and `report`.
 
@@ -89,6 +95,11 @@ Role checks: `session.role === "developer"` for developer-only pages. `!!session
 **Shared components** (`src/components/`):
 - `Breadcrumbs` — renders a breadcrumb nav; accepts `items: { label, href? }[]`. Safe to import in client components.
 - `NavigationProgress` — top-of-page loading bar; mounted once in `src/app/layout.tsx`.
+- `DatePickerField` — controlled date input wrapper.
+- `SubmitButton` — form submit button with loading state.
+- `PageLoader` — full-page loading indicator.
+- `DisciplerAutocomplete` / `DisciplerFields` — autocomplete + field set for discipler selection.
+- `VgLeaderAutocomplete` / `VgLeaderFields` — autocomplete + field set for VG leader selection.
 
 **Path alias:** `@/*` maps to `src/*`.
 

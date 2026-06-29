@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { participants, disciplers, victoryGroupLeaders, checkIns, classSessions } from "@/db/schema";
-import { ilike, or, isNull, and, count, gte, lt, eq, inArray, getTableColumns, desc } from "drizzle-orm";
+import { ilike, or, isNull, isNotNull, and, count, gte, lt, eq, inArray, getTableColumns, desc } from "drizzle-orm";
 import Link from "next/link";
 import { ParticipantTable } from "./ParticipantTable";
 import { currentYearPH } from "@/lib/date";
@@ -38,6 +38,7 @@ export async function ParticipantList({
   service,
   previousChurch,
   waterBaptism,
+  victoryWeekend,
   page,
   isDeveloper,
 }: {
@@ -48,6 +49,7 @@ export async function ParticipantList({
   service: string;
   previousChurch: string;
   waterBaptism: string;
+  victoryWeekend: string;
   page: number;
   isDeveloper: boolean;
 }) {
@@ -77,6 +79,11 @@ export async function ParticipantList({
     service ? eq(participants.serviceAttending, service) : undefined,
     previousChurch.trim() ? ilike(participants.previousChurch, `%${previousChurch}%`) : undefined,
     waterBaptism === "yes" ? eq(participants.willUndergoWaterBaptism, true) : waterBaptism === "no" ? eq(participants.willUndergoWaterBaptism, false) : undefined,
+    victoryWeekend === "done"
+      ? or(eq(participants.isDoneWithVictoryWeekend, true), isNotNull(participants.victoryDate))
+      : victoryWeekend === "not_done"
+        ? and(or(eq(participants.isDoneWithVictoryWeekend, false), isNull(participants.isDoneWithVictoryWeekend)), isNull(participants.victoryDate))
+        : undefined,
   );
 
   const [rows, [{ total }]] = await Promise.all([
@@ -156,13 +163,14 @@ export async function ParticipantList({
     if (service) params.set("service", service);
     if (previousChurch) params.set("previousChurch", previousChurch);
     if (waterBaptism) params.set("waterBaptism", waterBaptism);
+    if (victoryWeekend) params.set("victoryWeekend", victoryWeekend);
     if (p > 1) params.set("page", String(p));
     const qs = params.toString();
     return `/participants${qs ? `?${qs}` : ""}`;
   }
 
   if (rows.length === 0) {
-    const hasFilters = q || lifestage || fee || gender || service || previousChurch || waterBaptism;
+    const hasFilters = q || lifestage || fee || gender || service || previousChurch || waterBaptism || victoryWeekend;
     return (
       <p className="text-sm text-gray-400">{hasFilters ? "No participants match the current filters." : "No participants registered yet."}</p>
     );

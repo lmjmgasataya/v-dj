@@ -8,9 +8,9 @@ import { ParticipantFilters } from "./ParticipantFilters";
 export default async function ParticipantsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string; lifestage?: string; fee?: string; gender?: string; service?: string; previousChurch?: string; waterBaptism?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; lifestage?: string; fee?: string; gender?: string; service?: string; previousChurch?: string; waterBaptism?: string; victoryWeekend?: string }>;
 }) {
-  const [{ q = "", page: pageParam, lifestage = "", fee = "", gender = "", service = "", previousChurch = "", waterBaptism = "" }, session] = await Promise.all([searchParams, getSession()]);
+  const [{ q = "", page: pageParam, lifestage = "", fee = "", gender = "", service = "", previousChurch = "", waterBaptism = "", victoryWeekend = "" }, session] = await Promise.all([searchParams, getSession()]);
   const isDeveloper = session?.role === "developer";
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
 
@@ -41,7 +41,7 @@ export default async function ParticipantsPage({
       </div>
 
       <ParticipantFilters
-        key={`${q}-${lifestage}-${fee}-${gender}-${service}-${previousChurch}-${waterBaptism}`}
+        key={`${q}-${lifestage}-${fee}-${gender}-${service}-${previousChurch}-${waterBaptism}-${victoryWeekend}`}
         q={q}
         lifestage={lifestage}
         fee={fee}
@@ -49,10 +49,11 @@ export default async function ParticipantsPage({
         service={service}
         previousChurch={previousChurch}
         waterBaptism={waterBaptism}
+        victoryWeekend={victoryWeekend}
       />
 
-      <Suspense key={`${q}-${lifestage}-${fee}-${gender}-${service}-${previousChurch}-${waterBaptism}-${page}`} fallback={<ParticipantListSkeleton />}>
-        <ParticipantList q={q} lifestage={lifestage} fee={fee} gender={gender} service={service} previousChurch={previousChurch} waterBaptism={waterBaptism} page={page} isDeveloper={isDeveloper} />
+      <Suspense key={`${q}-${lifestage}-${fee}-${gender}-${service}-${previousChurch}-${waterBaptism}-${victoryWeekend}-${page}`} fallback={<ParticipantListSkeleton />}>
+        <ParticipantList q={q} lifestage={lifestage} fee={fee} gender={gender} service={service} previousChurch={previousChurch} waterBaptism={waterBaptism} victoryWeekend={victoryWeekend} page={page} isDeveloper={isDeveloper} />
       </Suspense>
     </div>
   );

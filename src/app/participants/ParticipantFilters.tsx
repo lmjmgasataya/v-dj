@@ -25,6 +25,7 @@ export function ParticipantFilters({
   service,
   previousChurch,
   waterBaptism,
+  victoryWeekend,
 }: {
   q: string;
   lifestage: string;
@@ -33,11 +34,12 @@ export function ParticipantFilters({
   service: string;
   previousChurch: string;
   waterBaptism: string;
+  victoryWeekend: string;
 }) {
   const router = useRouter();
 
   function buildUrl(overrides: Record<string, string>) {
-    const vals = { q, lifestage, fee, gender, service, previousChurch, waterBaptism, ...overrides };
+    const vals = { q, lifestage, fee, gender, service, previousChurch, waterBaptism, victoryWeekend, ...overrides };
     const params = new URLSearchParams();
     if (vals.q) params.set("q", vals.q);
     if (vals.lifestage) params.set("lifestage", vals.lifestage);
@@ -46,6 +48,7 @@ export function ParticipantFilters({
     if (vals.service) params.set("service", vals.service);
     if (vals.previousChurch) params.set("previousChurch", vals.previousChurch);
     if (vals.waterBaptism) params.set("waterBaptism", vals.waterBaptism);
+    if (vals.victoryWeekend) params.set("victoryWeekend", vals.victoryWeekend);
     const qs = params.toString();
     return `/participants${qs ? `?${qs}` : ""}`;
   }
@@ -56,7 +59,7 @@ export function ParticipantFilters({
     router.push(buildUrl({ q: (data.get("q") as string) ?? "", previousChurch: (data.get("previousChurch") as string) ?? "" }));
   }
 
-  const hasFilters = q || lifestage || fee || gender || service || previousChurch || waterBaptism;
+  const hasFilters = q || lifestage || fee || gender || service || previousChurch || waterBaptism || victoryWeekend;
 
   return (
     <div className="flex flex-col gap-2">
@@ -141,6 +144,16 @@ export function ParticipantFilters({
           <option value="">All (Water Baptism)</option>
           <option value="yes">Will undergo water baptism</option>
           <option value="no">Will not undergo water baptism</option>
+        </select>
+
+        <select
+          defaultValue={victoryWeekend}
+          onChange={(e) => router.push(buildUrl({ victoryWeekend: e.target.value }))}
+          className={selectCls}
+        >
+          <option value="">All (Victory Weekend)</option>
+          <option value="done">Done</option>
+          <option value="not_done">Not yet done</option>
         </select>
       </div>
     </div>

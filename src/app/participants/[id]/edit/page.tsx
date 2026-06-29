@@ -53,7 +53,7 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
           />
         </div>
       </div>
-      <EditForm participant={participant} newDatePicker={flagMap["new_date_picker"] ?? false} />
+      <EditForm participant={participant} />
       {(flagMap["qr_checkin"] ?? false) && (
         <div className="mt-6">
           <ParticipantQrCode

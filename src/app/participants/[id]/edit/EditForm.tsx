@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { updateParticipant } from "./actions";
 import { Section, Field, RadioOption, CheckboxOption, inputCls, selectCls, SERVICE_OPTIONS, FEE_CATEGORIES } from "@/components/form";
-import { DatePickerField } from "@/components/DatePickerField";
 import { SubmitButton } from "@/components/SubmitButton";
 import Link from "next/link";
 import type { Participant } from "@/db/schema";
@@ -29,7 +28,7 @@ const LIFESTAGES = [
   "Senior",
 ];
 
-export function EditForm({ participant, newDatePicker }: { participant: ParticipantWithRelations; newDatePicker: boolean }) {
+export function EditForm({ participant }: { participant: ParticipantWithRelations }) {
   const isOtherChurch = participant.previousChurch != null && participant.previousChurch !== "Roman Catholic";
   const [previousChurch, setPreviousChurch] = useState(isOtherChurch ? "Others" : "Roman Catholic");
   const [isDoneWithVictoryWeekend, setIsDoneWithVictoryWeekend] = useState(participant.isDoneWithVictoryWeekend ?? false);

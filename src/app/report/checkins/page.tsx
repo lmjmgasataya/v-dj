@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { classSessions, checkIns, batches } from "@/db/schema";
-import { and, count, eq, max, min, sql } from "drizzle-orm";
+import { count, eq, max, min, sql } from "drizzle-orm";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";

@@ -63,7 +63,7 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
   const [previousChurch, setPreviousChurch] = useState("");
   const [registrationFee, setRegistrationFee] = useState("");
   const [isDoneWithVictoryWeekend, setIsDoneWithVictoryWeekend] = useState(false);
-  const [worshipService, setWorshipService] = useState("");
+  const [worshipService, setWorshipService] = useState(() => getDefaultService());
   const [step, setStep] = useState<"form" | "review">("form");
   const [captured, setCaptured] = useState<Record<string, string>>({});
   const [isPending, startTransition] = useTransition();
@@ -72,10 +72,6 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
   const needsVictoryDate = registrationFee === "C" || registrationFee === "D";
   const isAB = registrationFee === "A" || registrationFee === "B";
   const showVgLeader = needsVictoryDate || isDoneWithVictoryWeekend;
-
-  useEffect(() => {
-    setWorshipService(getDefaultService());
-  }, []);
 
   const isDirty = useRef(false);
   useEffect(() => {

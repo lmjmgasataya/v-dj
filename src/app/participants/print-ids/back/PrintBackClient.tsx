@@ -107,6 +107,7 @@ function BackCard() {
     <div className="back-card flex flex-col border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white min-h-[560px]">
       {/* Header */}
       <div className="flex items-center justify-between px-7 pt-6 border-gray-100">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/dj-logo.png" alt="" className="h-20 w-auto object-contain" />
         <p className="text-right text-s font-normal uppercase tracking-widest text-gray-800 leading-tight">
           DISCIPLESHIP<br />JOURNEY<br />CLASSES

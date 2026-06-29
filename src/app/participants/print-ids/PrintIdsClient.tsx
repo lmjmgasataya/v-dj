@@ -164,6 +164,7 @@ function IdCard({ participant, showFullName, batchName }: { participant: Partici
   return (
     <div className="id-card flex flex-col border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
       <div className="flex items-center justify-between px-10 pt-8 border-gray-100">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/dj-logo.png" alt="" className="h-28 w-auto object-contain" />
         <p className="text-right text-xl font-normal uppercase tracking-widest text-gray-800 leading-tight">
           DISCIPLESHIP<br />JOURNEY<br />CLASSES

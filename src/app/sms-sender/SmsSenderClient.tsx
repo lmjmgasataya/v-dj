@@ -6,12 +6,12 @@ import { toTitleCase } from "@/lib/text";
 
 type Batch = { id: number; name: string; classStartDate: string; isDefault: boolean };
 type MessageTemplate = { id: number; title: string; message: string };
-type PersonRow = { id: number; lastName: string; firstName: string; mobileNumber: string | null };
+type PersonRow = { id: number; lastName: string; firstName: string; mobileNumber: string | null; registrationFee?: string | null };
 type Recipient = { id: number; name: string; phone: string };
 type SendResult = Recipient & { status: "pending" | "sending" | "sent" | "failed"; error?: string };
 type View = "compose" | "review" | "sending" | "done";
 type RecipientTab = "participants" | "disciplers" | "vgleaders" | "others";
-type ClassSession = { id: number; name: string; sessionDate: string };
+type ClassSession = { id: number; name: string; sessionDate: string; isVictoryDay: boolean };
 
 function normalizePhone(raw: string): string | null {
   const d = raw.replace(/\D/g, "");
@@ -110,9 +110,14 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
 
   const validRows = rows.filter((p) => p.mobileNumber && normalizePhone(p.mobileNumber));
 
+  const displayRows =
+    tab === "participants" && selectedSession?.isVictoryDay
+      ? validRows.filter((p) => p.registrationFee !== "C" && p.registrationFee !== "D")
+      : validRows;
+
   const toggleAll = () => {
-    if (selected.size === validRows.length && validRows.length > 0) setSelected(new Set());
-    else setSelected(new Set(validRows.map((p) => p.id)));
+    if (selected.size === displayRows.length && displayRows.length > 0) setSelected(new Set());
+    else setSelected(new Set(displayRows.map((p) => p.id)));
   };
 
   const toggle = (id: number) => {
@@ -136,7 +141,7 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
   const recipients: Recipient[] =
     tab === "others"
       ? othersRecipients
-      : validRows
+      : displayRows
           .filter((p) => selected.has(p.id))
           .map((p) => ({
             id: p.id,
@@ -290,11 +295,16 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-[#00428E] text-white text-xs font-semibold flex items-center justify-center shrink-0">2</span>
-                  <span className="text-sm font-semibold text-gray-700">Recipients</span>
+                  <span className="text-sm font-semibold text-gray-700">
+                    Recipients
+                    {recipients.length > 0 && (
+                      <span className="ml-1.5 text-xs font-normal text-gray-400">({recipients.length})</span>
+                    )}
+                  </span>
                 </div>
-                {tab !== "others" && !isPending && validRows.length > 0 && (
+                {tab !== "others" && !isPending && displayRows.length > 0 && (
                   <button onClick={toggleAll} className="text-xs text-[#00428E] hover:underline">
-                    {selected.size === validRows.length ? "Deselect all" : "Select all"}
+                    {selected.size === displayRows.length ? "Deselect all" : "Select all"}
                   </button>
                 )}
               </div>
@@ -356,13 +366,13 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
                     </div>
                   ))}
                 </div>
-              ) : validRows.length === 0 ? (
+              ) : displayRows.length === 0 ? (
                 <div className="py-8 text-center text-sm text-gray-400">
                   No {TAB_LABELS[tab].toLowerCase()} with valid phone numbers in this batch.
                 </div>
               ) : (
                 <div className="overflow-y-auto max-h-64 border border-gray-200 rounded-lg divide-y divide-gray-100">
-                  {validRows.map((p) => {
+                  {displayRows.map((p) => {
                     const phone = normalizePhone(p.mobileNumber!)!;
                     const isSelected = selected.has(p.id);
                     return (
@@ -380,6 +390,9 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
                         />
                         <span className="flex-1 text-sm text-gray-800">
                           {toTitleCase(p.lastName)}, {toTitleCase(p.firstName)}
+                          {tab === "participants" && p.registrationFee && (
+                            <span className="ml-2 text-xs text-gray-400">(Class {p.registrationFee})</span>
+                          )}
                         </span>
                         <span className="text-xs font-mono text-gray-500">{phone}</span>
                       </label>

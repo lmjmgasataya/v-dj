@@ -10,6 +10,7 @@ export async function getSessionsByBatch(batchId: number) {
       id: classSessions.id,
       name: classSessions.name,
       sessionDate: classSessions.sessionDate,
+      isVictoryDay: classSessions.isVictoryDay,
     })
     .from(classSessions)
     .where(eq(classSessions.batchId, batchId))
@@ -30,6 +31,7 @@ export async function getParticipantsByBatch(batchId: number) {
       lastName: participants.lastName,
       firstName: participants.firstName,
       mobileNumber: participants.mobileNumber,
+      registrationFee: participants.registrationFee,
     })
     .from(participants)
     .where(

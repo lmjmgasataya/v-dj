@@ -46,8 +46,11 @@ export default async function MessageTemplatesPage() {
       ) : (
         <div className="border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden">
           {templates.map((t) => (
-            <div key={t.id} className="flex items-start justify-between gap-4 px-5 py-4 hover:bg-gray-50 transition">
-              <div className="min-w-0">
+            <div key={t.id} className="flex items-start justify-between gap-4 pl-0 pr-5 py-4 hover:bg-gray-50 transition">
+              <div className="shrink-0 w-8 text-right">
+                <span className="text-xs text-gray-400 font-mono">{t.id}</span>
+              </div>
+              <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-gray-800">{t.title}</p>
                 <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 whitespace-pre-wrap">{t.message}</p>
               </div>

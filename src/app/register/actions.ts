@@ -120,7 +120,7 @@ export async function registerParticipant(formData: FormData) {
 
   try {
     if (await isRegistrationSmsEnabled()) {
-      const template = await getRegistrationSmsTemplate();
+      const template = await getRegistrationSmsTemplate(registrationFee);
       if (template) {
         const firstName = toTitleCase(formData.get("firstName") as string);
         const lastName = toTitleCase(formData.get("lastName") as string);

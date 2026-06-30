@@ -115,6 +115,7 @@ export const participants = pgTable("participants", {
   isWalkIn: boolean("is_walk_in").default(false).notNull(),
   victoryDate: text("victory_date"),
   email: text("email"),
+  school: text("school"),
   worshipServiceRegistered: text("worship_service_registered"),
   batchId: integer("batch_id").references(() => batches.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),

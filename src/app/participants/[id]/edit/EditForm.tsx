@@ -28,10 +28,13 @@ const LIFESTAGES = [
   "Senior",
 ];
 
+const STUDENT_LIFESTAGES = ["Student (JHS/SHS)", "Student (College)"];
+
 export function EditForm({ participant }: { participant: ParticipantWithRelations }) {
   const isOtherChurch = participant.previousChurch != null && participant.previousChurch !== "Roman Catholic";
   const [previousChurch, setPreviousChurch] = useState(isOtherChurch ? "Others" : "Roman Catholic");
   const [isDoneWithVictoryWeekend, setIsDoneWithVictoryWeekend] = useState(participant.isDoneWithVictoryWeekend ?? false);
+  const [lifestage, setLifestage] = useState(participant.lifestage ?? "");
 
   const isAB = participant.registrationFee === "A" || participant.registrationFee === "B";
   const needsVictoryDate = participant.registrationFee === "C" || participant.registrationFee === "D";
@@ -89,13 +92,23 @@ export function EditForm({ participant }: { participant: ParticipantWithRelation
           <input name="email" type="email" defaultValue={participant.email ?? ""} className={inputCls} />
         </Field>
         <Field label="Lifestage">
-          <select name="lifestage" defaultValue={participant.lifestage ?? ""} className={selectCls}>
+          <select
+            name="lifestage"
+            className={selectCls}
+            value={lifestage}
+            onChange={(e) => setLifestage(e.target.value)}
+          >
             <option value="">-- Select --</option>
             {LIFESTAGES.map((l) => (
               <option key={l} value={l}>{l}</option>
             ))}
           </select>
         </Field>
+        {STUDENT_LIFESTAGES.includes(lifestage) && (
+          <Field label="School">
+            <input name="school" defaultValue={participant.school ?? ""} className={inputCls} />
+          </Field>
+        )}
         <Field label="Age" required>
           <input name="age" required type="number" min={1} max={120} defaultValue={participant.age} className={inputCls} />
         </Field>

@@ -134,6 +134,13 @@
       "when": 1782480883838,
       "tag": "0018_orange_katie_power",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1782812042179,
+      "tag": "0019_orange_patch",
+      "breakpoints": true
     }
   ]
 }

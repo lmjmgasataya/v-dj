@@ -59,9 +59,12 @@ function ReviewSection({ title, children }: { title: string; children: React.Rea
   );
 }
 
+const STUDENT_LIFESTAGES = ["Student (JHS/SHS)", "Student (College)"];
+
 export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newDatePicker }: Props) {
   const [previousChurch, setPreviousChurch] = useState("");
   const [registrationFee, setRegistrationFee] = useState("");
+  const [lifestage, setLifestage] = useState("");
   const [isDoneWithVictoryWeekend, setIsDoneWithVictoryWeekend] = useState(false);
   const [worshipService, setWorshipService] = useState(() => getDefaultService());
   const [step, setStep] = useState<"form" | "review">("form");
@@ -231,13 +234,24 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
               <input name="email" type="email" className={inputCls} />
             </Field>
             <Field label="Lifestage" required>
-              <select name="lifestage" required className={selectCls}>
+              <select
+                name="lifestage"
+                required
+                className={selectCls}
+                value={lifestage}
+                onChange={(e) => setLifestage(e.target.value)}
+              >
                 <option value="">-- Select --</option>
                 {LIFESTAGES.map((l) => (
                   <option key={l} value={l}>{l}</option>
                 ))}
               </select>
             </Field>
+            {STUDENT_LIFESTAGES.includes(lifestage) && (
+              <Field label="School" required>
+                <input name="school" required className={inputCls} />
+              </Field>
+            )}
             <Field label="Age" required>
               <input
                 name="age"
@@ -412,6 +426,9 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
             <ReviewRow label="Facebook / Messenger Name" value={captured.facebookMessengerName} />
             {captured.email && <ReviewRow label="Email Address" value={captured.email} />}
             <ReviewRow label="Lifestage" value={captured.lifestage} />
+            {STUDENT_LIFESTAGES.includes(captured.lifestage) && (
+              <ReviewRow label="School" value={captured.school} />
+            )}
             <ReviewRow label="Age" value={captured.age} />
             <ReviewRow label="Gender" value={captured.gender} />
             <ReviewRow label="Service Attending" value={captured.serviceAttending} />

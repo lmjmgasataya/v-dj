@@ -216,6 +216,9 @@ export function ParticipantTable({
                             <Detail label="Service" value={p.serviceAttending} />
                             <Detail label="Email" value={p.email} />
                             <Detail label="Facebook / Messenger" value={p.facebookMessengerName} />
+                            {(p.lifestage === "Student (JHS/SHS)" || p.lifestage === "Student (College)") && (
+                              <Detail label="School" value={p.school} />
+                            )}
                             <Detail label="Previous Church" value={p.previousChurch} />
                             <Detail label="Preferred ID Name" value={p.preferredNameOnId} />
                             <Detail label="Completed One2One" value={

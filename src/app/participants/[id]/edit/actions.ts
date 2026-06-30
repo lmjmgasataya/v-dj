@@ -36,6 +36,8 @@ async function upsertVgLeader(
   return v.id;
 }
 
+const STUDENT_LIFESTAGES = ["Student (JHS/SHS)", "Student (College)"];
+
 export async function updateParticipant(id: number, formData: FormData) {
   const registrationFee = formData.get("registrationFee") as string;
   const isAB = registrationFee === "A" || registrationFee === "B";
@@ -86,6 +88,9 @@ export async function updateParticipant(id: number, formData: FormData) {
     confirmedReadiness: !showVgLeader ? formData.get("confirmedReadiness") === "on" : null,
     vgLeaderId,
     email: (formData.get("email") as string) || null,
+    school: STUDENT_LIFESTAGES.includes(formData.get("lifestage") as string)
+      ? (formData.get("school") as string) || null
+      : null,
     acknowledgementReceiptNumber: formData.get("acknowledgementReceiptNumber") as string,
     registrationFee,
     worshipServiceRegistered: (formData.get("worshipServiceRegistered") as string) || null,

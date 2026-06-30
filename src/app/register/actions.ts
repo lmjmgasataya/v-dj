@@ -43,6 +43,8 @@ async function upsertVgLeader(
   return v.id;
 }
 
+const STUDENT_LIFESTAGES = ["Student (JHS/SHS)", "Student (College)"];
+
 export async function registerParticipant(formData: FormData) {
   const registrationFee = formData.get("registrationFee") as string;
   const isAB = registrationFee === "A" || registrationFee === "B";
@@ -113,6 +115,9 @@ export async function registerParticipant(formData: FormData) {
     registrationFee,
     victoryDate: (formData.get("victoryDate") as string) || null,
     email: (formData.get("email") as string) || null,
+    school: STUDENT_LIFESTAGES.includes(formData.get("lifestage") as string)
+      ? (formData.get("school") as string) || null
+      : null,
     worshipServiceRegistered: (formData.get("worshipServiceRegistered") as string) || null,
     adminVolunteerName: toTitleCase(formData.get("adminVolunteerName") as string),
     batchId: defaultBatch?.id ?? null,

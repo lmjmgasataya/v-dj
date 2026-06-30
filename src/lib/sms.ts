@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 
 const REGISTRATION_TEMPLATE_ID_CLASS_A_B = Number(process.env.SMS_REGISTRATION_TEMPLATE_ID_CLASS_A_B ?? "2");
 const REGISTRATION_TEMPLATE_ID_CLASS_C_D = Number(process.env.SMS_REGISTRATION_TEMPLATE_ID_CLASS_C_D ?? "4");
+const DISCIPLER_NOTIFICATION_TEMPLATE_ID = Number(process.env.SMS_DISCIPLER_NOTIFICATION_TEMPLATE_ID ?? "5");
 
 export async function isRegistrationSmsEnabled(): Promise<boolean> {
   const [flag] = await db
@@ -12,6 +13,16 @@ export async function isRegistrationSmsEnabled(): Promise<boolean> {
     .where(eq(featureFlags.key, "sms_on_registration"))
     .limit(1);
   return flag?.enabled ?? false;
+}
+
+export async function getDisciplerNotificationTemplate(): Promise<string | null> {
+  if (!DISCIPLER_NOTIFICATION_TEMPLATE_ID) return null;
+  const [template] = await db
+    .select({ message: smsMessageTemplates.message })
+    .from(smsMessageTemplates)
+    .where(eq(smsMessageTemplates.id, DISCIPLER_NOTIFICATION_TEMPLATE_ID))
+    .limit(1);
+  return template?.message ?? null;
 }
 
 export async function getRegistrationSmsTemplate(registrationFee: string): Promise<string | null> {

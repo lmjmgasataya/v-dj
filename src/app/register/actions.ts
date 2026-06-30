@@ -5,7 +5,7 @@ import { participants, disciplers, victoryGroupLeaders, batches, type lifestageE
 import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { toTitleCase } from "@/lib/text";
-import { isRegistrationSmsEnabled, getRegistrationSmsTemplate, sendSms } from "@/lib/sms";
+import { isRegistrationSmsEnabled, getRegistrationSmsTemplate, getDisciplerNotificationTemplate, sendSms } from "@/lib/sms";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
 
@@ -120,15 +120,31 @@ export async function registerParticipant(formData: FormData) {
 
   try {
     if (await isRegistrationSmsEnabled()) {
+      const firstName = toTitleCase(formData.get("firstName") as string);
+      const lastName = toTitleCase(formData.get("lastName") as string);
+
       const template = await getRegistrationSmsTemplate(registrationFee);
       if (template) {
-        const firstName = toTitleCase(formData.get("firstName") as string);
-        const lastName = toTitleCase(formData.get("lastName") as string);
         const message = template
           .replace(/\{firstName\}/gi, firstName)
           .replace(/\{lastName\}/gi, lastName)
           .replace(/\{name\}/gi, `${firstName} ${lastName}`);
         await sendSms(formData.get("mobileNumber") as string, message);
+      }
+
+      if (isAB && !isDoneWithVictoryWeekend) {
+        const discMobile = formData.get("disciplerMobileNumber") as string;
+        const discFirstName = toTitleCase(formData.get("disciplerFirstName") as string);
+        const discLastName = toTitleCase(formData.get("disciplerLastName") as string);
+        if (discMobile && discFirstName) {
+          const disciplerTemplate = await getDisciplerNotificationTemplate();
+          if (disciplerTemplate) {
+            const discMessage = disciplerTemplate
+              .replace(/\{name_discipler\}/gi, `${discFirstName} ${discLastName}`.trim())
+              .replace(/\{name_participant\}/gi, `${firstName} ${lastName}`);
+            await sendSms(discMobile, discMessage);
+          }
+        }
       }
     }
   } catch {

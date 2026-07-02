@@ -97,7 +97,7 @@ export function ParticipantSearch({ sessionId, sessionName: _sessionName, isVict
     <div>
       {qrCheckin && (
         <>
-          <QrScanner sessionId={sessionId} onCheckIn={() => runSearch(q)} />
+          <QrScanner sessionId={sessionId} isVictoryDay={isVictoryDay} onCheckIn={() => runSearch(q)} />
           <div className="relative flex items-center my-4">
             <div className="flex-1 border-t border-gray-200" />
             <span className="px-3 text-xs text-gray-400">or search manually</span>

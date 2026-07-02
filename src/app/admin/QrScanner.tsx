@@ -2,9 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { lookupParticipantForQr, checkInByQr } from "./actions";
+import { FEE_CATEGORIES } from "@/components/form";
 
 const QR_PREFIX = "dj:participant:";
 const CONTAINER_ID = "qr-scanner-container";
+const VICTORY_DAY_ALLOWED_CLASSES = ["A", "B"];
+
+function classLabel(registrationFee: string | null): string {
+  return FEE_CATEGORIES.find((f) => f.value === registrationFee)?.value ?? registrationFee ?? "—";
+}
 
 function parseParticipantId(text: string): number | null {
   if (!text.startsWith(QR_PREFIX)) return null;
@@ -17,6 +23,7 @@ type Status = "idle" | "scanning" | "confirming" | "loading" | "success" | "erro
 interface PendingParticipant {
   id: number;
   name: string;
+  registrationFee: string | null;
 }
 
 function playSuccessSound() {
@@ -37,7 +44,7 @@ function playSuccessSound() {
   }
 }
 
-export function QrScanner({ sessionId, onCheckIn }: { sessionId: number; onCheckIn?: () => void }) {
+export function QrScanner({ sessionId, isVictoryDay, onCheckIn }: { sessionId: number; isVictoryDay: boolean; onCheckIn?: () => void }) {
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState<PendingParticipant | null>(null);
@@ -83,7 +90,7 @@ export function QrScanner({ sessionId, onCheckIn }: { sessionId: number; onCheck
               setStatus("success");
               setMessage(`${result.name} is already checked in.`);
             } else {
-              setPending({ id: participantId, name: result.name });
+              setPending({ id: participantId, name: result.name, registrationFee: result.registrationFee });
               setStatus("confirming");
             }
           },
@@ -112,6 +119,7 @@ export function QrScanner({ sessionId, onCheckIn }: { sessionId: number; onCheck
 
   async function handleConfirm() {
     if (!pending) return;
+    if (isVictoryDay && !VICTORY_DAY_ALLOWED_CLASSES.includes(pending.registrationFee ?? "")) return;
     setStatus("loading");
     const result = await checkInByQr(pending.id, sessionId, remarks || undefined);
     if ("error" in result) {
@@ -203,13 +211,22 @@ export function QrScanner({ sessionId, onCheckIn }: { sessionId: number; onCheck
         )}
       </div>
 
-      {status === "confirming" && pending && (
+      {status === "confirming" && pending && (() => {
+        const restricted = isVictoryDay && !VICTORY_DAY_ALLOWED_CLASSES.includes(pending.registrationFee ?? "");
+        return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4">
             <div>
               <h3 className="text-base font-bold text-gray-900">Check In</h3>
-              <p className="text-sm font-semibold text-gray-800 mt-1">{pending.name}</p>
+              <p className="text-sm font-semibold text-gray-800 mt-1">
+                {pending.name} — Class {classLabel(pending.registrationFee)}
+              </p>
             </div>
+            {restricted && (
+              <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
+                Only Class A and B participants are allowed to check in for Victory Day sessions.
+              </div>
+            )}
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700">
                 Remarks <span className="text-gray-400 font-normal">(optional)</span>
@@ -233,14 +250,16 @@ export function QrScanner({ sessionId, onCheckIn }: { sessionId: number; onCheck
               <button
                 type="button"
                 onClick={handleConfirm}
-                className="bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
+                disabled={restricted}
+                className="bg-[#00428E] hover:bg-[#003578] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#00428E] text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
               >
                 Confirm Check In
               </button>
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
     </>
   );
 }

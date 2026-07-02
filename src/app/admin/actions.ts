@@ -21,9 +21,14 @@ export async function checkInParticipant(participantId: number, classSessionId: 
 export async function lookupParticipantForQr(
   participantId: number,
   classSessionId: number,
-): Promise<{ name: string; alreadyCheckedIn: boolean } | { error: string }> {
+): Promise<{ name: string; alreadyCheckedIn: boolean; registrationFee: string | null } | { error: string }> {
   const [participant] = await db
-    .select({ id: participants.id, firstName: participants.firstName, lastName: participants.lastName })
+    .select({
+      id: participants.id,
+      firstName: participants.firstName,
+      lastName: participants.lastName,
+      registrationFee: participants.registrationFee,
+    })
     .from(participants)
     .where(and(eq(participants.id, participantId), isNull(participants.deletedAt)))
     .limit(1);
@@ -36,7 +41,11 @@ export async function lookupParticipantForQr(
     .where(and(eq(checkIns.participantId, participantId), eq(checkIns.classSessionId, classSessionId)))
     .limit(1);
 
-  return { name: `${participant.lastName}, ${participant.firstName}`, alreadyCheckedIn: !!existing };
+  return {
+    name: `${participant.lastName}, ${participant.firstName}`,
+    alreadyCheckedIn: !!existing,
+    registrationFee: participant.registrationFee,
+  };
 }
 
 export async function checkInByQr(

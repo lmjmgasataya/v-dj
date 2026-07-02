@@ -155,6 +155,7 @@ export async function searchParticipants(sessionId: number, q: string, isVictory
       preferredNameOnId: participants.preferredNameOnId,
       isWalkIn: participants.isWalkIn,
       victoryDate: participants.victoryDate,
+      registrationFee: participants.registrationFee,
       checkInId: checkIns.id,
       checkedInAt: checkIns.checkedInAt,
       checkInRemarks: checkIns.remarks,

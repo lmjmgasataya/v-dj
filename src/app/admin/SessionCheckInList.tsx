@@ -15,6 +15,7 @@ interface ParticipantWithStatus {
   gender: string;
   preferredNameOnId: string | null;
   victoryDate: string | null;
+  registrationFee: string | null;
   victoryDayDate: string | null;
   completedVictoryDay: boolean;
   checkInId: number | null;
@@ -48,7 +49,8 @@ function CheckInRow({ p, sessionId, isVictoryDay, onAction }: { p: ParticipantWi
         <div>
           <p className="font-semibold text-gray-900 text-sm capitalize">
             {p.gender === "Male" ? "👨🏻" : "👩🏻"}{" "}
-            {toTitleCase(p.lastName)}, {toTitleCase(p.firstName)}{p.middleInitial ? ` ${toTitleCase(p.middleInitial)}.` : ""}
+            {toTitleCase(p.lastName)}, {toTitleCase(p.firstName)}{p.middleInitial ? ` ${toTitleCase(p.middleInitial)}.` : ""}{" "}
+            <span className="font-normal text-gray-400">(Class {p.registrationFee ?? "—"})</span>
           </p>
           <p className="text-xs text-gray-500 mt-0.5">
             {p.mobileNumber} · {p.lifestage}

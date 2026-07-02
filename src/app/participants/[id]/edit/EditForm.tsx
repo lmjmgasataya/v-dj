@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { updateParticipant } from "./actions";
 import { Section, Field, RadioOption, CheckboxOption, inputCls, selectCls, SERVICE_OPTIONS, FEE_CATEGORIES } from "@/components/form";
+import { DatePickerField } from "@/components/DatePickerField";
 import { SubmitButton } from "@/components/SubmitButton";
 import Link from "next/link";
 import type { Participant } from "@/db/schema";
@@ -30,7 +31,7 @@ const LIFESTAGES = [
 
 const STUDENT_LIFESTAGES = ["Student (JHS/SHS)", "Student (College)"];
 
-export function EditForm({ participant }: { participant: ParticipantWithRelations }) {
+export function EditForm({ participant, newDatePicker }: { participant: ParticipantWithRelations; newDatePicker: boolean }) {
   const isOtherChurch = participant.previousChurch != null && participant.previousChurch !== "Roman Catholic";
   const [previousChurch, setPreviousChurch] = useState(isOtherChurch ? "Others" : "Roman Catholic");
   const [isDoneWithVictoryWeekend, setIsDoneWithVictoryWeekend] = useState(participant.isDoneWithVictoryWeekend ?? false);
@@ -39,6 +40,7 @@ export function EditForm({ participant }: { participant: ParticipantWithRelation
   const isAB = participant.registrationFee === "A" || participant.registrationFee === "B";
   const needsVictoryDate = participant.registrationFee === "C" || participant.registrationFee === "D";
   const showVgLeader = needsVictoryDate || isDoneWithVictoryWeekend;
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
 
   const updateAction = updateParticipant.bind(null, participant.id);
 
@@ -73,6 +75,15 @@ export function EditForm({ participant }: { participant: ParticipantWithRelation
       </div>
 
       <Section title="Participant Information">
+        {needsVictoryDate && (
+          <div className="sm:col-span-2 rounded-xl border-2 border-amber-400 bg-amber-50 px-5 py-4 flex flex-col gap-1">
+            <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Required</p>
+            <p className="text-xs text-amber-600 mb-2">Please enter the date when the participant completed Victory Weekend.</p>
+            <Field label="Victory Weekend Date" required>
+              <DatePickerField name="victoryDate" required max={today} defaultValue={participant.victoryDate ?? ""} className={inputCls} newDatePicker={newDatePicker} />
+            </Field>
+          </div>
+        )}
         <Field label="Last Name" required>
           <input name="lastName" required defaultValue={participant.lastName} className={inputCls} />
         </Field>
@@ -192,9 +203,6 @@ export function EditForm({ participant }: { participant: ParticipantWithRelation
           <Field label="VG Leader's Messenger / Facebook Name">
             <input name="vgLeaderMessengerName" defaultValue={participant.vgLeaderMessengerName ?? ""} className={inputCls} />
           </Field>
-          {/* <Field label="Victory Weekend / Victory Day Date" className="sm:col-span-2">
-            <DatePickerField name="victoryDate" defaultValue={participant.victoryDate ?? ""} className={inputCls} newDatePicker={newDatePicker} />
-          </Field> */}
         </Section>
       ) : (
         <Section title="One2One Discipler Information" important="To be filled up by the One2One discipler">

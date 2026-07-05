@@ -71,21 +71,28 @@ export async function GET(request: Request) {
   type ArRow = { "AR From": number | string; "AR To": number | string; "No. of ARs": number | string; "Amount (PHP)": number | string };
 
   function buildArData(slice: typeof rows, sliceTotal: number): ArRow[] {
-    const bucketMap = new Map<number, ArBucket>();
     let noArCount = 0;
     let noArAmount = 0;
+    const entries: { num: number; amt: number }[] = [];
     for (const p of slice) {
       const amt = feeAmount(p.registrationFee);
       const raw = p.acknowledgementReceiptNumber;
-      if (!raw) { noArCount++; noArAmount += amt; continue; }
-      const num = parseInt(raw, 10);
-      if (isNaN(num)) { noArCount++; noArAmount += amt; continue; }
-      const bucket = Math.ceil(num / 10) || 1;
-      const b = bucketMap.get(bucket);
-      if (b) { b.min = Math.min(b.min, num); b.max = Math.max(b.max, num); b.count++; b.amount += amt; }
-      else { bucketMap.set(bucket, { min: num, max: num, count: 1, amount: amt }); }
+      const num = raw ? parseInt(raw.replace(/[^\d]/g, ""), 10) : NaN;
+      if (!raw || isNaN(num)) { noArCount++; noArAmount += amt; continue; }
+      entries.push({ num, amt });
     }
-    const groups = Array.from(bucketMap.entries()).sort(([a], [b]) => a - b).map(([, g]) => g);
+    entries.sort((a, b) => a.num - b.num);
+    const groups: ArBucket[] = [];
+    for (const { num, amt } of entries) {
+      const last = groups[groups.length - 1];
+      if (last && num - last.max <= 1) {
+        last.max = Math.max(last.max, num);
+        last.count++;
+        last.amount += amt;
+      } else {
+        groups.push({ min: num, max: num, count: 1, amount: amt });
+      }
+    }
     const result: ArRow[] = groups.map((g) => ({
       "AR From": g.min,
       "AR To": g.count > 1 ? g.max : "",

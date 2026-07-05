@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { participants, classSessions, checkIns, batches } from "@/db/schema";
-import { and, eq, exists, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -39,24 +39,15 @@ export default async function FunnelReportPage({
       db
         .select({
           id: participants.id,
-          checkInCount: sql<number>`COUNT(${checkIns.id})::int`,
+          checkInCount: sql<number>`COUNT(${classSessions.id})::int`,
         })
         .from(participants)
+        .leftJoin(checkIns, eq(checkIns.participantId, participants.id))
         .leftJoin(
-          checkIns,
+          classSessions,
           and(
-            eq(checkIns.participantId, participants.id),
-            exists(
-              db
-                .select({ one: sql`1` })
-                .from(classSessions)
-                .where(
-                  and(
-                    eq(classSessions.id, checkIns.classSessionId),
-                    eq(classSessions.batchId, selectedBatchId)
-                  )
-                )
-            )
+            eq(classSessions.id, checkIns.classSessionId),
+            eq(classSessions.batchId, selectedBatchId)
           )
         )
         .where(

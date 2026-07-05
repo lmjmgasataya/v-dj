@@ -122,6 +122,7 @@ export const participants = pgTable("participants", {
   deletedAt: timestamp("deleted_at"),
 }, (t) => [
   index("participants_report_idx").on(t.deletedAt, t.isWalkIn, t.createdAt),
+  index("participants_batch_id_idx").on(t.batchId),
 ]);
 
 export const classSessions = pgTable("class_sessions", {
@@ -133,6 +134,7 @@ export const classSessions = pgTable("class_sessions", {
   batchId: integer("batch_id").references(() => batches.id),
 }, (t) => [
   index("class_sessions_session_date_idx").on(t.sessionDate),
+  index("class_sessions_batch_id_idx").on(t.batchId),
 ]);
 
 export const checkIns = pgTable(

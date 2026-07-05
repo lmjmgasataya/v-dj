@@ -111,7 +111,7 @@ export function ParticipantTable({
         break;
       }
       case "registered":
-        cmp = (a.createdAt?.toString() ?? "").localeCompare(b.createdAt?.toString() ?? "");
+        cmp = (a.createdAt ? new Date(a.createdAt).getTime() : 0) - (b.createdAt ? new Date(b.createdAt).getTime() : 0);
         break;
     }
     return sortDir === "asc" ? cmp : -cmp;

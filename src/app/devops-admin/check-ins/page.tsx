@@ -3,23 +3,31 @@ import { checkIns, participants, classSessions } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { deleteCheckIn } from "./actions";
 import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
+import { AddCheckInForm } from "./AddCheckInForm";
 import { toTitleCase } from "@/lib/text";
 
 export default async function CheckInsPage() {
-  const rows = await db
-    .select({
-      id: checkIns.id,
-      participantLastName: participants.lastName,
-      participantFirstName: participants.firstName,
-      sessionName: classSessions.name,
-      checkedInAt: checkIns.checkedInAt,
-      remarks: checkIns.remarks,
-    })
-    .from(checkIns)
-    .leftJoin(participants, eq(checkIns.participantId, participants.id))
-    .leftJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
-    .orderBy(desc(checkIns.checkedInAt))
-    .limit(200);
+  const [rows, sessions] = await Promise.all([
+    db
+      .select({
+        id: checkIns.id,
+        participantLastName: participants.lastName,
+        participantFirstName: participants.firstName,
+        sessionName: classSessions.name,
+        checkedInAt: checkIns.checkedInAt,
+        remarks: checkIns.remarks,
+      })
+      .from(checkIns)
+      .leftJoin(participants, eq(checkIns.participantId, participants.id))
+      .leftJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
+      .orderBy(desc(checkIns.checkedInAt))
+      .limit(200),
+
+    db
+      .select({ id: classSessions.id, name: classSessions.name, sessionDate: classSessions.sessionDate })
+      .from(classSessions)
+      .orderBy(desc(classSessions.sessionDate)),
+  ]);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -70,6 +78,11 @@ export default async function CheckInsPage() {
       ) : (
         <p className="px-6 py-8 text-sm text-gray-400 text-center">No check-ins yet.</p>
       )}
+
+      <div className="px-6 py-5 border-t border-gray-100 bg-gray-50">
+        <p className="text-sm font-semibold text-gray-700 mb-3">Add Check-in</p>
+        <AddCheckInForm sessions={sessions} />
+      </div>
     </div>
   );
 }

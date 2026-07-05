@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { participants, disciplers, victoryGroupLeaders, batches, type lifestageEnum } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { toTitleCase } from "@/lib/text";
 import { isRegistrationSmsEnabled, getRegistrationSmsTemplate, getDisciplerNotificationTemplate, sendSms } from "@/lib/sms";
 
@@ -123,39 +124,41 @@ export async function registerParticipant(formData: FormData) {
     batchId: defaultBatch?.id ?? null,
   });
 
-  try {
-    if (await isRegistrationSmsEnabled()) {
-      const firstName = toTitleCase(formData.get("firstName") as string);
-      const lastName = toTitleCase(formData.get("lastName") as string);
+  after(async () => {
+    try {
+      if (await isRegistrationSmsEnabled()) {
+        const firstName = toTitleCase(formData.get("firstName") as string);
+        const lastName = toTitleCase(formData.get("lastName") as string);
 
-      const template = await getRegistrationSmsTemplate(registrationFee);
-      if (template) {
-        const message = template
-          .replace(/\{firstName\}/gi, firstName)
-          .replace(/\{lastName\}/gi, lastName)
-          .replace(/\{name\}/gi, `${firstName} ${lastName}`);
-        await sendSms(formData.get("mobileNumber") as string, message);
-      }
+        const template = await getRegistrationSmsTemplate(registrationFee);
+        if (template) {
+          const message = template
+            .replace(/\{firstName\}/gi, firstName)
+            .replace(/\{lastName\}/gi, lastName)
+            .replace(/\{name\}/gi, `${firstName} ${lastName}`);
+          await sendSms(formData.get("mobileNumber") as string, message);
+        }
 
-      if (isAB && !isDoneWithVictoryWeekend) {
-        const discMobile = formData.get("disciplerMobileNumber") as string;
-        const discFirstName = toTitleCase(formData.get("disciplerFirstName") as string);
-        const discLastName = toTitleCase(formData.get("disciplerLastName") as string);
-        if (discMobile && discFirstName) {
-          const disciplerTemplate = await getDisciplerNotificationTemplate();
-          if (disciplerTemplate) {
-            const discMessage = disciplerTemplate
-              .replace(/\{name_discipler\}/gi, `${discFirstName} ${discLastName}`.trim())
-              .replace(/\{name_participant\}/gi, `${firstName} ${lastName}`);
-            await sendSms(discMobile, discMessage);
+        if (isAB && !isDoneWithVictoryWeekend) {
+          const discMobile = formData.get("disciplerMobileNumber") as string;
+          const discFirstName = toTitleCase(formData.get("disciplerFirstName") as string);
+          const discLastName = toTitleCase(formData.get("disciplerLastName") as string);
+          if (discMobile && discFirstName) {
+            const disciplerTemplate = await getDisciplerNotificationTemplate();
+            if (disciplerTemplate) {
+              const discMessage = disciplerTemplate
+                .replace(/\{name_discipler\}/gi, `${discFirstName} ${discLastName}`.trim())
+                .replace(/\{name_participant\}/gi, `${firstName} ${lastName}`);
+              await sendSms(discMobile, discMessage);
+            }
           }
         }
       }
+    } catch {
+      console.error("Failed to send registration SMS");
+      // SMS failure must not block registration
     }
-  } catch {
-    console.error("Failed to send registration SMS");
-    // SMS failure must not block registration
-  }
+  });
 
   redirect("/register/success");
 }

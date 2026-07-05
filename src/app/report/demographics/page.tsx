@@ -6,6 +6,7 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { LifestageChart, ServiceChart, AgeChart, GenderChart } from "./DemographicsCharts";
 import { BatchPicker } from "../BatchPicker";
+import { SERVICE_OPTIONS } from "@/components/form";
 
 const LIFESTAGE_ORDER = [
   "Student (JHS/SHS)",
@@ -17,7 +18,7 @@ const LIFESTAGE_ORDER = [
   "Senior",
 ];
 
-const AGE_BUCKETS = ["Under 18", "18–22", "23–27", "28–32", "33–40", "41+"];
+const AGE_BUCKETS = ["13–20", "21–30", "31–40", "41–50", "51–60", "60+"];
 
 function abbrevService(s: string) {
   return s.replace(" - ", " ");
@@ -50,12 +51,12 @@ export default async function DemographicsPage({
             service: participants.serviceAttending,
             gender: participants.gender,
             ageBucket: sql<string>`CASE
-              WHEN ${participants.age} < 18 THEN 'Under 18'
-              WHEN ${participants.age} <= 22 THEN '18–22'
-              WHEN ${participants.age} <= 27 THEN '23–27'
-              WHEN ${participants.age} <= 32 THEN '28–32'
-              WHEN ${participants.age} <= 40 THEN '33–40'
-              ELSE '41+'
+              WHEN ${participants.age} <= 20 THEN '13–20'
+              WHEN ${participants.age} <= 30 THEN '21–30'
+              WHEN ${participants.age} <= 40 THEN '31–40'
+              WHEN ${participants.age} <= 50 THEN '41–50'
+              WHEN ${participants.age} <= 60 THEN '51–60'
+              ELSE '60+'
             END`,
           })
           .from(participants)
@@ -88,9 +89,10 @@ export default async function DemographicsPage({
     count: lifestageCounts.get(label) ?? 0,
   })).filter((r) => r.count > 0);
 
-  const serviceData = Array.from(serviceCounts.entries())
-    .map(([label, count]) => ({ label: abbrevService(label), count }))
-    .sort((a, b) => b.count - a.count);
+  const serviceData = SERVICE_OPTIONS.map((option) => ({
+    label: abbrevService(option),
+    count: serviceCounts.get(option) ?? 0,
+  })).filter((r) => r.count > 0);
 
   const ageData = AGE_BUCKETS.map((label) => ({ label, count: ageCounts.get(label) ?? 0 }));
 

@@ -4,13 +4,25 @@ import { useRef, useState } from "react";
 import { Field, inputCls } from "./form";
 import type { VictoryGroupLeader } from "@/db/schema";
 
-interface Props { enabled?: boolean }
+interface Props {
+  enabled?: boolean;
+  defaultLastName?: string;
+  defaultFirstName?: string;
+  defaultMobileNumber?: string;
+  defaultMessengerName?: string;
+}
 
-export function VgLeaderFields({ enabled = true }: Props) {
-  const [lastName, setLastName] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [mobileNumber, setMobileNumber] = useState("");
-  const [messengerName, setMessengerName] = useState("");
+export function VgLeaderFields({
+  enabled = true,
+  defaultLastName = "",
+  defaultFirstName = "",
+  defaultMobileNumber = "",
+  defaultMessengerName = "",
+}: Props) {
+  const [lastName, setLastName] = useState(defaultLastName);
+  const [firstName, setFirstName] = useState(defaultFirstName);
+  const [mobileNumber, setMobileNumber] = useState(defaultMobileNumber);
+  const [messengerName, setMessengerName] = useState(defaultMessengerName);
   const [results, setResults] = useState<VictoryGroupLeader[]>([]);
   const [open, setOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);

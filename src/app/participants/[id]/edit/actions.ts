@@ -42,7 +42,7 @@ export async function updateParticipant(id: number, formData: FormData) {
   const registrationFee = formData.get("registrationFee") as string;
   const isAB = registrationFee === "A" || registrationFee === "B";
   const needsVictoryDate = registrationFee === "C" || registrationFee === "D";
-  const isDoneWithVictoryWeekend = isAB && formData.get("isDoneWithVictoryWeekend") === "on";
+  const isDoneWithVictoryWeekend = isAB && formData.get("isDoneWithVictoryWeekend") === "yes";
   const showVgLeader = needsVictoryDate || isDoneWithVictoryWeekend;
 
   const previousChurchRaw = formData.get("previousChurch") as string;

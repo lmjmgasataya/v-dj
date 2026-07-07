@@ -5,6 +5,8 @@ import { updateParticipant } from "./actions";
 import { Section, Field, RadioOption, CheckboxOption, inputCls, selectCls, SERVICE_OPTIONS, FEE_CATEGORIES } from "@/components/form";
 import { DatePickerField } from "@/components/DatePickerField";
 import { SubmitButton } from "@/components/SubmitButton";
+import { VgLeaderFields } from "@/components/VgLeaderFields";
+import { DisciplerFields } from "@/components/DisciplerFields";
 import Link from "next/link";
 import type { Participant } from "@/db/schema";
 
@@ -31,7 +33,17 @@ const LIFESTAGES = [
 
 const STUDENT_LIFESTAGES = ["Student (JHS/SHS)", "Student (College)"];
 
-export function EditForm({ participant, newDatePicker }: { participant: ParticipantWithRelations; newDatePicker: boolean }) {
+export function EditForm({
+  participant,
+  newDatePicker,
+  vgLeaderAutocomplete,
+  disciplerAutocomplete,
+}: {
+  participant: ParticipantWithRelations;
+  newDatePicker: boolean;
+  vgLeaderAutocomplete: boolean;
+  disciplerAutocomplete: boolean;
+}) {
   const isOtherChurch = participant.previousChurch != null && participant.previousChurch !== "Roman Catholic";
   const [previousChurch, setPreviousChurch] = useState(isOtherChurch ? "Others" : "Roman Catholic");
   const [isDoneWithVictoryWeekend, setIsDoneWithVictoryWeekend] = useState(participant.isDoneWithVictoryWeekend ?? false);
@@ -191,33 +203,23 @@ export function EditForm({ participant, newDatePicker }: { participant: Particip
 
       {showVgLeader ? (
         <Section title="Victory Group Leader Information">
-          <Field label="VG Leader's Last Name">
-            <input name="vgLeaderLastName" defaultValue={participant.vgLeaderLastName ?? ""} className={inputCls} />
-          </Field>
-          <Field label="VG Leader's First Name">
-            <input name="vgLeaderFirstName" defaultValue={participant.vgLeaderFirstName ?? ""} className={inputCls} />
-          </Field>
-          <Field label="VG Leader's Mobile Number">
-            <input name="vgLeaderMobileNumber" type="tel" defaultValue={participant.vgLeaderMobileNumber ?? ""} className={inputCls} />
-          </Field>
-          <Field label="VG Leader's Messenger / Facebook Name">
-            <input name="vgLeaderMessengerName" defaultValue={participant.vgLeaderMessengerName ?? ""} className={inputCls} />
-          </Field>
+          <VgLeaderFields
+            enabled={vgLeaderAutocomplete}
+            defaultLastName={participant.vgLeaderLastName ?? ""}
+            defaultFirstName={participant.vgLeaderFirstName ?? ""}
+            defaultMobileNumber={participant.vgLeaderMobileNumber ?? ""}
+            defaultMessengerName={participant.vgLeaderMessengerName ?? ""}
+          />
         </Section>
       ) : (
         <Section title="One2One Discipler Information" important="To be filled up by the One2One discipler">
-          <Field label="Discipler's Last Name">
-            <input name="disciplerLastName" defaultValue={participant.disciplerLastName ?? ""} className={inputCls} />
-          </Field>
-          <Field label="Discipler's First Name">
-            <input name="disciplerFirstName" defaultValue={participant.disciplerFirstName ?? ""} className={inputCls} />
-          </Field>
-          <Field label="Discipler's Mobile Number">
-            <input name="disciplerMobileNumber" type="tel" defaultValue={participant.disciplerMobileNumber ?? ""} className={inputCls} />
-          </Field>
-          <Field label="Discipler's Messenger / Facebook Name">
-            <input name="disciplerMessengerName" defaultValue={participant.disciplerMessengerName ?? ""} className={inputCls} />
-          </Field>
+          <DisciplerFields
+            enabled={disciplerAutocomplete}
+            defaultLastName={participant.disciplerLastName ?? ""}
+            defaultFirstName={participant.disciplerFirstName ?? ""}
+            defaultMobileNumber={participant.disciplerMobileNumber ?? ""}
+            defaultMessengerName={participant.disciplerMessengerName ?? ""}
+          />
           <div className="sm:col-span-2">
             <CheckboxOption name="confirmedReadiness" defaultChecked={participant.confirmedReadiness ?? false} align="start" labelClassName="text-red-800 font-bold">
               I am confirming that the participant is ready to join Victory Day, that we will

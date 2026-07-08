@@ -72,11 +72,21 @@ export function AdminSessionArea({
     <>
       {/* Step 1: Select session */}
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00428E] text-white text-xs font-bold shrink-0">1</span>
-          <p className="text-sm font-semibold text-gray-700">
-            Select a Session{batchName ? <span className="font-normal text-gray-400"> ({batchName})</span> : null}
-          </p>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00428E] text-white text-xs font-bold shrink-0">1</span>
+            <p className="text-sm font-semibold text-gray-700">
+              Select a Session{batchName ? <span className="font-normal text-gray-400"> ({batchName})</span> : null}
+            </p>
+          </div>
+
+          {attendeeInfo && !isPending && (
+            <SessionAttendeesModal
+              sessionId={attendeeInfo.sessionId}
+              sessionName={attendeeInfo.sessionName}
+              attendeeCount={attendeeInfo.attendeeCount}
+            />
+          )}
         </div>
 
         <div ref={containerRef} className="relative">
@@ -120,14 +130,6 @@ export function AdminSessionArea({
             </ul>
           )}
         </div>
-
-        {attendeeInfo && !isPending && (
-          <SessionAttendeesModal
-            sessionId={attendeeInfo.sessionId}
-            sessionName={attendeeInfo.sessionName}
-            attendeeCount={attendeeInfo.attendeeCount}
-          />
-        )}
       </div>
 
       {/* Below Step 1: skeleton while navigating, children when settled */}

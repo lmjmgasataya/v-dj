@@ -43,10 +43,10 @@ export function SessionAttendeesModal({
     <>
       <button
         onClick={handleOpen}
-        className="mt-3 flex items-center gap-2 px-4 py-2.5 rounded-xl border border-indigo-100 bg-indigo-50 hover:bg-indigo-100 transition w-fit"
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-100 bg-indigo-50 hover:bg-indigo-100 transition w-fit shrink-0"
       >
-        <span className="text-2xl font-bold text-indigo-600">{attendeeCount}</span>
-        <span className="text-sm text-indigo-500">attendee{attendeeCount !== 1 ? "s" : ""} checked in</span>
+        <span className="text-base font-bold text-indigo-600">{attendeeCount}</span>
+        <span className="text-xs text-indigo-500">attendee{attendeeCount !== 1 ? "s" : ""} checked in</span>
       </button>
 
       {open && (

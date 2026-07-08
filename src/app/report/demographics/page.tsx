@@ -4,7 +4,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { LifestageChart, ServiceChart, AgeChart, GenderChart } from "./DemographicsCharts";
+import { LifestageChart, ServiceChart, AgeChart, GenderChart, ChurchChart } from "./DemographicsCharts";
 import { BatchPicker } from "../BatchPicker";
 import { SERVICE_OPTIONS } from "@/components/form";
 
@@ -50,6 +50,7 @@ export default async function DemographicsPage({
             lifestage: participants.lifestage,
             service: participants.serviceAttending,
             gender: participants.gender,
+            previousChurch: participants.previousChurch,
             ageBucket: sql<string>`CASE
               WHEN ${participants.age} <= 20 THEN '13–20'
               WHEN ${participants.age} <= 30 THEN '21–30'
@@ -76,12 +77,15 @@ export default async function DemographicsPage({
   const serviceCounts = new Map<string, number>();
   const genderCounts = new Map<string, number>();
   const ageCounts = new Map<string, number>();
+  const churchCounts = new Map<string, number>();
 
   for (const r of rows) {
     if (r.lifestage) lifestageCounts.set(r.lifestage, (lifestageCounts.get(r.lifestage) ?? 0) + 1);
     if (r.service) serviceCounts.set(r.service, (serviceCounts.get(r.service) ?? 0) + 1);
     if (r.gender) genderCounts.set(r.gender, (genderCounts.get(r.gender) ?? 0) + 1);
     ageCounts.set(r.ageBucket, (ageCounts.get(r.ageBucket) ?? 0) + 1);
+    const church = r.previousChurch?.trim();
+    if (church) churchCounts.set(church, (churchCounts.get(church) ?? 0) + 1);
   }
 
   const lifestageData = LIFESTAGE_ORDER.map((label) => ({
@@ -99,6 +103,10 @@ export default async function DemographicsPage({
   const genderData = Array.from(genderCounts.entries())
     .map(([label, count]) => ({ label, count }))
     .sort((a, b) => a.label.localeCompare(b.label));
+
+  const churchData = Array.from(churchCounts.entries())
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count);
 
   return (
     <div className="flex flex-col gap-8">
@@ -140,6 +148,12 @@ export default async function DemographicsPage({
         <p className="text-sm font-semibold text-gray-700 mb-1">Age Distribution</p>
         <p className="text-xs text-gray-400 mb-4">Participants grouped by age range</p>
         <AgeChart data={ageData} />
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
+        <p className="text-sm font-semibold text-gray-700 mb-1">Previous Church</p>
+        <p className="text-xs text-gray-400 mb-4">Top previous churches reported by participants</p>
+        <ChurchChart data={churchData} />
       </div>
     </div>
   );

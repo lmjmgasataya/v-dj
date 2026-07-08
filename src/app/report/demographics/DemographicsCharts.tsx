@@ -117,6 +117,26 @@ export function GenderChart({ data, total }: { data: { label: string; count: num
   );
 }
 
+export function ChurchChart({ data }: { data: Row[] }) {
+  if (data.length === 0) return <Empty />;
+  const height = Math.max(200, data.length * 44);
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart layout="vertical" data={data} margin={{ top: 4, right: 40, left: 8, bottom: 4 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+        <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: "#9ca3af" }} tickLine={false} axisLine={false} />
+        <YAxis type="category" dataKey="label" tick={{ fontSize: 12, fill: "#374151" }} tickLine={false} axisLine={false} width={130} />
+        <Tooltip
+          cursor={{ fill: "#fff7ed" }}
+          contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb", fontSize: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
+          formatter={(v) => [v, "Participants"]}
+        />
+        <Bar dataKey="count" fill="#f59e0b" radius={[0, 4, 4, 0]} maxBarSize={32} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
 function Empty() {
   return (
     <div className="flex items-center justify-center h-32 text-sm text-gray-400">

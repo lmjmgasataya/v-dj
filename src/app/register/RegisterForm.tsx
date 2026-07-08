@@ -65,7 +65,7 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
   const [previousChurch, setPreviousChurch] = useState("");
   const [registrationFee, setRegistrationFee] = useState("");
   const [lifestage, setLifestage] = useState("");
-  const [isDoneWithVictoryWeekend, setIsDoneWithVictoryWeekend] = useState(false);
+  const [isDoneWithVictoryWeekend, setIsDoneWithVictoryWeekend] = useState<boolean | null>(null);
   const [worshipService, setWorshipService] = useState(() => getDefaultService());
   const [step, setStep] = useState<"form" | "review">("form");
   const [captured, setCaptured] = useState<Record<string, string>>({});
@@ -74,7 +74,7 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
 
   const needsVictoryDate = registrationFee === "C" || registrationFee === "D";
   const isAB = registrationFee === "A" || registrationFee === "B";
-  const showVgLeader = needsVictoryDate || isDoneWithVictoryWeekend;
+  const showVgLeader = needsVictoryDate || isDoneWithVictoryWeekend === true;
 
   const isDirty = useRef(false);
   useEffect(() => {
@@ -186,7 +186,7 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
               value={registrationFee}
               onChange={(e) => {
                 setRegistrationFee(e.target.value);
-                setIsDoneWithVictoryWeekend(false);
+                setIsDoneWithVictoryWeekend(null);
               }}
             >
               <option value="">-- Select --</option>
@@ -198,8 +198,8 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
               <div className="flex flex-col gap-1.5">
                 <span className="text-sm text-gray-700">Have you gone through Victory Weekend before?</span>
                 <div className="flex gap-4">
-                  <RadioOption name="isDoneWithVictoryWeekend" value="yes" label="Yes" checked={isDoneWithVictoryWeekend} onChange={() => setIsDoneWithVictoryWeekend(true)} />
-                  <RadioOption name="isDoneWithVictoryWeekend" value="no" label="No" checked={!isDoneWithVictoryWeekend} onChange={() => setIsDoneWithVictoryWeekend(false)} />
+                  <RadioOption name="isDoneWithVictoryWeekend" value="yes" label="Yes" required checked={isDoneWithVictoryWeekend === true} onChange={() => setIsDoneWithVictoryWeekend(true)} />
+                  <RadioOption name="isDoneWithVictoryWeekend" value="no" label="No" checked={isDoneWithVictoryWeekend === false} onChange={() => setIsDoneWithVictoryWeekend(false)} />
                 </div>
               </div>
             )}

@@ -11,6 +11,7 @@ type Participant = {
   firstName: string;
   lastName: string;
   preferredNameOnId: string | null;
+  registrationFee: string | null;
   batchId: number | null;
 };
 
@@ -184,7 +185,10 @@ function IdCard({ participant, showFullName, batchName }: { participant: Partici
             <QRCode value={qrValue} size={130} />
           </div>
         </div>
-        <p className={`text-xs text-gray-500 capitalize text-right ${showFullName ? "" : "invisible"}`}>{fullName.toLowerCase()}</p>
+        <p className={`text-xs text-gray-500 text-right ${showFullName ? "" : "invisible"}`}>
+          <span className="capitalize">{fullName.toLowerCase()}</span>
+          {participant.registrationFee ? ` (${participant.registrationFee})` : ""}
+        </p>
       </div>
     </div>
   );

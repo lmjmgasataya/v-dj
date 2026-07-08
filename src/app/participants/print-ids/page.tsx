@@ -26,6 +26,7 @@ async function PrintIdsContent() {
         firstName: participants.firstName,
         lastName: participants.lastName,
         preferredNameOnId: participants.preferredNameOnId,
+        registrationFee: participants.registrationFee,
         batchId: participants.batchId,
       })
       .from(participants)

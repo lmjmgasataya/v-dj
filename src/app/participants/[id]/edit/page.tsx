@@ -58,6 +58,7 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
         newDatePicker={flagMap["new_date_picker"] ?? false}
         vgLeaderAutocomplete={flagMap["autocomplete_vg_leaders"] ?? true}
         disciplerAutocomplete={flagMap["autocomplete_disciplers"] ?? true}
+        editRegistrationFee={flagMap["edit_registration_fee"] ?? false}
       />
       {(flagMap["qr_checkin"] ?? false) && (
         <div className="mt-6">

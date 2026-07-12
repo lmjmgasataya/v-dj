@@ -38,19 +38,22 @@ export function EditForm({
   newDatePicker,
   vgLeaderAutocomplete,
   disciplerAutocomplete,
+  editRegistrationFee,
 }: {
   participant: ParticipantWithRelations;
   newDatePicker: boolean;
   vgLeaderAutocomplete: boolean;
   disciplerAutocomplete: boolean;
+  editRegistrationFee: boolean;
 }) {
   const isOtherChurch = participant.previousChurch != null && participant.previousChurch !== "Roman Catholic";
   const [previousChurch, setPreviousChurch] = useState(isOtherChurch ? "Others" : "Roman Catholic");
   const [isDoneWithVictoryWeekend, setIsDoneWithVictoryWeekend] = useState(participant.isDoneWithVictoryWeekend ?? false);
   const [lifestage, setLifestage] = useState(participant.lifestage ?? "");
+  const [registrationFee, setRegistrationFee] = useState(participant.registrationFee ?? "");
 
-  const isAB = participant.registrationFee === "A" || participant.registrationFee === "B";
-  const needsVictoryDate = participant.registrationFee === "C" || participant.registrationFee === "D";
+  const isAB = registrationFee === "A" || registrationFee === "B";
+  const needsVictoryDate = registrationFee === "C" || registrationFee === "D";
   const showVgLeader = needsVictoryDate || isDoneWithVictoryWeekend;
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
 
@@ -63,12 +66,13 @@ export function EditForm({
           I will register for: <span className="text-red-500">*</span>
           <span className="ml-1.5 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 uppercase tracking-wide">Important</span>
         </p>
-        <input type="hidden" name="registrationFee" value={participant.registrationFee ?? ""} />
+        {!editRegistrationFee && <input type="hidden" name="registrationFee" value={registrationFee} />}
         <select
-          disabled
-          className={`${selectCls} opacity-60 cursor-not-allowed bg-gray-50`}
-          value={participant.registrationFee ?? ""}
-          onChange={() => {}}
+          name={editRegistrationFee ? "registrationFee" : undefined}
+          disabled={!editRegistrationFee}
+          className={editRegistrationFee ? selectCls : `${selectCls} opacity-60 cursor-not-allowed bg-gray-50`}
+          value={registrationFee}
+          onChange={(e) => setRegistrationFee(e.target.value)}
         >
           <option value="">-- Select --</option>
           {FEE_CATEGORIES.map((f) => (
@@ -243,7 +247,7 @@ export function EditForm({
           <select
             disabled
             className={`${selectCls} opacity-60 cursor-not-allowed bg-gray-50`}
-            value={participant.registrationFee ?? ""}
+            value={registrationFee}
             onChange={() => {}}
           >
             <option value="">-- Select --</option>

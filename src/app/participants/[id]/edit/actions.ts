@@ -98,7 +98,7 @@ export async function updateParticipant(id: number, formData: FormData) {
     victoryDate: (formData.get("victoryDate") as string) || null,
   }).where(eq(participants.id, id));
 
-  redirect("/participants");
+  redirect("/participants?updated=1");
 }
 
 export async function deleteParticipant(id: number) {

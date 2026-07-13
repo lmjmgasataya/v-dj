@@ -2,7 +2,7 @@ import { db } from "@/db";
 import { featureFlags, smsApiKeys, users } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { sql } from "drizzle-orm";
-import { toggleFlag, createFlag, deleteFlag, changeRole, resetPassword, deleteUser, createUser, createSmsApiKey, deleteSmsApiKey, setSmsApiKeyDefault } from "./actions";
+import { toggleFlag, createFlag, deleteFlag, changeRole, resetPassword, deleteUser, createUser, createSmsApiKey, updateSmsApiKey, deleteSmsApiKey, setSmsApiKeyDefault } from "./actions";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 import { SmsTester } from "./SmsTester";
 // session is read here (not in layout) because we need session.userId to hide delete-self button
@@ -241,34 +241,53 @@ export default async function DevopsAdminPage() {
         ) : (
           <ul className="divide-y divide-gray-100">
             {allSmsApiKeys.map((k) => (
-              <li key={k.id} className="flex items-center justify-between px-6 py-4">
-                <div>
+              <li key={k.id} className="flex flex-col gap-3 px-6 py-4">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-gray-800">{k.name}</p>
                     {k.isDefault && (
                       <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">default</span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-400 font-mono mt-0.5">
-                    {k.apiKey.slice(0, 6)}{"•".repeat(Math.min(k.apiKey.length - 6, 20))}
-                  </p>
-                  {k.endpoint && (
-                    <p className="text-xs text-gray-400 font-mono mt-0.5 truncate max-w-xs">{k.endpoint}</p>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {!k.isDefault && (
+                      <form action={setSmsApiKeyDefault.bind(null, k.id)}>
+                        <button type="submit" className="text-xs px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
+                          Set default
+                        </button>
+                      </form>
+                    )}
+                    <ConfirmDeleteButton
+                      action={deleteSmsApiKey.bind(null, k.id)}
+                      message={`Delete API key "${k.name}"?`}
+                    />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {!k.isDefault && (
-                    <form action={setSmsApiKeyDefault.bind(null, k.id)}>
-                      <button type="submit" className="text-xs px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
-                        Set default
-                      </button>
-                    </form>
-                  )}
-                  <ConfirmDeleteButton
-                    action={deleteSmsApiKey.bind(null, k.id)}
-                    message={`Delete API key "${k.name}"?`}
-                  />
-                </div>
+                <form action={updateSmsApiKey.bind(null, k.id)} className="grid grid-cols-3 gap-2 items-end">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Name</label>
+                    <input name="name" required defaultValue={k.name} className="w-full text-sm border border-gray-200 rounded-lg px-3 py-1.5" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">API Key</label>
+                    <input
+                      name="apiKey"
+                      type="password"
+                      autoComplete="new-password"
+                      placeholder={`${k.apiKey.slice(0, 6)}${"•".repeat(Math.min(k.apiKey.length - 6, 20))}`}
+                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-1.5 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Endpoint</label>
+                    <input name="endpoint" type="url" defaultValue={k.endpoint ?? ""} className="w-full text-sm border border-gray-200 rounded-lg px-3 py-1.5 font-mono" />
+                  </div>
+                  <div className="col-span-3 flex justify-end">
+                    <button type="submit" className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
+                      Save changes
+                    </button>
+                  </div>
+                </form>
               </li>
             ))}
           </ul>

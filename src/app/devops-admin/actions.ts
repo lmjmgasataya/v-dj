@@ -76,6 +76,19 @@ export async function createSmsApiKey(formData: FormData) {
   revalidatePath("/devops-admin");
 }
 
+export async function updateSmsApiKey(id: number, formData: FormData) {
+  await requireDeveloper();
+  const name = (formData.get("name") as string ?? "").trim();
+  const apiKey = (formData.get("apiKey") as string ?? "").trim();
+  const endpoint = (formData.get("endpoint") as string ?? "").trim() || "https://www.traccar.org/sms";
+  if (!name) return;
+  await db
+    .update(smsApiKeys)
+    .set({ name, endpoint, ...(apiKey ? { apiKey } : {}) })
+    .where(eq(smsApiKeys.id, id));
+  revalidatePath("/devops-admin");
+}
+
 export async function deleteSmsApiKey(id: number) {
   await requireDeveloper();
   await db.delete(smsApiKeys).where(eq(smsApiKeys.id, id));

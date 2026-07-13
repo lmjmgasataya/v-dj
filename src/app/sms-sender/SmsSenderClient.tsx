@@ -160,12 +160,13 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
 
     for (let i = 0; i < recipients.length; i++) {
       const r = recipients[i];
+      const personalizedMessage = message.replace(/\{name\}/gi, r.name);
       setResults((prev) => prev.map((x) => (x.id === r.id ? { ...x, status: "sending" } : x)));
       try {
         const res = await fetch("/api/sms", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ to: r.phone, message, recipientName: r.name, ...(tab === "participants" ? { participantId: r.id } : {}), ...(defaultKey?.endpoint ? { endpoint: defaultKey.endpoint } : {}), ...(defaultKey?.apiKey ? { authorization: defaultKey.apiKey } : {}) }),
+          body: JSON.stringify({ to: r.phone, message: personalizedMessage, recipientName: r.name, ...(tab === "participants" ? { participantId: r.id } : {}), ...(defaultKey?.endpoint ? { endpoint: defaultKey.endpoint } : {}), ...(defaultKey?.apiKey ? { authorization: defaultKey.apiKey } : {}) }),
         });
         const text = await res.text();
         let ok = res.ok;
@@ -214,12 +215,13 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
   const resendOne = async (id: number) => {
     const r = results.find((x) => x.id === id);
     if (!r) return;
+    const personalizedMessage = message.replace(/\{name\}/gi, r.name);
     setResults((prev) => prev.map((x) => (x.id === id ? { ...x, status: "sending", error: undefined } : x)));
     try {
       const res = await fetch("/api/sms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: r.phone, message, recipientName: r.name, ...(tab === "participants" ? { participantId: r.id } : {}), ...(defaultKey?.endpoint ? { endpoint: defaultKey.endpoint } : {}), ...(defaultKey?.apiKey ? { authorization: defaultKey.apiKey } : {}) }),
+        body: JSON.stringify({ to: r.phone, message: personalizedMessage, recipientName: r.name, ...(tab === "participants" ? { participantId: r.id } : {}), ...(defaultKey?.endpoint ? { endpoint: defaultKey.endpoint } : {}), ...(defaultKey?.apiKey ? { authorization: defaultKey.apiKey } : {}) }),
       });
       const text = await res.text();
       let ok = res.ok;
@@ -470,7 +472,10 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
                 placeholder="Type your message here…"
                 className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-[#00428E]/20 focus:border-[#00428E]"
               />
-              <p className="text-xs text-gray-400 text-right mt-1">{message.length} characters</p>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-xs text-gray-400">Use <span className="font-mono">{"{name}"}</span> to insert each recipient&apos;s name.</p>
+                <p className="text-xs text-gray-400">{message.length} characters</p>
+              </div>
             </div>
 
             <div className="flex justify-end">

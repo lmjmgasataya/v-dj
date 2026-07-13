@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { retrySmsLog } from "./actions";
 
 export default async function SmsQueuePage() {
   const session = await getSession();
@@ -40,6 +41,7 @@ export default async function SmsQueuePage() {
               <th className="px-4 py-2.5">Number</th>
               <th className="px-4 py-2.5">Message</th>
               <th className="px-4 py-2.5">Status</th>
+              <th className="px-4 py-2.5"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -66,11 +68,20 @@ export default async function SmsQueuePage() {
                     {log.status === "sent" ? "Sent" : "Failed"}
                   </span>
                 </td>
+                <td className="px-4 py-2.5 whitespace-nowrap">
+                  {log.status === "failed" && (
+                    <form action={retrySmsLog.bind(null, log.id)}>
+                      <button type="submit" className="text-xs px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
+                        Retry
+                      </button>
+                    </form>
+                  )}
+                </td>
               </tr>
             ))}
             {logs.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-gray-400">No SMS sends recorded yet.</td>
+                <td colSpan={6} className="px-4 py-8 text-center text-gray-400">No SMS sends recorded yet.</td>
               </tr>
             )}
           </tbody>

@@ -165,7 +165,7 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
         const res = await fetch("/api/sms", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ to: r.phone, message, ...(defaultKey?.endpoint ? { endpoint: defaultKey.endpoint } : {}), ...(defaultKey?.apiKey ? { authorization: defaultKey.apiKey } : {}) }),
+          body: JSON.stringify({ to: r.phone, message, recipientName: r.name, ...(tab === "participants" ? { participantId: r.id } : {}), ...(defaultKey?.endpoint ? { endpoint: defaultKey.endpoint } : {}), ...(defaultKey?.apiKey ? { authorization: defaultKey.apiKey } : {}) }),
         });
         const text = await res.text();
         let ok = res.ok;
@@ -219,7 +219,7 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
       const res = await fetch("/api/sms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: r.phone, message, ...(defaultKey?.endpoint ? { endpoint: defaultKey.endpoint } : {}), ...(defaultKey?.apiKey ? { authorization: defaultKey.apiKey } : {}) }),
+        body: JSON.stringify({ to: r.phone, message, recipientName: r.name, ...(tab === "participants" ? { participantId: r.id } : {}), ...(defaultKey?.endpoint ? { endpoint: defaultKey.endpoint } : {}), ...(defaultKey?.apiKey ? { authorization: defaultKey.apiKey } : {}) }),
       });
       const text = await res.text();
       let ok = res.ok;

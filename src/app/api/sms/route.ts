@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { smsApiKeys } from "@/db/schema";
+import { smsApiKeys, smsLogs } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { isSmsSuccess } from "@/lib/sms";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { to, message } = body;
+  const { to, message, recipientName, participantId } = body;
   const endpoint = body.endpoint ?? process.env.SMS_ENDPOINT;
 
   let authorization: string | undefined = body.authorization ?? process.env.SMS_API_KEY;
@@ -34,6 +35,14 @@ export async function POST(req: NextRequest) {
   } catch {
     data = text;
   }
+
+  await db.insert(smsLogs).values({
+    recipientName: recipientName || to,
+    recipientNumber: to,
+    message,
+    status: isSmsSuccess(res.status, text) ? "sent" : "failed",
+    participantId: participantId ?? null,
+  });
 
   return NextResponse.json(data, { status: res.status });
 }

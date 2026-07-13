@@ -94,7 +94,7 @@ export async function registerParticipant(formData: FormData) {
     .limit(1)
     .then((rows) => rows[0] ?? null);
 
-  await db.insert(participants).values({
+  const [newParticipant] = await db.insert(participants).values({
     lastName: toTitleCase(formData.get("lastName") as string),
     firstName: toTitleCase(formData.get("firstName") as string),
     middleInitial: toTitleCase((formData.get("middleInitial") as string) || "") || null,
@@ -122,7 +122,7 @@ export async function registerParticipant(formData: FormData) {
     worshipServiceRegistered: (formData.get("worshipServiceRegistered") as string) || null,
     adminVolunteerName: toTitleCase(formData.get("adminVolunteerName") as string),
     batchId: defaultBatch?.id ?? null,
-  });
+  }).returning({ id: participants.id });
 
   after(async () => {
     try {
@@ -136,7 +136,7 @@ export async function registerParticipant(formData: FormData) {
             .replace(/\{firstName\}/gi, firstName)
             .replace(/\{lastName\}/gi, lastName)
             .replace(/\{name\}/gi, `${firstName} ${lastName}`);
-          await sendSms(formData.get("mobileNumber") as string, message);
+          await sendSms(formData.get("mobileNumber") as string, message, `${firstName} ${lastName}`, newParticipant?.id ?? null);
         }
 
         if (isAB && !isDoneWithVictoryWeekend) {
@@ -149,7 +149,7 @@ export async function registerParticipant(formData: FormData) {
               const discMessage = disciplerTemplate
                 .replace(/\{name_discipler\}/gi, `${discFirstName} ${discLastName}`.trim())
                 .replace(/\{name_participant\}/gi, `${firstName} ${lastName}`);
-              await sendSms(discMobile, discMessage);
+              await sendSms(discMobile, discMessage, `${discFirstName} ${discLastName}`.trim(), newParticipant?.id ?? null);
             }
           }
         }

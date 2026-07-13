@@ -3,6 +3,7 @@ import { batches, featureFlags, smsApiKeys, smsMessageTemplates } from "@/db/sch
 import { desc, eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { SmsSenderClient } from "./SmsSenderClient";
 
@@ -47,7 +48,10 @@ export default async function SmsSenderPage() {
     <div className="max-w-3xl mx-auto flex flex-col gap-6 py-8 px-4">
       <div>
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "SMS Sender" }]} />
-        <h2 className="text-2xl font-bold text-gray-900">SMS Sender</h2>
+        <div className="flex items-start justify-between gap-4">
+          <h2 className="text-2xl font-bold text-gray-900">SMS Sender</h2>
+          <Link href="/sms-sender/queue" className="text-xs font-semibold text-[#00428E] hover:underline whitespace-nowrap mt-1.5">View SMS Queue →</Link>
+        </div>
         <p className="text-xs font-semibold text-gray-400 tracking-widest mb-1">Send SMS to participants/other contacts in a batch.</p>
         <p className="text-xs text-gray-400 mt-1">
           {defaultKey

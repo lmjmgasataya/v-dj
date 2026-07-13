@@ -17,3 +17,11 @@ export async function retrySmsLog(id: number) {
   await sendSms(log.recipientNumber, log.message, log.recipientName, log.participantId);
   revalidatePath("/sms-sender/queue");
 }
+
+export async function deleteSmsLog(id: number) {
+  const session = await getSession();
+  if (!session || session.role !== "developer") return;
+
+  await db.delete(smsLogs).where(eq(smsLogs.id, id));
+  revalidatePath("/sms-sender/queue");
+}

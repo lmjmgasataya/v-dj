@@ -32,7 +32,7 @@ function SearchSkeleton() {
   );
 }
 
-export function ParticipantSearch({ sessionId, sessionName: _sessionName, isVictoryDay, initialQ, qrCheckin, victoryDayAllowAllClasses, autoOpenQrScanner }: { sessionId: number; sessionName: string; isVictoryDay: boolean; initialQ?: string; qrCheckin?: boolean; victoryDayAllowAllClasses?: boolean; autoOpenQrScanner?: boolean }) {
+export function ParticipantSearch({ sessionId, sessionName: _sessionName, isVictoryDay, requiresVictoryDay, initialQ, qrCheckin, victoryDayAllowAllClasses, autoOpenQrScanner }: { sessionId: number; sessionName: string; isVictoryDay: boolean; requiresVictoryDay: boolean; initialQ?: string; qrCheckin?: boolean; victoryDayAllowAllClasses?: boolean; autoOpenQrScanner?: boolean }) {
   const [q, setQ] = useState(initialQ ?? "");
   const [results, setResults] = useState<Results>([]);
   const [searched, setSearched] = useState(false);
@@ -186,6 +186,7 @@ export function ParticipantSearch({ sessionId, sessionName: _sessionName, isVict
               participants={results}
               sessionId={sessionId}
               isVictoryDay={isVictoryDay}
+              requiresVictoryDay={requiresVictoryDay}
               onAction={() => runSearch(q)}
               searchQuery={q.trim()}
             />

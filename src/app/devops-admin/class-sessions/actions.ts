@@ -18,6 +18,7 @@ export async function createClassSession(formData: FormData) {
     name: formData.get("name") as string,
     sessionDate: formData.get("sessionDate") as string,
     isVictoryDay: formData.get("isVictoryDay") === "on",
+    requiresVictoryDay: formData.get("requiresVictoryDay") === "on",
     allowsWalkIn: formData.get("allowsWalkIn") === "on",
   });
   revalidatePath("/devops-admin/class-sessions");
@@ -35,6 +36,8 @@ export async function toggleSessionFlag(formData: FormData) {
   const field = formData.get("field") as string;
   if (field === "isVictoryDay") {
     await db.update(classSessions).set({ isVictoryDay: sql`NOT is_victory_day` }).where(eq(classSessions.id, id));
+  } else if (field === "requiresVictoryDay") {
+    await db.update(classSessions).set({ requiresVictoryDay: sql`NOT requires_victory_day` }).where(eq(classSessions.id, id));
   } else {
     await db.update(classSessions).set({ allowsWalkIn: sql`NOT allows_walk_in` }).where(eq(classSessions.id, id));
   }

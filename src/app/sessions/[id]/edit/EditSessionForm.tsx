@@ -13,7 +13,7 @@ export function EditSessionForm({
   existingNames,
   newDatePicker,
 }: {
-  session: { id: number; name: string; sessionDate: string; allowsWalkIn: boolean; batchId: number | null };
+  session: { id: number; name: string; sessionDate: string; requiresVictoryDay: boolean; allowsWalkIn: boolean; batchId: number | null };
   existingNames: string[];
   newDatePicker: boolean;
 }) {
@@ -84,6 +84,10 @@ export function EditSessionForm({
             newDatePicker={newDatePicker}
           />
         </div>
+
+        <CheckboxOption name="requiresVictoryDay" value="true" defaultChecked={session.requiresVictoryDay} labelClassName="font-medium">
+          Require Victory Day completion before check-in
+        </CheckboxOption>
 
         <CheckboxOption name="allowsWalkIn" value="true" defaultChecked={session.allowsWalkIn} labelClassName="font-medium">
           Allow walk-in registration for this session

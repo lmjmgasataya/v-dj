@@ -10,7 +10,7 @@ export default async function EditSessionPage({ params }: { params: Promise<{ id
 
   const [[session], nameRows, flags] = await Promise.all([
     db
-      .select({ id: classSessions.id, name: classSessions.name, sessionDate: classSessions.sessionDate, allowsWalkIn: classSessions.allowsWalkIn, batchId: classSessions.batchId })
+      .select({ id: classSessions.id, name: classSessions.name, sessionDate: classSessions.sessionDate, requiresVictoryDay: classSessions.requiresVictoryDay, allowsWalkIn: classSessions.allowsWalkIn, batchId: classSessions.batchId })
       .from(classSessions)
       .where(eq(classSessions.id, sessionId))
       .limit(1),

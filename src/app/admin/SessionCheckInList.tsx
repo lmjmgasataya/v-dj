@@ -23,14 +23,14 @@ interface ParticipantWithStatus {
   checkInRemarks: string | null;
 }
 
-function CheckInRow({ p, sessionId, isVictoryDay, onAction }: { p: ParticipantWithStatus; sessionId: number; isVictoryDay: boolean; onAction?: () => void }) {
+function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction }: { p: ParticipantWithStatus; sessionId: number; isVictoryDay: boolean; requiresVictoryDay: boolean; onAction?: () => void }) {
   const [pending, startTransition] = useTransition();
   const [showModal, setShowModal] = useState(false);
   const [remarks, setRemarks] = useState("");
   const isCheckedIn = p.checkInId != null;
   const hasVictoryDay = !!p.victoryDate || p.completedVictoryDay;
   const isIncomplete = !!p.victoryDayDate && !p.completedVictoryDay && !p.victoryDate;
-  const blocked = !isVictoryDay && !hasVictoryDay;
+  const blocked = requiresVictoryDay && !isVictoryDay && !hasVictoryDay;
 
   function handleConfirmCheckIn() {
     startTransition(async () => {
@@ -163,12 +163,14 @@ export function SessionCheckInList({
   participants,
   sessionId,
   isVictoryDay,
+  requiresVictoryDay,
   onAction,
   searchQuery,
 }: {
   participants: ParticipantWithStatus[];
   sessionId: number;
   isVictoryDay: boolean;
+  requiresVictoryDay: boolean;
   onAction?: () => void;
   searchQuery?: string;
 }) {
@@ -190,7 +192,7 @@ export function SessionCheckInList({
         )}
       </div>
       {participants.map((p) => (
-        <CheckInRow key={p.id} p={p} sessionId={sessionId} isVictoryDay={isVictoryDay} onAction={onAction} />
+        <CheckInRow key={p.id} p={p} sessionId={sessionId} isVictoryDay={isVictoryDay} requiresVictoryDay={requiresVictoryDay} onAction={onAction} />
       ))}
     </div>
   );

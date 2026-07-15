@@ -130,6 +130,7 @@ export const classSessions = pgTable("class_sessions", {
   name: text("name").notNull(),
   sessionDate: date("session_date").notNull(),
   isVictoryDay: boolean("is_victory_day").default(false).notNull(),
+  requiresVictoryDay: boolean("requires_victory_day").default(true).notNull(),
   allowsWalkIn: boolean("allows_walk_in").default(false).notNull(),
   batchId: integer("batch_id").references(() => batches.id),
 }, (t) => [

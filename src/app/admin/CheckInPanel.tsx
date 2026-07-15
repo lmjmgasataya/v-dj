@@ -86,7 +86,7 @@ export function CheckInPanel({ participant, sessions, checkIns, hasVictoryDay }:
           <div className="flex flex-col gap-2">
             {sessions.map((session) => {
               const isCheckedIn = checkedInIds.has(session.id);
-              const isLocked = !session.isVictoryDay && !hasVictoryDay;
+              const isLocked = session.requiresVictoryDay && !session.isVictoryDay && !hasVictoryDay;
               const checkIn = checkIns.find((c) => c.classSessionId === session.id);
               const dateStr = new Date(session.sessionDate + "T00:00:00").toLocaleDateString("en-PH", {
                 weekday: "short",

@@ -30,6 +30,7 @@ export default async function ClassSessionsPage() {
                 <th className="px-4 py-2 text-left font-medium">Name</th>
                 <th className="px-4 py-2 text-left font-medium">Date</th>
                 <th className="px-4 py-2 text-center font-medium">Victory Day</th>
+                <th className="px-4 py-2 text-center font-medium">Requires Victory Day</th>
                 <th className="px-4 py-2 text-center font-medium">Walk-in</th>
                 <th className="px-4 py-2" />
               </tr>
@@ -46,6 +47,15 @@ export default async function ClassSessionsPage() {
                       <input type="hidden" name="field" value="isVictoryDay" />
                       <button type="submit" className={`text-xs px-2 py-0.5 rounded font-medium transition ${s.isVictoryDay ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-gray-100 text-gray-400 hover:bg-gray-200"}`}>
                         {s.isVictoryDay ? "Yes" : "No"}
+                      </button>
+                    </form>
+                  </td>
+                  <td className="px-4 py-2.5 text-center">
+                    <form action={toggleSessionFlag}>
+                      <input type="hidden" name="id" value={s.id} />
+                      <input type="hidden" name="field" value="requiresVictoryDay" />
+                      <button type="submit" className={`text-xs px-2 py-0.5 rounded font-medium transition ${s.requiresVictoryDay ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-gray-100 text-gray-400 hover:bg-gray-200"}`}>
+                        {s.requiresVictoryDay ? "Yes" : "No"}
                       </button>
                     </form>
                   </td>
@@ -89,6 +99,10 @@ export default async function ClassSessionsPage() {
             <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
               <input type="checkbox" name="isVictoryDay" className="rounded" />
               Victory Day
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input type="checkbox" name="requiresVictoryDay" className="rounded" defaultChecked />
+              Requires Victory Day
             </label>
             <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
               <input type="checkbox" name="allowsWalkIn" className="rounded" />

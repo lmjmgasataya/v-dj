@@ -79,6 +79,10 @@ export function NewSessionForm({
           />
         </div>
 
+        <CheckboxOption name="requiresVictoryDay" value="true" defaultChecked labelClassName="font-medium">
+          Require Victory Day completion before check-in
+        </CheckboxOption>
+
         <CheckboxOption name="allowsWalkIn" value="true" labelClassName="font-medium">
           Allow walk-in registration for this session
         </CheckboxOption>

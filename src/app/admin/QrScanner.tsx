@@ -66,7 +66,15 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, autoOpen, 
       try {
         await scanner.start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
+          {
+            fps: 20,
+            qrbox: { width: 250, height: 250 },
+            videoConstraints: {
+              facingMode: "environment",
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+          },
           async (decodedText: string) => {
             if (cancelled) return;
             await scanner.stop().catch(() => {});
@@ -98,7 +106,7 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, autoOpen, 
         );
         if (!cancelled) {
           document.getElementById(CONTAINER_ID)?.scrollIntoView({ behavior: "smooth", block: "start" });
-          setTimeout(() => window.scrollBy({ top: window.innerWidth < 768 ? 850 : 500, behavior: "smooth" }), 100);
+          setTimeout(() => window.scrollBy({ top: window.innerWidth < 768 ? 550 : 350, behavior: "smooth" }), 100);
         }
       } catch {
         if (!cancelled) {

@@ -36,13 +36,22 @@ export function PrintIdsClient({
 }) {
   const defaultBatch = batches.find((b) => b.isDefault) ?? batches[0] ?? null;
   const [selectedBatchId, setSelectedBatchId] = useState<number | null>(defaultBatch?.id ?? null);
+  const [sortBy, setSortBy] = useState<"lastName" | "registrationFee">("lastName");
 
   const selectedBatch = batches.find((b) => b.id === selectedBatchId) ?? null;
 
-  const filtered = useMemo(
-    () => participants.filter((p) => p.batchId === selectedBatchId),
-    [participants, selectedBatchId]
-  );
+  const filtered = useMemo(() => {
+    const list = participants.filter((p) => p.batchId === selectedBatchId);
+    return [...list].sort((a, b) => {
+      if (sortBy === "registrationFee") {
+        const feeCompare = (a.registrationFee ?? "").localeCompare(b.registrationFee ?? "");
+        if (feeCompare !== 0) return feeCompare;
+      }
+      return (
+        a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName)
+      );
+    });
+  }, [participants, selectedBatchId, sortBy]);
 
   return (
     <>
@@ -114,6 +123,17 @@ export function PrintIdsClient({
                 </select>
               )}
             </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Sort</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as "lastName" | "registrationFee")}
+                className="border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#00428E]"
+              >
+                <option value="lastName">Last Name (A–Z)</option>
+                <option value="registrationFee">Registration Fee</option>
+              </select>
+            </div>
             <form action={toggleShowFullName} className="flex items-center gap-2">
               <span className="text-xs text-gray-500">Show full name</span>
               <button
@@ -161,6 +181,8 @@ function IdCard({ participant, showFullName, batchName }: { participant: Partici
     `${participant.firstName} ${participant.lastName}`;
   const fullName = `${participant.firstName} ${participant.lastName}`;
   const qrValue = `dj:participant:${participant.id}`;
+  const longestWordLength = Math.max(...displayName.split(/\s+/).map((w) => w.length));
+  const nameFontSizeClass = longestWordLength >= 10 ? "text-5xl" : "text-6xl";
 
   return (
     <div className="id-card flex flex-col border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
@@ -173,7 +195,7 @@ function IdCard({ participant, showFullName, batchName }: { participant: Partici
       </div>
 
       <div className="flex-1 flex items-center justify-center px-10 min-h-48">
-        <p className="text-6xl font-bold text-gray-900 leading-normal text-center capitalize" style={{ transform: "scale(1.1, 1.2)", display: "inline-block" }}>{displayName.toLowerCase()}</p>
+        <p className={`${nameFontSizeClass} font-bold text-gray-900 leading-tight text-center capitalize`} style={{ transform: "scale(1.1, 1.2)", display: "inline-block" }}>{displayName.toLowerCase()}</p>
       </div>
 
       <div className="px-10 pb-4">

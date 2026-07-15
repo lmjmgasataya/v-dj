@@ -141,7 +141,7 @@ export async function getSessionCheckIns(sessionId: number) {
   }));
 }
 
-export async function searchParticipants(sessionId: number, q: string, isVictoryDay = false) {
+export async function searchParticipants(sessionId: number, q: string, isVictoryDay = false, allowAllClasses = false) {
   if (!q.trim()) return [];
   const rows = await db
     .select({
@@ -176,7 +176,7 @@ export async function searchParticipants(sessionId: number, q: string, isVictory
           ilike(participants.firstName, `%${q}%`),
           ilike(participants.mobileNumber, `%${q}%`)
         ),
-        isVictoryDay ? notInArray(participants.registrationFee, ["C", "D"]) : undefined
+        isVictoryDay && !allowAllClasses ? notInArray(participants.registrationFee, ["C", "D"]) : undefined
       )
     )
     .orderBy(participants.lastName)

@@ -14,6 +14,7 @@ const FLAG_LABELS: Record<string, string> = {
   qr_checkin: "QR code check-in (scan to check in + QR on participant page)",
   print_id_show_fullname: "Print IDs — show full name at bottom of card",
   sms_sender: "SMS Sender (show on home page)",
+  victory_day_allow_all_classes: "Victory Day check-in — allow all classes to search & check in (default: Class A/B only)",
 };
 
 async function getDbStats() {

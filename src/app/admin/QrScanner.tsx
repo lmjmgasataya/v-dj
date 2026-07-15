@@ -44,7 +44,7 @@ function playSuccessSound() {
   }
 }
 
-export function QrScanner({ sessionId, isVictoryDay, onCheckIn }: { sessionId: number; isVictoryDay: boolean; onCheckIn?: () => void }) {
+export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, onCheckIn }: { sessionId: number; isVictoryDay: boolean; allowAllClasses?: boolean; onCheckIn?: () => void }) {
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState<PendingParticipant | null>(null);
@@ -119,7 +119,7 @@ export function QrScanner({ sessionId, isVictoryDay, onCheckIn }: { sessionId: n
 
   async function handleConfirm() {
     if (!pending) return;
-    if (isVictoryDay && !VICTORY_DAY_ALLOWED_CLASSES.includes(pending.registrationFee ?? "")) return;
+    if (isVictoryDay && !allowAllClasses && !VICTORY_DAY_ALLOWED_CLASSES.includes(pending.registrationFee ?? "")) return;
     setStatus("loading");
     const result = await checkInByQr(pending.id, sessionId, remarks || undefined);
     if ("error" in result) {
@@ -212,7 +212,7 @@ export function QrScanner({ sessionId, isVictoryDay, onCheckIn }: { sessionId: n
       </div>
 
       {status === "confirming" && pending && (() => {
-        const restricted = isVictoryDay && !VICTORY_DAY_ALLOWED_CLASSES.includes(pending.registrationFee ?? "");
+        const restricted = isVictoryDay && !allowAllClasses && !VICTORY_DAY_ALLOWED_CLASSES.includes(pending.registrationFee ?? "");
         return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4">

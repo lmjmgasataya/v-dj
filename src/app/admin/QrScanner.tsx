@@ -44,8 +44,8 @@ function playSuccessSound() {
   }
 }
 
-export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, onCheckIn }: { sessionId: number; isVictoryDay: boolean; allowAllClasses?: boolean; onCheckIn?: () => void }) {
-  const [status, setStatus] = useState<Status>("idle");
+export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, autoOpen, onCheckIn }: { sessionId: number; isVictoryDay: boolean; allowAllClasses?: boolean; autoOpen?: boolean; onCheckIn?: () => void }) {
+  const [status, setStatus] = useState<Status>(autoOpen ? "scanning" : "idle");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState<PendingParticipant | null>(null);
   const [remarks, setRemarks] = useState("");
@@ -140,13 +140,25 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, onCheckIn 
   function handleCancel() {
     setPending(null);
     setRemarks("");
-    setStatus("idle");
+    setStatus(autoOpen ? "scanning" : "idle");
   }
 
   function reset() {
     setStatus("idle");
     setMessage("");
   }
+
+  useEffect(() => {
+    if (!autoOpen) return;
+    if (status !== "success" && status !== "error") return;
+
+    const timer = setTimeout(() => {
+      setStatus("scanning");
+      setMessage("");
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [status, autoOpen]);
 
   return (
     <>

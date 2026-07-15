@@ -32,7 +32,7 @@ function SearchSkeleton() {
   );
 }
 
-export function ParticipantSearch({ sessionId, sessionName: _sessionName, isVictoryDay, initialQ, qrCheckin, victoryDayAllowAllClasses }: { sessionId: number; sessionName: string; isVictoryDay: boolean; initialQ?: string; qrCheckin?: boolean; victoryDayAllowAllClasses?: boolean }) {
+export function ParticipantSearch({ sessionId, sessionName: _sessionName, isVictoryDay, initialQ, qrCheckin, victoryDayAllowAllClasses, autoOpenQrScanner }: { sessionId: number; sessionName: string; isVictoryDay: boolean; initialQ?: string; qrCheckin?: boolean; victoryDayAllowAllClasses?: boolean; autoOpenQrScanner?: boolean }) {
   const [q, setQ] = useState(initialQ ?? "");
   const [results, setResults] = useState<Results>([]);
   const [searched, setSearched] = useState(false);
@@ -97,7 +97,7 @@ export function ParticipantSearch({ sessionId, sessionName: _sessionName, isVict
     <div>
       {qrCheckin && (
         <>
-          <QrScanner sessionId={sessionId} isVictoryDay={isVictoryDay} allowAllClasses={victoryDayAllowAllClasses} onCheckIn={() => runSearch(q)} />
+          <QrScanner sessionId={sessionId} isVictoryDay={isVictoryDay} allowAllClasses={victoryDayAllowAllClasses} autoOpen={autoOpenQrScanner && !initialQ?.trim()} onCheckIn={() => runSearch(q)} />
           <div className="relative flex items-center my-4">
             <div className="flex-1 border-t border-gray-200" />
             <span className="px-3 text-xs text-gray-400">or search manually</span>

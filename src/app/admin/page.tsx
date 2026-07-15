@@ -117,7 +117,7 @@ export default async function AdminPage({
                 <span className="text-indigo-600 font-medium">{selectedSession.name}</span>
               </p>
             </div>
-            <ParticipantSearch key={selectedSession.id} sessionId={selectedSession.id} sessionName={selectedSession.name} isVictoryDay={selectedSession.isVictoryDay} initialQ={initialQ} qrCheckin={flagMap["qr_checkin"] ?? false} victoryDayAllowAllClasses={flagMap["victory_day_allow_all_classes"] ?? false} />
+            <ParticipantSearch key={selectedSession.id} sessionId={selectedSession.id} sessionName={selectedSession.name} isVictoryDay={selectedSession.isVictoryDay} initialQ={initialQ} qrCheckin={flagMap["qr_checkin"] ?? false} victoryDayAllowAllClasses={flagMap["victory_day_allow_all_classes"] ?? false} autoOpenQrScanner={flagMap["qr_auto_open_scanner"] ?? false} />
           </div>
         )}
 

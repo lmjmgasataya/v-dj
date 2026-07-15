@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { searchParticipants } from "./actions";
 import { SessionCheckInList } from "./SessionCheckInList";
-import { QrScanner } from "./QrScanner";
+import { QrScanner, type CheckInResultInfo } from "./QrScanner";
 
 type Results = Awaited<ReturnType<typeof searchParticipants>>;
 
@@ -41,6 +41,23 @@ export function ParticipantSearch({ sessionId, sessionName: _sessionName, isVict
   const searchParams = useSearchParams();
   const scrollAfterSearch = useRef(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [checkInToast, setCheckInToast] = useState<{ message: string; variant: "success" | "info" } | null>(null);
+  const checkInToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showCheckInToast(info: CheckInResultInfo) {
+    if (checkInToastTimer.current) clearTimeout(checkInToastTimer.current);
+    setCheckInToast({ message: info.message, variant: info.alreadyCheckedIn ? "info" : "success" });
+    checkInToastTimer.current = setTimeout(() => setCheckInToast(null), 15000);
+  }
+
+  function dismissCheckInToast() {
+    if (checkInToastTimer.current) clearTimeout(checkInToastTimer.current);
+    setCheckInToast(null);
+  }
+
+  useEffect(() => () => {
+    if (checkInToastTimer.current) clearTimeout(checkInToastTimer.current);
+  }, []);
 
   useEffect(() => {
     if (scrollAfterSearch.current && !pending) {
@@ -97,13 +114,45 @@ export function ParticipantSearch({ sessionId, sessionName: _sessionName, isVict
     <div>
       {qrCheckin && (
         <>
-          <QrScanner sessionId={sessionId} isVictoryDay={isVictoryDay} allowAllClasses={victoryDayAllowAllClasses} autoOpen={autoOpenQrScanner && !initialQ?.trim()} onCheckIn={() => runSearch(q)} />
+          <QrScanner
+            sessionId={sessionId}
+            isVictoryDay={isVictoryDay}
+            allowAllClasses={victoryDayAllowAllClasses}
+            autoOpen={autoOpenQrScanner && !initialQ?.trim()}
+            onCheckIn={(info) => {
+              const nextQuery = info.lastName.trim() || q;
+              setQ(nextQuery);
+              runSearch(nextQuery);
+              showCheckInToast(info);
+            }}
+          />
           <div className="relative flex items-center my-4">
             <div className="flex-1 border-t border-gray-200" />
             <span className="px-3 text-xs text-gray-400">or search manually</span>
             <div className="flex-1 border-t border-gray-200" />
           </div>
         </>
+      )}
+      {checkInToast && (
+        <div
+          className={`mb-4 flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm ${
+            checkInToast.variant === "success"
+              ? "bg-green-50 border-green-200 text-green-800"
+              : "bg-amber-50 border-amber-200 text-amber-800"
+          }`}
+        >
+          <span>
+            {checkInToast.variant === "success" ? "✅" : "ℹ️"} {checkInToast.message}
+          </span>
+          <button
+            onClick={dismissCheckInToast}
+            className={`shrink-0 font-medium hover:opacity-70 ${
+              checkInToast.variant === "success" ? "text-green-600" : "text-amber-600"
+            }`}
+          >
+            ✕
+          </button>
+        </div>
       )}
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input

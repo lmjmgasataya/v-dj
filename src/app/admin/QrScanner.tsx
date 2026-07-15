@@ -18,6 +18,10 @@ function parseParticipantId(text: string): number | null {
   return isNaN(n) ? null : n;
 }
 
+function lastNameFromResultName(name: string): string {
+  return name.split(",")[0]?.trim() ?? "";
+}
+
 type Status = "idle" | "scanning" | "confirming" | "loading" | "success" | "error";
 
 interface PendingParticipant {
@@ -44,12 +48,22 @@ function playSuccessSound() {
   }
 }
 
-export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, autoOpen, onCheckIn }: { sessionId: number; isVictoryDay: boolean; allowAllClasses?: boolean; autoOpen?: boolean; onCheckIn?: () => void }) {
+export interface CheckInResultInfo {
+  lastName: string;
+  message: string;
+  alreadyCheckedIn: boolean;
+}
+
+export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, autoOpen, onCheckIn }: { sessionId: number; isVictoryDay: boolean; allowAllClasses?: boolean; autoOpen?: boolean; onCheckIn?: (info: CheckInResultInfo) => void }) {
   const [status, setStatus] = useState<Status>(autoOpen ? "scanning" : "idle");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState<PendingParticipant | null>(null);
   const [remarks, setRemarks] = useState("");
   const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
+  const onCheckInRef = useRef(onCheckIn);
+  useEffect(() => {
+    onCheckInRef.current = onCheckIn;
+  });
 
   useEffect(() => {
     if (status !== "scanning") return;
@@ -97,6 +111,7 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, autoOpen, 
             } else if (result.alreadyCheckedIn) {
               setStatus("success");
               setMessage(`${result.name} is already checked in.`);
+              onCheckInRef.current?.({ lastName: lastNameFromResultName(result.name), message: `${result.name} is already checked in.`, alreadyCheckedIn: true });
             } else {
               setPending({ id: participantId, name: result.name, registrationFee: result.registrationFee });
               setStatus("confirming");
@@ -136,10 +151,11 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, autoOpen, 
     } else if (result.alreadyCheckedIn) {
       setStatus("success");
       setMessage(`${result.name} is already checked in.`);
+      onCheckIn?.({ lastName: lastNameFromResultName(result.name), message: `${result.name} is already checked in.`, alreadyCheckedIn: true });
     } else {
       setStatus("success");
       setMessage(`Checked in: ${result.name}`);
-      onCheckIn?.();
+      onCheckIn?.({ lastName: lastNameFromResultName(result.name), message: `Checked in: ${result.name}`, alreadyCheckedIn: false });
     }
     setPending(null);
     setRemarks("");
@@ -156,17 +172,10 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, autoOpen, 
     setMessage("");
   }
 
-  useEffect(() => {
-    if (!autoOpen) return;
-    if (status !== "success" && status !== "error") return;
-
-    const timer = setTimeout(() => {
-      setStatus("scanning");
-      setMessage("");
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [status, autoOpen]);
+  function scanNext() {
+    setMessage("");
+    setStatus("scanning");
+  }
 
   return (
     <>
@@ -209,7 +218,7 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, autoOpen, 
             <p className="text-sm font-semibold text-green-700">{message}</p>
             <button
               type="button"
-              onClick={reset}
+              onClick={scanNext}
               className="text-xs text-green-600 hover:text-green-800 underline shrink-0"
             >
               Scan next

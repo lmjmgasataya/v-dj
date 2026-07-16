@@ -16,6 +16,8 @@ const FLAG_LABELS: Record<string, string> = {
   print_id_show_fullname: "Print IDs — show full name at bottom of card",
   sms_sender: "SMS Sender (show on home page)",
   victory_day_allow_all_classes: "Victory Day check-in — allow all classes to search & check in (default: Class A/B only)",
+  edit_registration_fee: "Allow editing a participant's registration fee/class on the edit page",
+  sms_on_registration: "Send an SMS to participants automatically on registration",
 };
 
 async function getDbStats() {

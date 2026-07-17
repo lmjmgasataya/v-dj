@@ -37,8 +37,7 @@ export async function getParticipantsByBatch(batchId: number) {
     .where(
       and(
         eq(participants.batchId, batchId),
-        isNull(participants.deletedAt),
-        isNotNull(participants.mobileNumber)
+        isNull(participants.deletedAt)
       )
     )
     .orderBy(participants.lastName, participants.firstName);

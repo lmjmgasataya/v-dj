@@ -68,6 +68,7 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
   const [tab, setTab] = useState<RecipientTab>("participants");
   const [rows, setRows] = useState<PersonRow[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [sortBy, setSortBy] = useState<"lastName" | "class">("class");
   const [message, setMessage] = useState("");
   const [rawTemplate, setRawTemplate] = useState<string | null>(null);
   const [othersText, setOthersText] = useState("");
@@ -108,12 +109,31 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
     if (t !== "others" && batchId) loadRows(batchId, t);
   };
 
-  const validRows = rows.filter((p) => p.mobileNumber && normalizePhone(p.mobileNumber));
+  const sessionFilteredRows =
+    tab === "participants" && selectedSession?.isVictoryDay
+      ? rows.filter((p) => p.registrationFee !== "C" && p.registrationFee !== "D")
+      : rows;
+
+  const validRows = sessionFilteredRows.filter((p) => p.mobileNumber && normalizePhone(p.mobileNumber));
+  const invalidRows = sessionFilteredRows.filter((p) => !(p.mobileNumber && normalizePhone(p.mobileNumber)));
 
   const displayRows =
-    tab === "participants" && selectedSession?.isVictoryDay
-      ? validRows.filter((p) => p.registrationFee !== "C" && p.registrationFee !== "D")
+    tab === "participants" && sortBy === "class"
+      ? [...validRows].sort(
+          (a, b) =>
+            (a.registrationFee ?? "").localeCompare(b.registrationFee ?? "") ||
+            a.lastName.localeCompare(b.lastName) ||
+            a.firstName.localeCompare(b.firstName)
+        )
       : validRows;
+
+  const classLetters = Array.from(
+    new Set(
+      displayRows
+        .map((p) => p.registrationFee)
+        .filter((f): f is string => !!f)
+    )
+  ).sort();
 
   const toggleAll = () => {
     if (selected.size === displayRows.length && displayRows.length > 0) setSelected(new Set());
@@ -125,6 +145,20 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      return next;
+    });
+  };
+
+  const isClassFullySelected = (fee: string) =>
+    displayRows.filter((p) => p.registrationFee === fee).every((p) => selected.has(p.id));
+
+  const toggleClass = (fee: string) => {
+    const idsInClass = displayRows.filter((p) => p.registrationFee === fee).map((p) => p.id);
+    const allSelected = idsInClass.every((id) => selected.has(id));
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allSelected) idsInClass.forEach((id) => next.delete(id));
+      else idsInClass.forEach((id) => next.add(id));
       return next;
     });
   };
@@ -311,6 +345,37 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
                 )}
               </div>
 
+              {tab === "participants" && !isPending && displayRows.length > 0 && (
+                <div className="flex items-center gap-2 mb-3">
+                  <label className="text-xs font-medium text-gray-500">Sort</label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as "lastName" | "class")}
+                    className="text-xs border border-gray-200 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-[#00428E]/20 focus:border-[#00428E]"
+                  >
+                    <option value="lastName">Last Name (A–Z)</option>
+                    <option value="class">Class</option>
+                  </select>
+                </div>
+              )}
+
+              {tab === "participants" && !isPending && classLetters.length > 0 && (
+                <div className="flex flex-wrap items-center gap-3 mb-3">
+                  <span className="text-xs font-medium text-gray-500">Select by class:</span>
+                  {classLetters.map((fee) => (
+                    <label key={fee} className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isClassFullySelected(fee)}
+                        onChange={() => toggleClass(fee)}
+                        className="rounded border-gray-300 text-[#00428E] focus:ring-[#00428E]"
+                      />
+                      Class {fee}
+                    </label>
+                  ))}
+                </div>
+              )}
+
               {/* Tabs */}
               <div className="flex border-b border-gray-200 mb-3">
                 {(["participants", "disciplers", "vgleaders", "others"] as RecipientTab[]).map((t) => (
@@ -401,6 +466,29 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
                     );
                   })}
                 </div>
+              )}
+
+              {tab !== "others" && !isPending && batchId && invalidRows.length > 0 && (
+                <details className="mt-2 text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  <summary className="cursor-pointer font-medium text-amber-700">
+                    {invalidRows.length} excluded — missing or invalid phone number
+                  </summary>
+                  <ul className="mt-2 space-y-1">
+                    {invalidRows.map((p) => (
+                      <li key={p.id} className="flex items-center justify-between gap-2">
+                        <span className="text-amber-900">
+                          {toTitleCase(p.lastName)}, {toTitleCase(p.firstName)}
+                          {tab === "participants" && p.registrationFee && (
+                            <span className="ml-1.5 text-amber-500">(Class {p.registrationFee})</span>
+                          )}
+                        </span>
+                        <span className="font-mono text-amber-500 shrink-0">
+                          {p.mobileNumber || "no phone"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               )}
             </div>
 

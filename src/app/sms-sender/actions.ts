@@ -1,8 +1,11 @@
 "use server";
 
 import { db } from "@/db";
-import { participants, disciplers, victoryGroupLeaders, smsMessageTemplates, classSessions } from "@/db/schema";
+import { participants, disciplers, victoryGroupLeaders, smsMessageTemplates, classSessions, smsApiKeys } from "@/db/schema";
 import { eq, isNull, and, isNotNull, desc } from "drizzle-orm";
+import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 export async function getSessionsByBatch(batchId: number) {
   return db
@@ -81,4 +84,15 @@ export async function getVGLeadersByBatch(batchId: number) {
       )
     )
     .orderBy(victoryGroupLeaders.lastName, victoryGroupLeaders.firstName);
+}
+
+export async function updateSmsApiKeyEndpoint(id: number, endpoint: string) {
+  const session = await getSession();
+  if (!session || session.role !== "developer") redirect("/");
+
+  const trimmed = endpoint.trim();
+  if (!trimmed) return;
+
+  await db.update(smsApiKeys).set({ endpoint: trimmed }).where(eq(smsApiKeys.id, id));
+  revalidatePath("/sms-sender");
 }

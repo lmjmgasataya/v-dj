@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { SmsSenderClient } from "./SmsSenderClient";
+import { ApiKeyEndpointEditor } from "./ApiKeyEndpointEditor";
 
 export default async function SmsSenderPage() {
   const session = await getSession();
@@ -55,7 +56,7 @@ export default async function SmsSenderPage() {
         <p className="text-xs font-semibold text-gray-400 tracking-widest mb-1">Send SMS to participants/other contacts in a batch.</p>
         <p className="text-xs text-gray-400 mt-1">
           {defaultKey
-            ? <>Using API key: <span className="font-mono font-semibold text-gray-600">{defaultKey.name}</span></>
+            ? <ApiKeyEndpointEditor apiKey={defaultKey} />
             : <span className="text-amber-600">No default SMS API key set. Configure one in <a href="/devops-admin" className="underline">DevOps Admin</a>.</span>
           }
         </p>

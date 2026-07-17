@@ -53,6 +53,35 @@ export function PrintIdsClient({
     });
   }, [participants, selectedBatchId, sortBy]);
 
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(
+    () => new Set(filtered.map((p) => p.id))
+  );
+  const [lastBatchId, setLastBatchId] = useState(selectedBatchId);
+  if (selectedBatchId !== lastBatchId) {
+    setLastBatchId(selectedBatchId);
+    setSelectedIds(new Set(filtered.map((p) => p.id)));
+  }
+
+  const toPrint = useMemo(
+    () => filtered.filter((p) => selectedIds.has(p.id)),
+    [filtered, selectedIds]
+  );
+
+  const toggleOne = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const allSelected = filtered.length > 0 && filtered.every((p) => selectedIds.has(p.id));
+
+  const toggleAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(filtered.map((p) => p.id)));
+  };
+
   return (
     <>
       <style>{`
@@ -101,7 +130,7 @@ export function PrintIdsClient({
               <p className="text-sm text-gray-500 mt-1">
                 {selectedBatchId === null
                   ? "Select a batch to display IDs."
-                  : `${filtered.length} participant${filtered.length !== 1 ? "s" : ""} · 4 per A4 page`}
+                  : `${toPrint.length} of ${filtered.length} selected · 4 per A4 page`}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -157,17 +186,46 @@ export function PrintIdsClient({
             </Link>
           </div>
         </div>
+
+        {selectedBatchId !== null && filtered.length > 0 && (
+          <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
+            <label className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 bg-gray-50 sticky top-0 text-sm font-medium text-gray-700">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={toggleAll}
+                className="h-4 w-4 rounded border-gray-300 text-[#00428E] focus:ring-[#00428E]"
+              />
+              {allSelected ? "Deselect all" : "Select all"}
+            </label>
+            <div className="divide-y divide-gray-100">
+              {filtered.map((p) => (
+                <label key={p.id} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(p.id)}
+                    onChange={() => toggleOne(p.id)}
+                    className="h-4 w-4 rounded border-gray-300 text-[#00428E] focus:ring-[#00428E]"
+                  />
+                  <span className="capitalize">{p.lastName.toLowerCase()}, {p.firstName.toLowerCase()}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="id-grid grid grid-cols-2 gap-3 pt-6">
-        {selectedBatchId !== null && filtered.map((p) => (
+        {selectedBatchId !== null && toPrint.map((p) => (
           <IdCard key={p.id} participant={p} showFullName={showFullName} batchName={selectedBatch?.name ?? ""} />
         ))}
-        {(selectedBatchId === null || filtered.length === 0) && (
+        {(selectedBatchId === null || toPrint.length === 0) && (
           <p className="col-span-2 text-center text-gray-400 py-12">
             {selectedBatchId === null
               ? "Select a batch to display IDs."
-              : "No participants in this batch."}
+              : filtered.length === 0
+              ? "No participants in this batch."
+              : "No participants selected."}
           </p>
         )}
       </div>

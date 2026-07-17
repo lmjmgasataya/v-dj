@@ -33,6 +33,9 @@ export function ApiKeyEndpointEditor({ apiKey }: { apiKey: ApiKey }) {
         >
           {apiKey.name}
         </button>
+        {apiKey.endpoint && (
+          <span className="font-mono text-gray-400"> ({apiKey.endpoint})</span>
+        )}
       </>
     );
   }

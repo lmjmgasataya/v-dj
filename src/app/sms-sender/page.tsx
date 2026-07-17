@@ -60,6 +60,14 @@ export default async function SmsSenderPage() {
             : <span className="text-amber-600">No default SMS API key set. Configure one in <a href="/devops-admin" className="underline">DevOps Admin</a>.</span>
           }
         </p>
+        <ol className="mt-2 text-xs text-gray-400 list-decimal list-inside space-y-0.5">
+          <li>Open Traccar SMS Gateway App.</li>
+          <li>Gateway Settings</li>
+          <li>Enable</li>
+          <li>Open Portwarp App</li>
+          <li>Make sure the endpoint set is correct.</li>
+          <li>Start the portwarp tunnel</li>
+        </ol>
       </div>
       <SmsSenderClient batches={batchList} templates={templateList} defaultKey={defaultKey} />
     </div>

@@ -7,6 +7,7 @@ import { DatePickerField } from "@/components/DatePickerField";
 import { VgLeaderFields } from "@/components/VgLeaderFields";
 import { DisciplerFields } from "@/components/DisciplerFields";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { MOBILE_NUMBER_PATTERN, MOBILE_NUMBER_HELP } from "@/lib/phone";
 
 function getDefaultService(): string {
   const hour = parseInt(
@@ -225,7 +226,23 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
               <input name="middleInitial" maxLength={3} className={inputCls} />
             </Field>
             <Field label="Mobile Number" required>
-              <input name="mobileNumber" required type="tel" className={inputCls} />
+              <input
+                name="mobileNumber"
+                required
+                type="tel"
+                pattern={MOBILE_NUMBER_PATTERN}
+                placeholder="09XXXXXXXXX"
+                className={inputCls}
+                onInvalid={(e) => {
+                  const input = e.currentTarget;
+                  if (input.validity.patternMismatch) {
+                    input.setCustomValidity(MOBILE_NUMBER_HELP);
+                  } else {
+                    input.setCustomValidity("");
+                  }
+                }}
+                onInput={(e) => e.currentTarget.setCustomValidity("")}
+              />
             </Field>
             <Field label="Facebook / Messenger Name" required>
               <input name="facebookMessengerName" required className={inputCls} />

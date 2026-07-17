@@ -5,6 +5,7 @@ import { participants, disciplers, victoryGroupLeaders, type lifestageEnum } fro
 import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { toTitleCase } from "@/lib/text";
+import { MOBILE_NUMBER_REGEX } from "@/lib/phone";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
 
@@ -39,6 +40,11 @@ async function upsertVgLeader(
 const STUDENT_LIFESTAGES = ["Student (JHS/SHS)", "Student (College)"];
 
 export async function updateParticipant(id: number, formData: FormData) {
+  const mobileNumber = (formData.get("mobileNumber") as string) || "";
+  if (mobileNumber && !MOBILE_NUMBER_REGEX.test(mobileNumber)) {
+    throw new Error("Invalid mobile number format.");
+  }
+
   const registrationFee = formData.get("registrationFee") as string;
   const isAB = registrationFee === "A" || registrationFee === "B";
   const needsVictoryDate = registrationFee === "C" || registrationFee === "D";
@@ -56,16 +62,22 @@ export async function updateParticipant(id: number, formData: FormData) {
   if (showVgLeader) {
     const lastName = toTitleCase((formData.get("vgLeaderLastName") as string) || "");
     const firstName = toTitleCase((formData.get("vgLeaderFirstName") as string) || "");
-    const mobileNumber = (formData.get("vgLeaderMobileNumber") as string) || "";
-    if (lastName && firstName && mobileNumber) {
-      vgLeaderId = await upsertVgLeader(lastName, firstName, mobileNumber, (formData.get("vgLeaderMessengerName") as string) || null);
+    const vgMobileNumber = (formData.get("vgLeaderMobileNumber") as string) || "";
+    if (vgMobileNumber && !MOBILE_NUMBER_REGEX.test(vgMobileNumber)) {
+      throw new Error("Invalid VG leader mobile number format.");
+    }
+    if (lastName && firstName && vgMobileNumber) {
+      vgLeaderId = await upsertVgLeader(lastName, firstName, vgMobileNumber, (formData.get("vgLeaderMessengerName") as string) || null);
     }
   } else {
     const lastName = toTitleCase((formData.get("disciplerLastName") as string) || "");
     const firstName = toTitleCase((formData.get("disciplerFirstName") as string) || "");
-    const mobileNumber = (formData.get("disciplerMobileNumber") as string) || "";
-    if (lastName && firstName && mobileNumber) {
-      disciplerId = await upsertDiscipler(lastName, firstName, mobileNumber, (formData.get("disciplerMessengerName") as string) || null);
+    const discMobileNumber = (formData.get("disciplerMobileNumber") as string) || "";
+    if (discMobileNumber && !MOBILE_NUMBER_REGEX.test(discMobileNumber)) {
+      throw new Error("Invalid discipler mobile number format.");
+    }
+    if (lastName && firstName && discMobileNumber) {
+      disciplerId = await upsertDiscipler(lastName, firstName, discMobileNumber, (formData.get("disciplerMessengerName") as string) || null);
     }
   }
 
@@ -73,7 +85,7 @@ export async function updateParticipant(id: number, formData: FormData) {
     lastName: toTitleCase(formData.get("lastName") as string),
     firstName: toTitleCase(formData.get("firstName") as string),
     middleInitial: toTitleCase((formData.get("middleInitial") as string) || "") || null,
-    mobileNumber: formData.get("mobileNumber") as string,
+    mobileNumber,
     facebookMessengerName: (formData.get("facebookMessengerName") as string) || null,
     lifestage: formData.get("lifestage") as Lifestage,
     age: Number(formData.get("age")),

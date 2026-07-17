@@ -9,6 +9,7 @@ import { VgLeaderFields } from "@/components/VgLeaderFields";
 import { DisciplerFields } from "@/components/DisciplerFields";
 import Link from "next/link";
 import type { Participant } from "@/db/schema";
+import { MOBILE_NUMBER_PATTERN, MOBILE_NUMBER_HELP } from "@/lib/phone";
 
 type ParticipantWithRelations = Participant & {
   disciplerLastName: string | null;
@@ -110,7 +111,23 @@ export function EditForm({
           <input name="middleInitial" maxLength={3} defaultValue={participant.middleInitial ?? ""} className={inputCls} />
         </Field>
         <Field label="Mobile Number">
-          <input name="mobileNumber" type="tel" defaultValue={participant.mobileNumber ?? ""} className={inputCls} />
+          <input
+            name="mobileNumber"
+            type="tel"
+            pattern={MOBILE_NUMBER_PATTERN}
+            placeholder="09XXXXXXXXX"
+            defaultValue={participant.mobileNumber ?? ""}
+            className={inputCls}
+            onInvalid={(e) => {
+              const input = e.currentTarget;
+              if (input.validity.patternMismatch) {
+                input.setCustomValidity(MOBILE_NUMBER_HELP);
+              } else {
+                input.setCustomValidity("");
+              }
+            }}
+            onInput={(e) => e.currentTarget.setCustomValidity("")}
+          />
         </Field>
         <Field label="Facebook / Messenger Name">
           <input name="facebookMessengerName" defaultValue={participant.facebookMessengerName ?? ""} className={inputCls} />

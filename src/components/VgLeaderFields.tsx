@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Field, inputCls } from "./form";
 import type { VictoryGroupLeader } from "@/db/schema";
+import { MOBILE_NUMBER_PATTERN, MOBILE_NUMBER_HELP } from "@/lib/phone";
 
 interface Props {
   enabled?: boolean;
@@ -88,10 +89,21 @@ export function VgLeaderFields({
           name="vgLeaderMobileNumber"
           required
           type="tel"
+          pattern={MOBILE_NUMBER_PATTERN}
+          placeholder="09XXXXXXXXX"
           className={inputCls}
           autoComplete="off"
           value={mobileNumber}
           onChange={(e) => setMobileNumber(e.target.value)}
+          onInvalid={(e) => {
+            const input = e.currentTarget;
+            if (input.validity.patternMismatch) {
+              input.setCustomValidity(MOBILE_NUMBER_HELP);
+            } else {
+              input.setCustomValidity("");
+            }
+          }}
+          onInput={(e) => e.currentTarget.setCustomValidity("")}
         />
       </Field>
 

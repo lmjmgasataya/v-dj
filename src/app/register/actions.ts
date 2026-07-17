@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { toTitleCase } from "@/lib/text";
 import { isRegistrationSmsEnabled, getRegistrationSmsTemplate, getDisciplerNotificationTemplate, sendSms } from "@/lib/sms";
+import { MOBILE_NUMBER_REGEX } from "@/lib/phone";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
 
@@ -47,6 +48,11 @@ async function upsertVgLeader(
 const STUDENT_LIFESTAGES = ["Student (JHS/SHS)", "Student (College)"];
 
 export async function registerParticipant(formData: FormData) {
+  const mobileNumber = formData.get("mobileNumber") as string;
+  if (!MOBILE_NUMBER_REGEX.test(mobileNumber)) {
+    throw new Error("Invalid mobile number format.");
+  }
+
   const registrationFee = formData.get("registrationFee") as string;
   const isAB = registrationFee === "A" || registrationFee === "B";
   const needsVictoryDate = registrationFee === "C" || registrationFee === "D";
@@ -65,6 +71,9 @@ export async function registerParticipant(formData: FormData) {
     const vgLastName = toTitleCase(formData.get("vgLeaderLastName") as string);
     const vgFirstName = toTitleCase(formData.get("vgLeaderFirstName") as string);
     const vgMobile = (formData.get("vgLeaderMobileNumber") as string) || "";
+    if (vgMobile && !MOBILE_NUMBER_REGEX.test(vgMobile)) {
+      throw new Error("Invalid VG leader mobile number format.");
+    }
     if (vgLastName && vgFirstName && vgMobile) {
       vgLeaderId = await upsertVgLeader(
         vgLastName,
@@ -77,6 +86,9 @@ export async function registerParticipant(formData: FormData) {
     const discLastName = toTitleCase(formData.get("disciplerLastName") as string);
     const discFirstName = toTitleCase(formData.get("disciplerFirstName") as string);
     const discMobile = (formData.get("disciplerMobileNumber") as string) || "";
+    if (discMobile && !MOBILE_NUMBER_REGEX.test(discMobile)) {
+      throw new Error("Invalid discipler mobile number format.");
+    }
     if (discLastName && discFirstName && discMobile) {
       disciplerId = await upsertDiscipler(
         discLastName,
@@ -98,7 +110,7 @@ export async function registerParticipant(formData: FormData) {
     lastName: toTitleCase(formData.get("lastName") as string),
     firstName: toTitleCase(formData.get("firstName") as string),
     middleInitial: toTitleCase((formData.get("middleInitial") as string) || "") || null,
-    mobileNumber: formData.get("mobileNumber") as string,
+    mobileNumber,
     facebookMessengerName: (formData.get("facebookMessengerName") as string) || null,
     lifestage: formData.get("lifestage") as Lifestage,
     age: Number(formData.get("age")),
@@ -136,7 +148,7 @@ export async function registerParticipant(formData: FormData) {
             .replace(/\{firstName\}/gi, firstName)
             .replace(/\{lastName\}/gi, lastName)
             .replace(/\{name\}/gi, `${firstName} ${lastName}`);
-          await sendSms(formData.get("mobileNumber") as string, message, `${firstName} ${lastName}`, newParticipant?.id ?? null);
+          await sendSms(mobileNumber, message, `${firstName} ${lastName}`, newParticipant?.id ?? null);
         }
 
         if (isAB && !isDoneWithVictoryWeekend) {

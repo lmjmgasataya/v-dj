@@ -57,11 +57,14 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction }
           </p>
           {(() => {
             const vd = p.victoryDate ?? p.victoryDayDate;
+            if (!vd) return null;
+            /* Victory Day: — label hidden for now
             if (!vd) return (
               <span className="inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">
                 Victory Day: —
               </span>
             );
+            */
             if (isIncomplete) return (
               <span className="inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
                 Victory Day: {vd} (Incomplete)

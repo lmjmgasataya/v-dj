@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { participants, checkIns, classSessions, victoryGroupLeaders, type lifestageEnum } from "@/db/schema";
 import { currentYearPH } from "@/lib/date";
 import { toTitleCase } from "@/lib/text";
+import { ORIENTATION_ALLOWED_CLASSES } from "@/lib/constants";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
 import { and, count, eq, gte, ilike, inArray, isNull, lt, notInArray, or } from "drizzle-orm";
@@ -141,7 +142,7 @@ export async function getSessionCheckIns(sessionId: number) {
   }));
 }
 
-export async function searchParticipants(sessionId: number, q: string, isVictoryDay = false, allowAllClasses = false) {
+export async function searchParticipants(sessionId: number, q: string, isVictoryDay = false, allowAllClasses = false, isOrientation = false) {
   if (!q.trim()) return [];
   const rows = await db
     .select({
@@ -176,7 +177,8 @@ export async function searchParticipants(sessionId: number, q: string, isVictory
           ilike(participants.firstName, `%${q}%`),
           ilike(participants.mobileNumber, `%${q}%`)
         ),
-        isVictoryDay && !allowAllClasses ? notInArray(participants.registrationFee, ["C", "D"]) : undefined
+        isVictoryDay && !allowAllClasses ? notInArray(participants.registrationFee, ["C", "D"]) : undefined,
+        isOrientation ? inArray(participants.registrationFee, ORIENTATION_ALLOWED_CLASSES) : undefined
       )
     )
     .orderBy(participants.lastName)

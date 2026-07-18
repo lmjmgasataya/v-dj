@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { lookupParticipantForQr, checkInByQr } from "./actions";
 import { FEE_CATEGORIES } from "@/components/form";
+import { ORIENTATION_ALLOWED_CLASSES } from "@/lib/constants";
 
 const QR_PREFIX = "dj:participant:";
 const CONTAINER_ID = "qr-scanner-container";
@@ -54,7 +55,7 @@ export interface CheckInResultInfo {
   alreadyCheckedIn: boolean;
 }
 
-export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, autoOpen, onCheckIn }: { sessionId: number; isVictoryDay: boolean; allowAllClasses?: boolean; autoOpen?: boolean; onCheckIn?: (info: CheckInResultInfo) => void }) {
+export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientation, autoOpen, onCheckIn }: { sessionId: number; isVictoryDay: boolean; allowAllClasses?: boolean; isOrientation?: boolean; autoOpen?: boolean; onCheckIn?: (info: CheckInResultInfo) => void }) {
   const [status, setStatus] = useState<Status>(autoOpen ? "scanning" : "idle");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState<PendingParticipant | null>(null);
@@ -143,6 +144,7 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, autoOpen, 
   async function handleConfirm() {
     if (!pending) return;
     if (isVictoryDay && !allowAllClasses && !VICTORY_DAY_ALLOWED_CLASSES.includes(pending.registrationFee ?? "")) return;
+    if (isOrientation && !ORIENTATION_ALLOWED_CLASSES.includes(pending.registrationFee ?? "")) return;
     setStatus("loading");
     const result = await checkInByQr(pending.id, sessionId, remarks || undefined);
     if ("error" in result) {
@@ -241,7 +243,9 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, autoOpen, 
       </div>
 
       {status === "confirming" && pending && (() => {
-        const restricted = isVictoryDay && !allowAllClasses && !VICTORY_DAY_ALLOWED_CLASSES.includes(pending.registrationFee ?? "");
+        const victoryDayRestricted = isVictoryDay && !allowAllClasses && !VICTORY_DAY_ALLOWED_CLASSES.includes(pending.registrationFee ?? "");
+        const orientationRestricted = !!isOrientation && !ORIENTATION_ALLOWED_CLASSES.includes(pending.registrationFee ?? "");
+        const restricted = victoryDayRestricted || orientationRestricted;
         return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4">
@@ -253,7 +257,9 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, autoOpen, 
             </div>
             {restricted && (
               <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
-                Only Class A and B participants are allowed to check in for Victory Day sessions.
+                {orientationRestricted
+                  ? "Only Class A and B participants are allowed to check in for Orientation."
+                  : "Only Class A and B participants are allowed to check in for Victory Day sessions."}
               </div>
             )}
             <div className="flex flex-col gap-1">

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { searchParticipants } from "./actions";
 import { SessionCheckInList } from "./SessionCheckInList";
 import { QrScanner, type CheckInResultInfo } from "./QrScanner";
+import { ORIENTATION_SESSION_NAME } from "@/lib/constants";
 
 type Results = Awaited<ReturnType<typeof searchParticipants>>;
 
@@ -32,7 +33,8 @@ function SearchSkeleton() {
   );
 }
 
-export function ParticipantSearch({ sessionId, sessionName: _sessionName, isVictoryDay, requiresVictoryDay, initialQ, qrCheckin, victoryDayAllowAllClasses, autoOpenQrScanner }: { sessionId: number; sessionName: string; isVictoryDay: boolean; requiresVictoryDay: boolean; initialQ?: string; qrCheckin?: boolean; victoryDayAllowAllClasses?: boolean; autoOpenQrScanner?: boolean }) {
+export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requiresVictoryDay, initialQ, qrCheckin, victoryDayAllowAllClasses, autoOpenQrScanner }: { sessionId: number; sessionName: string; isVictoryDay: boolean; requiresVictoryDay: boolean; initialQ?: string; qrCheckin?: boolean; victoryDayAllowAllClasses?: boolean; autoOpenQrScanner?: boolean }) {
+  const isOrientation = sessionName === ORIENTATION_SESSION_NAME;
   const [q, setQ] = useState(initialQ ?? "");
   const [results, setResults] = useState<Results>([]);
   const [searched, setSearched] = useState(false);
@@ -70,7 +72,7 @@ export function ParticipantSearch({ sessionId, sessionName: _sessionName, isVict
     setSearched(true);
     scrollAfterSearch.current = true;
     setPending(true);
-    searchParticipants(sessionId, query, isVictoryDay, victoryDayAllowAllClasses).then((data) => {
+    searchParticipants(sessionId, query, isVictoryDay, victoryDayAllowAllClasses, isOrientation).then((data) => {
       setResults(data);
       setPending(false);
     });
@@ -118,6 +120,7 @@ export function ParticipantSearch({ sessionId, sessionName: _sessionName, isVict
             sessionId={sessionId}
             isVictoryDay={isVictoryDay}
             allowAllClasses={victoryDayAllowAllClasses}
+            isOrientation={isOrientation}
             autoOpen={autoOpenQrScanner && !initialQ?.trim()}
             onCheckIn={(info) => {
               const nextQuery = info.lastName.trim() || q;

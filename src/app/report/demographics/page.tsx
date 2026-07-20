@@ -1,12 +1,13 @@
 import { db } from "@/db";
 import { participants, batches } from "@/db/schema";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { LifestageChart, ServiceChart, AgeChart, GenderChart, ChurchChart } from "./DemographicsCharts";
 import { BatchPicker } from "../BatchPicker";
-import { SERVICE_OPTIONS } from "@/components/form";
+import { ClassPicker } from "./ClassPicker";
+import { SERVICE_OPTIONS, FEE_CATEGORIES } from "@/components/form";
 
 const LIFESTAGE_ORDER = [
   "Student (JHS/SHS)",
@@ -27,12 +28,12 @@ function abbrevService(s: string) {
 export default async function DemographicsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ batch?: string }>;
+  searchParams: Promise<{ batch?: string; class?: string }>;
 }) {
   const authSession = await getSession();
   if (!authSession) redirect("/");
 
-  const { batch: batchParam } = await searchParams;
+  const { batch: batchParam, class: classParam } = await searchParams;
 
   const allBatches = await db
     .select({ id: batches.id, name: batches.name, isDefault: batches.isDefault })
@@ -42,6 +43,11 @@ export default async function DemographicsPage({
   const defaultBatch = allBatches.find((b) => b.isDefault) ?? allBatches[0] ?? null;
   const selectedBatchId = batchParam ? parseInt(batchParam, 10) : (defaultBatch?.id ?? null);
   const selectedBatch = allBatches.find((b) => b.id === selectedBatchId) ?? null;
+
+  const allClassValues = FEE_CATEGORIES.map((c) => c.value);
+  const selectedClasses = classParam
+    ? classParam.split(",").filter((c) => (allClassValues as string[]).includes(c))
+    : [...allClassValues];
 
   const rows =
     selectedBatchId !== null
@@ -65,7 +71,8 @@ export default async function DemographicsPage({
             and(
               isNull(participants.deletedAt),
               eq(participants.isWalkIn, false),
-              eq(participants.batchId, selectedBatchId)
+              eq(participants.batchId, selectedBatchId),
+              inArray(participants.registrationFee, selectedClasses)
             )
           )
       : [];
@@ -125,6 +132,7 @@ export default async function DemographicsPage({
       </div>
 
       <BatchPicker batches={allBatches} selectedId={selectedBatchId} />
+      <ClassPicker selected={selectedClasses} />
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
         <p className="text-sm font-semibold text-gray-700 mb-1">Lifestage</p>

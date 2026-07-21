@@ -28,13 +28,15 @@ export default async function FunnelReportPage({
 
   let totalSessions = 0;
   let participantRows: { id: number; checkInCount: number }[] = [];
+  let orderedSessionNames: string[] = [];
 
   if (selectedBatchId !== null) {
-    const [totalResult, pRows] = await Promise.all([
+    const [sessionRows, pRows] = await Promise.all([
       db
-        .select({ count: sql<number>`count(*)::int` })
+        .select({ name: classSessions.name })
         .from(classSessions)
-        .where(eq(classSessions.batchId, selectedBatchId)),
+        .where(eq(classSessions.batchId, selectedBatchId))
+        .orderBy(classSessions.sessionDate, classSessions.id),
 
       db
         .select({
@@ -60,7 +62,8 @@ export default async function FunnelReportPage({
         .groupBy(participants.id),
     ]);
 
-    totalSessions = totalResult[0].count;
+    orderedSessionNames = sessionRows.map((s) => s.name);
+    totalSessions = orderedSessionNames.length;
     participantRows = pRows;
   }
 
@@ -77,6 +80,7 @@ export default async function FunnelReportPage({
     label: i === totalSessions ? `${i} ✓` : String(i),
     count: distribution.get(i) ?? 0,
     total: totalSessions,
+    sessionName: i === 0 ? null : (orderedSessionNames[i - 1] ?? null),
   }));
 
   const noneCount = distribution.get(0) ?? 0;

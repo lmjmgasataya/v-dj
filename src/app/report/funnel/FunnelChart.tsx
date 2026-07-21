@@ -16,6 +16,7 @@ interface FunnelBucket {
   count: number;
   sessions: number;
   total: number;
+  sessionName: string | null;
 }
 
 export function FunnelChart({ data }: { data: FunnelBucket[] }) {
@@ -48,14 +49,29 @@ export function FunnelChart({ data }: { data: FunnelBucket[] }) {
         />
         <Tooltip
           cursor={{ fill: "#f3f4f6" }}
-          contentStyle={{
-            borderRadius: "8px",
-            border: "1px solid #e5e7eb",
-            fontSize: "12px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          content={({ active, payload }) => {
+            if (!active || !payload?.length) return null;
+            const bucket = payload[0].payload as FunnelBucket;
+            return (
+              <div
+                style={{
+                  borderRadius: "8px",
+                  border: "1px solid #e5e7eb",
+                  fontSize: "12px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                  background: "#fff",
+                  padding: "8px 10px",
+                }}
+              >
+                <p className="font-medium text-gray-700">
+                  {bucket.count} participant{bucket.count !== 1 ? "s" : ""}
+                </p>
+                {bucket.sessionName && (
+                  <p className="text-gray-400 mt-0.5">Through: {bucket.sessionName}</p>
+                )}
+              </div>
+            );
           }}
-          formatter={(value) => [value, "Participants"]}
-          labelFormatter={(label) => label}
         />
         <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={56}>
           {data.map((entry) => {

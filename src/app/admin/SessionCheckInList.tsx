@@ -17,6 +17,8 @@ interface ParticipantWithStatus {
   victoryDate: string | null;
   registrationFee: string | null;
   victoryDayDate: string | null;
+  victoryDayCount: number;
+  totalVictoryDaySessions: number;
   completedVictoryDay: boolean;
   checkInId: number | null;
   checkedInAt: Date | null;
@@ -67,7 +69,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction }
             */
             if (isIncomplete) return (
               <span className="inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                Victory Day: {vd} (Incomplete)
+                Victory Day: {vd} ({p.victoryDayCount}/{p.totalVictoryDaySessions})
               </span>
             );
             return (
@@ -104,7 +106,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction }
             </>
           ) : blocked ? (
             <span className="text-xs text-gray-400 italic">
-              {isIncomplete ? "Incomplete" : "No Victory Day yet"}
+              {isIncomplete ? `${p.victoryDayCount}/${p.totalVictoryDaySessions}` : "No Victory Day yet"}
             </span>
           ) : (
             <button

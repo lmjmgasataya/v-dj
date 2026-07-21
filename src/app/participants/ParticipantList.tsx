@@ -185,6 +185,8 @@ export async function ParticipantList({
         attendance={attendanceByParticipant}
         victoryDayDates={victoryDayMap}
         completedVictoryDays={completedVictoryDayMap}
+        victoryDayCounts={victoryDayCountByParticipant}
+        totalVictoryDaySessions={totalVictoryDaySessions}
         showEdit={isDeveloper}
       />
 

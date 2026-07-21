@@ -138,6 +138,8 @@ export async function getSessionCheckIns(sessionId: number) {
   return rows.map((r) => ({
     ...r,
     victoryDayDate: victoryDayMap[r.participantId] ?? null,
+    victoryDayCount: victoryAttendanceCount[r.participantId] ?? 0,
+    totalVictoryDaySessions,
     completedVictoryDay: (victoryAttendanceCount[r.participantId] ?? 0) >= totalVictoryDaySessions,
   }));
 }
@@ -218,6 +220,8 @@ export async function searchParticipants(sessionId: number, q: string, isVictory
   return rows.map((r) => ({
     ...r,
     victoryDayDate: victoryCountMap[r.id] ?? null,
+    victoryDayCount: victoryAttendanceCount[r.id] ?? 0,
+    totalVictoryDaySessions,
     completedVictoryDay: (victoryAttendanceCount[r.id] ?? 0) >= totalVictoryDaySessions,
     checkInRemarks: r.checkInRemarks ?? null,
   }));

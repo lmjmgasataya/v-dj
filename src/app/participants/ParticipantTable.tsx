@@ -68,12 +68,16 @@ export function ParticipantTable({
   attendance = {},
   victoryDayDates = {},
   completedVictoryDays = {},
+  victoryDayCounts = {},
+  totalVictoryDaySessions = 0,
   showEdit = true,
 }: {
   rows: ParticipantRow[];
   attendance?: Record<number, Attendance[]>;
   victoryDayDates?: Record<number, string>;
   completedVictoryDays?: Record<number, boolean>;
+  victoryDayCounts?: Record<number, number>;
+  totalVictoryDaySessions?: number;
   showEdit?: boolean;
 }) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -142,6 +146,7 @@ export function ParticipantTable({
               const feeCat = FEE_CATEGORIES.find((f) => f.value === p.registrationFee);
               const vd = p.victoryDate ?? victoryDayDates[p.id] ?? null;
               const completed = !!p.victoryDate || !!completedVictoryDays[p.id];
+              const victoryDayCount = victoryDayCounts[p.id] ?? 0;
 
               return (
                 <Fragment key={p.id}>
@@ -173,7 +178,7 @@ export function ParticipantTable({
                         <span className="text-xs text-gray-400">—</span>
                       ) : !completed ? (
                         <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                          {vd} (Incomplete)
+                          {vd} ({victoryDayCount}/{totalVictoryDaySessions})
                         </span>
                       ) : (
                         <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">

@@ -118,7 +118,7 @@ export function SessionAttendeesModal({
                                 const isIncomplete = !!c.victoryDayDate && !c.completedVictoryDay && !c.victoryDate;
                                 return (
                                   <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${isIncomplete ? "bg-amber-100 text-amber-700" : "bg-purple-100 text-purple-700"}`}>
-                                    Victory Day: {vd}{isIncomplete ? " (Incomplete)" : ""}
+                                    Victory Day: {vd}{isIncomplete ? ` (${c.victoryDayCount}/${c.totalVictoryDaySessions})` : ""}
                                   </span>
                                 );
                               })()}

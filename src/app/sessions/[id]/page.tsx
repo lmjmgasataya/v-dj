@@ -104,6 +104,7 @@ export default async function SessionDetailPage({
   const attendeesWithVictoryDay = attendees.map((a) => ({
     ...a,
     victoryDayDate: victoryDayMap[a.participantId] ?? null,
+    victoryDayCount: victoryCountMap[a.participantId] ?? 0,
     completedVictoryDay: a.isWalkIn ? true : (victoryCountMap[a.participantId] ?? 0) >= totalVictoryDaySessions,
   }));
 
@@ -157,7 +158,7 @@ export default async function SessionDetailPage({
           No check-ins recorded for this session yet.
         </div>
       ) : (
-        <AttendeeList attendees={attendeesWithVictoryDay} />
+        <AttendeeList attendees={attendeesWithVictoryDay} totalVictoryDaySessions={totalVictoryDaySessions} />
       )}
     </div>
   );

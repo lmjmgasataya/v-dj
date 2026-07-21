@@ -32,6 +32,7 @@ export interface Attendee {
   vgLeaderFirstName: string | null;
   victoryDate: string | null;
   victoryDayDate: string | null;
+  victoryDayCount: number;
   completedVictoryDay: boolean;
   remarks: string | null;
 }
@@ -86,14 +87,14 @@ function victoryDayValue(attendee: Attendee): string {
   return (attendee.isWalkIn ? attendee.victoryDate : attendee.victoryDayDate) ?? "";
 }
 
-function VictoryDayBadge({ attendee }: { attendee: Attendee }) {
+function VictoryDayBadge({ attendee, totalVictoryDaySessions }: { attendee: Attendee; totalVictoryDaySessions: number }) {
   const vd = attendee.isWalkIn ? attendee.victoryDate : attendee.victoryDayDate;
   if (!vd) return (
     <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">—</span>
   );
   if (!attendee.completedVictoryDay) return (
     <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-      {vd} (Incomplete)
+      {vd} ({attendee.victoryDayCount}/{totalVictoryDaySessions})
     </span>
   );
   return (
@@ -103,7 +104,7 @@ function VictoryDayBadge({ attendee }: { attendee: Attendee }) {
   );
 }
 
-export function AttendeeList({ attendees }: { attendees: Attendee[] }) {
+export function AttendeeList({ attendees, totalVictoryDaySessions }: { attendees: Attendee[]; totalVictoryDaySessions: number }) {
   const [q, setQ] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("checkedInAt");
@@ -194,7 +195,7 @@ export function AttendeeList({ attendees }: { attendees: Attendee[] }) {
                         </td>
                         <td className="px-3 py-3 text-gray-600 whitespace-nowrap">{checkInTime}</td>
                         <td className="px-3 py-3 whitespace-nowrap">
-                          <VictoryDayBadge attendee={a} />
+                          <VictoryDayBadge attendee={a} totalVictoryDaySessions={totalVictoryDaySessions} />
                         </td>
                       </tr>
 

@@ -129,16 +129,12 @@ export async function GET() {
       "Age": p.age,
       "Gender": p.gender,
       "Service": p.serviceAttending,
-      "Completed One2One": p.isWalkIn
+      "Completed One2One": p.isWalkIn || p.registrationFee === "C" || p.registrationFee === "D"
         ? ""
         : p.completedOne2One
         ? "Yes"
         : "No (will complete before Victory Day)",
-      "Water Baptism": p.isWalkIn
-        ? ""
-        : p.willUndergoWaterBaptism
-        ? "Yes"
-        : "No",
+      "Will Undergo Water Baptism": p.willUndergoWaterBaptism ? "Yes" : "No",
       "Previous Church": p.isWalkIn ? "" : (p.previousChurch ?? ""),
       "Registration Fee": p.isWalkIn ? "" : (p.registrationFee ?? ""),
       "Receipt No.": p.isWalkIn ? "" : (p.acknowledgementReceiptNumber ?? ""),

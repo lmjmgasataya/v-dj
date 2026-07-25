@@ -60,6 +60,7 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState<PendingParticipant | null>(null);
   const [remarks, setRemarks] = useState("");
+  const [mirrored, setMirrored] = useState(false);
   const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
   const onCheckInRef = useRef(onCheckIn);
   useEffect(() => {
@@ -121,6 +122,12 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
           undefined
         );
         if (!cancelled) {
+          try {
+            const facingMode = scanner.getRunningTrackSettings().facingMode;
+            setMirrored(facingMode !== "environment");
+          } catch {
+            setMirrored(false);
+          }
           document.getElementById(CONTAINER_ID)?.scrollIntoView({ behavior: "smooth", block: "start" });
           setTimeout(() => window.scrollBy({ top: window.innerWidth < 768 ? 550 : 350, behavior: "smooth" }), 100);
         }
@@ -184,7 +191,11 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
       <div className="flex flex-col gap-3">
         <div
           id={CONTAINER_ID}
-          className={status === "scanning" ? "overflow-hidden rounded-lg" : "hidden"}
+          className={
+            status === "scanning"
+              ? `overflow-hidden rounded-lg ${mirrored ? "[&_video]:-scale-x-100" : ""}`
+              : "hidden"
+          }
         />
 
         {status === "idle" && (

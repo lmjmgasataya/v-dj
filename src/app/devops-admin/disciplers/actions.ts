@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { toTitleCase } from "@/lib/text";
+import { toastRedirectBack } from "@/lib/toast";
 
 async function requireDeveloper() {
   const session = await getSession();
@@ -22,10 +23,12 @@ export async function createDiscipler(formData: FormData) {
     messengerName: (formData.get("messengerName") as string) || null,
   }).onConflictDoNothing();
   revalidatePath("/devops-admin/disciplers");
+  await toastRedirectBack("Discipler added.");
 }
 
 export async function deleteDiscipler(formData: FormData) {
   await requireDeveloper();
   await db.delete(disciplers).where(eq(disciplers.id, Number(formData.get("id"))));
   revalidatePath("/devops-admin/disciplers");
+  await toastRedirectBack("Discipler deleted.");
 }

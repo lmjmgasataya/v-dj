@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { victoryGroupLeaders, type lifestageEnum } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { redirect } from "next/navigation";
+import { toastRedirect } from "@/lib/toast";
 import { toTitleCase } from "@/lib/text";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
@@ -24,7 +24,7 @@ export async function updateVGLeader(id: number, formData: FormData) {
     })
     .where(eq(victoryGroupLeaders.id, id));
 
-  redirect("/vg-leaders");
+  toastRedirect("/vg-leaders", "VG leader updated.");
 }
 
 export async function deleteVGLeader(id: number) {
@@ -32,5 +32,5 @@ export async function deleteVGLeader(id: number) {
     .update(victoryGroupLeaders)
     .set({ deletedAt: new Date() })
     .where(eq(victoryGroupLeaders.id, id));
-  redirect("/vg-leaders");
+  toastRedirect("/vg-leaders", "VG leader deleted.");
 }

@@ -1,11 +1,18 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { login } from "./actions";
+import { useToast } from "@/components/toast/ToastProvider";
 
 export default function LoginForm() {
   const [state, action, pending] = useActionState(login, undefined);
   const [showPassword, setShowPassword] = useState(false);
+  const toast = useToast();
+
+  useEffect(() => {
+    if (state?.error) toast.show(state.error, "error");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center">
@@ -57,12 +64,6 @@ export default function LoginForm() {
               </button>
             </div>
           </div>
-
-          {state?.error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-              {state.error}
-            </p>
-          )}
 
           <button
             type="submit"

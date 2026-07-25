@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { checkInParticipant, removeCheckIn } from "./actions";
 import { toTitleCase } from "@/lib/text";
+import { useToast } from "@/components/toast/ToastProvider";
 
 interface ParticipantWithStatus {
   id: number;
@@ -29,6 +30,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction }
   const [pending, startTransition] = useTransition();
   const [showModal, setShowModal] = useState(false);
   const [remarks, setRemarks] = useState("");
+  const toast = useToast();
   const isCheckedIn = p.checkInId != null;
   const hasVictoryDay = !!p.victoryDate || p.completedVictoryDay;
   const isIncomplete = !!p.victoryDayDate && !p.completedVictoryDay && !p.victoryDate;
@@ -39,6 +41,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction }
       await checkInParticipant(p.id, sessionId, remarks || undefined);
       setShowModal(false);
       setRemarks("");
+      toast.show(`Checked in: ${toTitleCase(p.firstName)} ${toTitleCase(p.lastName)}.`);
       onAction?.();
     });
   }
@@ -96,7 +99,11 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction }
               <button
                 onClick={() => {
                   if (!confirm(`Remove check-in for ${toTitleCase(p.firstName)} ${toTitleCase(p.lastName)}?`)) return;
-                  startTransition(async () => { await removeCheckIn(p.id, sessionId); onAction?.(); });
+                  startTransition(async () => {
+                    await removeCheckIn(p.id, sessionId);
+                    toast.show("Check-in removed.");
+                    onAction?.();
+                  });
                 }}
                 disabled={pending}
                 className="text-xs text-red-500 hover:text-red-700 underline disabled:opacity-50"

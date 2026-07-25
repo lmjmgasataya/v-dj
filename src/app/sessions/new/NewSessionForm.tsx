@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { createSession } from "./actions";
 import { DatePickerField } from "@/components/DatePickerField";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { CheckboxOption } from "@/components/form";
+import { useToast } from "@/components/toast/ToastProvider";
 
 export function NewSessionForm({
   existingNames,
@@ -18,6 +19,12 @@ export function NewSessionForm({
 }) {
   const [state, action, pending] = useActionState(createSession, undefined);
   const [mode, setMode] = useState<"existing" | "custom">("existing");
+  const toast = useToast();
+
+  useEffect(() => {
+    if (state?.error) toast.show(state.error, "error");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
   return (
     <div className="flex flex-col gap-6 max-w-lg">
@@ -86,12 +93,6 @@ export function NewSessionForm({
         <CheckboxOption name="allowsWalkIn" value="true" labelClassName="font-medium">
           Allow walk-in registration for this session
         </CheckboxOption>
-
-        {state?.error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-            {state.error}
-          </p>
-        )}
 
         <div className="flex gap-3 justify-end pt-1">
           <Link

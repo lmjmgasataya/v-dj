@@ -4,7 +4,6 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";
 import { ParticipantList, ParticipantListSkeleton } from "./ParticipantList";
 import { ParticipantFilters } from "./ParticipantFilters";
-import { UpdateToast } from "./UpdateToast";
 
 export default async function ParticipantsPage({
   searchParams,
@@ -40,10 +39,6 @@ export default async function ParticipantsPage({
           </div>
         </div>
       </div>
-
-      <Suspense fallback={null}>
-        <UpdateToast />
-      </Suspense>
 
       <ParticipantFilters
         key={`${q}-${lifestage}-${fee}-${gender}-${service}-${previousChurch}-${waterBaptism}-${victoryWeekend}`}

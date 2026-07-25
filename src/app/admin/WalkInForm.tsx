@@ -1,20 +1,15 @@
 "use client";
 
-import { useState, useTransition, useEffect, useRef } from "react";
+import { useState, useTransition } from "react";
 import { addWalkIn } from "./actions";
 import { Field, inputCls, selectCls, SERVICE_OPTIONS } from "@/components/form";
 import { DatePickerField } from "@/components/DatePickerField";
+import { useToast } from "@/components/toast/ToastProvider";
 
 export function WalkInForm({ sessionId, newDatePicker }: { sessionId: number; newDatePicker: boolean }) {
   const [pending, startTransition] = useTransition();
   const [formKey, setFormKey] = useState(0);
-  const [showToast, setShowToast] = useState(false);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  function dismissToast() {
-    setShowToast(false);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-  }
+  const toast = useToast();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -22,22 +17,12 @@ export function WalkInForm({ sessionId, newDatePicker }: { sessionId: number; ne
     startTransition(async () => {
       await addWalkIn(sessionId, formData);
       setFormKey((k) => k + 1);
-      if (toastTimer.current) clearTimeout(toastTimer.current);
-      setShowToast(true);
-      toastTimer.current = setTimeout(() => setShowToast(false), 15000);
+      toast.show("Walk-in participant has been added.");
     });
   }
 
-  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
-
   return (
     <div className="flex flex-col gap-4">
-      {showToast && (
-        <div className="flex items-center justify-between gap-3 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
-          <span>✅ <strong>Walk-in participant has been added.</strong></span>
-          <button onClick={dismissToast} className="shrink-0 text-green-600 hover:text-green-800 font-medium">✕</button>
-        </div>
-      )}
       <form
         key={formKey}
         onSubmit={handleSubmit}

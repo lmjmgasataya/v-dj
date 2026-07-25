@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { toastRedirect, toastRedirectBack } from "@/lib/toast";
 
 async function requireDeveloper() {
   const session = await getSession();
@@ -26,6 +27,7 @@ export async function createBatch(formData: FormData) {
     isDefault,
   });
   revalidatePath("/devops-admin/batches");
+  await toastRedirectBack("Batch created.");
 }
 
 export async function updateBatch(formData: FormData) {
@@ -38,13 +40,14 @@ export async function updateBatch(formData: FormData) {
     registrationStartDate: (formData.get("registrationStartDate") as string) || null,
   }).where(eq(batches.id, id));
   revalidatePath("/devops-admin/batches");
-  redirect("/devops-admin/batches");
+  toastRedirect("/devops-admin/batches", "Batch updated.");
 }
 
 export async function deleteBatch(formData: FormData) {
   await requireDeveloper();
   await db.delete(batches).where(eq(batches.id, Number(formData.get("id"))));
   revalidatePath("/devops-admin/batches");
+  await toastRedirectBack("Batch deleted.");
 }
 
 export async function setDefaultBatch(formData: FormData) {
@@ -53,4 +56,5 @@ export async function setDefaultBatch(formData: FormData) {
   await db.update(batches).set({ isDefault: false });
   await db.update(batches).set({ isDefault: true }).where(eq(batches.id, id));
   revalidatePath("/devops-admin/batches");
+  await toastRedirectBack("Default batch updated.");
 }

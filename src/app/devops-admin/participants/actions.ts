@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { toastRedirectBack } from "@/lib/toast";
 
 async function requireDeveloper() {
   const session = await getSession();
@@ -18,6 +19,7 @@ export async function archiveParticipant(formData: FormData) {
     .set({ deletedAt: new Date() })
     .where(eq(participants.id, Number(formData.get("id"))));
   revalidatePath("/devops-admin/participants");
+  await toastRedirectBack("Participant archived.");
 }
 
 export async function restoreParticipant(formData: FormData) {
@@ -26,12 +28,14 @@ export async function restoreParticipant(formData: FormData) {
     .set({ deletedAt: null })
     .where(eq(participants.id, Number(formData.get("id"))));
   revalidatePath("/devops-admin/participants");
+  await toastRedirectBack("Participant restored.");
 }
 
 export async function deleteParticipant(formData: FormData) {
   await requireDeveloper();
   await db.delete(participants).where(eq(participants.id, Number(formData.get("id"))));
   revalidatePath("/devops-admin/participants");
+  await toastRedirectBack("Participant deleted.");
 }
 
 export async function updateWorshipService(id: number, value: string | null) {

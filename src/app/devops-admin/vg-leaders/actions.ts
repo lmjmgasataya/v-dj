@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { toTitleCase } from "@/lib/text";
+import { toastRedirectBack } from "@/lib/toast";
 
 async function requireDeveloper() {
   const session = await getSession();
@@ -23,6 +24,7 @@ export async function createVgLeader(formData: FormData) {
     facebookMessengerName: (formData.get("facebookMessengerName") as string) || null,
   }).onConflictDoNothing();
   revalidatePath("/devops-admin/vg-leaders");
+  await toastRedirectBack("VG leader added.");
 }
 
 export async function deleteVgLeader(formData: FormData) {
@@ -30,4 +32,5 @@ export async function deleteVgLeader(formData: FormData) {
   await db.delete(victoryGroupLeaders)
     .where(eq(victoryGroupLeaders.id, Number(formData.get("id"))));
   revalidatePath("/devops-admin/vg-leaders");
+  await toastRedirectBack("VG leader deleted.");
 }

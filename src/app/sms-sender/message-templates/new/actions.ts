@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { smsMessageTemplates } from "@/db/schema";
-import { redirect } from "next/navigation";
+import { toastRedirect } from "@/lib/toast";
 
 export async function createMessageTemplate(formData: FormData) {
   const title = (formData.get("title") as string).trim();
@@ -10,5 +10,5 @@ export async function createMessageTemplate(formData: FormData) {
 
   await db.insert(smsMessageTemplates).values({ title, message });
 
-  redirect("/sms-sender/message-templates");
+  toastRedirect("/sms-sender/message-templates", "Message template created.");
 }

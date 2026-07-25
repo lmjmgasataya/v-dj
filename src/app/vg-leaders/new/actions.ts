@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { victoryGroupLeaders, type lifestageEnum } from "@/db/schema";
-import { redirect } from "next/navigation";
+import { toastRedirect } from "@/lib/toast";
 import { toTitleCase } from "@/lib/text";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
@@ -20,5 +20,5 @@ export async function createVGLeader(formData: FormData) {
     facebookMessengerName: (formData.get("facebookMessengerName") as string) || null,
   });
 
-  redirect("/vg-leaders");
+  toastRedirect("/vg-leaders", "VG leader added.");
 }

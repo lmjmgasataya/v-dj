@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { toastRedirect, toastRedirectBack } from "@/lib/toast";
 
 async function requireAuth() {
   const session = await getSession();
@@ -26,6 +27,7 @@ export async function createBatch(formData: FormData) {
     isDefault,
   });
   revalidatePath("/sessions/batches");
+  await toastRedirectBack("Batch created.");
 }
 
 export async function updateBatch(formData: FormData) {
@@ -41,13 +43,14 @@ export async function updateBatch(formData: FormData) {
     })
     .where(eq(batches.id, id));
   revalidatePath("/sessions/batches");
-  redirect("/sessions/batches");
+  toastRedirect("/sessions/batches", "Batch updated.");
 }
 
 export async function deleteBatch(formData: FormData) {
   await requireAuth();
   await db.delete(batches).where(eq(batches.id, Number(formData.get("id"))));
   revalidatePath("/sessions/batches");
+  await toastRedirectBack("Batch deleted.");
 }
 
 export async function setDefaultBatch(formData: FormData) {
@@ -56,4 +59,5 @@ export async function setDefaultBatch(formData: FormData) {
   await db.update(batches).set({ isDefault: false });
   await db.update(batches).set({ isDefault: true }).where(eq(batches.id, id));
   revalidatePath("/sessions/batches");
+  await toastRedirectBack("Default batch updated.");
 }

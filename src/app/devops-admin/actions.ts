@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { getSession, type Role } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
+import { toastRedirectBack } from "@/lib/toast";
 
 async function requireDeveloper() {
   const session = await getSession();
@@ -24,6 +25,7 @@ export async function toggleFlag(key: string) {
       set: { enabled: sql`NOT ${featureFlags.enabled}`, updatedAt: new Date() },
     });
   revalidatePath("/devops-admin");
+  await toastRedirectBack("Flag toggled.");
 }
 
 export async function createFlag(formData: FormData) {
@@ -32,12 +34,14 @@ export async function createFlag(formData: FormData) {
   if (!key || !/^[a-z0-9_]+$/.test(key)) return;
   await db.insert(featureFlags).values({ key, enabled: false }).onConflictDoNothing();
   revalidatePath("/devops-admin");
+  await toastRedirectBack("Flag created.");
 }
 
 export async function deleteFlag(key: string) {
   await requireDeveloper();
   await db.delete(featureFlags).where(eq(featureFlags.key, key));
   revalidatePath("/devops-admin");
+  await toastRedirectBack("Flag deleted.");
 }
 
 export async function changeRole(formData: FormData) {
@@ -46,6 +50,7 @@ export async function changeRole(formData: FormData) {
   const role = formData.get("role") as Role;
   await db.update(users).set({ role }).where(eq(users.id, userId));
   revalidatePath("/devops-admin");
+  await toastRedirectBack("Role updated.");
 }
 
 export async function resetPassword(formData: FormData) {
@@ -56,6 +61,7 @@ export async function resetPassword(formData: FormData) {
   const hash = await bcrypt.hash(newPassword, 10);
   await db.update(users).set({ passwordHash: hash }).where(eq(users.id, userId));
   revalidatePath("/devops-admin");
+  await toastRedirectBack("Password reset.");
 }
 
 export async function deleteUser(formData: FormData) {
@@ -64,6 +70,7 @@ export async function deleteUser(formData: FormData) {
   if (userId === session.userId) return;
   await db.delete(users).where(eq(users.id, userId));
   revalidatePath("/devops-admin");
+  await toastRedirectBack("User deleted.");
 }
 
 export async function createSmsApiKey(formData: FormData) {
@@ -74,6 +81,7 @@ export async function createSmsApiKey(formData: FormData) {
   if (!name || !apiKey) return;
   await db.insert(smsApiKeys).values({ name, apiKey, endpoint });
   revalidatePath("/devops-admin");
+  await toastRedirectBack("SMS API key created.");
 }
 
 export async function updateSmsApiKey(id: number, formData: FormData) {
@@ -87,12 +95,14 @@ export async function updateSmsApiKey(id: number, formData: FormData) {
     .set({ name, endpoint, ...(apiKey ? { apiKey } : {}) })
     .where(eq(smsApiKeys.id, id));
   revalidatePath("/devops-admin");
+  await toastRedirectBack("SMS API key updated.");
 }
 
 export async function deleteSmsApiKey(id: number) {
   await requireDeveloper();
   await db.delete(smsApiKeys).where(eq(smsApiKeys.id, id));
   revalidatePath("/devops-admin");
+  await toastRedirectBack("SMS API key deleted.");
 }
 
 export async function setSmsApiKeyDefault(id: number) {
@@ -102,6 +112,7 @@ export async function setSmsApiKeyDefault(id: number) {
     await tx.update(smsApiKeys).set({ isDefault: true }).where(eq(smsApiKeys.id, id));
   });
   revalidatePath("/devops-admin");
+  await toastRedirectBack("Default SMS API key updated.");
 }
 
 export async function createUser(formData: FormData) {
@@ -114,4 +125,5 @@ export async function createUser(formData: FormData) {
   const hash = await bcrypt.hash(password, 10);
   await db.insert(users).values({ username, name, passwordHash: hash, role }).onConflictDoNothing();
   revalidatePath("/devops-admin");
+  await toastRedirectBack("User created.");
 }

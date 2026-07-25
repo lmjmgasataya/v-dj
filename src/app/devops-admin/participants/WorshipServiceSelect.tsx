@@ -3,11 +3,13 @@
 import { useState, useTransition } from "react";
 import { SERVICE_OPTIONS } from "@/components/form";
 import { updateWorshipService } from "./actions";
+import { useToast } from "@/components/toast/ToastProvider";
 
 export function WorshipServiceSelect({ id, value }: { id: number; value: string | null }) {
   const [current, setCurrent] = useState(value ?? "");
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
+  const toast = useToast();
 
   function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const next = e.target.value;
@@ -16,6 +18,7 @@ export function WorshipServiceSelect({ id, value }: { id: number; value: string 
     startTransition(async () => {
       await updateWorshipService(id, next || null);
       setSaved(true);
+      toast.show("Worship service updated.");
       setTimeout(() => setSaved(false), 1500);
     });
   }

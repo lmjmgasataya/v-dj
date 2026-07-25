@@ -6,6 +6,7 @@ import { and, eq, ilike, isNull, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { toastRedirectBack } from "@/lib/toast";
 
 async function requireDeveloper() {
   const session = await getSession();
@@ -16,6 +17,7 @@ export async function deleteCheckIn(formData: FormData) {
   await requireDeveloper();
   await db.delete(checkIns).where(eq(checkIns.id, Number(formData.get("id"))));
   revalidatePath("/devops-admin/check-ins");
+  await toastRedirectBack("Check-in deleted.");
 }
 
 export async function searchParticipants(q: string) {
@@ -51,4 +53,5 @@ export async function createCheckIn(formData: FormData) {
   const remarks = (formData.get("remarks") as string) || null;
   await db.insert(checkIns).values({ participantId, classSessionId, remarks }).onConflictDoNothing();
   revalidatePath("/devops-admin/check-ins");
+  await toastRedirectBack("Check-in added.");
 }

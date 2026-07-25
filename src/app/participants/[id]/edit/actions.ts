@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { participants, disciplers, victoryGroupLeaders, type lifestageEnum } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
-import { redirect } from "next/navigation";
+import { toastRedirect } from "@/lib/toast";
 import { toTitleCase } from "@/lib/text";
 import { MOBILE_NUMBER_REGEX } from "@/lib/phone";
 
@@ -110,7 +110,7 @@ export async function updateParticipant(id: number, formData: FormData) {
     victoryDate: (formData.get("victoryDate") as string) || null,
   }).where(eq(participants.id, id));
 
-  redirect("/participants?updated=1");
+  toastRedirect("/participants", "Participant updated.");
 }
 
 export async function deleteParticipant(id: number) {
@@ -118,7 +118,7 @@ export async function deleteParticipant(id: number) {
     .update(participants)
     .set({ deletedAt: new Date() })
     .where(eq(participants.id, id));
-  redirect("/participants");
+  toastRedirect("/participants", "Participant deleted.");
 }
 
 export async function restoreParticipant(id: number) {
@@ -126,5 +126,5 @@ export async function restoreParticipant(id: number) {
     .update(participants)
     .set({ deletedAt: null })
     .where(eq(participants.id, id));
-  redirect("/participants/deleted");
+  toastRedirect("/participants/deleted", "Participant restored.");
 }

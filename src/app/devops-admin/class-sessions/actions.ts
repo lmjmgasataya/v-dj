@@ -6,6 +6,7 @@ import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { toastRedirectBack } from "@/lib/toast";
 
 async function requireDeveloper() {
   const session = await getSession();
@@ -22,12 +23,14 @@ export async function createClassSession(formData: FormData) {
     allowsWalkIn: formData.get("allowsWalkIn") === "on",
   });
   revalidatePath("/devops-admin/class-sessions");
+  await toastRedirectBack("Class session created.");
 }
 
 export async function deleteClassSession(formData: FormData) {
   await requireDeveloper();
   await db.delete(classSessions).where(eq(classSessions.id, Number(formData.get("id"))));
   revalidatePath("/devops-admin/class-sessions");
+  await toastRedirectBack("Class session deleted.");
 }
 
 export async function toggleSessionFlag(formData: FormData) {
@@ -42,4 +45,5 @@ export async function toggleSessionFlag(formData: FormData) {
     await db.update(classSessions).set({ allowsWalkIn: sql`NOT allows_walk_in` }).where(eq(classSessions.id, id));
   }
   revalidatePath("/devops-admin/class-sessions");
+  await toastRedirectBack("Session updated.");
 }

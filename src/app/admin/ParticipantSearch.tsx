@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { searchParticipants } from "./actions";
 import { SessionCheckInList } from "./SessionCheckInList";
-import { QrScanner, type CheckInResultInfo } from "./QrScanner";
+import { QrScanner } from "./QrScanner";
 import { ORIENTATION_SESSION_NAME } from "@/lib/constants";
 
 type Results = Awaited<ReturnType<typeof searchParticipants>>;
@@ -43,23 +43,6 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
   const searchParams = useSearchParams();
   const scrollAfterSearch = useRef(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [checkInToast, setCheckInToast] = useState<{ message: string; variant: "success" | "info" } | null>(null);
-  const checkInToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  function showCheckInToast(info: CheckInResultInfo) {
-    if (checkInToastTimer.current) clearTimeout(checkInToastTimer.current);
-    setCheckInToast({ message: info.message, variant: info.alreadyCheckedIn ? "info" : "success" });
-    checkInToastTimer.current = setTimeout(() => setCheckInToast(null), 15000);
-  }
-
-  function dismissCheckInToast() {
-    if (checkInToastTimer.current) clearTimeout(checkInToastTimer.current);
-    setCheckInToast(null);
-  }
-
-  useEffect(() => () => {
-    if (checkInToastTimer.current) clearTimeout(checkInToastTimer.current);
-  }, []);
 
   useEffect(() => {
     if (scrollAfterSearch.current && !pending) {
@@ -126,7 +109,6 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
               const nextQuery = info.lastName.trim() || q;
               setQ(nextQuery);
               runSearch(nextQuery);
-              showCheckInToast(info);
             }}
           />
           <div className="relative flex items-center my-4">
@@ -135,27 +117,6 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
             <div className="flex-1 border-t border-gray-200" />
           </div>
         </>
-      )}
-      {checkInToast && (
-        <div
-          className={`mb-4 flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm ${
-            checkInToast.variant === "success"
-              ? "bg-green-50 border-green-200 text-green-800"
-              : "bg-amber-50 border-amber-200 text-amber-800"
-          }`}
-        >
-          <span>
-            {checkInToast.variant === "success" ? "✅" : "ℹ️"} {checkInToast.message}
-          </span>
-          <button
-            onClick={dismissCheckInToast}
-            className={`shrink-0 font-medium hover:opacity-70 ${
-              checkInToast.variant === "success" ? "text-green-600" : "text-amber-600"
-            }`}
-          >
-            ✕
-          </button>
-        </div>
       )}
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input

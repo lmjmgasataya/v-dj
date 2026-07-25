@@ -11,9 +11,9 @@ import { SessionsNav } from "./SessionsNav";
 export default async function SessionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ batch?: string; created?: string }>;
+  searchParams: Promise<{ batch?: string }>;
 }) {
-  const { batch: batchParam, created } = await searchParams;
+  const { batch: batchParam } = await searchParams;
   const batchId = batchParam ? parseInt(batchParam, 10) : null;
 
   const session = await getSession();
@@ -54,12 +54,6 @@ export default async function SessionsPage({
           </div>
         </div>
       </div>
-
-      {created && (
-        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
-          <strong>Session created.</strong> &ldquo;{created}&rdquo; has been added to the list.
-        </div>
-      )}
 
       <SessionsNav />
 

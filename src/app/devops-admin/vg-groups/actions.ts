@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { toastRedirectBack } from "@/lib/toast";
 
 async function requireDeveloper() {
   const session = await getSession();
@@ -26,10 +27,12 @@ export async function createVgGroup(formData: FormData) {
     lifeStage: lifeStage as typeof victoryGroups.$inferInsert["lifeStage"],
   });
   revalidatePath("/devops-admin/vg-groups");
+  await toastRedirectBack("VG group created.");
 }
 
 export async function deleteVgGroup(formData: FormData) {
   await requireDeveloper();
   await db.delete(victoryGroups).where(eq(victoryGroups.id, Number(formData.get("id"))));
   revalidatePath("/devops-admin/vg-groups");
+  await toastRedirectBack("VG group deleted.");
 }

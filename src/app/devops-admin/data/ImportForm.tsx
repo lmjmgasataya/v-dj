@@ -1,10 +1,17 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { importTable } from "./actions";
+import { useToast } from "@/components/toast/ToastProvider";
 
 export function ImportForm({ table }: { table: string }) {
   const [state, action, pending] = useActionState(importTable, null);
+  const toast = useToast();
+
+  useEffect(() => {
+    if (state) toast.show(state.message, state.success ? "success" : "error");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
   return (
     <form action={action} className="flex flex-wrap items-center gap-2 mt-2">
@@ -23,11 +30,6 @@ export function ImportForm({ table }: { table: string }) {
       >
         {pending ? "Importing…" : "Import"}
       </button>
-      {state && (
-        <span className={`text-xs font-medium ${state.success ? "text-green-600" : "text-red-600"}`}>
-          {state.message}
-        </span>
-      )}
     </form>
   );
 }

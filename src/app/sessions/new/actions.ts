@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { classSessions } from "@/db/schema";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { toastRedirect } from "@/lib/toast";
 
 export async function createSession(_: unknown, formData: FormData) {
   const name = (formData.get("name") as string).trim();
@@ -19,5 +19,5 @@ export async function createSession(_: unknown, formData: FormData) {
   await db.insert(classSessions).values({ name, sessionDate, isVictoryDay, requiresVictoryDay, allowsWalkIn, batchId });
 
   revalidatePath("/sessions");
-  redirect(`/sessions?created=${encodeURIComponent(name)}`);
+  toastRedirect("/sessions", `"${name}" created.`);
 }

@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { classSessions } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { toastRedirect } from "@/lib/toast";
 
 export async function updateSession(id: number, _: unknown, formData: FormData) {
   const name = (formData.get("name") as string).trim();
@@ -21,5 +21,5 @@ export async function updateSession(id: number, _: unknown, formData: FormData) 
   await db.update(classSessions).set({ name, sessionDate, isVictoryDay, requiresVictoryDay, allowsWalkIn, batchId }).where(eq(classSessions.id, id));
 
   revalidatePath("/sessions");
-  redirect(`/sessions/${id}?updated=1`);
+  toastRedirect(`/sessions/${id}`, "Session updated.");
 }

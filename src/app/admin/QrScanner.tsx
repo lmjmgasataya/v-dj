@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { lookupParticipantForQr, checkInByQr } from "./actions";
 import { FEE_CATEGORIES } from "@/components/form";
 import { ORIENTATION_ALLOWED_CLASSES } from "@/lib/constants";
+import { useToast } from "@/components/toast/ToastProvider";
 
 const QR_PREFIX = "dj:participant:";
 const CONTAINER_ID = "qr-scanner-container";
@@ -23,7 +24,7 @@ function lastNameFromResultName(name: string): string {
   return name.split(",")[0]?.trim() ?? "";
 }
 
-type Status = "idle" | "scanning" | "confirming" | "loading" | "success" | "error";
+type Status = "idle" | "scanning" | "confirming" | "loading" | "error";
 
 interface PendingParticipant {
   id: number;
@@ -61,6 +62,7 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
   const [pending, setPending] = useState<PendingParticipant | null>(null);
   const [remarks, setRemarks] = useState("");
   const [mirrored, setMirrored] = useState(false);
+  const toast = useToast();
   const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
   const onCheckInRef = useRef(onCheckIn);
   useEffect(() => {
@@ -111,9 +113,10 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
               setStatus("error");
               setMessage(result.error);
             } else if (result.alreadyCheckedIn) {
-              setStatus("success");
-              setMessage(`${result.name} is already checked in.`);
-              onCheckInRef.current?.({ lastName: lastNameFromResultName(result.name), message: `${result.name} is already checked in.`, alreadyCheckedIn: true });
+              const resultMessage = `${result.name} is already checked in.`;
+              toast.show(resultMessage, "info");
+              onCheckInRef.current?.({ lastName: lastNameFromResultName(result.name), message: resultMessage, alreadyCheckedIn: true });
+              setStatus("scanning");
             } else {
               setPending({ id: participantId, name: result.name, registrationFee: result.registrationFee });
               setStatus("confirming");
@@ -146,7 +149,7 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
       scannerRef.current?.stop().catch(() => {});
       scannerRef.current = null;
     };
-  }, [status, sessionId]);
+  }, [status, sessionId, toast]);
 
   async function handleConfirm() {
     if (!pending) return;
@@ -158,13 +161,15 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
       setStatus("error");
       setMessage(result.error);
     } else if (result.alreadyCheckedIn) {
-      setStatus("success");
-      setMessage(`${result.name} is already checked in.`);
-      onCheckIn?.({ lastName: lastNameFromResultName(result.name), message: `${result.name} is already checked in.`, alreadyCheckedIn: true });
+      const resultMessage = `${result.name} is already checked in.`;
+      toast.show(resultMessage, "info");
+      onCheckIn?.({ lastName: lastNameFromResultName(result.name), message: resultMessage, alreadyCheckedIn: true });
+      setStatus("scanning");
     } else {
-      setStatus("success");
-      setMessage(`Checked in: ${result.name}`);
-      onCheckIn?.({ lastName: lastNameFromResultName(result.name), message: `Checked in: ${result.name}`, alreadyCheckedIn: false });
+      const resultMessage = `Checked in: ${result.name}`;
+      toast.show(resultMessage);
+      onCheckIn?.({ lastName: lastNameFromResultName(result.name), message: resultMessage, alreadyCheckedIn: false });
+      setStatus("scanning");
     }
     setPending(null);
     setRemarks("");
@@ -179,11 +184,6 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
   function reset() {
     setStatus("idle");
     setMessage("");
-  }
-
-  function scanNext() {
-    setMessage("");
-    setStatus("scanning");
   }
 
   return (
@@ -223,19 +223,6 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
           <div className="flex items-center justify-center gap-2 py-3 text-sm text-gray-500">
             <span className="animate-spin inline-block">⏳</span>
             Loading...
-          </div>
-        )}
-
-        {status === "success" && (
-          <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-green-700">{message}</p>
-            <button
-              type="button"
-              onClick={scanNext}
-              className="text-xs text-green-600 hover:text-green-800 underline shrink-0"
-            >
-              Scan next
-            </button>
           </div>
         )}
 

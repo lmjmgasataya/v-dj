@@ -67,10 +67,13 @@ export default async function FunnelReportPage({
     participantRows = pRows;
   }
 
-  const distribution = new Map<number, number>();
+  // reachedAtLeast[i] = number of participants who attended at least i sessions,
+  // so the chart behaves like a funnel (monotonically non-increasing) instead
+  // of an exact-match histogram.
+  const reachedAtLeast = new Array(totalSessions + 1).fill(0);
   for (const p of participantRows) {
-    const attended = p.checkInCount;
-    distribution.set(attended, (distribution.get(attended) ?? 0) + 1);
+    const attended = Math.min(p.checkInCount, totalSessions);
+    for (let i = 0; i <= attended; i++) reachedAtLeast[i]++;
   }
 
   const registrantCount = participantRows.length;
@@ -78,13 +81,13 @@ export default async function FunnelReportPage({
   const funnelData = Array.from({ length: totalSessions + 1 }, (_, i) => ({
     sessions: i,
     label: i === totalSessions ? `${i} ✓` : String(i),
-    count: distribution.get(i) ?? 0,
+    count: reachedAtLeast[i],
     total: totalSessions,
     sessionName: i === 0 ? null : (orderedSessionNames[i - 1] ?? null),
   }));
 
-  const noneCount = distribution.get(0) ?? 0;
-  const completeCount = distribution.get(totalSessions) ?? 0;
+  const noneCount = registrantCount - reachedAtLeast[1];
+  const completeCount = reachedAtLeast[totalSessions];
   const partialCount = registrantCount - noneCount - completeCount;
 
   return (

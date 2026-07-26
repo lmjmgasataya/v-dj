@@ -66,9 +66,9 @@ export function FunnelChart({ data }: { data: FunnelBucket[] }) {
                 <p className="font-medium text-gray-700">
                   {bucket.count} participant{bucket.count !== 1 ? "s" : ""}
                 </p>
-                {bucket.sessionName && (
-                  <p className="text-gray-400 mt-0.5">Through: {bucket.sessionName}</p>
-                )}
+                <p className="text-gray-400 mt-0.5">
+                  {bucket.sessionName ?? "No sessions attended"}
+                </p>
               </div>
             );
           }}

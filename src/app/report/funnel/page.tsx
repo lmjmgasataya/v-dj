@@ -27,17 +27,36 @@ export default async function FunnelReportPage({
   const selectedBatch = allBatches.find((b) => b.id === selectedBatchId) ?? null;
 
   let totalSessions = 0;
-  let participantRows: { id: number; checkInCount: number }[] = [];
-  let orderedSessionNames: string[] = [];
+  let registrantCount = 0;
+  let noneCount = 0;
+  let completeCount = 0;
+  let sessionAttendance: { name: string; count: number }[] = [];
 
   if (selectedBatchId !== null) {
+    const qualifiedParticipant = and(
+      isNull(participants.deletedAt),
+      eq(participants.isWalkIn, false),
+      eq(participants.batchId, selectedBatchId)
+    );
+
     const [sessionRows, pRows] = await Promise.all([
+      // Attendance for each specific session, restricted to qualifying
+      // participants — this is the same "how many attended THIS session"
+      // metric shown on the Sessions page, not a total-count histogram.
       db
-        .select({ name: classSessions.name })
+        .select({
+          name: classSessions.name,
+          count: sql<number>`COUNT(DISTINCT ${participants.id})::int`,
+        })
         .from(classSessions)
+        .leftJoin(checkIns, eq(checkIns.classSessionId, classSessions.id))
+        .leftJoin(participants, and(eq(participants.id, checkIns.participantId), qualifiedParticipant))
         .where(eq(classSessions.batchId, selectedBatchId))
+        .groupBy(classSessions.id, classSessions.name)
         .orderBy(classSessions.sessionDate, classSessions.id),
 
+      // Per-participant total distinct sessions attended, used only for the
+      // "No Sessions Yet / In Progress / Completed All" summary cards.
       db
         .select({
           id: participants.id,
@@ -52,43 +71,29 @@ export default async function FunnelReportPage({
             eq(classSessions.batchId, selectedBatchId)
           )
         )
-        .where(
-          and(
-            isNull(participants.deletedAt),
-            eq(participants.isWalkIn, false),
-            eq(participants.batchId, selectedBatchId)
-          )
-        )
+        .where(qualifiedParticipant)
         .groupBy(participants.id),
     ]);
 
-    orderedSessionNames = sessionRows.map((s) => s.name);
-    totalSessions = orderedSessionNames.length;
-    participantRows = pRows;
+    sessionAttendance = sessionRows;
+    totalSessions = sessionRows.length;
+    registrantCount = pRows.length;
+    noneCount = pRows.filter((p) => p.checkInCount === 0).length;
+    completeCount = pRows.filter((p) => p.checkInCount === totalSessions).length;
   }
 
-  // reachedAtLeast[i] = number of participants who attended at least i sessions,
-  // so the chart behaves like a funnel (monotonically non-increasing) instead
-  // of an exact-match histogram.
-  const reachedAtLeast = new Array(totalSessions + 1).fill(0);
-  for (const p of participantRows) {
-    const attended = Math.min(p.checkInCount, totalSessions);
-    for (let i = 0; i <= attended; i++) reachedAtLeast[i]++;
-  }
-
-  const registrantCount = participantRows.length;
-
-  const funnelData = Array.from({ length: totalSessions + 1 }, (_, i) => ({
-    sessions: i,
-    label: i === totalSessions ? `${i} ✓` : String(i),
-    count: reachedAtLeast[i],
-    total: totalSessions,
-    sessionName: i === 0 ? null : (orderedSessionNames[i - 1] ?? null),
-  }));
-
-  const noneCount = registrantCount - reachedAtLeast[1];
-  const completeCount = reachedAtLeast[totalSessions];
   const partialCount = registrantCount - noneCount - completeCount;
+
+  const funnelData = [
+    { sessions: 0, label: "0", count: noneCount, total: totalSessions, sessionName: null as string | null },
+    ...sessionAttendance.map((s, idx) => ({
+      sessions: idx + 1,
+      label: idx + 1 === totalSessions ? `${idx + 1} ✓` : String(idx + 1),
+      count: s.count,
+      total: totalSessions,
+      sessionName: s.name,
+    })),
+  ];
 
   return (
     <div className="flex flex-col gap-6">
@@ -131,7 +136,7 @@ export default async function FunnelReportPage({
           Participants by sessions attended
         </p>
         <p className="text-xs text-gray-400 mb-4">
-          X-axis = number of sessions attended · ✓ = completed all {totalSessions}
+          0 = no sessions yet · bars 1–{totalSessions} = attendance per session, in order · ✓ = final session
         </p>
         <FunnelChart data={funnelData} />
       </div>

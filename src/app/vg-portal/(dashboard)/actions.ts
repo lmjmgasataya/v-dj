@@ -4,6 +4,7 @@ import { db } from "@/db";
 import {
   victoryGroups,
   victoryGroupLeaders,
+  users,
   type dayOfWeekEnum,
   type vgFrequencyEnum,
   type lifestageEnum,
@@ -75,17 +76,33 @@ export async function deleteOwnVictoryGroup(id: number) {
 
 export async function updateOwnProfile(formData: FormData) {
   const session = await requireVgLeader();
-  await db
+  const [updated] = await db
     .update(victoryGroupLeaders)
     .set({
+      firstName: toTitleCase(formData.get("firstName") as string),
       middleInitial: toTitleCase((formData.get("middleInitial") as string) || "") || null,
+      nickname: (formData.get("nickname") as string) || null,
       mobileNumber: formData.get("mobileNumber") as string,
       age: formData.get("age") ? Number(formData.get("age")) : null,
       gender: (formData.get("gender") as string) || null,
       lifestage: (formData.get("lifestage") as LifeStage) || null,
       serviceAttending: (formData.get("serviceAttending") as string) || null,
       facebookMessengerName: (formData.get("facebookMessengerName") as string) || null,
+      discipleshipJourneyCompleted: formData.getAll("discipleshipJourneyCompleted").join(",") || null,
+      graduateOfLeadership113:
+        formData.get("graduateOfLeadership113") === ""
+          ? null
+          : formData.get("graduateOfLeadership113") === "true",
+      ownVgLeaderName: (formData.get("ownVgLeaderName") as string) || null,
     })
-    .where(eq(victoryGroupLeaders.id, session.vgLeaderId));
+    .where(eq(victoryGroupLeaders.id, session.vgLeaderId))
+    .returning();
+
+  // Keep the account's display name (used in the header and future session tokens) in sync.
+  await db
+    .update(users)
+    .set({ name: `${updated.firstName} ${updated.lastName}` })
+    .where(eq(users.vgLeaderId, session.vgLeaderId));
+
   revalidatePath("/vg-portal");
 }

@@ -12,6 +12,15 @@ export function feeLabel(value: string | null | undefined): string {
   return cat ? `${cat.label} (${cat.amount})` : (value ?? "—");
 }
 
+export const DISCIPLESHIP_JOURNEY_STEPS = [
+  "One2One",
+  "Victory Weekend",
+  "Church Community",
+  "Purple Book Class",
+  "Making Disciples",
+  "Empowering Leaders",
+] as const;
+
 export const SERVICE_OPTIONS = [
   "9AM - Mandurriao",
   "11AM - Mandurriao",

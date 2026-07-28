@@ -15,12 +15,19 @@ export async function updateVGLeader(id: number, formData: FormData) {
       lastName: toTitleCase(formData.get("lastName") as string),
       firstName: toTitleCase(formData.get("firstName") as string),
       middleInitial: toTitleCase((formData.get("middleInitial") as string) || "") || null,
+      nickname: (formData.get("nickname") as string) || null,
       mobileNumber: formData.get("mobileNumber") as string,
       age: Number(formData.get("age")),
       gender: formData.get("gender") as string,
       lifestage: (formData.get("lifestage") as Lifestage) || null,
       serviceAttending: (formData.get("serviceAttending") as string) || null,
       facebookMessengerName: (formData.get("facebookMessengerName") as string) || null,
+      discipleshipJourneyCompleted: formData.getAll("discipleshipJourneyCompleted").join(",") || null,
+      graduateOfLeadership113:
+        formData.get("graduateOfLeadership113") === ""
+          ? null
+          : formData.get("graduateOfLeadership113") === "true",
+      ownVgLeaderName: (formData.get("ownVgLeaderName") as string) || null,
     })
     .where(eq(victoryGroupLeaders.id, id));
 

@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { updateOwnProfile } from "./actions";
-import { Field, Section, inputCls, selectCls, SERVICE_OPTIONS } from "@/components/form";
+import { Field, Section, CheckboxOption, inputCls, selectCls, SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
 import type { VictoryGroupLeader } from "@/db/schema";
 import { lifestageEnum } from "@/db/schema";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -10,6 +10,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 export function ProfileForm({ leader }: { leader: VictoryGroupLeader }) {
   const [pending, startTransition] = useTransition();
   const toast = useToast();
+  const completedSteps = (leader.discipleshipJourneyCompleted ?? "").split(",").filter(Boolean);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -22,11 +23,15 @@ export function ProfileForm({ leader }: { leader: VictoryGroupLeader }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      <Section title="My Information" description="Your name is on file with an admin — contact one to change it.">
-        <Field label="Name">
-          <p className="text-sm text-gray-700 py-2">
-            {leader.lastName}, {leader.firstName} {leader.middleInitial ?? ""}
-          </p>
+      <Section title="My Information" description="Your last name is on file with an admin — contact one to change it.">
+        <Field label="Last Name">
+          <p className="text-sm text-gray-700 py-2">{leader.lastName}</p>
+        </Field>
+        <Field label="First Name" required>
+          <input name="firstName" required defaultValue={leader.firstName} className={inputCls} />
+        </Field>
+        <Field label="Nickname">
+          <input name="nickname" defaultValue={leader.nickname ?? ""} className={inputCls} />
         </Field>
         <Field label="Mobile Number" required>
           <input name="mobileNumber" required defaultValue={leader.mobileNumber} className={inputCls} />
@@ -64,6 +69,35 @@ export function ProfileForm({ leader }: { leader: VictoryGroupLeader }) {
             className={inputCls}
             placeholder="e.g. Juan dela Cruz"
           />
+        </Field>
+        <Field label="Name of your Victory Group Leader" className="sm:col-span-2">
+          <input name="ownVgLeaderName" defaultValue={leader.ownVgLeaderName ?? ""} className={inputCls} />
+        </Field>
+      </Section>
+
+      <Section title="Discipleship Journey" description="Please check all that you have completed.">
+        <div className="sm:col-span-2 flex flex-col gap-2.5">
+          {DISCIPLESHIP_JOURNEY_STEPS.map((step) => (
+            <CheckboxOption
+              key={step}
+              name="discipleshipJourneyCompleted"
+              value={step}
+              defaultChecked={completedSteps.includes(step)}
+            >
+              {step}
+            </CheckboxOption>
+          ))}
+        </div>
+        <Field label="Graduate of Leadership 113?" className="sm:col-span-2">
+          <select
+            name="graduateOfLeadership113"
+            defaultValue={leader.graduateOfLeadership113 == null ? "" : String(leader.graduateOfLeadership113)}
+            className={selectCls}
+          >
+            <option value="">— Select —</option>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
         </Field>
       </Section>
 

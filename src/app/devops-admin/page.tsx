@@ -5,6 +5,7 @@ import { sql } from "drizzle-orm";
 import { toggleFlag, createFlag, deleteFlag, changeRole, resetPassword, deleteUser, createUser, createSmsApiKey, updateSmsApiKey, deleteSmsApiKey, setSmsApiKeyDefault } from "./actions";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 import { SmsTester } from "./SmsTester";
+import { PasswordInput } from "@/components/PasswordInput";
 // session is read here (not in layout) because we need session.userId to hide delete-self button
 
 const FLAG_LABELS: Record<string, string> = {
@@ -176,8 +177,7 @@ export default async function DevopsAdminPage() {
                 {/* Reset password */}
                 <form action={resetPassword} className="flex items-center gap-1.5">
                   <input type="hidden" name="userId" value={user.id} />
-                  <input
-                    type="password"
+                  <PasswordInput
                     name="newPassword"
                     placeholder="New password"
                     minLength={6}
@@ -218,7 +218,7 @@ export default async function DevopsAdminPage() {
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">Password (min. 6 chars)</label>
-              <input type="password" name="password" required minLength={6} className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2" />
+              <PasswordInput name="password" required minLength={6} className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2" />
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">Role</label>

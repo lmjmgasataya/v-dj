@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { verifyIdentity, completeClaim } from "./actions";
+import { PasswordInput } from "@/components/PasswordInput";
 
 type Verified = { vgLeaderId: number; name: string };
 
@@ -118,13 +119,12 @@ function CredentialsStep({
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Password</label>
-            <input
+            <PasswordInput
               name="password"
-              type="password"
               autoComplete="new-password"
               required
               minLength={6}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
             <p className="text-xs text-gray-400">At least 6 characters.</p>
           </div>

@@ -42,6 +42,8 @@ function GroupForm({
   const [pending, startTransition] = useTransition();
   const [frequency, setFrequency] = useState(defaultValues?.frequency ?? "");
   const [isActive, setIsActive] = useState(defaultValues?.isActive ?? true);
+  const fieldCls = `${inputCls} bg-white`;
+  const fieldSelectCls = `${selectCls} bg-white`;
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -56,25 +58,25 @@ function GroupForm({
     <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 p-4 bg-indigo-50 rounded-lg border border-indigo-100">
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">Place <span className="text-red-500">*</span></label>
-        <input name="place" required defaultValue={defaultValues?.place ?? ""} placeholder="e.g. Room 3, Main Hall" className={inputCls} />
+        <input name="place" required defaultValue={defaultValues?.place ?? ""} placeholder="e.g. Room 3, Main Hall" className={fieldCls} />
       </div>
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">Day <span className="text-red-500">*</span></label>
-        <select name="day" required defaultValue={defaultValues?.day ?? ""} className={selectCls}>
+        <select name="day" required defaultValue={defaultValues?.day ?? ""} className={fieldSelectCls}>
           <option value="" disabled>Select day</option>
           {DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
         </select>
       </div>
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">Time <span className="text-red-500">*</span></label>
-        <select name="time" required defaultValue={defaultValues?.time ?? ""} className={selectCls}>
+        <select name="time" required defaultValue={defaultValues?.time ?? ""} className={fieldSelectCls}>
           <option value="" disabled>Select time</option>
           {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
         </select>
       </div>
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">Frequency <span className="text-red-500">*</span></label>
-        <select name="frequency" required value={frequency} onChange={(e) => setFrequency(e.target.value)} className={selectCls}>
+        <select name="frequency" required value={frequency} onChange={(e) => setFrequency(e.target.value)} className={fieldSelectCls}>
           <option value="" disabled>Select frequency</option>
           {FREQUENCIES.map((f) => <option key={f} value={f}>{f}</option>)}
         </select>
@@ -82,19 +84,19 @@ function GroupForm({
       {frequency === "Others" && (
         <div className="sm:col-span-2">
           <label className="block text-xs font-medium text-gray-700 mb-1">Specify frequency <span className="text-red-500">*</span></label>
-          <input name="otherFrequency" required defaultValue={defaultValues?.otherFrequency ?? ""} placeholder="e.g. Every 3rd Sunday of the month" className={inputCls} />
+          <input name="otherFrequency" required defaultValue={defaultValues?.otherFrequency ?? ""} placeholder="e.g. Every 3rd Sunday of the month" className={fieldCls} />
         </div>
       )}
       <div className="sm:col-span-2">
         <label className="block text-xs font-medium text-gray-700 mb-1">Life Stage</label>
-        <select name="lifeStage" defaultValue={defaultValues?.lifeStage ?? ""} className={selectCls}>
+        <select name="lifeStage" defaultValue={defaultValues?.lifeStage ?? ""} className={fieldSelectCls}>
           <option value="">— Any —</option>
           {LIFESTAGES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
       <div className="sm:col-span-2">
         <label className="block text-xs font-medium text-gray-700 mb-1">Intern</label>
-        <input name="intern" defaultValue={defaultValues?.intern ?? ""} className={inputCls} />
+        <input name="intern" defaultValue={defaultValues?.intern ?? ""} className={fieldCls} />
       </div>
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">Status <span className="text-red-500">*</span></label>
@@ -103,7 +105,7 @@ function GroupForm({
           required
           value={isActive ? "true" : "false"}
           onChange={(e) => setIsActive(e.target.value === "true")}
-          className={selectCls}
+          className={fieldSelectCls}
         >
           <option value="true">Active</option>
           <option value="false">Inactive</option>
@@ -118,7 +120,7 @@ function GroupForm({
             defaultValue={defaultValues?.remarks ?? ""}
             placeholder="Why is this group inactive?"
             rows={2}
-            className={inputCls}
+            className={fieldCls}
           />
         </div>
       )}

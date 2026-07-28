@@ -10,19 +10,71 @@ type Lifestage = (typeof lifestageEnum.enumValues)[number];
 import { and, count, eq, gte, ilike, inArray, isNull, lt, notInArray, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-export async function checkInParticipant(participantId: number, classSessionId: number, remarks?: string) {
+async function getVictoryDayBlockReason(participantId: number, classSessionId: number): Promise<string | null> {
+  const [session] = await db
+    .select({ isVictoryDay: classSessions.isVictoryDay, requiresVictoryDay: classSessions.requiresVictoryDay })
+    .from(classSessions)
+    .where(eq(classSessions.id, classSessionId))
+    .limit(1);
+
+  if (!session || session.isVictoryDay || !session.requiresVictoryDay) return null;
+
+  const [participant] = await db
+    .select({ victoryDate: participants.victoryDate })
+    .from(participants)
+    .where(eq(participants.id, participantId))
+    .limit(1);
+
+  if (participant?.victoryDate) return null;
+
+  const year = currentYearPH();
+  const [[{ totalVictoryDaySessions }], [{ attended }]] = await Promise.all([
+    db
+      .select({ totalVictoryDaySessions: count() })
+      .from(classSessions)
+      .where(
+        and(
+          eq(classSessions.isVictoryDay, true),
+          gte(classSessions.sessionDate, `${year}-01-01`),
+          lt(classSessions.sessionDate, `${year + 1}-01-01`)
+        )
+      ),
+    db
+      .select({ attended: count() })
+      .from(checkIns)
+      .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
+      .where(and(eq(checkIns.participantId, participantId), eq(classSessions.isVictoryDay, true))),
+  ]);
+
+  if (totalVictoryDaySessions > 0 && attended >= totalVictoryDaySessions) return null;
+  if (attended > 0) return `Victory Day incomplete (${attended}/${totalVictoryDaySessions})`;
+  return "No Victory Day yet";
+}
+
+export async function checkInParticipant(
+  participantId: number,
+  classSessionId: number,
+  remarks?: string
+): Promise<{ error: string } | { success: true }> {
+  const blockReason = await getVictoryDayBlockReason(participantId, classSessionId);
+  if (blockReason) return { error: blockReason };
+
   await db
     .insert(checkIns)
     .values({ participantId, classSessionId, remarks: remarks || null })
     .onConflictDoNothing();
   revalidatePath("/admin");
   revalidatePath("/sessions");
+  return { success: true };
 }
 
 export async function lookupParticipantForQr(
   participantId: number,
   classSessionId: number,
-): Promise<{ name: string; alreadyCheckedIn: boolean; registrationFee: string | null } | { error: string }> {
+): Promise<
+  | { name: string; alreadyCheckedIn: boolean; registrationFee: string | null; victoryDayBlockReason: string | null }
+  | { error: string }
+> {
   const [participant] = await db
     .select({
       id: participants.id,
@@ -46,6 +98,7 @@ export async function lookupParticipantForQr(
     name: `${participant.lastName}, ${participant.firstName}`,
     alreadyCheckedIn: !!existing,
     registrationFee: participant.registrationFee,
+    victoryDayBlockReason: existing ? null : await getVictoryDayBlockReason(participantId, classSessionId),
   };
 }
 
@@ -71,6 +124,9 @@ export async function checkInByQr(
   if (existing) {
     return { name: `${participant.lastName}, ${participant.firstName}`, alreadyCheckedIn: true };
   }
+
+  const blockReason = await getVictoryDayBlockReason(participantId, classSessionId);
+  if (blockReason) return { error: blockReason };
 
   await db.insert(checkIns).values({ participantId, classSessionId, remarks: remarks || null }).onConflictDoNothing();
   revalidatePath("/admin");

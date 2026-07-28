@@ -30,6 +30,7 @@ interface PendingParticipant {
   id: number;
   name: string;
   registrationFee: string | null;
+  victoryDayBlockReason: string | null;
 }
 
 function playSuccessSound() {
@@ -118,7 +119,12 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
               onCheckInRef.current?.({ lastName: lastNameFromResultName(result.name), message: resultMessage, alreadyCheckedIn: true });
               setStatus("scanning");
             } else {
-              setPending({ id: participantId, name: result.name, registrationFee: result.registrationFee });
+              setPending({
+                id: participantId,
+                name: result.name,
+                registrationFee: result.registrationFee,
+                victoryDayBlockReason: result.victoryDayBlockReason,
+              });
               setStatus("confirming");
             }
           },
@@ -155,6 +161,7 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
     if (!pending) return;
     if (isVictoryDay && !allowAllClasses && !VICTORY_DAY_ALLOWED_CLASSES.includes(pending.registrationFee ?? "")) return;
     if (isOrientation && !ORIENTATION_ALLOWED_CLASSES.includes(pending.registrationFee ?? "")) return;
+    if (pending.victoryDayBlockReason) return;
     setStatus("loading");
     const result = await checkInByQr(pending.id, sessionId, remarks || undefined);
     if ("error" in result) {
@@ -243,7 +250,7 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
       {status === "confirming" && pending && (() => {
         const victoryDayRestricted = isVictoryDay && !allowAllClasses && !VICTORY_DAY_ALLOWED_CLASSES.includes(pending.registrationFee ?? "");
         const orientationRestricted = !!isOrientation && !ORIENTATION_ALLOWED_CLASSES.includes(pending.registrationFee ?? "");
-        const restricted = victoryDayRestricted || orientationRestricted;
+        const restricted = victoryDayRestricted || orientationRestricted || !!pending.victoryDayBlockReason;
         return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4">
@@ -257,7 +264,9 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
               <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
                 {orientationRestricted
                   ? "Only Class A and B participants are allowed to check in for Orientation."
-                  : "Only Class A and B participants are allowed to check in for Victory Day sessions."}
+                  : victoryDayRestricted
+                  ? "Only Class A and B participants are allowed to check in for Victory Day sessions."
+                  : pending.victoryDayBlockReason}
               </div>
             )}
             <div className="flex flex-col gap-1">

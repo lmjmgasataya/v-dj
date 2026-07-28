@@ -38,10 +38,14 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction }
 
   function handleConfirmCheckIn() {
     startTransition(async () => {
-      await checkInParticipant(p.id, sessionId, remarks || undefined);
+      const result = await checkInParticipant(p.id, sessionId, remarks || undefined);
       setShowModal(false);
       setRemarks("");
-      toast.show(`Checked in: ${toTitleCase(p.firstName)} ${toTitleCase(p.lastName)}.`);
+      if ("error" in result) {
+        toast.show(result.error, "error");
+      } else {
+        toast.show(`Checked in: ${toTitleCase(p.firstName)} ${toTitleCase(p.lastName)}.`);
+      }
       onAction?.();
     });
   }

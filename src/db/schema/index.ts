@@ -158,7 +158,7 @@ export const checkIns = pgTable(
   ]
 );
 
-export const roleEnum = pgEnum("user_role", ["admin_volunteer", "developer"]);
+export const roleEnum = pgEnum("user_role", ["admin_volunteer", "developer", "vg_leader"]);
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -166,8 +166,10 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   name: text("name").notNull(),
   role: roleEnum("role").notNull().default("admin_volunteer"),
+  vgLeaderId: integer("vg_leader_id").references(() => victoryGroupLeaders.id),
+  mustChangePassword: boolean("must_change_password").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => [unique().on(t.vgLeaderId)]);
 
 export const loginLogs = pgTable("login_logs", {
   id: serial("id").primaryKey(),

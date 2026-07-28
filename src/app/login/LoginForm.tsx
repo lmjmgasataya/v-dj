@@ -72,6 +72,13 @@ export default function LoginForm() {
           >
             {pending ? "Signing in…" : "Sign in"}
           </button>
+
+          <a
+            href="/vg-portal/claim"
+            className="text-xs text-center text-gray-400 hover:text-gray-600 underline underline-offset-2"
+          >
+            VG Leader? Set up your account
+          </a>
         </form>
       </div>
     </div>

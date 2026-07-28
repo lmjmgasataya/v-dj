@@ -9,13 +9,15 @@ function secret() {
   );
 }
 
-export type Role = "admin_volunteer" | "developer";
+export type Role = "admin_volunteer" | "developer" | "vg_leader";
 
 export interface SessionPayload {
   userId: number;
   username: string;
   name: string;
   role: Role;
+  vgLeaderId?: number;
+  mustChangePassword?: boolean;
 }
 
 export async function signSession(payload: SessionPayload) {

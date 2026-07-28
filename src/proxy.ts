@@ -17,10 +17,14 @@ const DEVELOPER_ONLY = [
   /^\/sessions\/\d+\/edit/,
 ];
 
+const PUBLIC_PATHS = [/^\/login/, /^\/vg-portal\/claim/];
+
+const VG_LEADER_ALLOWED = [/^\/vg-portal/];
+
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname === "/login") return NextResponse.next();
+  if (PUBLIC_PATHS.some((re) => re.test(pathname))) return NextResponse.next();
 
   const token = request.cookies.get(COOKIE)?.value;
   if (!token) {
@@ -30,6 +34,13 @@ export default async function proxy(request: NextRequest) {
   try {
     const { payload } = await jwtVerify(token, secret());
     const role = payload.role as string;
+
+    if (role === "vg_leader") {
+      if (!VG_LEADER_ALLOWED.some((re) => re.test(pathname))) {
+        return NextResponse.redirect(new URL("/vg-portal", request.url));
+      }
+      return NextResponse.next();
+    }
 
     if (DEVELOPER_ONLY.some((re) => re.test(pathname)) && role !== "developer") {
       return NextResponse.redirect(new URL("/", request.url));

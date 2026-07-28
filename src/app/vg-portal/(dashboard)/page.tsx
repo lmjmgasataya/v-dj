@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { victoryGroupLeaders, victoryGroups, participants } from "@/db/schema";
+import { victoryGroupLeaders, victoryGroups } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { and, eq, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
@@ -12,18 +12,19 @@ export default async function VgPortalDashboardPage() {
 
   const vgLeaderId = session.vgLeaderId;
 
-  const [[leader], groups, myParticipants] = await Promise.all([
+  const [[leader], groups] = await Promise.all([
     db.select().from(victoryGroupLeaders).where(eq(victoryGroupLeaders.id, vgLeaderId)).limit(1),
     db
       .select()
       .from(victoryGroups)
       .where(and(eq(victoryGroups.vgLeaderId, vgLeaderId), isNull(victoryGroups.deletedAt)))
       .orderBy(victoryGroups.createdAt),
-    db
-      .select()
-      .from(participants)
-      .where(and(eq(participants.vgLeaderId, vgLeaderId), isNull(participants.deletedAt)))
-      .orderBy(participants.lastName),
+    // "My Participants" is temporarily hidden — see commented block in the JSX below.
+    // db
+    //   .select()
+    //   .from(participants)
+    //   .where(and(eq(participants.vgLeaderId, vgLeaderId), isNull(participants.deletedAt)))
+    //   .orderBy(participants.lastName),
   ]);
 
   if (!leader) redirect("/login");
@@ -40,6 +41,7 @@ export default async function VgPortalDashboardPage() {
       <ProfileForm leader={leader} />
       <MyVictoryGroups groups={groups} />
 
+      {/* "My Participants" — hidden for now.
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-indigo-50 border-b border-indigo-100 px-6 py-3">
           <h2 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">My Participants</h2>
@@ -72,6 +74,7 @@ export default async function VgPortalDashboardPage() {
           </ul>
         )}
       </div>
+      */}
     </>
   );
 }

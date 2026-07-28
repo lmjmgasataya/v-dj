@@ -22,6 +22,12 @@ function parseLifeStage(formData: FormData) {
   return { lifeStage: val ? (val as LifeStage) : null };
 }
 
+function parseStatus(formData: FormData) {
+  const isActive = formData.get("isActive") === "true";
+  const remarks = isActive ? null : ((formData.get("remarks") as string) || null);
+  return { isActive, remarks };
+}
+
 export async function addVictoryGroup(vgLeaderId: number, formData: FormData) {
   await db.insert(victoryGroups).values({
     vgLeaderId,
@@ -30,6 +36,7 @@ export async function addVictoryGroup(vgLeaderId: number, formData: FormData) {
     time: formData.get("time") as string,
     ...parseFrequency(formData),
     ...parseLifeStage(formData),
+    ...parseStatus(formData),
   });
   revalidatePath(`/vg-leaders/${vgLeaderId}/edit`);
 }
@@ -43,6 +50,7 @@ export async function updateVictoryGroup(id: number, vgLeaderId: number, formDat
       time: formData.get("time") as string,
       ...parseFrequency(formData),
       ...parseLifeStage(formData),
+      ...parseStatus(formData),
     })
     .where(eq(victoryGroups.id, id));
   revalidatePath(`/vg-leaders/${vgLeaderId}/edit`);

@@ -80,6 +80,8 @@ export const victoryGroups = pgTable("victory_groups", {
   frequency: vgFrequencyEnum("frequency").notNull(),
   otherFrequency: text("other_frequency"),
   lifeStage: lifestageEnum("life_stage"),
+  isActive: boolean("is_active").default(true).notNull(),
+  remarks: text("remarks"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
 });

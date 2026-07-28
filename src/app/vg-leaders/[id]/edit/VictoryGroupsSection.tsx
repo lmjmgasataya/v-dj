@@ -41,6 +41,7 @@ function GroupForm({
 }) {
   const [pending, startTransition] = useTransition();
   const [frequency, setFrequency] = useState(defaultValues?.frequency ?? "");
+  const [isActive, setIsActive] = useState(defaultValues?.isActive ?? true);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -91,6 +92,32 @@ function GroupForm({
           {LIFESTAGES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
+      <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1">Status <span className="text-red-500">*</span></label>
+        <select
+          name="isActive"
+          required
+          value={isActive ? "true" : "false"}
+          onChange={(e) => setIsActive(e.target.value === "true")}
+          className={selectCls}
+        >
+          <option value="true">Active</option>
+          <option value="false">Inactive</option>
+        </select>
+      </div>
+      {!isActive && (
+        <div className="sm:col-span-2">
+          <label className="block text-xs font-medium text-gray-700 mb-1">Remarks <span className="text-red-500">*</span></label>
+          <textarea
+            name="remarks"
+            required
+            defaultValue={defaultValues?.remarks ?? ""}
+            placeholder="Why is this group inactive?"
+            rows={2}
+            className={inputCls}
+          />
+        </div>
+      )}
       <div className="sm:col-span-2 flex justify-end gap-2 pt-1">
         <button type="button" onClick={onCancel} className="text-sm text-gray-600 hover:text-gray-800 px-4 py-1.5 rounded-lg border border-gray-300 bg-white">
           Cancel
@@ -132,11 +159,23 @@ function GroupRow({
   return (
     <div className="flex items-center justify-between px-4 py-3 rounded-lg border border-gray-200 bg-white">
       <div className="flex flex-col gap-0.5">
-        <p className="text-sm font-semibold text-gray-900">{group.place}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-semibold text-gray-900">{group.place}</p>
+          <span
+            className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+              group.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+            }`}
+          >
+            {group.isActive ? "Active" : "Inactive"}
+          </span>
+        </div>
         <p className="text-xs text-gray-500">
           {group.day} · {group.time} · {group.frequency === "Others" ? (group.otherFrequency ?? "Others") : group.frequency}
           {group.lifeStage ? ` · ${group.lifeStage}` : ""}
         </p>
+        {!group.isActive && group.remarks && (
+          <p className="text-xs text-gray-500 italic mt-0.5">Remarks: {group.remarks}</p>
+        )}
       </div>
       <div className="flex items-center gap-3 shrink-0 ml-4">
         <button onClick={() => setEditing(true)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline">

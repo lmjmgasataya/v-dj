@@ -93,6 +93,16 @@ export default async function Home() {
             </div>
           )
         )}
+        {isDeveloper && (
+          <Link
+            href="/manage-vg-leaders"
+            className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
+          >
+            <span className="text-4xl">👤👤</span>
+            <span className="text-lg font-semibold text-gray-900">Manage VG Leaders</span>
+            <span className="text-sm text-gray-500 text-center">Promote disciplers and manage portal accounts</span>
+          </Link>
+        )}
       </div>
     </div>
   );

@@ -1,8 +1,8 @@
 import { db } from "@/db";
-import { featureFlags, smsApiKeys, users, victoryGroupLeaders } from "@/db/schema";
+import { featureFlags, smsApiKeys, users } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { eq, sql } from "drizzle-orm";
-import { toggleFlag, createFlag, deleteFlag, changeRole, resetPassword, resetVgLeaderPassword, deleteUser, createUser, createSmsApiKey, updateSmsApiKey, deleteSmsApiKey, setSmsApiKeyDefault } from "./actions";
+import { sql } from "drizzle-orm";
+import { toggleFlag, createFlag, deleteFlag, changeRole, resetPassword, deleteUser, createUser, createSmsApiKey, updateSmsApiKey, deleteSmsApiKey, setSmsApiKeyDefault } from "./actions";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 import { SmsTester } from "./SmsTester";
 // session is read here (not in layout) because we need session.userId to hide delete-self button
@@ -39,25 +39,11 @@ async function getDbStats() {
 export default async function DevopsAdminPage() {
   const session = await getSession();
 
-  const [{ dbSize, tables }, flags, allUsers, allSmsApiKeys, vgLeaderAccounts] = await Promise.all([
+  const [{ dbSize, tables }, flags, allUsers, allSmsApiKeys] = await Promise.all([
     getDbStats(),
     db.select().from(featureFlags).orderBy(featureFlags.key),
     db.select({ id: users.id, username: users.username, name: users.name, role: users.role, createdAt: users.createdAt }).from(users).orderBy(users.createdAt),
     db.select().from(smsApiKeys).orderBy(smsApiKeys.createdAt),
-    db
-      .select({
-        id: users.id,
-        username: users.username,
-        name: users.name,
-        mustChangePassword: users.mustChangePassword,
-        createdAt: users.createdAt,
-        leaderLastName: victoryGroupLeaders.lastName,
-        leaderFirstName: victoryGroupLeaders.firstName,
-      })
-      .from(users)
-      .innerJoin(victoryGroupLeaders, eq(users.vgLeaderId, victoryGroupLeaders.id))
-      .where(eq(users.role, "vg_leader"))
-      .orderBy(users.createdAt),
   ]);
 
   return (
@@ -248,45 +234,6 @@ export default async function DevopsAdminPage() {
             </div>
           </form>
         </div>
-      </div>
-
-      {/* VG Leader Accounts */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h3 className="font-semibold text-gray-800">VG Leader Accounts</h3>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Accounts VG leaders set up themselves via the portal. Reset issues a temporary password shown once — relay it to the leader.
-          </p>
-        </div>
-        {vgLeaderAccounts.length === 0 ? (
-          <p className="px-6 py-4 text-sm text-gray-400">No VG leader accounts yet.</p>
-        ) : (
-          <ul className="divide-y divide-gray-100">
-            {vgLeaderAccounts.map((account) => (
-              <li key={account.id} className="flex items-center justify-between px-6 py-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {account.leaderLastName}, {account.leaderFirstName}
-                  </p>
-                  <p className="text-xs text-gray-400 font-mono mt-0.5">{account.username}</p>
-                  {account.mustChangePassword && (
-                    <span className="mt-1 inline-flex text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                      Password reset pending
-                    </span>
-                  )}
-                </div>
-                <form action={resetVgLeaderPassword.bind(null, account.id)}>
-                  <button
-                    type="submit"
-                    className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
-                  >
-                    Reset &amp; issue temp password
-                  </button>
-                </form>
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
 
       {/* SMS API Keys */}

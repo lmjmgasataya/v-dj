@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { featureFlags, smsApiKeys, users } from "@/db/schema";
-import { and, eq, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getSession, type Role } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -62,27 +62,6 @@ export async function resetPassword(formData: FormData) {
   await db.update(users).set({ passwordHash: hash }).where(eq(users.id, userId));
   revalidatePath("/devops-admin");
   await toastRedirectBack("Password reset.");
-}
-
-function generateTempPassword() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-  let out = "";
-  for (let i = 0; i < 8; i++) out += chars[Math.floor(Math.random() * chars.length)];
-  return out;
-}
-
-export async function resetVgLeaderPassword(userId: number) {
-  await requireDeveloper();
-  const tempPassword = generateTempPassword();
-  const hash = await bcrypt.hash(tempPassword, 10);
-  await db
-    .update(users)
-    .set({ passwordHash: hash, mustChangePassword: true })
-    .where(and(eq(users.id, userId), eq(users.role, "vg_leader")));
-  revalidatePath("/devops-admin");
-  await toastRedirectBack(
-    `Temporary password: ${tempPassword} — share this with the leader. They'll be asked to set a new one on next login.`
-  );
 }
 
 export async function deleteUser(formData: FormData) {

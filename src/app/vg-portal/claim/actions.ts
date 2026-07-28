@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { victoryGroupLeaders, users, featureFlags } from "@/db/schema";
+import { victoryGroupLeaders, disciplers, users, featureFlags } from "@/db/schema";
 import { and, eq, ilike, isNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { signSession, setSessionCookie } from "@/lib/auth";
@@ -36,7 +36,23 @@ export async function verifyIdentity(_: unknown, formData: FormData) {
   const matches = candidates.filter((c) => normalizeDigits(c.mobileNumber).endsWith(last6));
 
   if (matches.length !== 1) {
-    return { error: "No match found. Please contact an admin to check your details." };
+    // Not found as a VG leader — check if they're on file as a discipler instead. Some
+    // disciplers are also VG leaders in practice but don't have a VG leader record yet;
+    // we don't auto-create one here (this page is unauthenticated), just point them to an admin.
+    const disciplerCandidates = await db
+      .select()
+      .from(disciplers)
+      .where(ilike(disciplers.lastName, lastName));
+    const disciplerMatch = disciplerCandidates.some((c) => normalizeDigits(c.mobileNumber).endsWith(last6));
+
+    if (disciplerMatch) {
+      return {
+        error:
+          "You're on file as a discipler but not yet set up as a VG leader. Please contact an admin to be added.",
+      };
+    }
+
+    return { error: "No match found. Please contact the discipleship admin to check your details." };
   }
 
   const leader = matches[0];

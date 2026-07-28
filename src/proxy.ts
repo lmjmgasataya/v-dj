@@ -15,6 +15,7 @@ const DEVELOPER_ONLY = [
   /^\/api\/participants/,
   /^\/sessions\/new/,
   /^\/sessions\/\d+\/edit/,
+  /^\/manage-vg-leaders/,
 ];
 
 const PUBLIC_PATHS = [/^\/login/, /^\/vg-portal\/claim/];

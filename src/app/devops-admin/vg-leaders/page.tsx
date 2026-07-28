@@ -1,8 +1,9 @@
 import { db } from "@/db";
-import { victoryGroupLeaders } from "@/db/schema";
-import { asc } from "drizzle-orm";
+import { victoryGroupLeaders, participants } from "@/db/schema";
+import { asc, inArray, isNull, and } from "drizzle-orm";
 import { createVgLeader, deleteVgLeader } from "./actions";
 import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
+import { ParticipantsCell } from "../ParticipantsCell";
 import { toTitleCase } from "@/lib/text";
 
 const input = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400";
@@ -10,6 +11,20 @@ const input = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:
 export default async function VgLeadersPage() {
   const rows = await db.select().from(victoryGroupLeaders).orderBy(asc(victoryGroupLeaders.lastName));
   const active = rows.filter((r) => !r.deletedAt);
+
+  const affiliatedParticipants = active.length > 0
+    ? await db
+        .select({ id: participants.id, lastName: participants.lastName, firstName: participants.firstName, vgLeaderId: participants.vgLeaderId })
+        .from(participants)
+        .where(and(isNull(participants.deletedAt), inArray(participants.vgLeaderId, active.map((v) => v.id))))
+        .orderBy(asc(participants.lastName))
+    : [];
+
+  const participantsByLeader: Record<number, { id: number; lastName: string; firstName: string }[]> = {};
+  for (const p of affiliatedParticipants) {
+    if (p.vgLeaderId == null) continue;
+    (participantsByLeader[p.vgLeaderId] ??= []).push(p);
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -29,6 +44,7 @@ export default async function VgLeadersPage() {
                   <th className="px-4 py-2 text-left font-medium">First Name</th>
                   <th className="px-4 py-2 text-left font-medium">Mobile</th>
                   <th className="px-4 py-2 text-left font-medium">Messenger</th>
+                  <th className="px-4 py-2 text-left font-medium">Participants</th>
                   <th className="px-4 py-2" />
                 </tr>
               </thead>
@@ -40,6 +56,9 @@ export default async function VgLeadersPage() {
                     <td className="px-4 py-2.5 text-gray-700">{toTitleCase(v.firstName)}</td>
                     <td className="px-4 py-2.5 text-gray-500 font-mono text-xs">{v.mobileNumber}</td>
                     <td className="px-4 py-2.5 text-gray-500">{v.facebookMessengerName ?? "—"}</td>
+                    <td className="px-4 py-2.5">
+                      <ParticipantsCell participants={participantsByLeader[v.id] ?? []} />
+                    </td>
                     <td className="px-4 py-2.5 text-right">
                       <ConfirmDeleteButton
                         action={deleteVgLeader}

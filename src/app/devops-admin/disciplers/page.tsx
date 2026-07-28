@@ -1,14 +1,29 @@
 import { db } from "@/db";
-import { disciplers } from "@/db/schema";
-import { asc } from "drizzle-orm";
+import { disciplers, participants } from "@/db/schema";
+import { asc, inArray, isNull, and } from "drizzle-orm";
 import { createDiscipler, deleteDiscipler } from "./actions";
 import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
+import { ParticipantsCell } from "../ParticipantsCell";
 import { toTitleCase } from "@/lib/text";
 
 const input = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400";
 
 export default async function DisciplersPage() {
   const rows = await db.select().from(disciplers).orderBy(asc(disciplers.lastName));
+
+  const affiliatedParticipants = rows.length > 0
+    ? await db
+        .select({ id: participants.id, lastName: participants.lastName, firstName: participants.firstName, disciplerId: participants.disciplerId })
+        .from(participants)
+        .where(and(isNull(participants.deletedAt), inArray(participants.disciplerId, rows.map((d) => d.id))))
+        .orderBy(asc(participants.lastName))
+    : [];
+
+  const participantsByDiscipler: Record<number, { id: number; lastName: string; firstName: string }[]> = {};
+  for (const p of affiliatedParticipants) {
+    if (p.disciplerId == null) continue;
+    (participantsByDiscipler[p.disciplerId] ??= []).push(p);
+  }
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -27,6 +42,7 @@ export default async function DisciplersPage() {
                 <th className="px-4 py-2 text-left font-medium">First Name</th>
                 <th className="px-4 py-2 text-left font-medium">Mobile</th>
                 <th className="px-4 py-2 text-left font-medium">Messenger</th>
+                <th className="px-4 py-2 text-left font-medium">Participants</th>
                 <th className="px-4 py-2" />
               </tr>
             </thead>
@@ -38,6 +54,9 @@ export default async function DisciplersPage() {
                   <td className="px-4 py-2.5 text-gray-700">{toTitleCase(d.firstName)}</td>
                   <td className="px-4 py-2.5 text-gray-500 font-mono text-xs">{d.mobileNumber}</td>
                   <td className="px-4 py-2.5 text-gray-500">{d.messengerName ?? "—"}</td>
+                  <td className="px-4 py-2.5">
+                    <ParticipantsCell participants={participantsByDiscipler[d.id] ?? []} />
+                  </td>
                   <td className="px-4 py-2.5 text-right">
                     <ConfirmDeleteButton
                       action={deleteDiscipler}

@@ -53,6 +53,7 @@ export async function addOwnVictoryGroup(formData: FormData) {
     ...parseFrequency(formData),
     ...parseLifeStage(formData),
     ...parseStatus(formData),
+    intern: (formData.get("intern") as string) || null,
   });
   revalidatePath("/vg-portal");
 }
@@ -68,6 +69,7 @@ export async function updateOwnVictoryGroup(id: number, formData: FormData) {
       ...parseFrequency(formData),
       ...parseLifeStage(formData),
       ...parseStatus(formData),
+      intern: (formData.get("intern") as string) || null,
     })
     .where(and(eq(victoryGroups.id, id), eq(victoryGroups.vgLeaderId, session.vgLeaderId)));
   revalidatePath("/vg-portal");

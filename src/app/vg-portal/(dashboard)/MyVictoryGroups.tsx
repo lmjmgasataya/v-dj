@@ -92,6 +92,10 @@ function GroupForm({
           {LIFESTAGES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
+      <div className="sm:col-span-2">
+        <label className="block text-xs font-medium text-gray-700 mb-1">Intern</label>
+        <input name="intern" defaultValue={defaultValues?.intern ?? ""} className={inputCls} />
+      </div>
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">Status <span className="text-red-500">*</span></label>
         <select
@@ -166,6 +170,7 @@ function GroupRow({ group }: { group: VictoryGroup }) {
         <p className="text-xs text-gray-500">
           {group.day} · {group.time} · {group.frequency === "Others" ? (group.otherFrequency ?? "Others") : group.frequency}
           {group.lifeStage ? ` · ${group.lifeStage}` : ""}
+          {group.intern ? ` · Intern: ${group.intern}` : ""}
         </p>
         {!group.isActive && group.remarks && (
           <p className="text-xs text-gray-500 italic mt-0.5">Remarks: {group.remarks}</p>

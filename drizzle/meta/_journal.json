@@ -176,6 +176,13 @@
       "when": 1785235189615,
       "tag": "0024_famous_star_brand",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1785242977533,
+      "tag": "0025_aberrant_dakota_north",
+      "breakpoints": true
     }
   ]
 }

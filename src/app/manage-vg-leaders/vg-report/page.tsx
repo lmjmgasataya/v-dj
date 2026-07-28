@@ -26,6 +26,7 @@ export default async function VictoryGroupReportPage() {
       frequency: victoryGroups.frequency,
       otherFrequency: victoryGroups.otherFrequency,
       lifeStage: victoryGroups.lifeStage,
+      intern: victoryGroups.intern,
       isActive: victoryGroups.isActive,
       remarks: victoryGroups.remarks,
       leaderLastName: victoryGroupLeaders.lastName,
@@ -101,6 +102,7 @@ export default async function VictoryGroupReportPage() {
                   <th className="px-4 py-2 text-left font-medium">Time</th>
                   <th className="px-4 py-2 text-left font-medium">Frequency</th>
                   <th className="px-4 py-2 text-left font-medium">Life Stage</th>
+                  <th className="px-4 py-2 text-left font-medium">Intern</th>
                   <th className="px-4 py-2 text-left font-medium">Status</th>
                 </tr>
               </thead>
@@ -115,6 +117,7 @@ export default async function VictoryGroupReportPage() {
                       {g.frequency === "Others" ? (g.otherFrequency ?? "Others") : g.frequency}
                     </td>
                     <td className="px-4 py-2.5 text-gray-500">{g.lifeStage ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-gray-500">{g.intern ?? "—"}</td>
                     <td className="px-4 py-2.5">
                       <span
                         className={`text-xs font-medium px-2 py-0.5 rounded-full ${

@@ -37,6 +37,7 @@ export async function addVictoryGroup(vgLeaderId: number, formData: FormData) {
     ...parseFrequency(formData),
     ...parseLifeStage(formData),
     ...parseStatus(formData),
+    intern: (formData.get("intern") as string) || null,
   });
   revalidatePath(`/vg-leaders/${vgLeaderId}/edit`);
 }
@@ -51,6 +52,7 @@ export async function updateVictoryGroup(id: number, vgLeaderId: number, formDat
       ...parseFrequency(formData),
       ...parseLifeStage(formData),
       ...parseStatus(formData),
+      intern: (formData.get("intern") as string) || null,
     })
     .where(eq(victoryGroups.id, id));
   revalidatePath(`/vg-leaders/${vgLeaderId}/edit`);

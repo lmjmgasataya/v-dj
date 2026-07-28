@@ -18,7 +18,7 @@ const DEVELOPER_ONLY = [
   /^\/manage-vg-leaders/,
 ];
 
-const PUBLIC_PATHS = [/^\/login/, /^\/vg-portal\/claim/];
+const PUBLIC_PATHS = [/^\/login/, /^\/vg-portal\/claim/, /^\/vg-portal\/login/];
 
 const VG_LEADER_ALLOWED = [/^\/vg-portal/];
 

@@ -77,7 +77,7 @@ function VerifyStep({ onVerified }: { onVerified: (v: Verified) => void }) {
             {pending ? "Checking…" : "Continue"}
           </button>
 
-          <a href="/login" className="text-xs text-center text-gray-400 hover:text-gray-600 underline underline-offset-2">
+          <a href="/vg-portal/login" className="text-xs text-center text-gray-400 hover:text-gray-600 underline underline-offset-2">
             Already have an account? Log in
           </a>
         </form>

@@ -29,9 +29,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <NavigationProgress />
           <header className="text-white shadow" style={{ backgroundColor: "#00428E" }}>
             <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-              <Link href="/" className="hover:opacity-80 transition">
+              <Link href={session?.role === "vg_leader" ? "/vg-portal" : "/"} className="hover:opacity-80 transition">
                 <p className="text-xs font-medium text-indigo-200 uppercase tracking-widest">Victory Iloilo</p>
-                <h1 className="text-lg font-bold leading-tight">Discipleship Journey</h1>
+                <h1 className="text-lg font-bold leading-tight">
+                  {session?.role === "vg_leader" ? "VG Portal" : "Discipleship Journey"}
+                </h1>
               </Link>
               {session && (
                 <div className="flex items-center gap-4">

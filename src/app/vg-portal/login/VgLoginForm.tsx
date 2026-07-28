@@ -1,11 +1,11 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
-import { login } from "./actions";
+import { login } from "@/app/login/actions";
 import { useToast } from "@/components/toast/ToastProvider";
 import { PasswordInput } from "@/components/PasswordInput";
 
-export default function LoginForm() {
+export function VgLoginForm() {
   const [state, action, pending] = useActionState(login, undefined);
   const toast = useToast();
 
@@ -19,8 +19,8 @@ export default function LoginForm() {
       <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 shadow-sm p-8 flex flex-col gap-6">
         <div>
           <p className="text-xs font-medium text-indigo-500 uppercase tracking-widest">Victory Iloilo</p>
-          <h2 className="text-xl font-bold text-gray-900 mt-1">Discipleship Journey</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Sign in to continue</p>
+          <h2 className="text-xl font-bold text-gray-900 mt-1">VG Portal</h2>
+          <p className="text-sm text-gray-500 mt-0.5">Sign in to manage your Victory Group</p>
         </div>
 
         <form action={action} className="flex flex-col gap-4">
@@ -53,10 +53,10 @@ export default function LoginForm() {
           </button>
 
           <a
-            href="/vg-portal/login"
+            href="/vg-portal/claim"
             className="text-xs text-center text-gray-400 hover:text-gray-600 underline underline-offset-2"
           >
-            VG Leader? Go to the VG Portal
+            First time here? Set up your account
           </a>
         </form>
       </div>

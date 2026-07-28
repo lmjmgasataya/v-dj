@@ -16,6 +16,13 @@ const LIFESTAGE_ORDER = [
   "Senior",
 ];
 
+const TIME_ORDER = Array.from({ length: 18 }, (_, i) => {
+  const h = i + 5; // 5 AM to 10 PM
+  const ampm = h < 12 ? "AM" : "PM";
+  const display = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${display}:00 ${ampm}`;
+});
+
 export default async function VictoryGroupReportPage() {
   const groups = await db
     .select({
@@ -43,6 +50,8 @@ export default async function VictoryGroupReportPage() {
   const frequencyCounts = new Map<string, number>();
   const lifeStageCounts = new Map<string, number>();
   const statusCounts = new Map<string, number>();
+  const placeCounts = new Map<string, number>();
+  const timeCounts = new Map<string, number>();
 
   for (const g of groups) {
     dayCounts.set(g.day, (dayCounts.get(g.day) ?? 0) + 1);
@@ -50,6 +59,8 @@ export default async function VictoryGroupReportPage() {
     if (g.lifeStage) lifeStageCounts.set(g.lifeStage, (lifeStageCounts.get(g.lifeStage) ?? 0) + 1);
     const status = g.isActive ? "Active" : "Inactive";
     statusCounts.set(status, (statusCounts.get(status) ?? 0) + 1);
+    placeCounts.set(g.place, (placeCounts.get(g.place) ?? 0) + 1);
+    timeCounts.set(g.time, (timeCounts.get(g.time) ?? 0) + 1);
   }
 
   const dayData = DAY_ORDER.map((label) => ({ label, count: dayCounts.get(label) ?? 0 })).filter((r) => r.count > 0);
@@ -60,6 +71,12 @@ export default async function VictoryGroupReportPage() {
     (r) => r.count > 0
   );
   const statusData = ["Active", "Inactive"].map((label) => ({ label, count: statusCounts.get(label) ?? 0 }));
+  const placeData = Array.from(placeCounts.entries())
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count);
+  const timeData = TIME_ORDER.map((label) => ({ label, count: timeCounts.get(label) ?? 0 })).filter(
+    (r) => r.count > 0
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -73,6 +90,16 @@ export default async function VictoryGroupReportPage() {
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
         <p className="text-sm font-semibold text-gray-700 mb-1">Day of Week</p>
         <HorizontalBarChart data={dayData} color="#6366f1" tooltipLabel="Groups" />
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
+        <p className="text-sm font-semibold text-gray-700 mb-1">Time</p>
+        <HorizontalBarChart data={timeData} color="#0ea5e9" tooltipLabel="Groups" />
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
+        <p className="text-sm font-semibold text-gray-700 mb-1">Place</p>
+        <HorizontalBarChart data={placeData} color="#f59e0b" tooltipLabel="Groups" />
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">

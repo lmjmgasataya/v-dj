@@ -6,12 +6,13 @@ export type ToastType = "success" | "error" | "info";
 
 interface ToastItem {
   id: number;
-  message: string;
+  message: React.ReactNode;
   type: ToastType;
+  durationMs: number;
 }
 
 interface ToastContextValue {
-  show: (message: string, type?: ToastType) => void;
+  show: (message: React.ReactNode, type?: ToastType, durationMs?: number) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -30,7 +31,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setShrink(true));
-    const timer = setTimeout(onDismiss, TOAST_DURATION_MS);
+    const timer = setTimeout(onDismiss, toast.durationMs);
     return () => {
       cancelAnimationFrame(raf);
       clearTimeout(timer);
@@ -55,7 +56,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
       <div className="h-1 bg-black/10">
         <div
           className={`h-full ${styles.bar} transition-[width] ease-linear`}
-          style={{ width: shrink ? "0%" : "100%", transitionDuration: `${TOAST_DURATION_MS}ms` }}
+          style={{ width: shrink ? "0%" : "100%", transitionDuration: `${toast.durationMs}ms` }}
         />
       </div>
     </div>
@@ -66,9 +67,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const idRef = useRef(0);
 
-  const show = useCallback((message: string, type: ToastType = "success") => {
+  const show = useCallback((message: React.ReactNode, type: ToastType = "success", durationMs: number = TOAST_DURATION_MS) => {
     const id = ++idRef.current;
-    setToasts((t) => [...t, { id, message, type }]);
+    setToasts((t) => [...t, { id, message, type, durationMs }]);
   }, []);
 
   const dismiss = useCallback((id: number) => {

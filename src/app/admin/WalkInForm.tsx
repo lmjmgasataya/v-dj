@@ -17,8 +17,14 @@ export function WalkInForm({ sessionId, newDatePicker }: { sessionId: number; ne
     startTransition(async () => {
       const result = await addWalkIn(sessionId, formData);
       setFormKey((k) => k + 1);
-      const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table available";
-      toast.show(`Walk-in participant has been added — ${tableMsg}.`);
+      toast.show(
+        <>
+          Walk-in participant has been added —{" "}
+          {result.tableNumber ? <strong>Table {result.tableNumber}</strong> : "no table available"}.
+        </>,
+        "success",
+        20000
+      );
     });
   }
 

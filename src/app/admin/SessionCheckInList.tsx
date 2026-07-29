@@ -45,8 +45,14 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction }
       if ("error" in result) {
         toast.show(result.error, "error");
       } else {
-        const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table available";
-        toast.show(`Checked in: ${toTitleCase(p.firstName)} ${toTitleCase(p.lastName)} — ${tableMsg}.`);
+        toast.show(
+          <>
+            Checked in: {toTitleCase(p.firstName)} {toTitleCase(p.lastName)} —{" "}
+            {result.tableNumber ? <strong>Table {result.tableNumber}</strong> : "no table available"}.
+          </>,
+          "success",
+          20000
+        );
       }
       onAction?.();
     });

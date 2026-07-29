@@ -32,8 +32,11 @@ export function CheckInPanel({ participant, sessions, checkIns, hasVictoryDay }:
       if ("error" in result) {
         toast.show(result.error, "error");
       } else {
-        const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table available";
-        toast.show(`Checked in — ${tableMsg}.`);
+        toast.show(
+          <>Checked in — {result.tableNumber ? <strong>Table {result.tableNumber}</strong> : "no table available"}.</>,
+          "success",
+          20000
+        );
       }
       document.getElementById("search-participant")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });

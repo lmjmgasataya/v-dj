@@ -117,7 +117,14 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
             } else if (result.alreadyCheckedIn) {
               const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table assigned";
               const resultMessage = `${result.name} is already checked in — ${tableMsg}.`;
-              toast.show(resultMessage, "info");
+              toast.show(
+                <>
+                  {result.name} is already checked in —{" "}
+                  {result.tableNumber ? <strong>Table {result.tableNumber}</strong> : "no table assigned"}.
+                </>,
+                "info",
+                20000
+              );
               onCheckInRef.current?.({ lastName: lastNameFromResultName(result.name), message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
               setStatus("scanning");
             } else {
@@ -172,13 +179,26 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
     } else if (result.alreadyCheckedIn) {
       const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table assigned";
       const resultMessage = `${result.name} is already checked in — ${tableMsg}.`;
-      toast.show(resultMessage, "info");
+      toast.show(
+        <>
+          {result.name} is already checked in —{" "}
+          {result.tableNumber ? <strong>Table {result.tableNumber}</strong> : "no table assigned"}.
+        </>,
+        "info",
+        20000
+      );
       onCheckIn?.({ lastName: lastNameFromResultName(result.name), message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
       setStatus("scanning");
     } else {
       const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table available";
       const resultMessage = `Checked in: ${result.name} — ${tableMsg}`;
-      toast.show(resultMessage);
+      toast.show(
+        <>
+          Checked in: {result.name} — {result.tableNumber ? <strong>Table {result.tableNumber}</strong> : "no table available"}
+        </>,
+        "success",
+        20000
+      );
       onCheckIn?.({ lastName: lastNameFromResultName(result.name), message: resultMessage, alreadyCheckedIn: false, tableNumber: result.tableNumber });
       setStatus("scanning");
     }

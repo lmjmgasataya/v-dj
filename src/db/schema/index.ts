@@ -157,6 +157,7 @@ export const checkIns = pgTable(
       .notNull(),
     checkedInAt: timestamp("checked_in_at").defaultNow().notNull(),
     remarks: text("remarks"),
+    tableNumber: integer("table_number"),
   },
   (t) => [
     unique().on(t.participantId, t.classSessionId),
@@ -210,6 +211,12 @@ export const smsApiKeys = pgTable("sms_api_keys", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const appSettings = pgTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const smsLogs = pgTable("sms_logs", {
   id: serial("id").primaryKey(),
   recipientName: text("recipient_name").notNull(),
@@ -232,3 +239,4 @@ export type Batch = typeof batches.$inferSelect;
 export type SmsMessageTemplate = typeof smsMessageTemplates.$inferSelect;
 export type SmsApiKey = typeof smsApiKeys.$inferSelect;
 export type SmsLog = typeof smsLogs.$inferSelect;
+export type AppSetting = typeof appSettings.$inferSelect;

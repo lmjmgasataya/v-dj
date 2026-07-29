@@ -35,6 +35,7 @@ export interface Attendee {
   victoryDayCount: number;
   completedVictoryDay: boolean;
   remarks: string | null;
+  tableNumber: number | null;
 }
 
 function Detail({ label, value }: { label: string; value: React.ReactNode }) {
@@ -46,7 +47,7 @@ function Detail({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-type SortKey = "name" | "checkedInAt" | "victoryDay";
+type SortKey = "name" | "checkedInAt" | "victoryDay" | "tableNumber";
 type SortDir = "asc" | "desc";
 
 function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
@@ -139,6 +140,9 @@ export function AttendeeList({ attendees, totalVictoryDaySessions }: { attendees
       case "victoryDay":
         cmp = victoryDayValue(a).localeCompare(victoryDayValue(b));
         break;
+      case "tableNumber":
+        cmp = (a.tableNumber ?? Infinity) - (b.tableNumber ?? Infinity);
+        break;
     }
     return sortDir === "asc" ? cmp : -cmp;
   });
@@ -159,6 +163,7 @@ export function AttendeeList({ attendees, totalVictoryDaySessions }: { attendees
               <tr className="border-b border-gray-200 bg-gray-50">
                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-10">#</th>
                 <Th label="Name" sortKey="name" current={sortKey} dir={sortDir} onSort={handleSort} />
+                <Th label="Table" sortKey="tableNumber" current={sortKey} dir={sortDir} onSort={handleSort} />
                 <Th label="Checked In At" sortKey="checkedInAt" current={sortKey} dir={sortDir} onSort={handleSort} />
                 <Th label="Victory Day" sortKey="victoryDay" current={sortKey} dir={sortDir} onSort={handleSort} />
               </tr>
@@ -166,7 +171,7 @@ export function AttendeeList({ attendees, totalVictoryDaySessions }: { attendees
             <tbody className="divide-y divide-gray-100">
               {sorted.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-3 py-6 text-center text-sm text-gray-400">
+                  <td colSpan={5} className="px-3 py-6 text-center text-sm text-gray-400">
                     No attendees match &ldquo;{q}&rdquo;.
                   </td>
                 </tr>
@@ -193,6 +198,15 @@ export function AttendeeList({ attendees, totalVictoryDaySessions }: { attendees
                             <p className="text-xs text-amber-700 italic mt-0.5">{a.remarks}</p>
                           )}
                         </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          {a.tableNumber ? (
+                            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                              Table {a.tableNumber}
+                            </span>
+                          ) : (
+                            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">—</span>
+                          )}
+                        </td>
                         <td className="px-3 py-3 text-gray-600 whitespace-nowrap">{checkInTime}</td>
                         <td className="px-3 py-3 whitespace-nowrap">
                           <VictoryDayBadge attendee={a} totalVictoryDaySessions={totalVictoryDaySessions} />
@@ -201,7 +215,7 @@ export function AttendeeList({ attendees, totalVictoryDaySessions }: { attendees
 
                       {isExpanded && (
                         <tr key={`${a.checkInId}-details`}>
-                          <td colSpan={4} className="px-4 py-4 bg-gray-50 border-t border-gray-100">
+                          <td colSpan={5} className="px-4 py-4 bg-gray-50 border-t border-gray-100">
                             <div className="flex flex-col gap-4">
                               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 <Detail label="Age" value={a.age} />

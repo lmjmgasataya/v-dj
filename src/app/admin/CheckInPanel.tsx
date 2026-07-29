@@ -5,6 +5,7 @@ import { checkInParticipant, removeCheckIn } from "./actions";
 import { toTitleCase } from "@/lib/text";
 import type { Participant, ClassSession, CheckIn } from "@/db/schema";
 import { FEE_CATEGORIES } from "@/components/form";
+import { useToast } from "@/components/toast/ToastProvider";
 
 interface Props {
   participant: Participant;
@@ -18,15 +19,22 @@ export function CheckInPanel({ participant, sessions, checkIns, hasVictoryDay }:
   const [pending, startTransition] = useTransition();
   const [modalSessionId, setModalSessionId] = useState<number | null>(null);
   const [remarks, setRemarks] = useState("");
+  const toast = useToast();
 
   const modalSession = sessions.find((s) => s.id === modalSessionId);
 
   function handleConfirmCheckIn() {
     if (!modalSessionId) return;
     startTransition(async () => {
-      await checkInParticipant(participant.id, modalSessionId, remarks || undefined);
+      const result = await checkInParticipant(participant.id, modalSessionId, remarks || undefined);
       setModalSessionId(null);
       setRemarks("");
+      if ("error" in result) {
+        toast.show(result.error, "error");
+      } else {
+        const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table available";
+        toast.show(`Checked in — ${tableMsg}.`);
+      }
       document.getElementById("search-participant")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }
@@ -110,6 +118,11 @@ export function CheckInPanel({ participant, sessions, checkIns, hasVictoryDay }:
                   <div>
                     <p className="font-medium text-gray-900">{session.name}</p>
                     <p className="text-xs text-gray-500 mt-0.5">{dateStr}</p>
+                    {isCheckedIn && checkIn && (
+                      <p className="text-xs text-indigo-600 mt-0.5 font-medium">
+                        {checkIn.tableNumber ? `Table ${checkIn.tableNumber}` : "No table assigned"}
+                      </p>
+                    )}
                     {isCheckedIn && checkIn && (
                       <p className="text-xs text-green-600 mt-0.5">
                         Checked in at{" "}

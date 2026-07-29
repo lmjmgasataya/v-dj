@@ -112,6 +112,9 @@ export function SessionAttendeesModal({
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm font-medium text-gray-900 capitalize">{name}</span>
+                              <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${c.tableNumber ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-400"}`}>
+                                {c.tableNumber ? `Table ${c.tableNumber}` : "No table"}
+                              </span>
                               {(() => {
                                 const vd = c.victoryDate ?? c.victoryDayDate;
                                 if (!vd) return null;

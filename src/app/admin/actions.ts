@@ -5,6 +5,7 @@ import { participants, checkIns, classSessions, victoryGroupLeaders, type lifest
 import { currentYearPH } from "@/lib/date";
 import { toTitleCase } from "@/lib/text";
 import { ORIENTATION_ALLOWED_CLASSES } from "@/lib/constants";
+import { assignTableNumber } from "@/lib/tables";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
 import { and, count, eq, gte, ilike, inArray, isNull, lt, notInArray, or } from "drizzle-orm";
@@ -55,24 +56,25 @@ export async function checkInParticipant(
   participantId: number,
   classSessionId: number,
   remarks?: string
-): Promise<{ error: string } | { success: true }> {
+): Promise<{ error: string } | { success: true; tableNumber: number | null }> {
   const blockReason = await getVictoryDayBlockReason(participantId, classSessionId);
   if (blockReason) return { error: blockReason };
 
+  const tableNumber = await assignTableNumber(classSessionId);
   await db
     .insert(checkIns)
-    .values({ participantId, classSessionId, remarks: remarks || null })
+    .values({ participantId, classSessionId, remarks: remarks || null, tableNumber })
     .onConflictDoNothing();
   revalidatePath("/admin");
   revalidatePath("/sessions");
-  return { success: true };
+  return { success: true, tableNumber };
 }
 
 export async function lookupParticipantForQr(
   participantId: number,
   classSessionId: number,
 ): Promise<
-  | { name: string; alreadyCheckedIn: boolean; registrationFee: string | null; victoryDayBlockReason: string | null }
+  | { name: string; alreadyCheckedIn: boolean; registrationFee: string | null; victoryDayBlockReason: string | null; tableNumber: number | null }
   | { error: string }
 > {
   const [participant] = await db
@@ -89,7 +91,7 @@ export async function lookupParticipantForQr(
   if (!participant) return { error: "Participant not found" };
 
   const [existing] = await db
-    .select({ id: checkIns.id })
+    .select({ id: checkIns.id, tableNumber: checkIns.tableNumber })
     .from(checkIns)
     .where(and(eq(checkIns.participantId, participantId), eq(checkIns.classSessionId, classSessionId)))
     .limit(1);
@@ -98,6 +100,7 @@ export async function lookupParticipantForQr(
     name: `${participant.lastName}, ${participant.firstName}`,
     alreadyCheckedIn: !!existing,
     registrationFee: participant.registrationFee,
+    tableNumber: existing?.tableNumber ?? null,
     victoryDayBlockReason: existing ? null : await getVictoryDayBlockReason(participantId, classSessionId),
   };
 }
@@ -106,7 +109,7 @@ export async function checkInByQr(
   participantId: number,
   classSessionId: number,
   remarks?: string,
-): Promise<{ name: string; alreadyCheckedIn: boolean } | { error: string }> {
+): Promise<{ name: string; alreadyCheckedIn: boolean; tableNumber: number | null } | { error: string }> {
   const [participant] = await db
     .select({ id: participants.id, firstName: participants.firstName, lastName: participants.lastName })
     .from(participants)
@@ -116,23 +119,24 @@ export async function checkInByQr(
   if (!participant) return { error: "Participant not found" };
 
   const [existing] = await db
-    .select({ id: checkIns.id })
+    .select({ id: checkIns.id, tableNumber: checkIns.tableNumber })
     .from(checkIns)
     .where(and(eq(checkIns.participantId, participantId), eq(checkIns.classSessionId, classSessionId)))
     .limit(1);
 
   if (existing) {
-    return { name: `${participant.lastName}, ${participant.firstName}`, alreadyCheckedIn: true };
+    return { name: `${participant.lastName}, ${participant.firstName}`, alreadyCheckedIn: true, tableNumber: existing.tableNumber };
   }
 
   const blockReason = await getVictoryDayBlockReason(participantId, classSessionId);
   if (blockReason) return { error: blockReason };
 
-  await db.insert(checkIns).values({ participantId, classSessionId, remarks: remarks || null }).onConflictDoNothing();
+  const tableNumber = await assignTableNumber(classSessionId);
+  await db.insert(checkIns).values({ participantId, classSessionId, remarks: remarks || null, tableNumber }).onConflictDoNothing();
   revalidatePath("/admin");
   revalidatePath("/sessions");
 
-  return { name: `${participant.lastName}, ${participant.firstName}`, alreadyCheckedIn: false };
+  return { name: `${participant.lastName}, ${participant.firstName}`, alreadyCheckedIn: false, tableNumber };
 }
 
 export async function removeCheckIn(participantId: number, classSessionId: number) {
@@ -154,6 +158,7 @@ export async function getSessionCheckIns(sessionId: number) {
       victoryDate: participants.victoryDate,
       checkedInAt: checkIns.checkedInAt,
       remarks: checkIns.remarks,
+      tableNumber: checkIns.tableNumber,
     })
     .from(checkIns)
     .innerJoin(participants, eq(checkIns.participantId, participants.id))
@@ -218,6 +223,7 @@ export async function searchParticipants(sessionId: number, q: string, isVictory
       checkInId: checkIns.id,
       checkedInAt: checkIns.checkedInAt,
       checkInRemarks: checkIns.remarks,
+      tableNumber: checkIns.tableNumber,
     })
     .from(participants)
     .leftJoin(
@@ -312,9 +318,12 @@ export async function addWalkIn(classSessionId: number, formData: FormData) {
     .returning({ id: participants.id });
 
   const remarks = (formData.get("remarks") as string) || null;
-  await db.insert(checkIns).values({ participantId: inserted.id, classSessionId, remarks }).onConflictDoNothing();
+  const tableNumber = await assignTableNumber(classSessionId);
+  await db.insert(checkIns).values({ participantId: inserted.id, classSessionId, remarks, tableNumber }).onConflictDoNothing();
 
   revalidatePath("/admin");
   revalidatePath("/participants");
   revalidatePath("/sessions");
+
+  return { tableNumber };
 }

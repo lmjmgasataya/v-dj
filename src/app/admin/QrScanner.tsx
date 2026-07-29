@@ -55,6 +55,7 @@ export interface CheckInResultInfo {
   lastName: string;
   message: string;
   alreadyCheckedIn: boolean;
+  tableNumber: number | null;
 }
 
 export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientation, autoOpen, onCheckIn }: { sessionId: number; isVictoryDay: boolean; allowAllClasses?: boolean; isOrientation?: boolean; autoOpen?: boolean; onCheckIn?: (info: CheckInResultInfo) => void }) {
@@ -114,9 +115,10 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
               setStatus("error");
               setMessage(result.error);
             } else if (result.alreadyCheckedIn) {
-              const resultMessage = `${result.name} is already checked in.`;
+              const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table assigned";
+              const resultMessage = `${result.name} is already checked in — ${tableMsg}.`;
               toast.show(resultMessage, "info");
-              onCheckInRef.current?.({ lastName: lastNameFromResultName(result.name), message: resultMessage, alreadyCheckedIn: true });
+              onCheckInRef.current?.({ lastName: lastNameFromResultName(result.name), message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
               setStatus("scanning");
             } else {
               setPending({
@@ -168,14 +170,16 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
       setStatus("error");
       setMessage(result.error);
     } else if (result.alreadyCheckedIn) {
-      const resultMessage = `${result.name} is already checked in.`;
+      const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table assigned";
+      const resultMessage = `${result.name} is already checked in — ${tableMsg}.`;
       toast.show(resultMessage, "info");
-      onCheckIn?.({ lastName: lastNameFromResultName(result.name), message: resultMessage, alreadyCheckedIn: true });
+      onCheckIn?.({ lastName: lastNameFromResultName(result.name), message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
       setStatus("scanning");
     } else {
-      const resultMessage = `Checked in: ${result.name}`;
+      const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table available";
+      const resultMessage = `Checked in: ${result.name} — ${tableMsg}`;
       toast.show(resultMessage);
-      onCheckIn?.({ lastName: lastNameFromResultName(result.name), message: resultMessage, alreadyCheckedIn: false });
+      onCheckIn?.({ lastName: lastNameFromResultName(result.name), message: resultMessage, alreadyCheckedIn: false, tableNumber: result.tableNumber });
       setStatus("scanning");
     }
     setPending(null);

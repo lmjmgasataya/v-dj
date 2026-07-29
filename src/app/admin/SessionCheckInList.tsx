@@ -24,6 +24,7 @@ interface ParticipantWithStatus {
   checkInId: number | null;
   checkedInAt: Date | null;
   checkInRemarks: string | null;
+  tableNumber: number | null;
 }
 
 function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction }: { p: ParticipantWithStatus; sessionId: number; isVictoryDay: boolean; requiresVictoryDay: boolean; onAction?: () => void }) {
@@ -44,7 +45,8 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction }
       if ("error" in result) {
         toast.show(result.error, "error");
       } else {
-        toast.show(`Checked in: ${toTitleCase(p.firstName)} ${toTitleCase(p.lastName)}.`);
+        const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table available";
+        toast.show(`Checked in: ${toTitleCase(p.firstName)} ${toTitleCase(p.lastName)} — ${tableMsg}.`);
       }
       onAction?.();
     });
@@ -94,6 +96,11 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction }
             <>
               <div className="flex flex-col items-end gap-1">
                 <span className="text-green-600 font-semibold text-xs">✓ Checked In</span>
+                {p.tableNumber ? (
+                  <span className="text-xs font-medium text-indigo-600">Table {p.tableNumber}</span>
+                ) : (
+                  <span className="text-xs text-gray-400 italic">No table</span>
+                )}
                 {p.checkedInAt && (
                   <span className="text-xs text-green-500">
                     {new Date(p.checkedInAt).toLocaleString("en-PH", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Manila" })}

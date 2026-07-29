@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { lookupParticipantForQr, checkInByQr } from "./actions";
 import { FEE_CATEGORIES } from "@/components/form";
 import { ORIENTATION_ALLOWED_CLASSES } from "@/lib/constants";
 import { useToast } from "@/components/toast/ToastProvider";
 
-const QR_PREFIX = "dj:participant:";
+export const QR_PREFIX = "dj:participant:";
 const CONTAINER_ID = "qr-scanner-container";
 const VICTORY_DAY_ALLOWED_CLASSES = ["A", "B"];
 
@@ -58,7 +58,25 @@ export interface CheckInResultInfo {
   tableNumber: number | null;
 }
 
-export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientation, autoOpen, onCheckIn }: { sessionId: number; isVictoryDay: boolean; allowAllClasses?: boolean; isOrientation?: boolean; autoOpen?: boolean; onCheckIn?: (info: CheckInResultInfo) => void }) {
+export interface QrScannerHandle {
+  /** Feed in an already-typed/decoded code (e.g. one that landed in another
+   * focused input) and run it through the same lookup/confirm flow. */
+  scan: (code: string) => void;
+}
+
+interface QrScannerProps {
+  sessionId: number;
+  isVictoryDay: boolean;
+  allowAllClasses?: boolean;
+  isOrientation?: boolean;
+  autoOpen?: boolean;
+  onCheckIn?: (info: CheckInResultInfo) => void;
+}
+
+export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function QrScanner(
+  { sessionId, isVictoryDay, allowAllClasses, isOrientation, autoOpen, onCheckIn },
+  ref
+) {
   const [status, setStatus] = useState<Status>(autoOpen ? "scanning" : "idle");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState<PendingParticipant | null>(null);
@@ -70,6 +88,51 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
   useEffect(() => {
     onCheckInRef.current = onCheckIn;
   });
+
+  async function processScannedCode(decodedText: string, restingStatus: Status) {
+    const participantId = parseParticipantId(decodedText);
+    if (!participantId) {
+      setStatus("error");
+      setMessage("Invalid QR code — not a participant code.");
+      return;
+    }
+
+    playSuccessSound();
+    setStatus("loading");
+    const result = await lookupParticipantForQr(participantId, sessionId);
+
+    if ("error" in result) {
+      setStatus("error");
+      setMessage(result.error);
+    } else if (result.alreadyCheckedIn) {
+      const resultMessage = `${result.name} is already checked in.`;
+      toast.show(
+        <>
+          {result.name} is already checked in —{" "}
+          {result.tableNumber ? <strong>Table {result.tableNumber}</strong> : "no table assigned"}.
+        </>,
+        "info",
+        20000
+      );
+      onCheckInRef.current?.({ lastName: lastNameFromResultName(result.name), message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
+      setStatus(restingStatus);
+    } else {
+      setPending({
+        id: participantId,
+        name: result.name,
+        registrationFee: result.registrationFee,
+        victoryDayBlockReason: result.victoryDayBlockReason,
+      });
+      setStatus("confirming");
+    }
+  }
+
+  useImperativeHandle(ref, () => ({
+    scan: (code: string) => {
+      void processScannedCode(code, "idle");
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [sessionId]);
 
   useEffect(() => {
     if (status !== "scanning") return;
@@ -99,43 +162,7 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
             if (cancelled) return;
             await scanner.stop().catch(() => {});
             scannerRef.current = null;
-
-            const participantId = parseParticipantId(decodedText);
-            if (!participantId) {
-              setStatus("error");
-              setMessage("Invalid QR code — not a participant code.");
-              return;
-            }
-
-            playSuccessSound();
-            setStatus("loading");
-            const result = await lookupParticipantForQr(participantId, sessionId);
-
-            if ("error" in result) {
-              setStatus("error");
-              setMessage(result.error);
-            } else if (result.alreadyCheckedIn) {
-              const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table assigned";
-              const resultMessage = `${result.name} is already checked in — ${tableMsg}.`;
-              toast.show(
-                <>
-                  {result.name} is already checked in —{" "}
-                  {result.tableNumber ? <strong>Table {result.tableNumber}</strong> : "no table assigned"}.
-                </>,
-                "info",
-                20000
-              );
-              onCheckInRef.current?.({ lastName: lastNameFromResultName(result.name), message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
-              setStatus("scanning");
-            } else {
-              setPending({
-                id: participantId,
-                name: result.name,
-                registrationFee: result.registrationFee,
-                victoryDayBlockReason: result.victoryDayBlockReason,
-              });
-              setStatus("confirming");
-            }
+            await processScannedCode(decodedText, "scanning");
           },
           undefined
         );
@@ -164,6 +191,64 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
       scannerRef.current?.stop().catch(() => {});
       scannerRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, sessionId, toast]);
+
+  // Hardware (keyboard-wedge) scanner: these devices just "type" the decoded
+  // text followed by Enter, as fast keystrokes, wherever focus happens to be.
+  // Listen globally, but only intercept keystrokes that build up to our own
+  // "dj:participant:<id>" prefix, and only when no real input/textarea is
+  // focused — so normal typing (e.g. a name search starting with "d") is
+  // never touched.
+  useEffect(() => {
+    if (status === "confirming" || status === "loading") return;
+
+    let buffer = "";
+    let lastTime = 0;
+
+    function matchesPrefix(s: string): boolean {
+      if (s.length <= QR_PREFIX.length) return QR_PREFIX.startsWith(s);
+      return s.startsWith(QR_PREFIX) && /^\d+$/.test(s.slice(QR_PREFIX.length));
+    }
+
+    function isTypingInField(): boolean {
+      const active = document.activeElement;
+      if (!active || active === document.body) return false;
+      const tag = active.tagName;
+      return tag === "INPUT" || tag === "TEXTAREA" || active.getAttribute("contenteditable") === "true";
+    }
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (isTypingInField()) return;
+
+      const now = Date.now();
+      if (now - lastTime > 300) buffer = "";
+      lastTime = now;
+
+      if (e.key === "Enter") {
+        const candidate = buffer;
+        buffer = "";
+        if (candidate.length > QR_PREFIX.length && matchesPrefix(candidate)) {
+          e.preventDefault();
+          void processScannedCode(candidate, status);
+        }
+        return;
+      }
+
+      if (e.key.length !== 1) return;
+
+      const next = buffer + e.key;
+      if (matchesPrefix(next)) {
+        buffer = next;
+        e.preventDefault();
+      } else {
+        buffer = "";
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, sessionId, toast]);
 
   async function handleConfirm() {
@@ -328,7 +413,7 @@ export function QrScanner({ sessionId, isVictoryDay, allowAllClasses, isOrientat
       })()}
     </>
   );
-}
+});
 
 function CameraIcon() {
   return (

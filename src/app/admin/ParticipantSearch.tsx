@@ -4,10 +4,14 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { searchParticipants } from "./actions";
 import { SessionCheckInList } from "./SessionCheckInList";
-import { QrScanner } from "./QrScanner";
+import { QrScanner, QR_PREFIX, type QrScannerHandle } from "./QrScanner";
 import { ORIENTATION_SESSION_NAME } from "@/lib/constants";
 
 type Results = Awaited<ReturnType<typeof searchParticipants>>;
+
+function isScannedCode(text: string): boolean {
+  return text.startsWith(QR_PREFIX) && /^\d+$/.test(text.slice(QR_PREFIX.length));
+}
 
 function SkeletonRow() {
   return (
@@ -43,6 +47,7 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
   const searchParams = useSearchParams();
   const scrollAfterSearch = useRef(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const qrScannerRef = useRef<QrScannerHandle>(null);
 
   useEffect(() => {
     if (scrollAfterSearch.current && !pending) {
@@ -63,10 +68,22 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!q.trim()) return;
+    const trimmed = q.trim();
+    if (!trimmed) return;
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    // The hardware QR scanner "types" into whatever's focused — if that
+    // happened to be this search box, treat it as a scan instead of a name search.
+    if (isScannedCode(trimmed)) {
+      setQ("");
+      setSearched(false);
+      setResults([]);
+      qrScannerRef.current?.scan(trimmed);
+      return;
+    }
+
     const params = new URLSearchParams(searchParams.toString());
-    params.set("q", q.trim());
+    params.set("q", trimmed);
     router.replace(`/admin?${params.toString()}`, { scroll: false });
     runSearch(q);
   }
@@ -75,6 +92,9 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
 
     if (!q.trim()) return;
+    // Don't auto-search mid-scan — wait for the scanner's Enter keystroke
+    // to reach handleSubmit, which handles the "dj:participant:" case.
+    if (q.trim().startsWith(QR_PREFIX)) return;
 
     debounceTimer.current = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
@@ -100,6 +120,7 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
       {qrCheckin && (
         <>
           <QrScanner
+            ref={qrScannerRef}
             sessionId={sessionId}
             isVictoryDay={isVictoryDay}
             allowAllClasses={victoryDayAllowAllClasses}
@@ -127,7 +148,6 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
             if (!val.trim()) { setSearched(false); setResults([]); }
           }}
           placeholder="Search by name or mobile number..."
-          autoFocus
           className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
         />
         <button

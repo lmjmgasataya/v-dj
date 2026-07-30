@@ -22,7 +22,7 @@ export function SessionPicker({
     const p = new URLSearchParams(params.toString());
     if (e.target.value) p.set("session", e.target.value);
     else p.delete("session");
-    router.push(`/report/tables?${p.toString()}`);
+    router.push(`/table-management/assignments?${p.toString()}`);
   }
 
   return (

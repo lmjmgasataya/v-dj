@@ -2,22 +2,16 @@ import { Suspense } from "react";
 import { db } from "@/db";
 import { classSessions, batches } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { getSession } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { BatchPicker } from "@/components/BatchPicker";
 import { SessionPicker } from "./SessionPicker";
 import { TablesResults } from "./TablesResults";
 import { TablesResultsSkeleton } from "./TablesResultsSkeleton";
-import { BatchPicker } from "../BatchPicker";
 
-export default async function TablesReportPage({
+export default async function TableAssignmentsPage({
   searchParams,
 }: {
   searchParams: Promise<{ batch?: string; session?: string }>;
 }) {
-  const authSession = await getSession();
-  if (!authSession) redirect("/");
-
   const { batch: batchParam, session: sessionParam } = await searchParams;
   const selectedId = sessionParam ? parseInt(sessionParam, 10) : null;
 
@@ -46,20 +40,6 @@ export default async function TablesReportPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <Breadcrumbs
-          items={[
-            { label: "Home", href: "/" },
-            { label: "Reports", href: "/report" },
-            { label: "Table Assignments" },
-          ]}
-        />
-        <h2 className="text-2xl font-bold text-gray-900">Table Assignments</h2>
-        <p className="text-sm text-gray-500 mt-0.5">
-          Who&rsquo;s seated at which table for a given session
-        </p>
-      </div>
-
       <BatchPicker batches={allBatches} selectedId={selectedBatchId} />
 
       <div className="flex flex-col gap-2">

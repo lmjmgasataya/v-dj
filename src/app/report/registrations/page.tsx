@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { RegistrationsChart, type DayBreakdown } from "./RegistrationsChart";
 import { ServiceChart, type ServiceCount } from "./ServiceChart";
 import { VictoryWeekendChart } from "./VictoryWeekendChart";
-import { BatchPicker } from "../BatchPicker";
+import { BatchPicker } from "@/components/BatchPicker";
 import { SERVICE_OPTIONS } from "@/components/form";
 import { ServiceDatePicker } from "./ServiceDatePicker";
 

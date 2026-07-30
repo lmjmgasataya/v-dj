@@ -26,7 +26,7 @@ export default async function Home() {
           className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
         >
           <span className="text-4xl">📋</span>
-          <span className="text-lg font-semibold text-gray-900">Register</span>
+          <span className="text-lg font-semibold text-gray-900 text-center">Register</span>
           <span className="text-sm text-gray-500 text-center">Enroll a new participant</span>
         </Link>
         {isAdmin && (
@@ -35,7 +35,7 @@ export default async function Home() {
             className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
           >
             <span className="text-4xl">👥</span>
-            <span className="text-lg font-semibold text-gray-900">Participants</span>
+            <span className="text-lg font-semibold text-gray-900 text-center">Participants</span>
             <span className="text-sm text-gray-500 text-center">{isDeveloper ? "View and edit all records" : "View all records"}</span>
           </Link>
         )}
@@ -44,7 +44,7 @@ export default async function Home() {
           className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
         >
           <span className="text-4xl">✅</span>
-          <span className="text-lg font-semibold text-gray-900">Check-in</span>
+          <span className="text-lg font-semibold text-gray-900 text-center">Check-in</span>
           <span className="text-sm text-gray-500 text-center">Search and record attendance</span>
         </Link>
         <Link
@@ -52,7 +52,7 @@ export default async function Home() {
           className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
         >
           <span className="text-4xl">📅</span>
-          <span className="text-lg font-semibold text-gray-900">Sessions</span>
+          <span className="text-lg font-semibold text-gray-900 text-center">Sessions</span>
           <span className="text-sm text-gray-500 text-center">Manage sessions and batches</span>
         </Link>
         {isAdmin && (
@@ -61,7 +61,7 @@ export default async function Home() {
             className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
           >
             <span className="text-4xl">📊</span>
-            <span className="text-lg font-semibold text-gray-900">Report</span>
+            <span className="text-lg font-semibold text-gray-900 text-center">Report</span>
             <span className="text-sm text-gray-500 text-center">Attendance completion matrix</span>
           </Link>
         )}
@@ -71,7 +71,7 @@ export default async function Home() {
             className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
           >
             <span className="text-4xl">🪪</span>
-            <span className="text-lg font-semibold text-gray-900">Print IDs</span>
+            <span className="text-lg font-semibold text-gray-900 text-center">Print IDs</span>
             <span className="text-sm text-gray-500 text-center">Print participant ID cards</span>
           </Link>
         )}
@@ -82,13 +82,13 @@ export default async function Home() {
               className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
             >
               <span className="text-4xl">📱</span>
-              <span className="text-lg font-semibold text-gray-900">SMS Sender</span>
+              <span className="text-lg font-semibold text-gray-900 text-center">SMS Sender</span>
               <span className="text-sm text-gray-500 text-center">Send SMS to participants/other contacts in a batch.</span>
             </Link>
           ) : (
             <div className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 opacity-50 cursor-not-allowed select-none">
               <span className="text-4xl">📱</span>
-              <span className="text-lg font-semibold text-gray-900">SMS Sender</span>
+              <span className="text-lg font-semibold text-gray-900 text-center">SMS Sender</span>
               <span className="text-sm text-gray-500 text-center">Coming soon</span>
             </div>
           )
@@ -99,8 +99,18 @@ export default async function Home() {
             className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
           >
             <span className="text-4xl">👤👤</span>
-            <span className="text-lg font-semibold text-gray-900">Manage VG Leaders</span>
+            <span className="text-lg font-semibold text-gray-900 text-center">Manage VG Leaders</span>
             <span className="text-sm text-gray-500 text-center">Promote disciplers and manage portal accounts</span>
+          </Link>
+        )}
+        {isAdmin && (
+          <Link
+            href="/table-management"
+            className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
+          >
+            <span className="text-4xl">🪑</span>
+            <span className="text-lg font-semibold text-gray-900 text-center">Table Management</span>
+            <span className="text-sm text-gray-500 text-center">Seating assignments and capacity</span>
           </Link>
         )}
       </div>

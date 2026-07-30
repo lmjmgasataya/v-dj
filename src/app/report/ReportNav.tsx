@@ -7,7 +7,6 @@ const allLinks = [
   { href: "/report", label: "Attendance", icon: "✅", adminOnly: false },
   { href: "/report/registrations", label: "Registrations", icon: "📈", adminOnly: true },
   { href: "/report/checkins", label: "Check-in Times", icon: "🕐", adminOnly: true },
-  { href: "/report/tables", label: "Table Assignments", icon: "🪑", adminOnly: false },
   { href: "/report/class-category", label: "Class Category", icon: "💰", adminOnly: true },
   { href: "/report/funnel", label: "Completion Funnel", icon: "📉", adminOnly: true },
   { href: "/report/demographics", label: "Demographics", icon: "👥", adminOnly: true },

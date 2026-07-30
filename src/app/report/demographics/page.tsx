@@ -5,7 +5,7 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { LifestageChart, ServiceChart, AgeChart, GenderChart, ChurchChart } from "./DemographicsCharts";
-import { BatchPicker } from "../BatchPicker";
+import { BatchPicker } from "@/components/BatchPicker";
 import { ClassPicker } from "./ClassPicker";
 import { SERVICE_OPTIONS, FEE_CATEGORIES } from "@/components/form";
 

@@ -2,10 +2,10 @@ import { db } from "@/db";
 import { checkIns, participants } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { toTitleCase } from "@/lib/text";
-import { getTableSettings } from "@/lib/settings";
+import { getTableRanges, getTotalTables, getTotalSeats, getTableCapacity } from "@/lib/tables";
 
 export async function TablesResults({ sessionId }: { sessionId: number }) {
-  const [rows, { tableCapacity, totalTables }] = await Promise.all([
+  const [rows, ranges] = await Promise.all([
     db
       .select({
         tableNumber: checkIns.tableNumber,
@@ -17,8 +17,11 @@ export async function TablesResults({ sessionId }: { sessionId: number }) {
       .innerJoin(participants, eq(checkIns.participantId, participants.id))
       .where(eq(checkIns.classSessionId, sessionId))
       .orderBy(participants.lastName, participants.firstName),
-    getTableSettings(),
+    getTableRanges(),
   ]);
+
+  const totalTables = getTotalTables(ranges);
+  const totalSeats = getTotalSeats(ranges);
 
   const byTable = new Map<number, typeof rows>();
   const unseated: typeof rows = [];
@@ -46,8 +49,8 @@ export async function TablesResults({ sessionId }: { sessionId: number }) {
         {[
           { label: "Checked In", value: rows.length },
           { label: "Tables Used", value: byTable.size },
-          { label: "Table Capacity", value: tableCapacity },
           { label: "Total Tables", value: totalTables },
+          { label: "Total Seats", value: totalSeats },
         ].map(({ label, value }) => (
           <div key={label} className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
             <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{label}</p>
@@ -60,13 +63,14 @@ export async function TablesResults({ sessionId }: { sessionId: number }) {
         {Array.from({ length: totalTables }, (_, i) => i + 1).map((tableNumber) => {
           const people = byTable.get(tableNumber) ?? [];
           if (people.length === 0) return null;
-          const full = people.length >= tableCapacity;
+          const capacity = getTableCapacity(tableNumber, ranges);
+          const full = people.length >= capacity;
           return (
             <div key={tableNumber} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                 <p className="text-sm font-semibold text-gray-800">Table {tableNumber}</p>
                 <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${full ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
-                  {people.length}/{tableCapacity}
+                  {people.length}/{capacity}
                 </span>
               </div>
               <ul className="divide-y divide-gray-100">

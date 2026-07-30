@@ -6,7 +6,7 @@ import { FEE_CATEGORIES } from "@/components/form";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ClassCategoryChart } from "./ClassCategoryChart";
-import { BatchPicker } from "../BatchPicker";
+import { BatchPicker } from "@/components/BatchPicker";
 
 export default async function ClassCategoryReportPage({
   searchParams,

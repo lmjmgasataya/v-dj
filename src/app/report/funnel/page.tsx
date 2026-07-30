@@ -5,7 +5,7 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { FunnelChart } from "./FunnelChart";
-import { BatchPicker } from "../BatchPicker";
+import { BatchPicker } from "@/components/BatchPicker";
 
 export default async function FunnelReportPage({
   searchParams,

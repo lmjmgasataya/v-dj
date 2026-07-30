@@ -9,7 +9,7 @@ import { SessionPicker } from "./SessionPicker";
 import { WindowPicker } from "./WindowPicker";
 import { CheckInsResults } from "./CheckInsResults";
 import { CheckInsResultsSkeleton } from "./CheckInsResultsSkeleton";
-import { BatchPicker } from "../BatchPicker";
+import { BatchPicker } from "@/components/BatchPicker";
 import { CHECKIN_WINDOW_OPTIONS, DEFAULT_CHECKIN_WINDOW_MINUTES } from "@/lib/constants";
 
 export default async function CheckInsReportPage({

@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { AttendanceSearch } from "./AttendanceSearch";
 import { AttendanceTable, TableSkeleton } from "./AttendanceTable";
-import { BatchPicker } from "./BatchPicker";
+import { BatchPicker } from "@/components/BatchPicker";
 
 export default async function ReportPage({
   searchParams,

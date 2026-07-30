@@ -11,3 +11,63 @@ body {
 button {
   cursor: pointer;
 }
+
+/* Each keyframe set spans a full 5s loop: the pop/draw plays out in the
+   first ~1s, then holds until the cycle restarts from 0%. */
+@keyframes check-circle-pop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  9% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  13%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes check-circle-stroke-draw {
+  0%,
+  2% {
+    stroke-dashoffset: 66;
+  }
+  14%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes check-tick-stroke-draw {
+  0%,
+  12% {
+    stroke-dashoffset: 24;
+  }
+  18%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-check-circle-pop {
+  animation: check-circle-pop 5s ease-out infinite;
+}
+
+.animate-check-circle-stroke {
+  animation: check-circle-stroke-draw 5s ease-out infinite;
+}
+
+.animate-check-tick-stroke {
+  animation: check-tick-stroke-draw 5s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-check-circle-pop,
+  .animate-check-circle-stroke,
+  .animate-check-tick-stroke {
+    animation: none !important;
+  }
+}

@@ -74,7 +74,14 @@ export async function lookupParticipantForQr(
   participantId: number,
   classSessionId: number,
 ): Promise<
-  | { name: string; alreadyCheckedIn: boolean; registrationFee: string | null; victoryDayBlockReason: string | null; tableNumber: number | null }
+  | {
+      firstName: string;
+      lastName: string;
+      alreadyCheckedIn: boolean;
+      registrationFee: string | null;
+      victoryDayBlockReason: string | null;
+      tableNumber: number | null;
+    }
   | { error: string }
 > {
   const [participant] = await db
@@ -97,7 +104,8 @@ export async function lookupParticipantForQr(
     .limit(1);
 
   return {
-    name: `${participant.lastName}, ${participant.firstName}`,
+    firstName: toTitleCase(participant.firstName),
+    lastName: toTitleCase(participant.lastName),
     alreadyCheckedIn: !!existing,
     registrationFee: participant.registrationFee,
     tableNumber: existing?.tableNumber ?? null,
@@ -109,7 +117,10 @@ export async function checkInByQr(
   participantId: number,
   classSessionId: number,
   remarks?: string,
-): Promise<{ name: string; alreadyCheckedIn: boolean; tableNumber: number | null } | { error: string }> {
+): Promise<
+  | { firstName: string; lastName: string; alreadyCheckedIn: boolean; tableNumber: number | null }
+  | { error: string }
+> {
   const [participant] = await db
     .select({ id: participants.id, firstName: participants.firstName, lastName: participants.lastName })
     .from(participants)
@@ -118,6 +129,9 @@ export async function checkInByQr(
 
   if (!participant) return { error: "Participant not found" };
 
+  const firstName = toTitleCase(participant.firstName);
+  const lastName = toTitleCase(participant.lastName);
+
   const [existing] = await db
     .select({ id: checkIns.id, tableNumber: checkIns.tableNumber })
     .from(checkIns)
@@ -125,7 +139,7 @@ export async function checkInByQr(
     .limit(1);
 
   if (existing) {
-    return { name: `${participant.lastName}, ${participant.firstName}`, alreadyCheckedIn: true, tableNumber: existing.tableNumber };
+    return { firstName, lastName, alreadyCheckedIn: true, tableNumber: existing.tableNumber };
   }
 
   const blockReason = await getVictoryDayBlockReason(participantId, classSessionId);
@@ -136,7 +150,7 @@ export async function checkInByQr(
   revalidatePath("/admin");
   revalidatePath("/sessions");
 
-  return { name: `${participant.lastName}, ${participant.firstName}`, alreadyCheckedIn: false, tableNumber };
+  return { firstName, lastName, alreadyCheckedIn: false, tableNumber };
 }
 
 export async function removeCheckIn(participantId: number, classSessionId: number) {

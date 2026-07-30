@@ -6,6 +6,7 @@ import { toTitleCase } from "@/lib/text";
 import type { Participant, ClassSession, CheckIn } from "@/db/schema";
 import { FEE_CATEGORIES } from "@/components/form";
 import { useToast } from "@/components/toast/ToastProvider";
+import { CheckInSuccessModal } from "./CheckInSuccessModal";
 
 interface Props {
   participant: Participant;
@@ -19,6 +20,7 @@ export function CheckInPanel({ participant, sessions, checkIns, hasVictoryDay }:
   const [pending, startTransition] = useTransition();
   const [modalSessionId, setModalSessionId] = useState<number | null>(null);
   const [remarks, setRemarks] = useState("");
+  const [successInfo, setSuccessInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null } | null>(null);
   const toast = useToast();
 
   const modalSession = sessions.find((s) => s.id === modalSessionId);
@@ -32,11 +34,11 @@ export function CheckInPanel({ participant, sessions, checkIns, hasVictoryDay }:
       if ("error" in result) {
         toast.show(result.error, "error");
       } else {
-        toast.show(
-          <>Checked in — {result.tableNumber ? <strong>Table {result.tableNumber}</strong> : "no table available"}.</>,
-          "success",
-          20000
-        );
+        setSuccessInfo({
+          firstName: toTitleCase(participant.firstName),
+          lastName: toTitleCase(participant.lastName),
+          tableNumber: result.tableNumber,
+        });
       }
       document.getElementById("search-participant")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
@@ -206,6 +208,15 @@ export function CheckInPanel({ participant, sessions, checkIns, hasVictoryDay }:
             </div>
           </div>
         </div>
+      )}
+
+      {successInfo && (
+        <CheckInSuccessModal
+          firstName={successInfo.firstName}
+          lastName={successInfo.lastName}
+          tableNumber={successInfo.tableNumber}
+          onDismiss={() => setSuccessInfo(null)}
+        />
       )}
     </>
   );

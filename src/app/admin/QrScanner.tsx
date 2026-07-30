@@ -5,6 +5,7 @@ import { lookupParticipantForQr, checkInByQr } from "./actions";
 import { FEE_CATEGORIES } from "@/components/form";
 import { ORIENTATION_ALLOWED_CLASSES } from "@/lib/constants";
 import { useToast } from "@/components/toast/ToastProvider";
+import { CheckInSuccessModal } from "./CheckInSuccessModal";
 
 export const QR_PREFIX = "dj:participant:";
 const CONTAINER_ID = "qr-scanner-container";
@@ -20,15 +21,12 @@ function parseParticipantId(text: string): number | null {
   return isNaN(n) ? null : n;
 }
 
-function lastNameFromResultName(name: string): string {
-  return name.split(",")[0]?.trim() ?? "";
-}
-
 type Status = "idle" | "scanning" | "confirming" | "loading" | "error";
 
 interface PendingParticipant {
   id: number;
-  name: string;
+  firstName: string;
+  lastName: string;
   registrationFee: string | null;
   victoryDayBlockReason: string | null;
 }
@@ -82,6 +80,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
   const [pending, setPending] = useState<PendingParticipant | null>(null);
   const [remarks, setRemarks] = useState("");
   const [mirrored, setMirrored] = useState(false);
+  const [successInfo, setSuccessInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null } | null>(null);
   const toast = useToast();
   const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
   const onCheckInRef = useRef(onCheckIn);
@@ -105,21 +104,23 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
       setStatus("error");
       setMessage(result.error);
     } else if (result.alreadyCheckedIn) {
-      const resultMessage = `${result.name} is already checked in.`;
+      const displayName = `${result.lastName}, ${result.firstName}`;
+      const resultMessage = `${displayName} is already checked in.`;
       toast.show(
         <>
-          {result.name} is already checked in —{" "}
+          {displayName} is already checked in —{" "}
           {result.tableNumber ? <strong>Table {result.tableNumber}</strong> : "no table assigned"}.
         </>,
         "info",
         20000
       );
-      onCheckInRef.current?.({ lastName: lastNameFromResultName(result.name), message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
+      onCheckInRef.current?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
       setStatus(restingStatus);
     } else {
       setPending({
         id: participantId,
-        name: result.name,
+        firstName: result.firstName,
+        lastName: result.lastName,
         registrationFee: result.registrationFee,
         victoryDayBlockReason: result.victoryDayBlockReason,
       });
@@ -262,33 +263,32 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
       setStatus("error");
       setMessage(result.error);
     } else if (result.alreadyCheckedIn) {
+      const displayName = `${result.lastName}, ${result.firstName}`;
       const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table assigned";
-      const resultMessage = `${result.name} is already checked in — ${tableMsg}.`;
+      const resultMessage = `${displayName} is already checked in — ${tableMsg}.`;
       toast.show(
         <>
-          {result.name} is already checked in —{" "}
+          {displayName} is already checked in —{" "}
           {result.tableNumber ? <strong>Table {result.tableNumber}</strong> : "no table assigned"}.
         </>,
         "info",
         20000
       );
-      onCheckIn?.({ lastName: lastNameFromResultName(result.name), message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
+      onCheckIn?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
       setStatus("scanning");
     } else {
       const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table available";
-      const resultMessage = `Checked in: ${result.name} — ${tableMsg}`;
-      toast.show(
-        <>
-          Checked in: {result.name} — {result.tableNumber ? <strong>Table {result.tableNumber}</strong> : "no table available"}
-        </>,
-        "success",
-        20000
-      );
-      onCheckIn?.({ lastName: lastNameFromResultName(result.name), message: resultMessage, alreadyCheckedIn: false, tableNumber: result.tableNumber });
-      setStatus("scanning");
+      const resultMessage = `Checked in: ${result.lastName}, ${result.firstName} — ${tableMsg}`;
+      setSuccessInfo({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber });
+      onCheckIn?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: false, tableNumber: result.tableNumber });
     }
     setPending(null);
     setRemarks("");
+  }
+
+  function handleDismissSuccess() {
+    setSuccessInfo(null);
+    setStatus("scanning");
   }
 
   function handleCancel() {
@@ -366,7 +366,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
             <div>
               <h3 className="text-base font-bold text-gray-900">Check In</h3>
               <p className="text-sm font-semibold text-gray-800 mt-1">
-                {pending.name} — Class {classLabel(pending.registrationFee)}
+                {pending.lastName}, {pending.firstName} — Class {classLabel(pending.registrationFee)}
               </p>
             </div>
             {restricted && (
@@ -411,6 +411,15 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
         </div>
         );
       })()}
+
+      {successInfo && (
+        <CheckInSuccessModal
+          firstName={successInfo.firstName}
+          lastName={successInfo.lastName}
+          tableNumber={successInfo.tableNumber}
+          onDismiss={handleDismissSuccess}
+        />
+      )}
     </>
   );
 });

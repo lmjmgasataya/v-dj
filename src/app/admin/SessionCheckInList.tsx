@@ -5,6 +5,7 @@ import Link from "next/link";
 import { checkInParticipant, removeCheckIn } from "./actions";
 import { toTitleCase } from "@/lib/text";
 import { useToast } from "@/components/toast/ToastProvider";
+import { CheckInSuccessModal } from "./CheckInSuccessModal";
 
 interface ParticipantWithStatus {
   id: number;
@@ -31,6 +32,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction }
   const [pending, startTransition] = useTransition();
   const [showModal, setShowModal] = useState(false);
   const [remarks, setRemarks] = useState("");
+  const [successInfo, setSuccessInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null } | null>(null);
   const toast = useToast();
   const isCheckedIn = p.checkInId != null;
   const hasVictoryDay = !!p.victoryDate || p.completedVictoryDay;
@@ -45,14 +47,11 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction }
       if ("error" in result) {
         toast.show(result.error, "error");
       } else {
-        toast.show(
-          <>
-            Checked in: {toTitleCase(p.firstName)} {toTitleCase(p.lastName)} —{" "}
-            {result.tableNumber ? <strong>Table {result.tableNumber}</strong> : "no table available"}.
-          </>,
-          "success",
-          20000
-        );
+        setSuccessInfo({
+          firstName: toTitleCase(p.firstName),
+          lastName: toTitleCase(p.lastName),
+          tableNumber: result.tableNumber,
+        });
       }
       onAction?.();
     });
@@ -183,6 +182,15 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction }
             </div>
           </div>
         </div>
+      )}
+
+      {successInfo && (
+        <CheckInSuccessModal
+          firstName={successInfo.firstName}
+          lastName={successInfo.lastName}
+          tableNumber={successInfo.tableNumber}
+          onDismiss={() => setSuccessInfo(null)}
+        />
       )}
     </>
   );

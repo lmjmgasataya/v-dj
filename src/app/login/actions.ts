@@ -19,7 +19,7 @@ export async function login(_: unknown, formData: FormData) {
 
   const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
 
-  const passwordMatch = user && (await bcrypt.compare(password, user.passwordHash));
+  const passwordMatch = user?.passwordHash && (await bcrypt.compare(password, user.passwordHash));
 
   // await db.insert(loginLogs).values({
   //   username,
@@ -35,17 +35,13 @@ export async function login(_: unknown, formData: FormData) {
 
   const token = await signSession({
     userId: user.id,
-    username: user.username,
+    username: user.username ?? undefined,
     name: user.name,
     role: user.role as Role,
     vgLeaderId: user.vgLeaderId ?? undefined,
-    mustChangePassword: user.mustChangePassword,
   });
   await setSessionCookie(token);
 
-  if (user.role === "vg_leader") {
-    redirect(user.mustChangePassword ? "/vg-portal/change-password" : "/vg-portal");
-  }
   redirect("/");
 }
 

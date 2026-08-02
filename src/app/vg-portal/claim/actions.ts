@@ -6,6 +6,7 @@ import { and, eq, ilike, isNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { signSession, setSessionCookie } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { SECURITY_QUESTIONS, normalizeSecurityAnswer } from "@/lib/securityQuestions";
 
 function normalizeDigits(s: string) {
   return s.replace(/\D/g, "");
@@ -56,29 +57,40 @@ export async function verifyIdentity(_: unknown, formData: FormData) {
   }
 
   const leader = matches[0];
+  const name = `${leader.firstName} ${leader.lastName}`;
 
   const [existingAccount] = await db
     .select()
     .from(users)
     .where(eq(users.vgLeaderId, leader.id))
     .limit(1);
-  if (existingAccount) {
-    return { error: "This account is already set up — please log in instead." };
+
+  if (existingAccount?.securityAnswerHash) {
+    return {
+      verified: true as const,
+      vgLeaderId: leader.id,
+      name,
+      mode: "answer" as const,
+      question: existingAccount.securityQuestion ?? "",
+    };
   }
 
-  return {
-    verified: true as const,
-    vgLeaderId: leader.id,
-    name: `${leader.firstName} ${leader.lastName}`,
-  };
+  return { verified: true as const, vgLeaderId: leader.id, name, mode: "setup" as const };
 }
 
-export async function completeClaim(vgLeaderId: number, _: unknown, formData: FormData) {
-  const username = ((formData.get("username") as string) ?? "").trim();
-  const password = (formData.get("password") as string) ?? "";
+export async function setupSecurityQuestion(vgLeaderId: number, _: unknown, formData: FormData) {
+  const question = (formData.get("question") as string) ?? "";
+  const answer = ((formData.get("answer") as string) ?? "").trim();
+  const confirmAnswer = ((formData.get("confirmAnswer") as string) ?? "").trim();
 
-  if (!username || password.length < 6) {
-    return { error: "Choose a username and a password with at least 6 characters." };
+  if (!SECURITY_QUESTIONS.includes(question as (typeof SECURITY_QUESTIONS)[number])) {
+    return { error: "Please choose a security question." };
+  }
+  if (!answer) {
+    return { error: "Enter an answer to your security question." };
+  }
+  if (normalizeSecurityAnswer(answer) !== normalizeSecurityAnswer(confirmAnswer)) {
+    return { error: "Your answers don't match. Please try again." };
   }
 
   const [leader] = await db
@@ -88,40 +100,65 @@ export async function completeClaim(vgLeaderId: number, _: unknown, formData: Fo
     .limit(1);
   if (!leader) return { error: "Something went wrong. Please start over." };
 
+  const securityAnswerHash = await bcrypt.hash(normalizeSecurityAnswer(answer), 10);
+  const name = `${leader.firstName} ${leader.lastName}`;
+
   const [existingAccount] = await db
     .select()
     .from(users)
     .where(eq(users.vgLeaderId, vgLeaderId))
     .limit(1);
-  if (existingAccount) return { error: "This account is already set up — please log in instead." };
 
-  const [existingUsername] = await db
-    .select()
-    .from(users)
-    .where(eq(users.username, username))
-    .limit(1);
-  if (existingUsername) return { error: "That username is taken. Please choose another." };
-
-  const passwordHash = await bcrypt.hash(password, 10);
-
-  const [user] = await db
-    .insert(users)
-    .values({
-      username,
-      passwordHash,
-      name: `${leader.firstName} ${leader.lastName}`,
-      role: "vg_leader",
-      vgLeaderId,
-    })
-    .returning();
+  let user: typeof users.$inferSelect;
+  if (existingAccount) {
+    [user] = await db
+      .update(users)
+      .set({ securityQuestion: question, securityAnswerHash })
+      .where(eq(users.id, existingAccount.id))
+      .returning();
+  } else {
+    [user] = await db
+      .insert(users)
+      .values({
+        name,
+        role: "vg_leader",
+        vgLeaderId,
+        securityQuestion: question,
+        securityAnswerHash,
+      })
+      .returning();
+  }
 
   const token = await signSession({
     userId: user.id,
-    username: user.username,
     name: user.name,
     role: "vg_leader",
     vgLeaderId,
-    mustChangePassword: false,
+  });
+  await setSessionCookie(token);
+  redirect("/vg-portal");
+}
+
+export async function answerSecurityQuestion(vgLeaderId: number, _: unknown, formData: FormData) {
+  const answer = ((formData.get("answer") as string) ?? "").trim();
+  if (!answer) return { error: "Enter your answer." };
+
+  const [account] = await db
+    .select()
+    .from(users)
+    .where(eq(users.vgLeaderId, vgLeaderId))
+    .limit(1);
+
+  if (!account?.securityAnswerHash) return { error: "Something went wrong. Please start over." };
+
+  const match = await bcrypt.compare(normalizeSecurityAnswer(answer), account.securityAnswerHash);
+  if (!match) return { error: "That answer doesn't match. Please try again." };
+
+  const token = await signSession({
+    userId: account.id,
+    name: account.name,
+    role: "vg_leader",
+    vgLeaderId,
   });
   await setSessionCookie(token);
   redirect("/vg-portal");

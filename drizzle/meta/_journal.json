@@ -190,6 +190,13 @@
       "when": 1785313700659,
       "tag": "0026_low_mac_gargan",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1785681592268,
+      "tag": "0027_marvelous_raider",
+      "breakpoints": true
     }
   ]
 }

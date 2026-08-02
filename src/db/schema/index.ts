@@ -170,11 +170,13 @@ export const roleEnum = pgEnum("user_role", ["admin_volunteer", "developer", "vg
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
+  username: text("username").unique(),
+  passwordHash: text("password_hash"),
   name: text("name").notNull(),
   role: roleEnum("role").notNull().default("admin_volunteer"),
   vgLeaderId: integer("vg_leader_id").references(() => victoryGroupLeaders.id),
+  securityQuestion: text("security_question"),
+  securityAnswerHash: text("security_answer_hash"),
   mustChangePassword: boolean("must_change_password").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [unique().on(t.vgLeaderId)]);

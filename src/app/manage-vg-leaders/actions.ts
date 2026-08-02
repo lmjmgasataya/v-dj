@@ -6,7 +6,6 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import bcrypt from "bcryptjs";
 import { toTitleCase } from "@/lib/text";
 import { toastRedirectBack } from "@/lib/toast";
 
@@ -34,23 +33,14 @@ export async function promoteDisciplerToVgLeader(disciplerId: number) {
   await toastRedirectBack("Discipler promoted to VG leader.");
 }
 
-function generateTempPassword() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-  let out = "";
-  for (let i = 0; i < 8; i++) out += chars[Math.floor(Math.random() * chars.length)];
-  return out;
-}
-
-export async function resetVgLeaderPassword(userId: number) {
+export async function resetVgLeaderSecurityQuestion(userId: number) {
   await requireDeveloper();
-  const tempPassword = generateTempPassword();
-  const hash = await bcrypt.hash(tempPassword, 10);
   await db
     .update(users)
-    .set({ passwordHash: hash, mustChangePassword: true })
+    .set({ securityQuestion: null, securityAnswerHash: null })
     .where(and(eq(users.id, userId), eq(users.role, "vg_leader")));
   revalidatePath("/manage-vg-leaders");
   await toastRedirectBack(
-    `Temporary password: ${tempPassword} — share this with the leader. They'll be asked to set a new one on next login.`
+    "Security question cleared. The leader will be asked to set a new one next time they access the portal."
   );
 }

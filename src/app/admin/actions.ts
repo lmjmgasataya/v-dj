@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { participants, checkIns, classSessions, victoryGroupLeaders, type lifestageEnum } from "@/db/schema";
+import { participants, checkIns, classSessions, victoryGroupLeaders, featureFlags, type lifestageEnum } from "@/db/schema";
 import { currentYearPH } from "@/lib/date";
 import { toTitleCase } from "@/lib/text";
 import { ORIENTATION_ALLOWED_CLASSES } from "@/lib/constants";
@@ -10,6 +10,15 @@ import { assignTableNumber } from "@/lib/tables";
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
 import { and, count, eq, gte, ilike, inArray, isNull, lt, notInArray, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+
+async function isTableAssignmentEnabled(): Promise<boolean> {
+  const [flag] = await db
+    .select({ enabled: featureFlags.enabled })
+    .from(featureFlags)
+    .where(eq(featureFlags.key, "checkin_table_assignment"))
+    .limit(1);
+  return flag?.enabled ?? true;
+}
 
 async function getVictoryDayBlockReason(participantId: number, classSessionId: number): Promise<string | null> {
   const [session] = await db
@@ -60,7 +69,7 @@ export async function checkInParticipant(
   const blockReason = await getVictoryDayBlockReason(participantId, classSessionId);
   if (blockReason) return { error: blockReason };
 
-  const tableNumber = await assignTableNumber(classSessionId);
+  const tableNumber = (await isTableAssignmentEnabled()) ? await assignTableNumber(classSessionId) : null;
   await db
     .insert(checkIns)
     .values({ participantId, classSessionId, remarks: remarks || null, tableNumber })
@@ -145,7 +154,7 @@ export async function checkInByQr(
   const blockReason = await getVictoryDayBlockReason(participantId, classSessionId);
   if (blockReason) return { error: blockReason };
 
-  const tableNumber = await assignTableNumber(classSessionId);
+  const tableNumber = (await isTableAssignmentEnabled()) ? await assignTableNumber(classSessionId) : null;
   await db.insert(checkIns).values({ participantId, classSessionId, remarks: remarks || null, tableNumber }).onConflictDoNothing();
   revalidatePath("/admin");
   revalidatePath("/sessions");
@@ -332,7 +341,7 @@ export async function addWalkIn(classSessionId: number, formData: FormData) {
     .returning({ id: participants.id });
 
   const remarks = (formData.get("remarks") as string) || null;
-  const tableNumber = await assignTableNumber(classSessionId);
+  const tableNumber = (await isTableAssignmentEnabled()) ? await assignTableNumber(classSessionId) : null;
   await db.insert(checkIns).values({ participantId: inserted.id, classSessionId, remarks, tableNumber }).onConflictDoNothing();
 
   revalidatePath("/admin");

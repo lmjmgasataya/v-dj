@@ -68,11 +68,13 @@ interface QrScannerProps {
   allowAllClasses?: boolean;
   isOrientation?: boolean;
   autoOpen?: boolean;
+  confirmBeforeCheckIn?: boolean;
+  showTableNumber?: boolean;
   onCheckIn?: (info: CheckInResultInfo) => void;
 }
 
 export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function QrScanner(
-  { sessionId, isVictoryDay, allowAllClasses, isOrientation, autoOpen, onCheckIn },
+  { sessionId, isVictoryDay, allowAllClasses, isOrientation, autoOpen, confirmBeforeCheckIn = true, showTableNumber = true, onCheckIn },
   ref
 ) {
   const [status, setStatus] = useState<Status>(autoOpen ? "scanning" : "idle");
@@ -87,6 +89,36 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
   useEffect(() => {
     onCheckInRef.current = onCheckIn;
   });
+
+  async function submitCheckIn(participantId: number, remarksValue: string, restingStatus: Status) {
+    setStatus("loading");
+    const result = await checkInByQr(participantId, sessionId, remarksValue || undefined);
+    if ("error" in result) {
+      setStatus("error");
+      setMessage(result.error);
+    } else if (result.alreadyCheckedIn) {
+      const displayName = `${result.lastName}, ${result.firstName}`;
+      const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table assigned";
+      const resultMessage = `${displayName} is already checked in — ${tableMsg}.`;
+      toast.show(
+        <>
+          {displayName} is already checked in —{" "}
+          {result.tableNumber ? <strong>Table {result.tableNumber}</strong> : "no table assigned"}.
+        </>,
+        "info",
+        20000
+      );
+      onCheckInRef.current?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
+      setStatus(restingStatus);
+    } else {
+      const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table available";
+      const resultMessage = `Checked in: ${result.lastName}, ${result.firstName} — ${tableMsg}`;
+      setSuccessInfo({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber });
+      onCheckInRef.current?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: false, tableNumber: result.tableNumber });
+    }
+    setPending(null);
+    setRemarks("");
+  }
 
   async function processScannedCode(decodedText: string, restingStatus: Status) {
     const participantId = parseParticipantId(decodedText);
@@ -117,14 +149,22 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
       onCheckInRef.current?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
       setStatus(restingStatus);
     } else {
-      setPending({
-        id: participantId,
-        firstName: result.firstName,
-        lastName: result.lastName,
-        registrationFee: result.registrationFee,
-        victoryDayBlockReason: result.victoryDayBlockReason,
-      });
-      setStatus("confirming");
+      const victoryDayRestricted = isVictoryDay && !allowAllClasses && !VICTORY_DAY_ALLOWED_CLASSES.includes(result.registrationFee ?? "");
+      const orientationRestricted = !!isOrientation && !ORIENTATION_ALLOWED_CLASSES.includes(result.registrationFee ?? "");
+      const restricted = victoryDayRestricted || orientationRestricted || !!result.victoryDayBlockReason;
+
+      if (!confirmBeforeCheckIn && !restricted) {
+        await submitCheckIn(participantId, "", restingStatus);
+      } else {
+        setPending({
+          id: participantId,
+          firstName: result.firstName,
+          lastName: result.lastName,
+          registrationFee: result.registrationFee,
+          victoryDayBlockReason: result.victoryDayBlockReason,
+        });
+        setStatus("confirming");
+      }
     }
   }
 
@@ -257,33 +297,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     if (isVictoryDay && !allowAllClasses && !VICTORY_DAY_ALLOWED_CLASSES.includes(pending.registrationFee ?? "")) return;
     if (isOrientation && !ORIENTATION_ALLOWED_CLASSES.includes(pending.registrationFee ?? "")) return;
     if (pending.victoryDayBlockReason) return;
-    setStatus("loading");
-    const result = await checkInByQr(pending.id, sessionId, remarks || undefined);
-    if ("error" in result) {
-      setStatus("error");
-      setMessage(result.error);
-    } else if (result.alreadyCheckedIn) {
-      const displayName = `${result.lastName}, ${result.firstName}`;
-      const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table assigned";
-      const resultMessage = `${displayName} is already checked in — ${tableMsg}.`;
-      toast.show(
-        <>
-          {displayName} is already checked in —{" "}
-          {result.tableNumber ? <strong>Table {result.tableNumber}</strong> : "no table assigned"}.
-        </>,
-        "info",
-        20000
-      );
-      onCheckIn?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
-      setStatus("scanning");
-    } else {
-      const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table available";
-      const resultMessage = `Checked in: ${result.lastName}, ${result.firstName} — ${tableMsg}`;
-      setSuccessInfo({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber });
-      onCheckIn?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: false, tableNumber: result.tableNumber });
-    }
-    setPending(null);
-    setRemarks("");
+    await submitCheckIn(pending.id, remarks, "scanning");
   }
 
   function handleDismissSuccess() {
@@ -417,6 +431,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
           firstName={successInfo.firstName}
           lastName={successInfo.lastName}
           tableNumber={successInfo.tableNumber}
+          showTable={showTableNumber}
           onDismiss={handleDismissSuccess}
         />
       )}

@@ -4,11 +4,13 @@ export function CheckInSuccessModal({
   firstName,
   lastName,
   tableNumber,
+  showTable = true,
   onDismiss,
 }: {
   firstName: string;
   lastName: string;
   tableNumber: number | null;
+  showTable?: boolean;
   onDismiss: () => void;
 }) {
   return (
@@ -20,10 +22,12 @@ export function CheckInSuccessModal({
         <p className="text-xl font-bold text-gray-900">You&rsquo;re checked in, {firstName}!</p>
         <p className="text-sm text-gray-500">{lastName} &middot; Welcome!</p>
 
-        <div className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-6 py-5 flex flex-col items-center gap-1 mt-6">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Your Table</p>
-          <p className="text-5xl font-extrabold text-indigo-600 leading-tight">{tableNumber ?? "—"}</p>
-        </div>
+        {showTable && (
+          <div className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-6 py-5 flex flex-col items-center gap-1 mt-6">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Your Table</p>
+            <p className="text-5xl font-extrabold text-indigo-600 leading-tight">{tableNumber ?? "—"}</p>
+          </div>
+        )}
 
         <button
           type="button"

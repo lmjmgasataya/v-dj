@@ -37,7 +37,7 @@ function SearchSkeleton() {
   );
 }
 
-export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requiresVictoryDay, initialQ, qrCheckin, victoryDayAllowAllClasses, autoOpenQrScanner }: { sessionId: number; sessionName: string; isVictoryDay: boolean; requiresVictoryDay: boolean; initialQ?: string; qrCheckin?: boolean; victoryDayAllowAllClasses?: boolean; autoOpenQrScanner?: boolean }) {
+export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requiresVictoryDay, initialQ, qrCheckin, victoryDayAllowAllClasses, autoOpenQrScanner, confirmBeforeCheckIn, showTableNumber }: { sessionId: number; sessionName: string; isVictoryDay: boolean; requiresVictoryDay: boolean; initialQ?: string; qrCheckin?: boolean; victoryDayAllowAllClasses?: boolean; autoOpenQrScanner?: boolean; confirmBeforeCheckIn?: boolean; showTableNumber?: boolean }) {
   const isOrientation = sessionName === ORIENTATION_SESSION_NAME;
   const [q, setQ] = useState(initialQ ?? "");
   const [results, setResults] = useState<Results>([]);
@@ -126,6 +126,8 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
             allowAllClasses={victoryDayAllowAllClasses}
             isOrientation={isOrientation}
             autoOpen={autoOpenQrScanner && !initialQ?.trim()}
+            confirmBeforeCheckIn={confirmBeforeCheckIn}
+            showTableNumber={showTableNumber}
             onCheckIn={(info) => {
               const nextQuery = info.lastName.trim() || q;
               setQ(nextQuery);
@@ -173,6 +175,8 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
               requiresVictoryDay={requiresVictoryDay}
               onAction={() => runSearch(q)}
               searchQuery={q.trim()}
+              confirmBeforeCheckIn={confirmBeforeCheckIn}
+              showTableNumber={showTableNumber}
             />
           )}
         </div>

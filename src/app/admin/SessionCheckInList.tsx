@@ -28,7 +28,7 @@ interface ParticipantWithStatus {
   tableNumber: number | null;
 }
 
-function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction }: { p: ParticipantWithStatus; sessionId: number; isVictoryDay: boolean; requiresVictoryDay: boolean; onAction?: () => void }) {
+function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, confirmBeforeCheckIn = true, showTableNumber = true }: { p: ParticipantWithStatus; sessionId: number; isVictoryDay: boolean; requiresVictoryDay: boolean; onAction?: () => void; confirmBeforeCheckIn?: boolean; showTableNumber?: boolean }) {
   const [pending, startTransition] = useTransition();
   const [showModal, setShowModal] = useState(false);
   const [remarks, setRemarks] = useState("");
@@ -39,9 +39,9 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction }
   const isIncomplete = !!p.victoryDayDate && !p.completedVictoryDay && !p.victoryDate;
   const blocked = requiresVictoryDay && !isVictoryDay && !hasVictoryDay;
 
-  function handleConfirmCheckIn() {
+  function submitCheckIn(remarksValue: string) {
     startTransition(async () => {
-      const result = await checkInParticipant(p.id, sessionId, remarks || undefined);
+      const result = await checkInParticipant(p.id, sessionId, remarksValue || undefined);
       setShowModal(false);
       setRemarks("");
       if ("error" in result) {
@@ -55,6 +55,18 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction }
       }
       onAction?.();
     });
+  }
+
+  function handleConfirmCheckIn() {
+    submitCheckIn(remarks);
+  }
+
+  function handleCheckInClick() {
+    if (confirmBeforeCheckIn) {
+      setShowModal(true);
+    } else {
+      submitCheckIn("");
+    }
   }
 
   return (
@@ -133,7 +145,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction }
             </span>
           ) : (
             <button
-              onClick={() => setShowModal(true)}
+              onClick={handleCheckInClick}
               disabled={pending}
               className="bg-[#00428E] hover:bg-[#003578] disabled:opacity-50 text-white text-xs font-semibold px-4 py-1.5 rounded-lg transition"
             >
@@ -189,6 +201,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction }
           firstName={successInfo.firstName}
           lastName={successInfo.lastName}
           tableNumber={successInfo.tableNumber}
+          showTable={showTableNumber}
           onDismiss={() => setSuccessInfo(null)}
         />
       )}
@@ -203,6 +216,8 @@ export function SessionCheckInList({
   requiresVictoryDay,
   onAction,
   searchQuery,
+  confirmBeforeCheckIn,
+  showTableNumber,
 }: {
   participants: ParticipantWithStatus[];
   sessionId: number;
@@ -210,6 +225,8 @@ export function SessionCheckInList({
   requiresVictoryDay: boolean;
   onAction?: () => void;
   searchQuery?: string;
+  confirmBeforeCheckIn?: boolean;
+  showTableNumber?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -229,7 +246,7 @@ export function SessionCheckInList({
         )}
       </div>
       {participants.map((p) => (
-        <CheckInRow key={p.id} p={p} sessionId={sessionId} isVictoryDay={isVictoryDay} requiresVictoryDay={requiresVictoryDay} onAction={onAction} />
+        <CheckInRow key={p.id} p={p} sessionId={sessionId} isVictoryDay={isVictoryDay} requiresVictoryDay={requiresVictoryDay} onAction={onAction} confirmBeforeCheckIn={confirmBeforeCheckIn} showTableNumber={showTableNumber} />
       ))}
     </div>
   );

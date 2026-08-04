@@ -28,7 +28,8 @@ export default async function SessionsPage({
         name: classSessions.name,
         sessionDate: classSessions.sessionDate,
         isVictoryDay: classSessions.isVictoryDay,
-        checkInCount: sql<number>`count(${checkIns.id})::int`,
+        checkInCount: sql<number>`count(${checkIns.id}) filter (where ${checkIns.status} != 'Absent')::int`,
+        absentCount: sql<number>`count(${checkIns.id}) filter (where ${checkIns.status} = 'Absent')::int`,
       })
       .from(classSessions)
       .leftJoin(checkIns, eq(checkIns.classSessionId, classSessions.id))
@@ -116,6 +117,9 @@ export default async function SessionsPage({
                   <div className="text-right">
                     <p className="text-2xl font-bold text-indigo-600">{s.checkInCount}</p>
                     <p className="text-xs text-gray-400">checked in</p>
+                    {s.absentCount > 0 && (
+                      <p className="text-xs text-red-500 mt-0.5">{s.absentCount} absent</p>
+                    )}
                   </div>
                   <span className="text-gray-300">›</span>
                 </div>

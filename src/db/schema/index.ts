@@ -38,6 +38,8 @@ export const vgFrequencyEnum = pgEnum("vg_frequency", [
   "Others",
 ]);
 
+export const checkInStatusEnum = pgEnum("check_in_status", ["On-time", "Late", "Absent"]);
+
 export const disciplers = pgTable(
   "disciplers",
   {
@@ -158,6 +160,7 @@ export const checkIns = pgTable(
     checkedInAt: timestamp("checked_in_at").defaultNow().notNull(),
     remarks: text("remarks"),
     tableNumber: integer("table_number"),
+    status: checkInStatusEnum("status").notNull().default("On-time"),
   },
   (t) => [
     unique().on(t.participantId, t.classSessionId),
@@ -232,6 +235,7 @@ export const smsLogs = pgTable("sms_logs", {
 export type Participant = typeof participants.$inferSelect;
 export type ClassSession = typeof classSessions.$inferSelect;
 export type CheckIn = typeof checkIns.$inferSelect;
+export type CheckInStatus = (typeof checkInStatusEnum.enumValues)[number];
 export type Discipler = typeof disciplers.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type LoginLog = typeof loginLogs.$inferSelect;

@@ -1,5 +1,7 @@
 "use server";
 
+import { db } from "@/db";
+import { featureFlags } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -10,6 +12,22 @@ async function requireDeveloper() {
   const session = await getSession();
   if (!session || session.role !== "developer") redirect("/");
   return session;
+}
+
+export async function setTableAssignmentFlag(enabled: boolean) {
+  await requireDeveloper();
+
+  await db
+    .insert(featureFlags)
+    .values({ key: "checkin_table_assignment", enabled })
+    .onConflictDoUpdate({
+      target: featureFlags.key,
+      set: { enabled, updatedAt: new Date() },
+    });
+
+  revalidatePath("/table-management/settings");
+  revalidatePath("/admin");
+  await toastRedirectBack("Setting updated.");
 }
 
 export async function updateTableRanges(ranges: TableRange[]) {

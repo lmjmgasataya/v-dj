@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect } from "react";
 import { getSessionCheckIns } from "./actions";
 import { toTitleCase } from "@/lib/text";
+import { checkInStatusBadgeClass } from "@/lib/checkinStatus";
 
 type CheckIn = Awaited<ReturnType<typeof getSessionCheckIns>>[number];
 
@@ -25,6 +26,9 @@ export function SessionAttendeesModal({
       setData(result);
     });
   }
+
+  const attendedCount = data.filter((c) => c.status !== "Absent").length;
+  const absentCount = data.length - attendedCount;
 
   function handleOpen() {
     setOpen(true);
@@ -60,7 +64,14 @@ export function SessionAttendeesModal({
               <div>
                 <h3 className="font-semibold text-gray-900 text-sm">{sessionName}</h3>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  {pending ? <span className="inline-block h-3 w-16 rounded bg-gray-200 animate-pulse align-middle" /> : `${data.length} checked in`}
+                  {pending ? (
+                    <span className="inline-block h-3 w-16 rounded bg-gray-200 animate-pulse align-middle" />
+                  ) : (
+                    <>
+                      {attendedCount} checked in
+                      {absentCount > 0 && <span className="text-red-500"> · {absentCount} absent</span>}
+                    </>
+                  )}
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -112,6 +123,9 @@ export function SessionAttendeesModal({
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm font-medium text-gray-900 capitalize">{name}</span>
+                              <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${checkInStatusBadgeClass(c.status)}`}>
+                                {c.status}
+                              </span>
                               <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${c.tableNumber ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-400"}`}>
                                 {c.tableNumber ? `Table ${c.tableNumber}` : "No table"}
                               </span>

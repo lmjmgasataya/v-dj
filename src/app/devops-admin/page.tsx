@@ -20,6 +20,9 @@ const FLAG_LABELS: Record<string, string> = {
   edit_registration_fee: "Allow editing a participant's registration fee/class on the edit page",
   sms_on_registration: "Send an SMS to participants automatically on registration",
   vg_leader_portal: "VG Leader self-service portal (login, manage own victory groups & info)",
+  checkin_confirm_popup: "Check-in — show confirmation popup before check-in (see /admin settings)",
+  checkin_table_assignment: "Check-in — assign table number on check-in (see /table-management/settings)",
+  checkin_autocheckin: "Check-in — auto check-in (skip popup, mark On-time) for arrivals on or before 9:00 AM",
 };
 
 async function getDbStats() {

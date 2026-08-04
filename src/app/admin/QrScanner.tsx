@@ -6,6 +6,9 @@ import { FEE_CATEGORIES } from "@/components/form";
 import { ORIENTATION_ALLOWED_CLASSES } from "@/lib/constants";
 import { useToast } from "@/components/toast/ToastProvider";
 import { CheckInSuccessModal } from "./CheckInSuccessModal";
+import { CheckInStatusPicker } from "./CheckInStatusPicker";
+import { checkInStatusForDate, isOnTimeWindow } from "@/lib/date";
+import type { CheckInStatus } from "@/db/schema";
 
 export const QR_PREFIX = "dj:participant:";
 const CONTAINER_ID = "qr-scanner-container";
@@ -70,17 +73,19 @@ interface QrScannerProps {
   autoOpen?: boolean;
   confirmBeforeCheckIn?: boolean;
   showTableNumber?: boolean;
+  autoCheckin?: boolean;
   onCheckIn?: (info: CheckInResultInfo) => void;
 }
 
 export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function QrScanner(
-  { sessionId, isVictoryDay, allowAllClasses, isOrientation, autoOpen, confirmBeforeCheckIn = true, showTableNumber = true, onCheckIn },
+  { sessionId, isVictoryDay, allowAllClasses, isOrientation, autoOpen, confirmBeforeCheckIn = true, showTableNumber = true, autoCheckin = false, onCheckIn },
   ref
 ) {
   const [status, setStatus] = useState<Status>(autoOpen ? "scanning" : "idle");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState<PendingParticipant | null>(null);
   const [remarks, setRemarks] = useState("");
+  const [checkInStatus, setCheckInStatus] = useState<CheckInStatus>("On-time");
   const [mirrored, setMirrored] = useState(false);
   const [successInfo, setSuccessInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null } | null>(null);
   const toast = useToast();
@@ -90,9 +95,9 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     onCheckInRef.current = onCheckIn;
   });
 
-  async function submitCheckIn(participantId: number, remarksValue: string, restingStatus: Status) {
+  async function submitCheckIn(participantId: number, remarksValue: string, restingStatus: Status, statusOverride?: CheckInStatus) {
     setStatus("loading");
-    const result = await checkInByQr(participantId, sessionId, remarksValue || undefined);
+    const result = await checkInByQr(participantId, sessionId, remarksValue || undefined, statusOverride);
     if ("error" in result) {
       setStatus("error");
       setMessage(result.error);
@@ -153,9 +158,12 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
       const orientationRestricted = !!isOrientation && !ORIENTATION_ALLOWED_CLASSES.includes(result.registrationFee ?? "");
       const restricted = victoryDayRestricted || orientationRestricted || !!result.victoryDayBlockReason;
 
-      if (!confirmBeforeCheckIn && !restricted) {
+      if (autoCheckin && !restricted && isOnTimeWindow()) {
+        await submitCheckIn(participantId, "", restingStatus, "On-time");
+      } else if (!confirmBeforeCheckIn && !restricted) {
         await submitCheckIn(participantId, "", restingStatus);
       } else {
+        setCheckInStatus(checkInStatusForDate(new Date()));
         setPending({
           id: participantId,
           firstName: result.firstName,
@@ -297,7 +305,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     if (isVictoryDay && !allowAllClasses && !VICTORY_DAY_ALLOWED_CLASSES.includes(pending.registrationFee ?? "")) return;
     if (isOrientation && !ORIENTATION_ALLOWED_CLASSES.includes(pending.registrationFee ?? "")) return;
     if (pending.victoryDayBlockReason) return;
-    await submitCheckIn(pending.id, remarks, "scanning");
+    await submitCheckIn(pending.id, remarks, "scanning", checkInStatus);
   }
 
   function handleDismissSuccess() {
@@ -392,6 +400,10 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
                   : pending.victoryDayBlockReason}
               </div>
             )}
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-gray-700">Status</label>
+              <CheckInStatusPicker value={checkInStatus} onChange={setCheckInStatus} />
+            </div>
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700">
                 Remarks <span className="text-gray-400 font-normal">(optional)</span>

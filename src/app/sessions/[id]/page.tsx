@@ -53,6 +53,7 @@ export default async function SessionDetailPage({
         victoryDate: participants.victoryDate,
         remarks: checkIns.remarks,
         tableNumber: checkIns.tableNumber,
+        status: checkIns.status,
       })
       .from(checkIns)
       .innerJoin(participants, eq(checkIns.participantId, participants.id))
@@ -106,6 +107,9 @@ export default async function SessionDetailPage({
     completedVictoryDay: a.isWalkIn ? true : (victoryCountMap[a.participantId] ?? 0) >= totalVictoryDaySessions,
   }));
 
+  const attendedCount = attendees.filter((a) => a.status !== "Absent").length;
+  const absentCount = attendees.length - attendedCount;
+
   const dateStr = new Date(session.sessionDate + "T00:00:00").toLocaleDateString("en-PH", {
     weekday: "long",
     month: "long",
@@ -131,8 +135,11 @@ export default async function SessionDetailPage({
         </div>
         <div className="flex flex-col items-end gap-3">
           <div className="text-right">
-            <p className="text-3xl font-bold text-indigo-600">{attendees.length}</p>
+            <p className="text-3xl font-bold text-indigo-600">{attendedCount}</p>
             <p className="text-sm text-gray-400">checked in</p>
+            {absentCount > 0 && (
+              <p className="text-xs text-red-500 mt-0.5">{absentCount} absent</p>
+            )}
           </div>
           {attendees.length > 0 && (
             <a

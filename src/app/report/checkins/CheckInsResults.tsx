@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { checkIns } from "@/db/schema";
-import { count, eq, max, min, sql } from "drizzle-orm";
+import { and, count, eq, max, min, ne, sql } from "drizzle-orm";
 import { CheckInsChart } from "./CheckInsChart";
 import { CHECKIN_WINDOW_OPTIONS, DEFAULT_CHECKIN_WINDOW_MINUTES } from "@/lib/constants";
 
@@ -8,7 +8,7 @@ export async function CheckInsResults({ sessionId, windowMinutes }: { sessionId:
   const minutes = CHECKIN_WINDOW_OPTIONS.includes(windowMinutes) ? windowMinutes : DEFAULT_CHECKIN_WINDOW_MINUTES;
   const bucket = sql.raw(String(minutes));
 
-  const [bucketRows, summaryRows] = await Promise.all([
+  const [bucketRows, summaryRows, [absentRow]] = await Promise.all([
     db
       .select({
         time: sql<string>`to_char(
@@ -21,7 +21,7 @@ export async function CheckInsResults({ sessionId, windowMinutes }: { sessionId:
         count: count(),
       })
       .from(checkIns)
-      .where(eq(checkIns.classSessionId, sessionId))
+      .where(and(eq(checkIns.classSessionId, sessionId), ne(checkIns.status, "Absent")))
       .groupBy(sql`1, 2`)
       .orderBy(sql`2`),
 
@@ -32,7 +32,12 @@ export async function CheckInsResults({ sessionId, windowMinutes }: { sessionId:
         last: max(checkIns.checkedInAt),
       })
       .from(checkIns)
-      .where(eq(checkIns.classSessionId, sessionId)),
+      .where(and(eq(checkIns.classSessionId, sessionId), ne(checkIns.status, "Absent"))),
+
+    db
+      .select({ absent: count() })
+      .from(checkIns)
+      .where(and(eq(checkIns.classSessionId, sessionId), eq(checkIns.status, "Absent"))),
   ]);
 
   const buckets = bucketRows.map((r) => ({ time: r.time, count: r.count }));
@@ -56,6 +61,7 @@ export async function CheckInsResults({ sessionId, windowMinutes }: { sessionId:
     first: fmt(summaryRows[0]?.first ?? null),
     last: fmt(summaryRows[0]?.last ?? null),
     peak: peakBucket ? `${peakBucket.time} (${peakBucket.count})` : null,
+    absent: absentRow?.absent ?? 0,
   };
 
   return (
@@ -78,6 +84,12 @@ export async function CheckInsResults({ sessionId, windowMinutes }: { sessionId:
               <p className="text-xl font-bold text-indigo-600 mt-1">{value}</p>
             </div>
           ))}
+          {stats.absent > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
+              <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Absent</p>
+              <p className="text-xl font-bold text-red-500 mt-1">{stats.absent}</p>
+            </div>
+          )}
         </div>
       )}
 

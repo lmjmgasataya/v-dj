@@ -1,11 +1,12 @@
 import { db } from "@/db";
 import { classSessions, checkIns, participants, featureFlags, batches } from "@/db/schema";
-import { and, count, eq, isNull } from "drizzle-orm";
+import { and, count, eq, isNull, ne } from "drizzle-orm";
 import { FEE_CATEGORIES } from "@/components/form";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ParticipantSearch } from "./ParticipantSearch";
 import { AdminSessionArea } from "./AdminSessionArea";
 import { WalkInForm } from "./WalkInForm";
+import { CheckInSettingsButton } from "./CheckInSettingsButton";
 
 export default async function AdminPage({
   searchParams,
@@ -59,18 +60,21 @@ export default async function AdminPage({
         await db
           .select({ count: count() })
           .from(checkIns)
-          .where(eq(checkIns.classSessionId, selectedSession.id))
+          .where(and(eq(checkIns.classSessionId, selectedSession.id), ne(checkIns.status, "Absent")))
       )[0]?.count ?? 0
     : 0;
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Check-in" }]} />
-        <h2 className="text-2xl font-bold text-gray-900">Admin / Check-in</h2>
-        {defaultBatch && (
-          <p className="text-sm text-gray-500 mt-0.5">{defaultBatch.name}</p>
-        )}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Check-in" }]} />
+          <h2 className="text-2xl font-bold text-gray-900">Admin / Check-in</h2>
+          {defaultBatch && (
+            <p className="text-sm text-gray-500 mt-0.5">{defaultBatch.name}</p>
+          )}
+        </div>
+        <CheckInSettingsButton flags={flagMap} />
       </div>
 
       <div className="px-4 py-3 rounded-xl border border-indigo-100 bg-indigo-50 w-fit flex flex-col gap-2">
@@ -117,7 +121,7 @@ export default async function AdminPage({
                 <span className="text-indigo-600 font-medium">{selectedSession.name}</span>
               </p>
             </div>
-            <ParticipantSearch key={selectedSession.id} sessionId={selectedSession.id} sessionName={selectedSession.name} isVictoryDay={selectedSession.isVictoryDay} requiresVictoryDay={selectedSession.requiresVictoryDay} initialQ={initialQ} qrCheckin={flagMap["qr_checkin"] ?? false} victoryDayAllowAllClasses={flagMap["victory_day_allow_all_classes"] ?? false} autoOpenQrScanner={flagMap["qr_auto_open_scanner"] ?? false} confirmBeforeCheckIn={flagMap["checkin_confirm_popup"] ?? true} showTableNumber={flagMap["checkin_table_assignment"] ?? true} />
+            <ParticipantSearch key={selectedSession.id} sessionId={selectedSession.id} sessionName={selectedSession.name} isVictoryDay={selectedSession.isVictoryDay} requiresVictoryDay={selectedSession.requiresVictoryDay} initialQ={initialQ} qrCheckin={flagMap["qr_checkin"] ?? false} victoryDayAllowAllClasses={flagMap["victory_day_allow_all_classes"] ?? false} autoOpenQrScanner={flagMap["qr_auto_open_scanner"] ?? false} confirmBeforeCheckIn={flagMap["checkin_confirm_popup"] ?? true} showTableNumber={flagMap["checkin_table_assignment"] ?? true} autoCheckin={flagMap["checkin_autocheckin"] ?? false} />
           </div>
         )}
 

@@ -1,0 +1,2 @@
+CREATE TYPE "public"."check_in_method" AS ENUM('Search', 'Webcam', 'QR Reader', 'Walk-in');--> statement-breakpoint
+ALTER TABLE "check_ins" ADD COLUMN "method" "check_in_method" DEFAULT 'Search' NOT NULL;

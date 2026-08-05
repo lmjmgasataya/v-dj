@@ -8,7 +8,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { CheckInSuccessModal } from "./CheckInSuccessModal";
 import { CheckInStatusPicker } from "./CheckInStatusPicker";
 import { checkInStatusForDate, isOnTimeWindow } from "@/lib/date";
-import type { CheckInStatus } from "@/db/schema";
+import type { CheckInStatus, CheckInMethod } from "@/db/schema";
 
 export const QR_PREFIX = "dj:participant:";
 const CONTAINER_ID = "qr-scanner-container";
@@ -32,6 +32,7 @@ interface PendingParticipant {
   lastName: string;
   registrationFee: string | null;
   victoryDayBlockReason: string | null;
+  method: CheckInMethod;
 }
 
 function playSuccessSound() {
@@ -95,9 +96,9 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     onCheckInRef.current = onCheckIn;
   });
 
-  async function submitCheckIn(participantId: number, remarksValue: string, restingStatus: Status, statusOverride?: CheckInStatus) {
+  async function submitCheckIn(participantId: number, remarksValue: string, restingStatus: Status, statusOverride: CheckInStatus | undefined, method: CheckInMethod) {
     setStatus("loading");
-    const result = await checkInByQr(participantId, sessionId, remarksValue || undefined, statusOverride);
+    const result = await checkInByQr(participantId, sessionId, remarksValue || undefined, statusOverride, method);
     if ("error" in result) {
       setStatus("error");
       setMessage(result.error);
@@ -125,7 +126,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     setRemarks("");
   }
 
-  async function processScannedCode(decodedText: string, restingStatus: Status) {
+  async function processScannedCode(decodedText: string, restingStatus: Status, method: CheckInMethod) {
     const participantId = parseParticipantId(decodedText);
     if (!participantId) {
       setStatus("error");
@@ -159,9 +160,9 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
       const restricted = victoryDayRestricted || orientationRestricted || !!result.victoryDayBlockReason;
 
       if (autoCheckin && !restricted && isOnTimeWindow()) {
-        await submitCheckIn(participantId, "", restingStatus, "On-time");
+        await submitCheckIn(participantId, "", restingStatus, "On-time", method);
       } else if (!confirmBeforeCheckIn && !restricted) {
-        await submitCheckIn(participantId, "", restingStatus);
+        await submitCheckIn(participantId, "", restingStatus, undefined, method);
       } else {
         setCheckInStatus(checkInStatusForDate(new Date()));
         setPending({
@@ -170,6 +171,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
           lastName: result.lastName,
           registrationFee: result.registrationFee,
           victoryDayBlockReason: result.victoryDayBlockReason,
+          method,
         });
         setStatus("confirming");
       }
@@ -178,7 +180,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
 
   useImperativeHandle(ref, () => ({
     scan: (code: string) => {
-      void processScannedCode(code, "idle");
+      void processScannedCode(code, "idle", "QR Reader");
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [sessionId]);
@@ -211,7 +213,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
             if (cancelled) return;
             await scanner.stop().catch(() => {});
             scannerRef.current = null;
-            await processScannedCode(decodedText, "scanning");
+            await processScannedCode(decodedText, "scanning", "Webcam");
           },
           undefined
         );
@@ -279,7 +281,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
         buffer = "";
         if (candidate.length > QR_PREFIX.length && matchesPrefix(candidate)) {
           e.preventDefault();
-          void processScannedCode(candidate, status);
+          void processScannedCode(candidate, status, "QR Reader");
         }
         return;
       }
@@ -305,7 +307,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     if (isVictoryDay && !allowAllClasses && !VICTORY_DAY_ALLOWED_CLASSES.includes(pending.registrationFee ?? "")) return;
     if (isOrientation && !ORIENTATION_ALLOWED_CLASSES.includes(pending.registrationFee ?? "")) return;
     if (pending.victoryDayBlockReason) return;
-    await submitCheckIn(pending.id, remarks, "scanning", checkInStatus);
+    await submitCheckIn(pending.id, remarks, "scanning", checkInStatus, pending.method);
   }
 
   function handleDismissSuccess() {

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { participants, checkIns, classSessions, victoryGroupLeaders, featureFlags, type lifestageEnum, type CheckInStatus } from "@/db/schema";
+import { participants, checkIns, classSessions, victoryGroupLeaders, featureFlags, type lifestageEnum, type CheckInStatus, type CheckInMethod } from "@/db/schema";
 import { currentYearPH, checkInStatusForDate } from "@/lib/date";
 import { toTitleCase } from "@/lib/text";
 import { ORIENTATION_ALLOWED_CLASSES } from "@/lib/constants";
@@ -96,7 +96,7 @@ export async function checkInParticipant(
   const tableNumber = (await isTableAssignmentEnabled()) ? await assignTableNumber(classSessionId) : null;
   await db
     .insert(checkIns)
-    .values({ participantId, classSessionId, remarks: remarks || null, tableNumber, status: status ?? checkInStatusForDate(new Date()) })
+    .values({ participantId, classSessionId, remarks: remarks || null, tableNumber, status: status ?? checkInStatusForDate(new Date()), method: "Search" })
     .onConflictDoNothing();
   revalidatePath("/admin");
   revalidatePath("/sessions");
@@ -151,6 +151,7 @@ export async function checkInByQr(
   classSessionId: number,
   remarks?: string,
   status?: CheckInStatus,
+  method: CheckInMethod = "QR Reader",
 ): Promise<
   | { firstName: string; lastName: string; alreadyCheckedIn: boolean; tableNumber: number | null }
   | { error: string }
@@ -180,7 +181,7 @@ export async function checkInByQr(
   if (blockReason) return { error: blockReason };
 
   const tableNumber = (await isTableAssignmentEnabled()) ? await assignTableNumber(classSessionId) : null;
-  await db.insert(checkIns).values({ participantId, classSessionId, remarks: remarks || null, tableNumber, status: status ?? checkInStatusForDate(new Date()) }).onConflictDoNothing();
+  await db.insert(checkIns).values({ participantId, classSessionId, remarks: remarks || null, tableNumber, status: status ?? checkInStatusForDate(new Date()), method }).onConflictDoNothing();
   revalidatePath("/admin");
   revalidatePath("/sessions");
 
@@ -369,7 +370,7 @@ export async function addWalkIn(classSessionId: number, formData: FormData) {
 
   const remarks = (formData.get("remarks") as string) || null;
   const tableNumber = (await isTableAssignmentEnabled()) ? await assignTableNumber(classSessionId) : null;
-  await db.insert(checkIns).values({ participantId: inserted.id, classSessionId, remarks, tableNumber, status: checkInStatusForDate(new Date()) }).onConflictDoNothing();
+  await db.insert(checkIns).values({ participantId: inserted.id, classSessionId, remarks, tableNumber, status: checkInStatusForDate(new Date()), method: "Walk-in" }).onConflictDoNothing();
 
   revalidatePath("/admin");
   revalidatePath("/participants");

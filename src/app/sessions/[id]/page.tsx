@@ -54,6 +54,7 @@ export default async function SessionDetailPage({
         remarks: checkIns.remarks,
         tableNumber: checkIns.tableNumber,
         status: checkIns.status,
+        method: checkIns.method,
       })
       .from(checkIns)
       .innerJoin(participants, eq(checkIns.participantId, participants.id))

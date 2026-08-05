@@ -16,6 +16,8 @@ export default async function CheckInsPage() {
         sessionName: classSessions.name,
         checkedInAt: checkIns.checkedInAt,
         remarks: checkIns.remarks,
+        status: checkIns.status,
+        method: checkIns.method,
       })
       .from(checkIns)
       .leftJoin(participants, eq(checkIns.participantId, participants.id))
@@ -45,6 +47,8 @@ export default async function CheckInsPage() {
                 <th className="px-4 py-2 text-left font-medium">Participant</th>
                 <th className="px-4 py-2 text-left font-medium">Session</th>
                 <th className="px-4 py-2 text-left font-medium">Checked In</th>
+                <th className="px-4 py-2 text-left font-medium">Status</th>
+                <th className="px-4 py-2 text-left font-medium">Method</th>
                 <th className="px-4 py-2 text-left font-medium">Remarks</th>
                 <th className="px-4 py-2" />
               </tr>
@@ -62,6 +66,8 @@ export default async function CheckInsPage() {
                   <td className="px-4 py-2.5 text-gray-400 text-xs">
                     {c.checkedInAt.toLocaleString("en-PH", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                   </td>
+                  <td className="px-4 py-2.5 text-gray-700">{c.status}</td>
+                  <td className="px-4 py-2.5 text-gray-700">{c.method}</td>
                   <td className="px-4 py-2.5 text-gray-500">{c.remarks ?? "—"}</td>
                   <td className="px-4 py-2.5 text-right">
                     <ConfirmDeleteButton

@@ -4,7 +4,7 @@ import { useState, Fragment } from "react";
 import Link from "next/link";
 import { toTitleCase } from "@/lib/text";
 import { checkInStatusBadgeClass } from "@/lib/checkinStatus";
-import type { CheckInStatus } from "@/db/schema";
+import type { CheckInStatus, CheckInMethod } from "@/db/schema";
 
 export interface Attendee {
   checkInId: number;
@@ -39,6 +39,7 @@ export interface Attendee {
   remarks: string | null;
   tableNumber: number | null;
   status: CheckInStatus;
+  method: CheckInMethod;
 }
 
 function Detail({ label, value }: { label: string; value: React.ReactNode }) {
@@ -167,6 +168,7 @@ export function AttendeeList({ attendees, totalVictoryDaySessions }: { attendees
                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-10">#</th>
                 <Th label="Name" sortKey="name" current={sortKey} dir={sortDir} onSort={handleSort} />
                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Status</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Method</th>
                 <Th label="Table" sortKey="tableNumber" current={sortKey} dir={sortDir} onSort={handleSort} />
                 <Th label="Checked In At" sortKey="checkedInAt" current={sortKey} dir={sortDir} onSort={handleSort} />
                 <Th label="Victory Day" sortKey="victoryDay" current={sortKey} dir={sortDir} onSort={handleSort} />
@@ -175,7 +177,7 @@ export function AttendeeList({ attendees, totalVictoryDaySessions }: { attendees
             <tbody className="divide-y divide-gray-100">
               {sorted.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-sm text-gray-400">
+                  <td colSpan={7} className="px-3 py-6 text-center text-sm text-gray-400">
                     No attendees match &ldquo;{q}&rdquo;.
                   </td>
                 </tr>
@@ -207,6 +209,7 @@ export function AttendeeList({ attendees, totalVictoryDaySessions }: { attendees
                             {a.status}
                           </span>
                         </td>
+                        <td className="px-3 py-3 text-xs text-gray-500 whitespace-nowrap">{a.method}</td>
                         <td className="px-3 py-3 whitespace-nowrap">
                           {a.tableNumber ? (
                             <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
@@ -224,7 +227,7 @@ export function AttendeeList({ attendees, totalVictoryDaySessions }: { attendees
 
                       {isExpanded && (
                         <tr key={`${a.checkInId}-details`}>
-                          <td colSpan={6} className="px-4 py-4 bg-gray-50 border-t border-gray-100">
+                          <td colSpan={7} className="px-4 py-4 bg-gray-50 border-t border-gray-100">
                             <div className="flex flex-col gap-4">
                               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 <Detail label="Age" value={a.age} />

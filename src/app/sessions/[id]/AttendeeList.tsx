@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, Fragment } from "react";
-import Link from "next/link";
+import { useState } from "react";
 import { toTitleCase } from "@/lib/text";
 import { checkInStatusBadgeClass } from "@/lib/checkinStatus";
 import type { CheckInStatus, CheckInMethod } from "@/db/schema";
@@ -40,15 +39,6 @@ export interface Attendee {
   tableNumber: number | null;
   status: CheckInStatus;
   method: CheckInMethod;
-}
-
-function Detail({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div>
-      <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">{label}</p>
-      <p className="text-sm text-gray-800 mt-0.5">{value ?? "—"}</p>
-    </div>
-  );
 }
 
 type SortKey = "name" | "checkedInAt" | "victoryDay" | "tableNumber";
@@ -111,7 +101,6 @@ function VictoryDayBadge({ attendee, totalVictoryDaySessions }: { attendee: Atte
 
 export function AttendeeList({ attendees, totalVictoryDaySessions }: { attendees: Attendee[]; totalVictoryDaySessions: number }) {
   const [q, setQ] = useState("");
-  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("checkedInAt");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
@@ -183,7 +172,6 @@ export function AttendeeList({ attendees, totalVictoryDaySessions }: { attendees
                 </tr>
               ) : (
                 sorted.map((a, i) => {
-                  const isExpanded = expandedId === a.checkInId;
                   const fullName = `${toTitleCase(a.lastName)}, ${toTitleCase(a.firstName)}${a.middleInitial ? ` ${toTitleCase(a.middleInitial)}.` : ""}`;
                   const checkInTime = new Date(a.checkedInAt).toLocaleTimeString("en-PH", {
                     hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Manila",
@@ -191,99 +179,35 @@ export function AttendeeList({ attendees, totalVictoryDaySessions }: { attendees
                   const subtitle = [a.mobileNumber, a.lifestage].filter(Boolean).join(" · ");
 
                   return (
-                    <Fragment key={a.checkInId}>
-                      <tr
-                        onClick={() => setExpandedId(isExpanded ? null : a.checkInId)}
-                        className="hover:bg-gray-50 cursor-pointer transition-colors"
-                      >
-                        <td className="px-3 py-3 text-xs text-gray-400 font-mono">{i + 1}</td>
-                        <td className="px-3 py-3">
-                          <p className="font-semibold text-gray-900 capitalize">{fullName}</p>
-                          {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
-                          {a.remarks && (
-                            <p className="text-xs text-amber-700 italic mt-0.5">{a.remarks}</p>
-                          )}
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${checkInStatusBadgeClass(a.status)}`}>
-                            {a.status}
+                    <tr key={a.checkInId}>
+                      <td className="px-3 py-3 text-xs text-gray-400 font-mono">{i + 1}</td>
+                      <td className="px-3 py-3">
+                        <p className="font-semibold text-gray-900 capitalize">{fullName}</p>
+                        {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
+                        {a.remarks && (
+                          <p className="text-xs text-amber-700 italic mt-0.5">{a.remarks}</p>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${checkInStatusBadgeClass(a.status)}`}>
+                          {a.status}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-xs text-gray-500 whitespace-nowrap">{a.method}</td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        {a.tableNumber ? (
+                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                            Table {a.tableNumber}
                           </span>
-                        </td>
-                        <td className="px-3 py-3 text-xs text-gray-500 whitespace-nowrap">{a.method}</td>
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          {a.tableNumber ? (
-                            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
-                              Table {a.tableNumber}
-                            </span>
-                          ) : (
-                            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">—</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-3 text-gray-600 whitespace-nowrap">{checkInTime}</td>
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          <VictoryDayBadge attendee={a} totalVictoryDaySessions={totalVictoryDaySessions} />
-                        </td>
-                      </tr>
-
-                      {isExpanded && (
-                        <tr key={`${a.checkInId}-details`}>
-                          <td colSpan={7} className="px-4 py-4 bg-gray-50 border-t border-gray-100">
-                            <div className="flex flex-col gap-4">
-                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                <Detail label="Age" value={a.age} />
-                                <Detail label="Gender" value={a.gender} />
-                                <Detail label="Service" value={a.serviceAttending} />
-                                <Detail label="Facebook / Messenger" value={a.facebookMessengerName} />
-                                {a.isWalkIn ? (
-                                  <>
-                                    <Detail label="VG Leader" value={
-                                      a.vgLeaderLastName && a.vgLeaderFirstName
-                                        ? `${toTitleCase(a.vgLeaderLastName)}, ${toTitleCase(a.vgLeaderFirstName)}`
-                                        : null
-                                    } />
-                                    <Detail label="Victory Date" value={a.victoryDate} />
-                                  </>
-                                ) : (
-                                  <>
-                                    <Detail label="Preferred ID Name" value={a.preferredNameOnId} />
-                                    <Detail label="Previous Church" value={a.previousChurch} />
-                                    <Detail label="Completed One2One" value={
-                                      a.completedOne2One == null ? null
-                                        : a.completedOne2One ? "Yes" : "No (will complete before Victory Day)"
-                                    } />
-                                    <Detail label="Water Baptism" value={
-                                      a.willUndergoWaterBaptism == null ? null
-                                        : a.willUndergoWaterBaptism ? "Yes" : "No"
-                                    } />
-                                    <Detail label="Receipt No." value={a.acknowledgementReceiptNumber} />
-                                  </>
-                                )}
-                              </div>
-                              {!a.isWalkIn && (
-                                <div className="border-t border-gray-200 pt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                  <Detail label="Discipler" value={
-                                    a.disciplerLastName && a.disciplerFirstName
-                                      ? `${toTitleCase(a.disciplerLastName)}, ${toTitleCase(a.disciplerFirstName)}`
-                                      : null
-                                  } />
-                                  <Detail label="Discipler Mobile" value={a.disciplerMobileNumber} />
-                                  <Detail label="Discipler Messenger" value={a.disciplerMessengerName} />
-                                </div>
-                              )}
-                              <div className="border-t border-gray-200 pt-3 flex justify-end">
-                                <Link
-                                  href={`/participants/${a.participantId}/edit`}
-                                  className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  Edit participant →
-                                </Link>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
+                        ) : (
+                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-gray-600 whitespace-nowrap">{checkInTime}</td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <VictoryDayBadge attendee={a} totalVictoryDaySessions={totalVictoryDaySessions} />
+                      </td>
+                    </tr>
                   );
                 })
               )}

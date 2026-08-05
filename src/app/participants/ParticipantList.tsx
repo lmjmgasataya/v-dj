@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { participants, disciplers, victoryGroupLeaders, checkIns, classSessions } from "@/db/schema";
-import { ilike, or, isNull, isNotNull, and, count, gte, lt, eq, inArray, getTableColumns, desc } from "drizzle-orm";
+import { ilike, or, isNull, isNotNull, and, count, gte, lt, eq, inArray, getTableColumns, desc, ne } from "drizzle-orm";
 import Link from "next/link";
 import { ParticipantTable } from "./ParticipantTable";
 import { currentYearPH } from "@/lib/date";
@@ -103,7 +103,7 @@ export async function ParticipantList({
   const participantIds = rows.map((r) => r.id);
   const year = currentYearPH();
 
-  const [attendanceList, [{ totalVictoryDaySessions }]] = await Promise.all([
+  const [attendanceList, absenceList, [{ totalVictoryDaySessions }]] = await Promise.all([
     participantIds.length > 0
       ? db
           .select({
@@ -114,7 +114,20 @@ export async function ParticipantList({
           })
           .from(checkIns)
           .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
-          .where(inArray(checkIns.participantId, participantIds))
+          .where(and(inArray(checkIns.participantId, participantIds), ne(checkIns.status, "Absent")))
+          .orderBy(classSessions.sessionDate)
+      : Promise.resolve([]),
+
+    participantIds.length > 0
+      ? db
+          .select({
+            participantId: checkIns.participantId,
+            sessionName: classSessions.name,
+            sessionDate: classSessions.sessionDate,
+          })
+          .from(checkIns)
+          .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
+          .where(and(inArray(checkIns.participantId, participantIds), eq(checkIns.status, "Absent")))
           .orderBy(classSessions.sessionDate)
       : Promise.resolve([]),
 
@@ -131,6 +144,14 @@ export async function ParticipantList({
   ]);
 
   const attendanceByParticipant = attendanceList.reduce<
+    Record<number, { sessionName: string; sessionDate: string }[]>
+  >((acc, row) => {
+    if (!acc[row.participantId]) acc[row.participantId] = [];
+    acc[row.participantId].push({ sessionName: row.sessionName, sessionDate: row.sessionDate });
+    return acc;
+  }, {});
+
+  const absenceByParticipant = absenceList.reduce<
     Record<number, { sessionName: string; sessionDate: string }[]>
   >((acc, row) => {
     if (!acc[row.participantId]) acc[row.participantId] = [];
@@ -183,6 +204,7 @@ export async function ParticipantList({
       <ParticipantTable
         rows={rows}
         attendance={attendanceByParticipant}
+        absences={absenceByParticipant}
         victoryDayDates={victoryDayMap}
         completedVictoryDays={completedVictoryDayMap}
         victoryDayCounts={victoryDayCountByParticipant}

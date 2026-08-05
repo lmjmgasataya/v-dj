@@ -113,12 +113,12 @@ export async function AttendanceTable({
       .orderBy(participants.lastName, participants.firstName),
 
     db
-      .select({ participantId: checkIns.participantId, classSessionId: checkIns.classSessionId })
+      .select({ participantId: checkIns.participantId, classSessionId: checkIns.classSessionId, status: checkIns.status })
       .from(checkIns)
       .where(inArray(checkIns.classSessionId, sessions.map((s) => s.id))),
   ]);
 
-  const attended = new Set(allCheckIns.map((c) => `${c.participantId}-${c.classSessionId}`));
+  const statusByKey = new Map(allCheckIns.map((c) => [`${c.participantId}-${c.classSessionId}`, c.status]));
 
   if (registrants.length === 0) {
     return <p className="text-sm text-gray-400">No participants found for &ldquo;{query}&rdquo;.</p>;
@@ -134,7 +134,10 @@ export async function AttendanceTable({
             const applicableSessions = skipsVictoryDay
               ? sessions.filter((s) => !s.isVictoryDay)
               : sessions;
-            const count = applicableSessions.filter((s) => attended.has(`${p.id}-${s.id}`)).length;
+            const count = applicableSessions.filter((s) => {
+              const st = statusByKey.get(`${p.id}-${s.id}`);
+              return st != null && st !== "Absent";
+            }).length;
             const rowBg = i % 2 === 0 ? "bg-white" : "bg-gray-50";
             return (
               <tr key={p.id} className={rowBg}>
@@ -143,7 +146,9 @@ export async function AttendanceTable({
                   {p.middleInitial ? ` ${toTitleCase(p.middleInitial)}.` : ""}
                 </td>
                 {sessions.map((s) => {
-                  const done = attended.has(`${p.id}-${s.id}`);
+                  const status = statusByKey.get(`${p.id}-${s.id}`);
+                  const done = status != null && status !== "Absent";
+                  const absent = status === "Absent";
                   const skipped = skipsVictoryDay && s.isVictoryDay;
                   return (
                     <td key={s.id} className="border-r border-b border-gray-100 px-3 py-2.5 text-center">
@@ -159,6 +164,21 @@ export async function AttendanceTable({
                         >
                           <path d="M5 13l4 4L19 7" />
                         </svg>
+                      ) : absent ? (
+                        <span title="Absent" className="inline-flex items-center justify-center cursor-default">
+                          <svg
+                            className="w-4 h-4 text-red-500"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={5}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                          </svg>
+                        </span>
                       ) : skipped ? (
                         <span
                           title={`Victory Day: ${p.victoryDate ?? "—"}`}

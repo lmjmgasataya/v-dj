@@ -66,6 +66,7 @@ function Th({
 export function ParticipantTable({
   rows,
   attendance = {},
+  absences = {},
   victoryDayDates = {},
   completedVictoryDays = {},
   victoryDayCounts = {},
@@ -74,6 +75,7 @@ export function ParticipantTable({
 }: {
   rows: ParticipantRow[];
   attendance?: Record<number, Attendance[]>;
+  absences?: Record<number, Attendance[]>;
   victoryDayDates?: Record<number, string>;
   completedVictoryDays?: Record<number, boolean>;
   victoryDayCounts?: Record<number, number>;
@@ -281,6 +283,27 @@ export function ParticipantTable({
                                     <span className="font-medium">{a.sessionName}</span>
                                     <span className="text-indigo-400">·</span>
                                     <span className="text-indigo-500">
+                                      {new Date(a.sessionDate + "T00:00:00").toLocaleDateString("en-PH", {
+                                        month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila",
+                                      })}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {(absences[p.id]?.length ?? 0) > 0 && (
+                            <div className="border-t border-gray-200 pt-3">
+                              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-2">
+                                Absent ({absences[p.id].length})
+                              </p>
+                              <ul className="flex flex-wrap gap-1.5">
+                                {absences[p.id].map((a, i) => (
+                                  <li key={i} className="inline-flex items-center gap-2 text-sm bg-red-50 text-red-700 px-3 py-1.5 rounded-lg">
+                                    <span className="font-medium">{a.sessionName}</span>
+                                    <span className="text-red-400">·</span>
+                                    <span className="text-red-500">
                                       {new Date(a.sessionDate + "T00:00:00").toLocaleDateString("en-PH", {
                                         month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila",
                                       })}

@@ -3,18 +3,44 @@
 import { db } from "@/db";
 import {
   participants, disciplers, victoryGroupLeaders, victoryGroups,
-  classSessions, checkIns,
+  classSessions, checkIns, smsLogs,
 } from "@/db/schema";
+import { lt } from "drizzle-orm";
 import { parseCSV } from "@/lib/csv";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { toastRedirectBack } from "@/lib/toast";
 
 type ImportResult = { success: boolean; message: string };
 
 async function requireDeveloper() {
   const session = await getSession();
   if (!session || session.role !== "developer") redirect("/");
+}
+
+export async function purgeSmsLogsOlderThan(formData: FormData) {
+  await requireDeveloper();
+
+  const days = Number(formData.get("days"));
+  if (!Number.isFinite(days) || days < 0) {
+    await toastRedirectBack("Enter a valid number of days.", "error");
+  }
+
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const deleted = await db.delete(smsLogs).where(lt(smsLogs.createdAt, cutoff)).returning({ id: smsLogs.id });
+
+  revalidatePath("/devops-admin/data");
+  await toastRedirectBack(`Deleted ${deleted.length} SMS log${deleted.length !== 1 ? "s" : ""} older than ${days} day${days !== 1 ? "s" : ""}.`);
+}
+
+export async function purgeAllSmsLogs(_formData: FormData) {
+  await requireDeveloper();
+
+  const deleted = await db.delete(smsLogs).returning({ id: smsLogs.id });
+
+  revalidatePath("/devops-admin/data");
+  await toastRedirectBack(`Deleted ${deleted.length} SMS log${deleted.length !== 1 ? "s" : ""}.`);
 }
 
 const str = (v: string, fallback = "") => v || fallback;

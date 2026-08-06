@@ -1,10 +1,12 @@
 import { db } from "@/db";
 import {
   participants, disciplers, victoryGroupLeaders, victoryGroups,
-  classSessions, checkIns, users, loginLogs,
+  classSessions, checkIns, users, loginLogs, smsLogs,
 } from "@/db/schema";
-import { count } from "drizzle-orm";
+import { count, min } from "drizzle-orm";
 import { ImportForm } from "./ImportForm";
+import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
+import { purgeSmsLogsOlderThan, purgeAllSmsLogs } from "./actions";
 
 async function getCounts() {
   const [p, d, vgl, vg, cs, ci, u, ll] = await Promise.all([
@@ -18,6 +20,11 @@ async function getCounts() {
     db.select({ c: count() }).from(loginLogs).then(r => r[0].c),
   ]);
   return { participants: p, disciplers: d, vg_leaders: vgl, vg_groups: vg, class_sessions: cs, check_ins: ci, users: u, login_logs: ll };
+}
+
+async function getSmsLogStats() {
+  const [row] = await db.select({ count: count(), oldest: min(smsLogs.createdAt) }).from(smsLogs);
+  return { count: row?.count ?? 0, oldest: row?.oldest ?? null };
 }
 
 const EXPORT_TABLES = [
@@ -41,7 +48,7 @@ const IMPORT_TABLES = [
 ] as const;
 
 export default async function DataPage() {
-  const counts = await getCounts();
+  const [counts, smsLogStats] = await Promise.all([getCounts(), getSmsLogStats()]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -93,6 +100,51 @@ export default async function DataPage() {
               <ImportForm table={key} />
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* SMS Logs Cleanup */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-gray-800">SMS Logs Cleanup</h3>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Automatically purged after 5 days by the daily keep-alive cron — use these if that job
+              isn&rsquo;t running (e.g. <span className="font-mono">CRON_SECRET</span> not set in Vercel) or to clean up sooner.
+            </p>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-sm font-semibold text-gray-800">{smsLogStats.count.toLocaleString()} rows</p>
+            {smsLogStats.oldest && (
+              <p className="text-xs text-gray-400 mt-0.5">
+                oldest: {smsLogStats.oldest.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+          <form action={purgeSmsLogsOlderThan} className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Delete logs older than</span>
+            <input
+              type="number"
+              name="days"
+              min={0}
+              defaultValue={7}
+              required
+              className="w-20 text-sm border border-gray-200 rounded-lg px-2 py-1.5"
+            />
+            <span className="text-sm text-gray-600">days</span>
+            <button
+              type="submit"
+              className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition"
+            >
+              Delete
+            </button>
+          </form>
+          <ConfirmDeleteButton
+            action={purgeAllSmsLogs}
+            message={`Delete all ${smsLogStats.count.toLocaleString()} SMS log records? This cannot be undone.`}
+          />
         </div>
       </div>
     </div>

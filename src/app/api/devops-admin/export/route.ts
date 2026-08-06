@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/db";
 import {
   participants, disciplers, victoryGroupLeaders, victoryGroups,
-  classSessions, checkIns, users, loginLogs, featureFlags,
+  classSessions, checkIns, users, loginLogs, featureFlags, batches,
 } from "@/db/schema";
 import { toCSV } from "@/lib/csv";
 
@@ -48,6 +48,9 @@ export async function GET(req: NextRequest) {
         break;
       case "feature_flags":
         csv = toCSV((await db.select().from(featureFlags)) as Record<string, unknown>[]);
+        break;
+      case "batches":
+        csv = toCSV((await db.select().from(batches)) as Record<string, unknown>[]);
         break;
       default:
         return NextResponse.json({ error: "Unknown table" }, { status: 400 });

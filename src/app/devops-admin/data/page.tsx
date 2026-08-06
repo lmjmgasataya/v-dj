@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import {
   participants, disciplers, victoryGroupLeaders, victoryGroups,
-  classSessions, checkIns, users, loginLogs, smsLogs,
+  classSessions, checkIns, users, loginLogs, smsLogs, featureFlags, batches,
 } from "@/db/schema";
 import { count, min } from "drizzle-orm";
 import { ImportForm } from "./ImportForm";
@@ -9,7 +9,7 @@ import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
 import { purgeSmsLogsOlderThan, purgeAllSmsLogs } from "./actions";
 
 async function getCounts() {
-  const [p, d, vgl, vg, cs, ci, u, ll] = await Promise.all([
+  const [p, d, vgl, vg, cs, ci, u, ll, ff, b] = await Promise.all([
     db.select({ c: count() }).from(participants).then(r => r[0].c),
     db.select({ c: count() }).from(disciplers).then(r => r[0].c),
     db.select({ c: count() }).from(victoryGroupLeaders).then(r => r[0].c),
@@ -18,8 +18,10 @@ async function getCounts() {
     db.select({ c: count() }).from(checkIns).then(r => r[0].c),
     db.select({ c: count() }).from(users).then(r => r[0].c),
     db.select({ c: count() }).from(loginLogs).then(r => r[0].c),
+    db.select({ c: count() }).from(featureFlags).then(r => r[0].c),
+    db.select({ c: count() }).from(batches).then(r => r[0].c),
   ]);
-  return { participants: p, disciplers: d, vg_leaders: vgl, vg_groups: vg, class_sessions: cs, check_ins: ci, users: u, login_logs: ll };
+  return { participants: p, disciplers: d, vg_leaders: vgl, vg_groups: vg, class_sessions: cs, check_ins: ci, users: u, login_logs: ll, feature_flags: ff, batches: b };
 }
 
 async function getSmsLogStats() {
@@ -32,10 +34,12 @@ const EXPORT_TABLES = [
   { key: "disciplers",      label: "Disciplers" },
   { key: "vg_leaders",      label: "VG Leaders" },
   { key: "vg_groups",       label: "VG Groups" },
+  { key: "batches",         label: "Batches" },
   { key: "class_sessions",  label: "Class Sessions" },
   { key: "check_ins",       label: "Check-ins" },
   { key: "users",           label: "Users (no passwords)" },
   { key: "login_logs",      label: "Login Logs" },
+  { key: "feature_flags",   label: "Feature Flags" },
 ] as const;
 
 const IMPORT_TABLES = [

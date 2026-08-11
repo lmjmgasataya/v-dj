@@ -1,5 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
+const AUTO_DISMISS_SECONDS = 10;
+
 export function CheckInSuccessModal({
   firstName,
   lastName,
@@ -13,6 +17,28 @@ export function CheckInSuccessModal({
   showTable?: boolean;
   onDismiss: () => void;
 }) {
+  const [secondsLeft, setSecondsLeft] = useState(AUTO_DISMISS_SECONDS);
+
+  useEffect(() => {
+    if (secondsLeft <= 0) {
+      onDismiss();
+      return;
+    }
+    const timer = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [secondsLeft, onDismiss]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        onDismiss();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onDismiss]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 flex flex-col items-center gap-1 text-center">
@@ -34,7 +60,7 @@ export function CheckInSuccessModal({
           onClick={onDismiss}
           className="mt-6 w-full bg-[#00428E] hover:bg-[#003578] text-white text-base font-semibold px-6 py-3 rounded-lg transition"
         >
-          OK
+          OK ({secondsLeft})
         </button>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { users } from "@/db/schema";
 // import { loginLogs } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import { signSession, setSessionCookie, clearSessionCookie, type Role } from "@/lib/auth";
+import { signSession, setSessionCookie, clearSessionCookie, getSession, type Role } from "@/lib/auth";
 import { redirect } from "next/navigation";
 // import { headers } from "next/headers";
 
@@ -46,6 +46,7 @@ export async function login(_: unknown, formData: FormData) {
 }
 
 export async function logout() {
+  const session = await getSession();
   await clearSessionCookie();
-  redirect("/login");
+  redirect(session?.role === "vg_leader" ? "/vg-portal/claim" : "/login");
 }

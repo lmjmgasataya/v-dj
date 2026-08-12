@@ -47,7 +47,7 @@ export function VgLeaderFields({
   function handleSelect(v: VictoryGroupLeader) {
     setLastName(v.lastName);
     setFirstName(v.firstName);
-    setMobileNumber(v.mobileNumber);
+    setMobileNumber(v.mobileNumber ?? "");
     setMessengerName(v.facebookMessengerName ?? "");
     setOpen(false);
   }

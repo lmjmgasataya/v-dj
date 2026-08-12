@@ -14,6 +14,7 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { toTitleCase } from "@/lib/text";
+import { recomputeProfileCompleted } from "@/lib/vgLeaderProfile";
 
 type Day = (typeof dayOfWeekEnum.enumValues)[number];
 type Frequency = (typeof vgFrequencyEnum.enumValues)[number];
@@ -55,6 +56,7 @@ export async function addOwnVictoryGroup(formData: FormData) {
     ...parseStatus(formData),
     intern: (formData.get("intern") as string) || null,
   });
+  await recomputeProfileCompleted(session.vgLeaderId);
   revalidatePath("/vg-portal");
 }
 
@@ -72,6 +74,7 @@ export async function updateOwnVictoryGroup(id: number, formData: FormData) {
       intern: (formData.get("intern") as string) || null,
     })
     .where(and(eq(victoryGroups.id, id), eq(victoryGroups.vgLeaderId, session.vgLeaderId)));
+  await recomputeProfileCompleted(session.vgLeaderId);
   revalidatePath("/vg-portal");
 }
 
@@ -81,6 +84,7 @@ export async function deleteOwnVictoryGroup(id: number) {
     .update(victoryGroups)
     .set({ deletedAt: new Date() })
     .where(and(eq(victoryGroups.id, id), eq(victoryGroups.vgLeaderId, session.vgLeaderId)));
+  await recomputeProfileCompleted(session.vgLeaderId);
   revalidatePath("/vg-portal");
 }
 
@@ -114,5 +118,6 @@ export async function updateOwnProfile(formData: FormData) {
     .set({ name: `${updated.firstName} ${updated.lastName}` })
     .where(eq(users.vgLeaderId, session.vgLeaderId));
 
+  await recomputeProfileCompleted(session.vgLeaderId);
   revalidatePath("/vg-portal");
 }

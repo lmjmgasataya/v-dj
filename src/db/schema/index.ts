@@ -60,7 +60,7 @@ export const victoryGroupLeaders = pgTable("victory_group_leaders", {
   firstName: text("first_name").notNull(),
   middleInitial: text("middle_initial"),
   nickname: text("nickname"),
-  mobileNumber: text("mobile_number").notNull(),
+  mobileNumber: text("mobile_number"),
   age: integer("age"),
   gender: text("gender"),
   lifestage: lifestageEnum("lifestage"),
@@ -69,6 +69,7 @@ export const victoryGroupLeaders = pgTable("victory_group_leaders", {
   discipleshipJourneyCompleted: text("discipleship_journey_completed"),
   graduateOfLeadership113: boolean("graduate_of_leadership_113"),
   ownVgLeaderName: text("own_vg_leader_name"),
+  profileCompleted: boolean("profile_completed").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
 }, (t) => [unique().on(t.lastName, t.firstName, t.mobileNumber)]);
@@ -181,8 +182,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   role: roleEnum("role").notNull().default("admin_volunteer"),
   vgLeaderId: integer("vg_leader_id").references(() => victoryGroupLeaders.id),
-  securityQuestion: text("security_question"),
-  securityAnswerHash: text("security_answer_hash"),
+  pinHash: text("pin_hash"),
   mustChangePassword: boolean("must_change_password").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [unique().on(t.vgLeaderId)]);

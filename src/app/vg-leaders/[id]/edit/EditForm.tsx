@@ -32,7 +32,7 @@ export function EditForm({ leader }: { leader: VictoryGroupLeader }) {
           <input name="nickname" defaultValue={leader.nickname ?? ""} className={inputCls} />
         </Field>
         <Field label="Mobile Number" required>
-          <input name="mobileNumber" required defaultValue={leader.mobileNumber} className={inputCls} />
+          <input name="mobileNumber" required defaultValue={leader.mobileNumber ?? ""} className={inputCls} />
         </Field>
         <Field label="Age" required>
           <input name="age" type="number" required min={1} max={120} defaultValue={leader.age ?? ""} className={inputCls} />

@@ -29,16 +29,27 @@ export default async function VgPortalDashboardPage() {
 
   if (!leader) redirect("/login");
 
+  const hasActiveGroup = groups.some((g) => g.isActive);
+
   return (
     <>
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">My Victory Group</h2>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {leader.lastName}, {leader.firstName}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">My Victory Group</h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {leader.lastName}, {leader.firstName}
+          </p>
+        </div>
+        <span
+          className={`shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${
+            leader.profileCompleted ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+          }`}
+        >
+          {leader.profileCompleted ? "Profile complete" : "Finish setting up your profile"}
+        </span>
       </div>
 
-      <ProfileForm leader={leader} />
+      <ProfileForm leader={leader} hasActiveGroup={hasActiveGroup} />
       <MyVictoryGroups groups={groups} />
 
       {/* "My Participants" — hidden for now.

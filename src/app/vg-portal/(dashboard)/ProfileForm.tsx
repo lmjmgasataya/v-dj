@@ -6,11 +6,13 @@ import { Field, Section, CheckboxOption, inputCls, selectCls, SERVICE_OPTIONS, D
 import type { VictoryGroupLeader } from "@/db/schema";
 import { lifestageEnum } from "@/db/schema";
 import { useToast } from "@/components/toast/ToastProvider";
+import { computeProfileProgress } from "@/lib/profileCompleteness";
 
-export function ProfileForm({ leader }: { leader: VictoryGroupLeader }) {
+export function ProfileForm({ leader, hasActiveGroup }: { leader: VictoryGroupLeader; hasActiveGroup: boolean }) {
   const [pending, startTransition] = useTransition();
   const toast = useToast();
   const completedSteps = (leader.discipleshipJourneyCompleted ?? "").split(",").filter(Boolean);
+  const { percent, missing } = computeProfileProgress(leader, hasActiveGroup);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -23,6 +25,24 @@ export function ProfileForm({ leader }: { leader: VictoryGroupLeader }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-gray-800">Profile Setup</p>
+          <p className="text-sm font-semibold text-gray-800">{percent}%</p>
+        </div>
+        <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${percent === 100 ? "bg-green-500" : "bg-indigo-500"}`}
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+        {missing.length > 0 && (
+          <p className="text-xs text-gray-500 mt-1">
+            Still missing: <span className="text-gray-700">{missing.join(", ")}</span>
+          </p>
+        )}
+      </div>
+
       <Section title="My Information" description="Your last name is on file with an admin — contact one to change it.">
         <Field label="Last Name">
           <p className="text-sm text-gray-700 py-2">{leader.lastName}</p>
@@ -34,7 +54,7 @@ export function ProfileForm({ leader }: { leader: VictoryGroupLeader }) {
           <input name="nickname" defaultValue={leader.nickname ?? ""} className={inputCls} />
         </Field>
         <Field label="Mobile Number" required>
-          <input name="mobileNumber" required defaultValue={leader.mobileNumber} className={inputCls} />
+          <input name="mobileNumber" required defaultValue={leader.mobileNumber ?? ""} className={inputCls} />
         </Field>
         <Field label="Age">
           <input name="age" type="number" min={1} max={120} defaultValue={leader.age ?? ""} className={inputCls} />

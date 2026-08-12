@@ -33,14 +33,14 @@ export async function promoteDisciplerToVgLeader(disciplerId: number) {
   await toastRedirectBack("Discipler promoted to VG leader.");
 }
 
-export async function resetVgLeaderSecurityQuestion(userId: number) {
+export async function resetVgLeaderPin(userId: number) {
   await requireDeveloper();
   await db
     .update(users)
-    .set({ securityQuestion: null, securityAnswerHash: null })
+    .set({ pinHash: null })
     .where(and(eq(users.id, userId), eq(users.role, "vg_leader")));
   revalidatePath("/manage-vg-leaders");
   await toastRedirectBack(
-    "Security question cleared. The leader will be asked to set a new one next time they access the portal."
+    "PIN cleared. The leader will be asked to set a new one next time they access the portal — their profile is unaffected."
   );
 }

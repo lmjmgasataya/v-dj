@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 const NAV = [
   { href: "/manage-vg-leaders/leaders", label: "VG Leaders" },
   { href: "/manage-vg-leaders", label: "Promote Disciplers" },
-  { href: "/manage-vg-leaders/reset-security", label: "Reset Security Question" },
   { href: "/manage-vg-leaders/report", label: "Report" },
   { href: "/manage-vg-leaders/vg-report", label: "Victory Group Report" },
 ];

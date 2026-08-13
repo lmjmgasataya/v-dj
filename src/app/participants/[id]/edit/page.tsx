@@ -1,11 +1,14 @@
 import { db } from "@/db";
-import { participants, disciplers, victoryGroupLeaders, featureFlags } from "@/db/schema";
+import { participants, victoryGroupLeaders, featureFlags } from "@/db/schema";
 import { eq, getTableColumns } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { notFound } from "next/navigation";
 import { EditForm } from "./EditForm";
 import { DeleteButton } from "./DeleteButton";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ParticipantQrCode } from "./ParticipantQrCode";
+
+const disciplerLeaders = alias(victoryGroupLeaders, "discipler_leaders");
 
 export default async function EditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,17 +18,17 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
     db
       .select({
         ...getTableColumns(participants),
-        disciplerLastName: disciplers.lastName,
-        disciplerFirstName: disciplers.firstName,
-        disciplerMobileNumber: disciplers.mobileNumber,
-        disciplerMessengerName: disciplers.messengerName,
+        disciplerLastName: disciplerLeaders.lastName,
+        disciplerFirstName: disciplerLeaders.firstName,
+        disciplerMobileNumber: disciplerLeaders.mobileNumber,
+        disciplerMessengerName: disciplerLeaders.facebookMessengerName,
         vgLeaderLastName: victoryGroupLeaders.lastName,
         vgLeaderFirstName: victoryGroupLeaders.firstName,
         vgLeaderMobileNumber: victoryGroupLeaders.mobileNumber,
         vgLeaderMessengerName: victoryGroupLeaders.facebookMessengerName,
       })
       .from(participants)
-      .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
+      .leftJoin(disciplerLeaders, eq(participants.disciplerId, disciplerLeaders.id))
       .leftJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
       .where(eq(participants.id, participantId))
       .limit(1),

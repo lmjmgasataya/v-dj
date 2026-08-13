@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import {
-  participants, disciplers, victoryGroupLeaders, victoryGroups,
+  participants, victoryGroupLeaders, victoryGroups,
   classSessions, checkIns, users, loginLogs, smsLogs, featureFlags, batches,
 } from "@/db/schema";
 import { count, min } from "drizzle-orm";
@@ -9,9 +9,8 @@ import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
 import { purgeSmsLogsOlderThan, purgeAllSmsLogs } from "./actions";
 
 async function getCounts() {
-  const [p, d, vgl, vg, cs, ci, u, ll, ff, b] = await Promise.all([
+  const [p, vgl, vg, cs, ci, u, ll, ff, b] = await Promise.all([
     db.select({ c: count() }).from(participants).then(r => r[0].c),
-    db.select({ c: count() }).from(disciplers).then(r => r[0].c),
     db.select({ c: count() }).from(victoryGroupLeaders).then(r => r[0].c),
     db.select({ c: count() }).from(victoryGroups).then(r => r[0].c),
     db.select({ c: count() }).from(classSessions).then(r => r[0].c),
@@ -21,7 +20,7 @@ async function getCounts() {
     db.select({ c: count() }).from(featureFlags).then(r => r[0].c),
     db.select({ c: count() }).from(batches).then(r => r[0].c),
   ]);
-  return { participants: p, disciplers: d, vg_leaders: vgl, vg_groups: vg, class_sessions: cs, check_ins: ci, users: u, login_logs: ll, feature_flags: ff, batches: b };
+  return { participants: p, vg_leaders: vgl, vg_groups: vg, class_sessions: cs, check_ins: ci, users: u, login_logs: ll, feature_flags: ff, batches: b };
 }
 
 async function getSmsLogStats() {
@@ -31,7 +30,6 @@ async function getSmsLogStats() {
 
 const EXPORT_TABLES = [
   { key: "participants",    label: "Participants" },
-  { key: "disciplers",      label: "Disciplers" },
   { key: "vg_leaders",      label: "VG Leaders" },
   { key: "vg_groups",       label: "VG Groups" },
   { key: "batches",         label: "Batches" },
@@ -44,7 +42,6 @@ const EXPORT_TABLES = [
 
 const IMPORT_TABLES = [
   { key: "participants",   label: "Participants",   note: "Skips rows with duplicate keys. id column is ignored." },
-  { key: "disciplers",     label: "Disciplers",     note: "Skips rows where last name + first name + mobile already exist." },
   { key: "vg_leaders",     label: "VG Leaders",     note: "Skips rows where last name + first name + mobile already exist." },
   { key: "class_sessions", label: "Class Sessions", note: "All rows inserted as new sessions." },
   { key: "vg_groups",      label: "VG Groups",      note: "vgLeaderId must reference an existing VG Leader." },

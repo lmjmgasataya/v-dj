@@ -100,7 +100,7 @@ export default async function Home() {
           >
             <span className="text-4xl">👤👤</span>
             <span className="text-lg font-semibold text-gray-900 text-center">Manage VG Leaders</span>
-            <span className="text-sm text-gray-500 text-center">Promote disciplers and manage portal accounts</span>
+            <span className="text-sm text-gray-500 text-center">Manage VG leaders and portal accounts</span>
           </Link>
         )}
         {isAdmin && (

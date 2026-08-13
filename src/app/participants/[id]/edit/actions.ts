@@ -1,27 +1,13 @@
 "use server";
 
 import { db } from "@/db";
-import { participants, disciplers, victoryGroupLeaders, type lifestageEnum } from "@/db/schema";
+import { participants, victoryGroupLeaders, type lifestageEnum } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { toastRedirect } from "@/lib/toast";
 import { toTitleCase } from "@/lib/text";
 import { MOBILE_NUMBER_REGEX } from "@/lib/phone";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
-
-async function upsertDiscipler(
-  lastName: string,
-  firstName: string,
-  mobileNumber: string,
-  messengerName: string | null,
-): Promise<number> {
-  await db.insert(disciplers).values({ lastName, firstName, mobileNumber, messengerName }).onConflictDoNothing();
-  const [d] = await db
-    .select({ id: disciplers.id })
-    .from(disciplers)
-    .where(and(eq(disciplers.lastName, lastName), eq(disciplers.firstName, firstName), eq(disciplers.mobileNumber, mobileNumber)));
-  return d.id;
-}
 
 async function upsertVgLeader(
   lastName: string,
@@ -77,7 +63,7 @@ export async function updateParticipant(id: number, formData: FormData) {
       throw new Error("Invalid discipler mobile number format.");
     }
     if (lastName && firstName && discMobileNumber) {
-      disciplerId = await upsertDiscipler(lastName, firstName, discMobileNumber, (formData.get("disciplerMessengerName") as string) || null);
+      disciplerId = await upsertVgLeader(lastName, firstName, discMobileNumber, (formData.get("disciplerMessengerName") as string) || null);
     }
   }
 

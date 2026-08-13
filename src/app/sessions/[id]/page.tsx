@@ -1,12 +1,15 @@
 import { db } from "@/db";
-import { classSessions, checkIns, participants, disciplers, victoryGroupLeaders } from "@/db/schema";
+import { classSessions, checkIns, participants, victoryGroupLeaders } from "@/db/schema";
 import { and, count, eq, gte, inArray, lt } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AttendeeList } from "./AttendeeList";
 import { getSession } from "@/lib/auth";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { currentYearPH } from "@/lib/date";
+
+const disciplerLeaders = alias(victoryGroupLeaders, "discipler_leaders");
 
 export default async function SessionDetailPage({
   params,
@@ -43,10 +46,10 @@ export default async function SessionDetailPage({
         completedOne2One: participants.completedOne2One,
         willUndergoWaterBaptism: participants.willUndergoWaterBaptism,
         previousChurch: participants.previousChurch,
-        disciplerLastName: disciplers.lastName,
-        disciplerFirstName: disciplers.firstName,
-        disciplerMobileNumber: disciplers.mobileNumber,
-        disciplerMessengerName: disciplers.messengerName,
+        disciplerLastName: disciplerLeaders.lastName,
+        disciplerFirstName: disciplerLeaders.firstName,
+        disciplerMobileNumber: disciplerLeaders.mobileNumber,
+        disciplerMessengerName: disciplerLeaders.facebookMessengerName,
         isWalkIn: participants.isWalkIn,
         vgLeaderLastName: victoryGroupLeaders.lastName,
         vgLeaderFirstName: victoryGroupLeaders.firstName,
@@ -58,7 +61,7 @@ export default async function SessionDetailPage({
       })
       .from(checkIns)
       .innerJoin(participants, eq(checkIns.participantId, participants.id))
-      .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
+      .leftJoin(disciplerLeaders, eq(participants.disciplerId, disciplerLeaders.id))
       .leftJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
       .where(eq(checkIns.classSessionId, sessionId))
       .orderBy(checkIns.checkedInAt),

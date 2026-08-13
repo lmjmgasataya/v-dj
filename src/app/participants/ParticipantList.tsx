@@ -1,11 +1,14 @@
 import { db } from "@/db";
-import { participants, disciplers, victoryGroupLeaders, checkIns, classSessions } from "@/db/schema";
+import { participants, victoryGroupLeaders, checkIns, classSessions } from "@/db/schema";
 import { ilike, or, isNull, isNotNull, and, count, gte, lt, eq, inArray, getTableColumns, desc, ne } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
 import { ParticipantTable } from "./ParticipantTable";
 import { currentYearPH } from "@/lib/date";
 
 const PAGE_SIZE = 20;
+
+const disciplerLeaders = alias(victoryGroupLeaders, "discipler_leaders");
 
 export function ParticipantListSkeleton() {
   return (
@@ -56,10 +59,10 @@ export async function ParticipantList({
   const offset = (page - 1) * PAGE_SIZE;
 
   const extraCols = {
-    disciplerLastName: disciplers.lastName,
-    disciplerFirstName: disciplers.firstName,
-    disciplerMobileNumber: disciplers.mobileNumber,
-    disciplerMessengerName: disciplers.messengerName,
+    disciplerLastName: disciplerLeaders.lastName,
+    disciplerFirstName: disciplerLeaders.firstName,
+    disciplerMobileNumber: disciplerLeaders.mobileNumber,
+    disciplerMessengerName: disciplerLeaders.facebookMessengerName,
     vgLeaderLastName: victoryGroupLeaders.lastName,
     vgLeaderFirstName: victoryGroupLeaders.firstName,
     vgLeaderMobileNumber: victoryGroupLeaders.mobileNumber,
@@ -90,7 +93,7 @@ export async function ParticipantList({
     db
       .select({ ...getTableColumns(participants), ...extraCols })
       .from(participants)
-      .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
+      .leftJoin(disciplerLeaders, eq(participants.disciplerId, disciplerLeaders.id))
       .leftJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
       .where(baseWhere)
       .orderBy(desc(participants.createdAt))

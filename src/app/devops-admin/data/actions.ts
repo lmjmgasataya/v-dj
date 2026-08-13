@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import {
-  participants, disciplers, victoryGroupLeaders, victoryGroups,
+  participants, victoryGroupLeaders, victoryGroups,
   classSessions, checkIns, smsLogs,
 } from "@/db/schema";
 import { lt } from "drizzle-orm";
@@ -96,20 +96,6 @@ export async function importTable(_prev: ImportResult | null, formData: FormData
         }));
         for (const ch of chunk(vals, 100)) {
           await db.insert(participants).values(ch).onConflictDoNothing();
-          inserted += ch.length;
-        }
-        break;
-      }
-
-      case "disciplers": {
-        const vals = rows.map(r => ({
-          lastName: str(r.lastName),
-          firstName: str(r.firstName),
-          mobileNumber: str(r.mobileNumber),
-          messengerName: nullable(r.messengerName),
-        }));
-        for (const ch of chunk(vals, 100)) {
-          await db.insert(disciplers).values(ch).onConflictDoNothing();
           inserted += ch.length;
         }
         break;

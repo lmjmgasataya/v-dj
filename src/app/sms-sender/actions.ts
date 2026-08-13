@@ -1,8 +1,11 @@
 "use server";
 
 import { db } from "@/db";
-import { participants, disciplers, victoryGroupLeaders, smsMessageTemplates, classSessions, smsApiKeys } from "@/db/schema";
+import { participants, victoryGroupLeaders, smsMessageTemplates, classSessions, smsApiKeys } from "@/db/schema";
 import { eq, isNull, and, isNotNull, desc } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
+
+const disciplerLeaders = alias(victoryGroupLeaders, "discipler_leaders");
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -49,13 +52,13 @@ export async function getParticipantsByBatch(batchId: number) {
 export async function getDisciplersByBatch(batchId: number) {
   return db
     .selectDistinct({
-      id: disciplers.id,
-      lastName: disciplers.lastName,
-      firstName: disciplers.firstName,
-      mobileNumber: disciplers.mobileNumber,
+      id: disciplerLeaders.id,
+      lastName: disciplerLeaders.lastName,
+      firstName: disciplerLeaders.firstName,
+      mobileNumber: disciplerLeaders.mobileNumber,
     })
-    .from(disciplers)
-    .innerJoin(participants, eq(participants.disciplerId, disciplers.id))
+    .from(disciplerLeaders)
+    .innerJoin(participants, eq(participants.disciplerId, disciplerLeaders.id))
     .where(
       and(
         eq(participants.batchId, batchId),
@@ -63,7 +66,7 @@ export async function getDisciplersByBatch(batchId: number) {
         isNotNull(participants.disciplerId)
       )
     )
-    .orderBy(disciplers.lastName, disciplers.firstName);
+    .orderBy(disciplerLeaders.lastName, disciplerLeaders.firstName);
 }
 
 export async function getVGLeadersByBatch(batchId: number) {

@@ -1,23 +1,26 @@
 import { db } from "@/db";
-import { participants, disciplers, victoryGroupLeaders, checkIns, classSessions } from "@/db/schema";
+import { participants, victoryGroupLeaders, checkIns, classSessions } from "@/db/schema";
 import { isNull, desc, eq, inArray, and, getTableColumns } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import * as XLSX from "xlsx";
 import { todayPH } from "@/lib/date";
+
+const disciplerLeaders = alias(victoryGroupLeaders, "discipler_leaders");
 
 export async function GET() {
   const [rows, sessions, victorySessions] = await Promise.all([
     db
       .select({
         ...getTableColumns(participants),
-        disciplerLastName: disciplers.lastName,
-        disciplerFirstName: disciplers.firstName,
-        disciplerMobileNumber: disciplers.mobileNumber,
-        disciplerMessengerName: disciplers.messengerName,
+        disciplerLastName: disciplerLeaders.lastName,
+        disciplerFirstName: disciplerLeaders.firstName,
+        disciplerMobileNumber: disciplerLeaders.mobileNumber,
+        disciplerMessengerName: disciplerLeaders.facebookMessengerName,
         vgLeaderLastName: victoryGroupLeaders.lastName,
         vgLeaderFirstName: victoryGroupLeaders.firstName,
       })
       .from(participants)
-      .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
+      .leftJoin(disciplerLeaders, eq(participants.disciplerId, disciplerLeaders.id))
       .leftJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
       .where(isNull(participants.deletedAt))
       .orderBy(desc(participants.id)),

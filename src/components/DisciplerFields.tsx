@@ -2,8 +2,15 @@
 
 import { useRef, useState } from "react";
 import { Field, inputCls } from "./form";
-import type { Discipler } from "@/db/schema";
 import { MOBILE_NUMBER_PATTERN, MOBILE_NUMBER_HELP } from "@/lib/phone";
+
+interface DisciplerSearchResult {
+  id: number;
+  lastName: string;
+  firstName: string;
+  mobileNumber: string;
+  messengerName: string | null;
+}
 
 interface Props {
   enabled?: boolean;
@@ -24,7 +31,7 @@ export function DisciplerFields({
   const [firstName, setFirstName] = useState(defaultFirstName);
   const [mobileNumber, setMobileNumber] = useState(defaultMobileNumber);
   const [messengerName, setMessengerName] = useState(defaultMessengerName);
-  const [results, setResults] = useState<Discipler[]>([]);
+  const [results, setResults] = useState<DisciplerSearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -38,13 +45,13 @@ export function DisciplerFields({
     }
     timer.current = setTimeout(async () => {
       const res = await fetch(`/api/disciplers?q=${encodeURIComponent(q)}`);
-      const data: Discipler[] = await res.json();
+      const data: DisciplerSearchResult[] = await res.json();
       setResults(data);
       setOpen(data.length > 0);
     }, 250);
   }
 
-  function handleSelect(d: Discipler) {
+  function handleSelect(d: DisciplerSearchResult) {
     setLastName(d.lastName);
     setFirstName(d.firstName);
     setMobileNumber(d.mobileNumber);

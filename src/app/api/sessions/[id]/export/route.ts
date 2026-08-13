@@ -1,8 +1,11 @@
 import { db } from "@/db";
-import { classSessions, checkIns, participants, disciplers } from "@/db/schema";
+import { classSessions, checkIns, participants, victoryGroupLeaders } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { notFound } from "next/navigation";
 import * as XLSX from "xlsx";
+
+const disciplerLeaders = alias(victoryGroupLeaders, "discipler_leaders");
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -34,14 +37,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       previousChurch: participants.previousChurch,
       registrationFee: participants.registrationFee,
       acknowledgementReceiptNumber: participants.acknowledgementReceiptNumber,
-      disciplerLastName: disciplers.lastName,
-      disciplerFirstName: disciplers.firstName,
-      disciplerMobileNumber: disciplers.mobileNumber,
+      disciplerLastName: disciplerLeaders.lastName,
+      disciplerFirstName: disciplerLeaders.firstName,
+      disciplerMobileNumber: disciplerLeaders.mobileNumber,
       remarks: checkIns.remarks,
     })
     .from(checkIns)
     .innerJoin(participants, eq(checkIns.participantId, participants.id))
-    .leftJoin(disciplers, eq(participants.disciplerId, disciplers.id))
+    .leftJoin(disciplerLeaders, eq(participants.disciplerId, disciplerLeaders.id))
     .where(eq(checkIns.classSessionId, sessionId))
     .orderBy(checkIns.checkedInAt);
 

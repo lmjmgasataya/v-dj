@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
 import {
-  participants, disciplers, victoryGroupLeaders, victoryGroups,
+  participants, victoryGroupLeaders, victoryGroups,
   classSessions, checkIns, users, loginLogs, featureFlags, batches,
 } from "@/db/schema";
 import { toCSV } from "@/lib/csv";
@@ -21,9 +21,6 @@ export async function GET(req: NextRequest) {
     switch (table) {
       case "participants":
         csv = toCSV((await db.select().from(participants)) as Record<string, unknown>[]);
-        break;
-      case "disciplers":
-        csv = toCSV((await db.select().from(disciplers)) as Record<string, unknown>[]);
         break;
       case "vg_leaders":
         csv = toCSV((await db.select().from(victoryGroupLeaders)) as Record<string, unknown>[]);

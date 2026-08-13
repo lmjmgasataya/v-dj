@@ -42,18 +42,6 @@ export const checkInStatusEnum = pgEnum("check_in_status", ["On-time", "Late", "
 
 export const checkInMethodEnum = pgEnum("check_in_method", ["Search", "Webcam", "QR Reader", "Walk-in"]);
 
-export const disciplers = pgTable(
-  "disciplers",
-  {
-    id: serial("id").primaryKey(),
-    lastName: text("last_name").notNull(),
-    firstName: text("first_name").notNull(),
-    mobileNumber: text("mobile_number").notNull(),
-    messengerName: text("messenger_name"),
-  },
-  (t) => [unique().on(t.lastName, t.firstName, t.mobileNumber)]
-);
-
 export const victoryGroupLeaders = pgTable("victory_group_leaders", {
   id: serial("id").primaryKey(),
   lastName: text("last_name").notNull(),
@@ -117,7 +105,7 @@ export const participants = pgTable("participants", {
   willUndergoWaterBaptism: boolean("will_undergo_water_baptism"),
   previousChurch: text("previous_church"),
   preferredNameOnId: text("preferred_name_on_id"),
-  disciplerId: integer("discipler_id").references(() => disciplers.id),
+  disciplerId: integer("discipler_id").references(() => victoryGroupLeaders.id),
   vgLeaderId: integer("vg_leader_id").references(() => victoryGroupLeaders.id),
   confirmedReadiness: boolean("confirmed_readiness"),
   acknowledgementReceiptNumber: text("acknowledgement_receipt_number"),
@@ -240,7 +228,6 @@ export type ClassSession = typeof classSessions.$inferSelect;
 export type CheckIn = typeof checkIns.$inferSelect;
 export type CheckInStatus = (typeof checkInStatusEnum.enumValues)[number];
 export type CheckInMethod = (typeof checkInMethodEnum.enumValues)[number];
-export type Discipler = typeof disciplers.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type LoginLog = typeof loginLogs.$inferSelect;
 export type VictoryGroupLeader = typeof victoryGroupLeaders.$inferSelect;

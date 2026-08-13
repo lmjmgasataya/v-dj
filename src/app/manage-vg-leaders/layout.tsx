@@ -12,7 +12,7 @@ export default async function ManageVgLeadersLayout({ children }: { children: Re
       <div>
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Manage VG Leaders" }]} />
         <h2 className="text-2xl font-bold text-gray-900">Manage VG Leaders</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Promote disciplers, manage portal accounts, and view VG leader reports.</p>
+        <p className="text-sm text-gray-500 mt-0.5">Manage portal accounts and view VG leader reports.</p>
         <ManageVgLeadersNav />
       </div>
       {children}

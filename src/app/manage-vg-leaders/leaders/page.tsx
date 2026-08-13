@@ -1,9 +1,8 @@
 import { db } from "@/db";
-import { victoryGroupLeaders, victoryGroups, users } from "@/db/schema";
-import { and, asc, eq, isNull } from "drizzle-orm";
-import Link from "next/link";
-import { toTitleCase } from "@/lib/text";
-import { resetVgLeaderPin } from "../actions";
+import { victoryGroupLeaders, victoryGroups, users, participants } from "@/db/schema";
+import { and, asc, eq, isNull, inArray, or } from "drizzle-orm";
+import { VgLeadersTable, type VgLeaderRow } from "./VgLeadersTable";
+import type { ParticipantsCellEntry } from "@/components/ParticipantsCell";
 
 export default async function VgLeadersListPage() {
   const [leaders, activeGroups, accounts] = await Promise.all([
@@ -30,86 +29,61 @@ export default async function VgLeadersListPage() {
     accounts.filter((a) => a.vgLeaderId != null).map((a) => [a.vgLeaderId as number, a])
   );
 
+  const leaderIds = leaders.map((l) => l.id);
+  const affiliatedParticipants = leaderIds.length > 0
+    ? await db
+        .select({ id: participants.id, lastName: participants.lastName, firstName: participants.firstName, vgLeaderId: participants.vgLeaderId, disciplerId: participants.disciplerId })
+        .from(participants)
+        .where(and(
+          isNull(participants.deletedAt),
+          or(inArray(participants.vgLeaderId, leaderIds), inArray(participants.disciplerId, leaderIds))
+        ))
+        .orderBy(asc(participants.lastName))
+    : [];
+
+  const participantsByLeader: Record<number, ParticipantsCellEntry[]> = {};
+  const leaderIdSet = new Set(leaderIds);
+  for (const p of affiliatedParticipants) {
+    if (p.vgLeaderId != null && leaderIdSet.has(p.vgLeaderId)) {
+      (participantsByLeader[p.vgLeaderId] ??= []).push({ id: p.id, lastName: p.lastName, firstName: p.firstName, relation: "vg_leader" });
+    }
+    if (p.disciplerId != null && leaderIdSet.has(p.disciplerId)) {
+      (participantsByLeader[p.disciplerId] ??= []).push({ id: p.id, lastName: p.lastName, firstName: p.firstName, relation: "discipler" });
+    }
+  }
+
+  const mobileCounts = new Map<string, number>();
+  for (const l of leaders) {
+    const key = l.mobileNumber?.trim();
+    if (!key) continue;
+    mobileCounts.set(key, (mobileCounts.get(key) ?? 0) + 1);
+  }
+
+  const rows: VgLeaderRow[] = leaders.map((l) => {
+    const account = accountByLeaderId.get(l.id);
+    const mobileKey = l.mobileNumber?.trim();
+    return {
+      id: l.id,
+      lastName: l.lastName,
+      firstName: l.firstName,
+      nickname: l.nickname,
+      mobileNumber: l.mobileNumber,
+      duplicateMobile: !!mobileKey && (mobileCounts.get(mobileKey) ?? 0) > 1,
+      claimed: !!account?.pinHash,
+      accountId: account?.id ?? null,
+      profileCompleted: l.profileCompleted,
+      activeGroups: groupCountByLeader.get(l.id) ?? 0,
+      participants: participantsByLeader[l.id] ?? [],
+    };
+  });
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
         <h3 className="font-semibold text-gray-800">VG Leaders</h3>
         <span className="text-xs text-gray-400">{leaders.length} active</span>
       </div>
-      {leaders.length === 0 ? (
-        <p className="px-6 py-8 text-sm text-gray-400 text-center">No active VG leaders.</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
-              <tr>
-                <th className="px-4 py-2 text-left font-medium">Name</th>
-                <th className="px-4 py-2 text-left font-medium">Mobile</th>
-                <th className="px-4 py-2 text-left font-medium">Portal Account</th>
-                <th className="px-4 py-2 text-left font-medium">Profile</th>
-                <th className="px-4 py-2 text-left font-medium">Active Groups</th>
-                <th className="px-4 py-2" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {leaders.map((l) => {
-                const account = accountByLeaderId.get(l.id);
-                const claimed = !!account?.pinHash;
-                return (
-                  <tr key={l.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2.5">
-                      <p className="font-medium text-gray-800">
-                        {toTitleCase(l.lastName)}, {toTitleCase(l.firstName)}
-                      </p>
-                      {l.nickname && <p className="text-xs text-gray-400">&quot;{l.nickname}&quot;</p>}
-                    </td>
-                    <td className="px-4 py-2.5 text-gray-500 font-mono text-xs">{l.mobileNumber ?? "—"}</td>
-                    <td className="px-4 py-2.5">
-                      <span
-                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                          claimed ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                        }`}
-                      >
-                        {claimed ? "Claimed" : "Not claimed"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <span
-                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                          l.profileCompleted ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
-                        }`}
-                      >
-                        {l.profileCompleted ? "Complete" : "Incomplete"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 text-gray-500">{groupCountByLeader.get(l.id) ?? 0}</td>
-                    <td className="px-4 py-2.5 text-right">
-                      <div className="flex items-center justify-end gap-3">
-                        {claimed && account && (
-                          <form action={resetVgLeaderPin.bind(null, account.id)}>
-                            <button
-                              type="submit"
-                              className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
-                            >
-                              Reset PIN
-                            </button>
-                          </form>
-                        )}
-                        <Link
-                          href={`/vg-leaders/${l.id}/edit`}
-                          className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline"
-                        >
-                          Edit
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <VgLeadersTable rows={rows} />
     </div>
   );
 }

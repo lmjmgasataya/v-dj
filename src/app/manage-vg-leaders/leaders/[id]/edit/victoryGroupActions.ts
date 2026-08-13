@@ -39,7 +39,7 @@ export async function addVictoryGroup(vgLeaderId: number, formData: FormData) {
     ...parseStatus(formData),
     intern: (formData.get("intern") as string) || null,
   });
-  revalidatePath(`/vg-leaders/${vgLeaderId}/edit`);
+  revalidatePath(`/manage-vg-leaders/leaders/${vgLeaderId}/edit`);
 }
 
 export async function updateVictoryGroup(id: number, vgLeaderId: number, formData: FormData) {
@@ -55,7 +55,7 @@ export async function updateVictoryGroup(id: number, vgLeaderId: number, formDat
       intern: (formData.get("intern") as string) || null,
     })
     .where(eq(victoryGroups.id, id));
-  revalidatePath(`/vg-leaders/${vgLeaderId}/edit`);
+  revalidatePath(`/manage-vg-leaders/leaders/${vgLeaderId}/edit`);
 }
 
 export async function deleteVictoryGroup(id: number, vgLeaderId: number) {
@@ -63,5 +63,5 @@ export async function deleteVictoryGroup(id: number, vgLeaderId: number) {
     .update(victoryGroups)
     .set({ deletedAt: new Date() })
     .where(eq(victoryGroups.id, id));
-  revalidatePath(`/vg-leaders/${vgLeaderId}/edit`);
+  revalidatePath(`/manage-vg-leaders/leaders/${vgLeaderId}/edit`);
 }

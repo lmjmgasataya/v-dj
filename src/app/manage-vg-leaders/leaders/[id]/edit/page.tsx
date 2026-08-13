@@ -28,9 +28,9 @@ export default async function EditVGLeaderPage({ params }: { params: Promise<{ i
   if (!leader) notFound();
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div>
       <div className="mb-6">
-        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "VG Leaders", href: "/vg-leaders" }, { label: `${leader.lastName}, ${leader.firstName}` }]} />
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Manage VG Leaders", href: "/manage-vg-leaders" }, { label: "VG Leaders", href: "/manage-vg-leaders/leaders" }, { label: `${leader.lastName}, ${leader.firstName}` }]} />
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Edit VG Leader</h2>

@@ -59,7 +59,7 @@ Twelve tables:
 - `src/app/admin/` — check-in workflow for `admin_volunteer` role; includes `QrScanner.tsx` (uses `html5-qrcode`, gated by `qr_checkin` feature flag); filtered by batch
 - `src/app/participants/` — participant list (table view, filterable by Victory Weekend done/not done), detail (`[id]`), edit (`[id]/edit`), deleted list, and print IDs (`print-ids/`)
 - `src/app/sessions/` — session list, new session, edit (`[id]/edit`), and batch management (`batches/`)
-- `src/app/vg-leaders/` — VG leader list, new (`new`), and edit (`[id]/edit`)
+- `src/app/manage-vg-leaders/` — `developer`-role-only VG leader management: leader list + edit (`leaders/[id]/edit`, includes their Victory Groups), reports (`report/`, `vg-report/`)
 - `src/app/sms-sender/` — SMS blast tool (gated by `sms_sender` feature flag); select session, pick/edit message template, send via Traccer API; sub-route `message-templates/` for template CRUD
 - `src/app/report/` — reporting dashboards: `checkins`, `class-category`, `demographics`, `funnel`, `registrations` (per worship service), `remittance` (AR summary with date range), `collection-monitoring`; all filtered by batch
 - `src/app/devops-admin/` — `developer`-role-only area: participants, class-sessions, check-ins, disciplers, VG groups/leaders, login-logs, data tools, batches CRUD
@@ -86,7 +86,7 @@ Role checks: `session.role === "developer"` for developer-only pages. `!!session
 - `sms/` — SMS API key management (CRUD) and proxy to Traccer SMS endpoint
 - `report/remittance` — remittance report data endpoint
 
-**Auth flow:** `src/lib/auth.ts` exports `getSession()` (reads + verifies cookie) and `setSessionCookie()` / `clearSessionCookie()`. Pages call `getSession()` at the top to gate access; login/logout are Server Actions in `src/app/login/actions.ts`. Role `developer` gets access to `devops-admin`; `admin_volunteer` gets access to `admin`, `participants`, `sessions`, `vg-leaders`, and `report`.
+**Auth flow:** `src/lib/auth.ts` exports `getSession()` (reads + verifies cookie) and `setSessionCookie()` / `clearSessionCookie()`. Pages call `getSession()` at the top to gate access; login/logout are Server Actions in `src/app/login/actions.ts`. Role `developer` gets access to `devops-admin` and `manage-vg-leaders`; `admin_volunteer` gets access to `admin`, `participants`, `sessions`, and `report`. `src/proxy.ts` (Next.js 16's replacement for `middleware.ts`) additionally enforces `developer`-only access to `/manage-vg-leaders/*` and a few other paths at the request level, independent of each page's own `getSession()` check.
 
 **QR codes** — two libraries serve different purposes:
 - `react-qr-code` (v2.2+) generates QR SVGs; value format is `dj:participant:{id}`. Used in `src/app/participants/[id]/edit/ParticipantQrCode.tsx` and `src/app/participants/print-ids/PrintIdsClient.tsx`.

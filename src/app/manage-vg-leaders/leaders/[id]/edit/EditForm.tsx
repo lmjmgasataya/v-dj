@@ -85,7 +85,7 @@ export function EditForm({ leader }: { leader: VictoryGroupLeader }) {
       </Section>
 
       <div className="flex justify-end gap-3">
-        <a href="/vg-leaders" className="bg-white border border-gray-300 text-gray-600 text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-gray-50 transition">
+        <a href="/manage-vg-leaders/leaders" className="bg-white border border-gray-300 text-gray-600 text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-gray-50 transition">
           Cancel
         </a>
         <button

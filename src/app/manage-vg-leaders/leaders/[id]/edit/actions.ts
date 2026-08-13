@@ -31,7 +31,7 @@ export async function updateVGLeader(id: number, formData: FormData) {
     })
     .where(eq(victoryGroupLeaders.id, id));
 
-  toastRedirect("/vg-leaders", "VG leader updated.");
+  toastRedirect("/manage-vg-leaders/leaders", "VG leader updated.");
 }
 
 export async function deleteVGLeader(id: number) {
@@ -39,5 +39,5 @@ export async function deleteVGLeader(id: number) {
     .update(victoryGroupLeaders)
     .set({ deletedAt: new Date() })
     .where(eq(victoryGroupLeaders.id, id));
-  toastRedirect("/vg-leaders", "VG leader deleted.");
+  toastRedirect("/manage-vg-leaders/leaders", "VG leader deleted.");
 }

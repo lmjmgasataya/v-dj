@@ -1,9 +1,9 @@
 import { db } from "@/db";
 import { victoryGroupLeaders, participants } from "@/db/schema";
-import { asc, inArray, isNull, and } from "drizzle-orm";
+import { asc, inArray, isNull, and, or } from "drizzle-orm";
 import { createVgLeader, deleteVgLeader } from "./actions";
 import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
-import { ParticipantsCell } from "../ParticipantsCell";
+import { ParticipantsCell, type ParticipantsCellEntry } from "@/components/ParticipantsCell";
 import { toTitleCase } from "@/lib/text";
 
 const input = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400";
@@ -11,20 +11,40 @@ const input = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:
 export default async function VgLeadersPage() {
   const rows = await db.select().from(victoryGroupLeaders).orderBy(asc(victoryGroupLeaders.lastName));
   const active = rows.filter((r) => !r.deletedAt);
+  const activeIds = active.map((v) => v.id);
 
   const affiliatedParticipants = active.length > 0
     ? await db
-        .select({ id: participants.id, lastName: participants.lastName, firstName: participants.firstName, vgLeaderId: participants.vgLeaderId })
+        .select({ id: participants.id, lastName: participants.lastName, firstName: participants.firstName, vgLeaderId: participants.vgLeaderId, disciplerId: participants.disciplerId })
         .from(participants)
-        .where(and(isNull(participants.deletedAt), inArray(participants.vgLeaderId, active.map((v) => v.id))))
+        .where(and(
+          isNull(participants.deletedAt),
+          or(inArray(participants.vgLeaderId, activeIds), inArray(participants.disciplerId, activeIds))
+        ))
         .orderBy(asc(participants.lastName))
     : [];
 
-  const participantsByLeader: Record<number, { id: number; lastName: string; firstName: string }[]> = {};
+  const participantsByLeader: Record<number, ParticipantsCellEntry[]> = {};
+  const activeIdSet = new Set(activeIds);
   for (const p of affiliatedParticipants) {
-    if (p.vgLeaderId == null) continue;
-    (participantsByLeader[p.vgLeaderId] ??= []).push(p);
+    if (p.vgLeaderId != null && activeIdSet.has(p.vgLeaderId)) {
+      (participantsByLeader[p.vgLeaderId] ??= []).push({ id: p.id, lastName: p.lastName, firstName: p.firstName, relation: "vg_leader" });
+    }
+    if (p.disciplerId != null && activeIdSet.has(p.disciplerId)) {
+      (participantsByLeader[p.disciplerId] ??= []).push({ id: p.id, lastName: p.lastName, firstName: p.firstName, relation: "discipler" });
+    }
   }
+
+  const mobileCounts = new Map<string, number>();
+  for (const v of active) {
+    const key = v.mobileNumber?.trim();
+    if (!key) continue;
+    mobileCounts.set(key, (mobileCounts.get(key) ?? 0) + 1);
+  }
+  const isDuplicateMobile = (mobileNumber: string | null) => {
+    const key = mobileNumber?.trim();
+    return !!key && (mobileCounts.get(key) ?? 0) > 1;
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -54,7 +74,16 @@ export default async function VgLeadersPage() {
                     <td className="px-4 py-2.5 text-gray-400 font-mono text-xs">{v.id}</td>
                     <td className="px-4 py-2.5 font-medium text-gray-800">{toTitleCase(v.lastName)}</td>
                     <td className="px-4 py-2.5 text-gray-700">{toTitleCase(v.firstName)}</td>
-                    <td className="px-4 py-2.5 text-gray-500 font-mono text-xs">{v.mobileNumber}</td>
+                    <td className="px-4 py-2.5 font-mono text-xs">
+                      <span className={isDuplicateMobile(v.mobileNumber) ? "text-red-600 font-semibold" : "text-gray-500"}>
+                        {v.mobileNumber}
+                      </span>
+                      {isDuplicateMobile(v.mobileNumber) && (
+                        <span className="ml-1.5 inline-flex items-center rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700">
+                          Duplicate
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-2.5 text-gray-500">{v.facebookMessengerName ?? "—"}</td>
                     <td className="px-4 py-2.5">
                       <ParticipantsCell participants={participantsByLeader[v.id] ?? []} />

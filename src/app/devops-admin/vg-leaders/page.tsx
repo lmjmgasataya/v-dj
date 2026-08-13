@@ -46,6 +46,16 @@ export default async function VgLeadersPage() {
     return !!key && (mobileCounts.get(key) ?? 0) > 1;
   };
 
+  const nameCounts = new Map<string, number>();
+  for (const v of active) {
+    const key = `${v.lastName.trim().toLowerCase()}|${v.firstName.trim().toLowerCase()}`;
+    nameCounts.set(key, (nameCounts.get(key) ?? 0) + 1);
+  }
+  const isDuplicateName = (lastName: string, firstName: string) => {
+    const key = `${lastName.trim().toLowerCase()}|${firstName.trim().toLowerCase()}`;
+    return (nameCounts.get(key) ?? 0) > 1;
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -73,7 +83,14 @@ export default async function VgLeadersPage() {
                   <tr key={v.id} className="hover:bg-gray-50">
                     <td className="px-4 py-2.5 text-gray-400 font-mono text-xs">{v.id}</td>
                     <td className="px-4 py-2.5 font-medium text-gray-800">{toTitleCase(v.lastName)}</td>
-                    <td className="px-4 py-2.5 text-gray-700">{toTitleCase(v.firstName)}</td>
+                    <td className="px-4 py-2.5 text-gray-700">
+                      {toTitleCase(v.firstName)}
+                      {isDuplicateName(v.lastName, v.firstName) && (
+                        <span className="ml-1.5 inline-flex items-center rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700">
+                          Duplicate
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-2.5 font-mono text-xs">
                       <span className={isDuplicateMobile(v.mobileNumber) ? "text-red-600 font-semibold" : "text-gray-500"}>
                         {v.mobileNumber}

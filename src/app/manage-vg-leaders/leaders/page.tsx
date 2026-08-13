@@ -59,9 +59,16 @@ export default async function VgLeadersListPage() {
     mobileCounts.set(key, (mobileCounts.get(key) ?? 0) + 1);
   }
 
+  const nameCounts = new Map<string, number>();
+  for (const l of leaders) {
+    const key = `${l.lastName.trim().toLowerCase()}|${l.firstName.trim().toLowerCase()}`;
+    nameCounts.set(key, (nameCounts.get(key) ?? 0) + 1);
+  }
+
   const rows: VgLeaderRow[] = leaders.map((l) => {
     const account = accountByLeaderId.get(l.id);
     const mobileKey = l.mobileNumber?.trim();
+    const nameKey = `${l.lastName.trim().toLowerCase()}|${l.firstName.trim().toLowerCase()}`;
     return {
       id: l.id,
       lastName: l.lastName,
@@ -69,6 +76,7 @@ export default async function VgLeadersListPage() {
       nickname: l.nickname,
       mobileNumber: l.mobileNumber,
       duplicateMobile: !!mobileKey && (mobileCounts.get(mobileKey) ?? 0) > 1,
+      duplicateName: (nameCounts.get(nameKey) ?? 0) > 1,
       claimed: !!account?.pinHash,
       accountId: account?.id ?? null,
       profileCompleted: l.profileCompleted,

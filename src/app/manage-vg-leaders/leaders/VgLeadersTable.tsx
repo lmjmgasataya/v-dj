@@ -13,6 +13,7 @@ export interface VgLeaderRow {
   nickname: string | null;
   mobileNumber: string | null;
   duplicateMobile: boolean;
+  duplicateName: boolean;
   claimed: boolean;
   accountId: number | null;
   profileCompleted: boolean;
@@ -97,6 +98,11 @@ export function VgLeadersTable({ rows }: { rows: VgLeaderRow[] }) {
                   <td className="px-4 py-2.5">
                     <p className="font-medium text-gray-800">
                       {toTitleCase(l.lastName)}, {toTitleCase(l.firstName)}
+                      {l.duplicateName && (
+                        <span className="ml-1.5 inline-flex items-center rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 align-middle">
+                          Duplicate
+                        </span>
+                      )}
                     </p>
                     {l.nickname && <p className="text-xs text-gray-400">&quot;{l.nickname}&quot;</p>}
                   </td>

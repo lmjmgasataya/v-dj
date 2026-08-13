@@ -1,9 +1,14 @@
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth";
 import { db } from "@/db";
 import { featureFlags } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { ClaimForm } from "./ClaimForm";
 
 export default async function ClaimPage() {
+  const session = await getSession();
+  if (session) redirect("/");
+
   const [flag] = await db
     .select()
     .from(featureFlags)

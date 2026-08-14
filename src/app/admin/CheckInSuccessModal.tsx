@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { checkInStatusBgClass, checkInStatusTextClass } from "@/lib/checkinStatus";
+import type { CheckInStatus } from "@/db/schema";
 
 const AUTO_DISMISS_SECONDS = 10;
 
@@ -9,12 +11,14 @@ export function CheckInSuccessModal({
   lastName,
   tableNumber,
   showTable = true,
+  status = "On-time",
   onDismiss,
 }: {
   firstName: string;
   lastName: string;
   tableNumber: number | null;
   showTable?: boolean;
+  status?: CheckInStatus;
   onDismiss: () => void;
 }) {
   const [secondsLeft, setSecondsLeft] = useState(AUTO_DISMISS_SECONDS);
@@ -42,8 +46,8 @@ export function CheckInSuccessModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 flex flex-col items-center gap-1 text-center">
-        <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-3 animate-check-circle-pop">
-          <CheckCircleIcon />
+        <div className={`w-20 h-20 rounded-full ${checkInStatusBgClass(status)} flex items-center justify-center mb-3 animate-check-circle-pop`}>
+          <CheckCircleIcon className={checkInStatusTextClass(status)} />
         </div>
         <p className="text-xl font-bold text-gray-900">You&rsquo;re checked in, {firstName}!</p>
         <p className="text-sm text-gray-500">{lastName} &middot; Welcome!</p>
@@ -67,7 +71,7 @@ export function CheckInSuccessModal({
   );
 }
 
-function CheckCircleIcon() {
+function CheckCircleIcon({ className }: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -79,7 +83,7 @@ function CheckCircleIcon() {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="text-green-600"
+      className={className}
     >
       <path
         d="M22 11.08V12a10 10 0 1 1-5.93-9.14"

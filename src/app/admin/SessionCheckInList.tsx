@@ -7,6 +7,7 @@ import { toTitleCase } from "@/lib/text";
 import { useToast } from "@/components/toast/ToastProvider";
 import { CheckInSuccessModal } from "./CheckInSuccessModal";
 import { CheckInStatusPicker, checkInStatusBadgeClass } from "./CheckInStatusPicker";
+import { checkInStatusTextClass } from "@/lib/checkinStatus";
 import { checkInStatusForDate, isOnTimeWindow, isWithinLateCutoff } from "@/lib/date";
 import type { CheckInStatus } from "@/db/schema";
 
@@ -37,7 +38,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
   const [showModal, setShowModal] = useState(false);
   const [remarks, setRemarks] = useState("");
   const [status, setStatus] = useState<CheckInStatus>("On-time");
-  const [successInfo, setSuccessInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null } | null>(null);
+  const [successInfo, setSuccessInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null; status: CheckInStatus } | null>(null);
   const toast = useToast();
   const isCheckedIn = p.checkInId != null;
   const hasVictoryDay = !!p.victoryDate || p.completedVictoryDay;
@@ -56,6 +57,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
           firstName: toTitleCase(p.firstName),
           lastName: toTitleCase(p.lastName),
           tableNumber: result.tableNumber,
+          status: statusOverride ?? checkInStatusForDate(new Date()),
         });
       }
       onAction?.();
@@ -127,7 +129,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
             <>
               <div className="flex flex-col items-end gap-1">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-green-600 font-semibold text-xs">✓ Checked In</span>
+                  <span className={`font-semibold text-xs ${p.checkInStatus ? checkInStatusTextClass(p.checkInStatus) : "text-green-600"}`}>✓ Checked In</span>
                   {p.checkInStatus && (
                     <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${checkInStatusBadgeClass(p.checkInStatus)}`}>
                       {p.checkInStatus}
@@ -226,6 +228,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
           firstName={successInfo.firstName}
           lastName={successInfo.lastName}
           tableNumber={successInfo.tableNumber}
+          status={successInfo.status}
           showTable={showTableNumber}
           onDismiss={() => setSuccessInfo(null)}
         />

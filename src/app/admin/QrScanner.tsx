@@ -89,7 +89,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
   const [remarks, setRemarks] = useState("");
   const [checkInStatus, setCheckInStatus] = useState<CheckInStatus>("On-time");
   const [mirrored, setMirrored] = useState(false);
-  const [successInfo, setSuccessInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null } | null>(null);
+  const [successInfo, setSuccessInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null; status: CheckInStatus } | null>(null);
   const toast = useToast();
   const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
   const onCheckInRef = useRef(onCheckIn);
@@ -120,7 +120,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     } else {
       const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table available";
       const resultMessage = `Checked in: ${result.lastName}, ${result.firstName} — ${tableMsg}`;
-      setSuccessInfo({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber });
+      setSuccessInfo({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber, status: statusOverride ?? checkInStatusForDate(new Date()) });
       onCheckInRef.current?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: false, tableNumber: result.tableNumber });
     }
     setPending(null);
@@ -448,6 +448,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
           firstName={successInfo.firstName}
           lastName={successInfo.lastName}
           tableNumber={successInfo.tableNumber}
+          status={successInfo.status}
           showTable={showTableNumber}
           onDismiss={handleDismissSuccess}
         />

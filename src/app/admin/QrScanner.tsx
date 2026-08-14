@@ -7,7 +7,7 @@ import { ORIENTATION_ALLOWED_CLASSES } from "@/lib/constants";
 import { useToast } from "@/components/toast/ToastProvider";
 import { CheckInSuccessModal } from "./CheckInSuccessModal";
 import { CheckInStatusPicker } from "./CheckInStatusPicker";
-import { checkInStatusForDate, isOnTimeWindow } from "@/lib/date";
+import { checkInStatusForDate, isOnTimeWindow, isWithinLateCutoff } from "@/lib/date";
 import type { CheckInStatus, CheckInMethod } from "@/db/schema";
 
 export const QR_PREFIX = "dj:participant:";
@@ -75,11 +75,12 @@ interface QrScannerProps {
   confirmBeforeCheckIn?: boolean;
   showTableNumber?: boolean;
   autoCheckin?: boolean;
+  autoCheckin915?: boolean;
   onCheckIn?: (info: CheckInResultInfo) => void;
 }
 
 export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function QrScanner(
-  { sessionId, isVictoryDay, allowAllClasses, isOrientation, autoOpen, confirmBeforeCheckIn = true, showTableNumber = true, autoCheckin = false, onCheckIn },
+  { sessionId, isVictoryDay, allowAllClasses, isOrientation, autoOpen, confirmBeforeCheckIn = true, showTableNumber = true, autoCheckin = false, autoCheckin915 = false, onCheckIn },
   ref
 ) {
   const [status, setStatus] = useState<Status>(autoOpen ? "scanning" : "idle");
@@ -161,6 +162,8 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
 
       if (autoCheckin && !restricted && isOnTimeWindow()) {
         await submitCheckIn(participantId, "", restingStatus, "On-time", method);
+      } else if (autoCheckin915 && !restricted && isWithinLateCutoff()) {
+        await submitCheckIn(participantId, "", restingStatus, checkInStatusForDate(new Date()), method);
       } else if (!confirmBeforeCheckIn && !restricted) {
         await submitCheckIn(participantId, "", restingStatus, undefined, method);
       } else {

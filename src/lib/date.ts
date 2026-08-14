@@ -36,3 +36,7 @@ export function checkInStatusForDate(date: Date): CheckInStatus {
 export function isOnTimeWindow(date: Date = new Date()): boolean {
   return minutesSinceMidnightPH(date) <= ON_TIME_CUTOFF_MINUTES;
 }
+
+export function isWithinLateCutoff(date: Date = new Date()): boolean {
+  return minutesSinceMidnightPH(date) <= LATE_CUTOFF_MINUTES;
+}

@@ -7,7 +7,7 @@ import { toTitleCase } from "@/lib/text";
 import { useToast } from "@/components/toast/ToastProvider";
 import { CheckInSuccessModal } from "./CheckInSuccessModal";
 import { CheckInStatusPicker, checkInStatusBadgeClass } from "./CheckInStatusPicker";
-import { checkInStatusForDate, isOnTimeWindow } from "@/lib/date";
+import { checkInStatusForDate, isOnTimeWindow, isWithinLateCutoff } from "@/lib/date";
 import type { CheckInStatus } from "@/db/schema";
 
 interface ParticipantWithStatus {
@@ -32,7 +32,7 @@ interface ParticipantWithStatus {
   tableNumber: number | null;
 }
 
-function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, confirmBeforeCheckIn = true, showTableNumber = true, autoCheckin = false }: { p: ParticipantWithStatus; sessionId: number; isVictoryDay: boolean; requiresVictoryDay: boolean; onAction?: () => void; confirmBeforeCheckIn?: boolean; showTableNumber?: boolean; autoCheckin?: boolean }) {
+function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, confirmBeforeCheckIn = true, showTableNumber = true, autoCheckin = false, autoCheckin915 = false }: { p: ParticipantWithStatus; sessionId: number; isVictoryDay: boolean; requiresVictoryDay: boolean; onAction?: () => void; confirmBeforeCheckIn?: boolean; showTableNumber?: boolean; autoCheckin?: boolean; autoCheckin915?: boolean }) {
   const [pending, startTransition] = useTransition();
   const [showModal, setShowModal] = useState(false);
   const [remarks, setRemarks] = useState("");
@@ -69,6 +69,10 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
   function handleCheckInClick() {
     if (autoCheckin && isOnTimeWindow()) {
       submitCheckIn("", "On-time");
+      return;
+    }
+    if (autoCheckin915 && isWithinLateCutoff()) {
+      submitCheckIn("", checkInStatusForDate(new Date()));
       return;
     }
     if (confirmBeforeCheckIn) {
@@ -240,6 +244,7 @@ export function SessionCheckInList({
   confirmBeforeCheckIn,
   showTableNumber,
   autoCheckin,
+  autoCheckin915,
 }: {
   participants: ParticipantWithStatus[];
   sessionId: number;
@@ -250,6 +255,7 @@ export function SessionCheckInList({
   confirmBeforeCheckIn?: boolean;
   showTableNumber?: boolean;
   autoCheckin?: boolean;
+  autoCheckin915?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -269,7 +275,7 @@ export function SessionCheckInList({
         )}
       </div>
       {participants.map((p) => (
-        <CheckInRow key={p.id} p={p} sessionId={sessionId} isVictoryDay={isVictoryDay} requiresVictoryDay={requiresVictoryDay} onAction={onAction} confirmBeforeCheckIn={confirmBeforeCheckIn} showTableNumber={showTableNumber} autoCheckin={autoCheckin} />
+        <CheckInRow key={p.id} p={p} sessionId={sessionId} isVictoryDay={isVictoryDay} requiresVictoryDay={requiresVictoryDay} onAction={onAction} confirmBeforeCheckIn={confirmBeforeCheckIn} showTableNumber={showTableNumber} autoCheckin={autoCheckin} autoCheckin915={autoCheckin915} />
       ))}
     </div>
   );

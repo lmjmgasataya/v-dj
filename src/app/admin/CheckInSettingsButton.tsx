@@ -14,6 +14,11 @@ const CHECKIN_SETTINGS = [
     label: "Auto check-in before 9:00 AM",
     description: "Arrivals on or before 9:00 AM skip the confirmation popup and are marked On-time automatically.",
   },
+  {
+    key: "checkin_autocheckin_915" as const,
+    label: "Auto check-in before 9:15 AM",
+    description: "Arrivals on or before 9:15 AM skip the confirmation popup and are marked On-time or Late automatically.",
+  },
 ];
 
 export function CheckInSettingsButton({ flags }: { flags: Record<string, boolean> }) {

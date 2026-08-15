@@ -127,34 +127,30 @@ export async function lookupParticipantForQr(
     }
   | { error: string }
 > {
-  const [[participant], [existing]] = await Promise.all([
-    db
-      .select({
-        id: participants.id,
-        firstName: participants.firstName,
-        lastName: participants.lastName,
-        registrationFee: participants.registrationFee,
-        victoryDate: participants.victoryDate,
-      })
-      .from(participants)
-      .where(and(eq(participants.id, participantId), isNull(participants.deletedAt)))
-      .limit(1),
-    db
-      .select({ id: checkIns.id, tableNumber: checkIns.tableNumber })
-      .from(checkIns)
-      .where(and(eq(checkIns.participantId, participantId), eq(checkIns.classSessionId, classSessionId)))
-      .limit(1),
-  ]);
+  const [row] = await db
+    .select({
+      firstName: participants.firstName,
+      lastName: participants.lastName,
+      registrationFee: participants.registrationFee,
+      victoryDate: participants.victoryDate,
+      checkInId: checkIns.id,
+      tableNumber: checkIns.tableNumber,
+    })
+    .from(participants)
+    .leftJoin(checkIns, and(eq(checkIns.participantId, participants.id), eq(checkIns.classSessionId, classSessionId)))
+    .where(and(eq(participants.id, participantId), isNull(participants.deletedAt)))
+    .limit(1);
 
-  if (!participant) return { error: "Participant not found" };
+  if (!row) return { error: "Participant not found" };
 
+  const alreadyCheckedIn = row.checkInId != null;
   return {
-    firstName: toTitleCase(participant.firstName),
-    lastName: toTitleCase(participant.lastName),
-    alreadyCheckedIn: !!existing,
-    registrationFee: participant.registrationFee,
-    tableNumber: existing?.tableNumber ?? null,
-    victoryDayBlockReason: existing ? null : await getVictoryDayBlockReason(participantId, classSessionId, participant.victoryDate),
+    firstName: toTitleCase(row.firstName),
+    lastName: toTitleCase(row.lastName),
+    alreadyCheckedIn,
+    registrationFee: row.registrationFee,
+    tableNumber: row.tableNumber,
+    victoryDayBlockReason: alreadyCheckedIn ? null : await getVictoryDayBlockReason(participantId, classSessionId, row.victoryDate),
   };
 }
 
@@ -168,30 +164,32 @@ export async function checkInByQr(
   | { firstName: string; lastName: string; alreadyCheckedIn: boolean; tableNumber: number | null }
   | { error: string }
 > {
-  const [[participant], [existing], tableEnabled] = await Promise.all([
+  const [[row], tableEnabled] = await Promise.all([
     db
-      .select({ id: participants.id, firstName: participants.firstName, lastName: participants.lastName, victoryDate: participants.victoryDate })
+      .select({
+        firstName: participants.firstName,
+        lastName: participants.lastName,
+        victoryDate: participants.victoryDate,
+        checkInId: checkIns.id,
+        tableNumber: checkIns.tableNumber,
+      })
       .from(participants)
+      .leftJoin(checkIns, and(eq(checkIns.participantId, participants.id), eq(checkIns.classSessionId, classSessionId)))
       .where(and(eq(participants.id, participantId), isNull(participants.deletedAt)))
-      .limit(1),
-    db
-      .select({ id: checkIns.id, tableNumber: checkIns.tableNumber })
-      .from(checkIns)
-      .where(and(eq(checkIns.participantId, participantId), eq(checkIns.classSessionId, classSessionId)))
       .limit(1),
     isTableAssignmentEnabled(),
   ]);
 
-  if (!participant) return { error: "Participant not found" };
+  if (!row) return { error: "Participant not found" };
 
-  const firstName = toTitleCase(participant.firstName);
-  const lastName = toTitleCase(participant.lastName);
+  const firstName = toTitleCase(row.firstName);
+  const lastName = toTitleCase(row.lastName);
 
-  if (existing) {
-    return { firstName, lastName, alreadyCheckedIn: true, tableNumber: existing.tableNumber };
+  if (row.checkInId != null) {
+    return { firstName, lastName, alreadyCheckedIn: true, tableNumber: row.tableNumber };
   }
 
-  const blockReason = await getVictoryDayBlockReason(participantId, classSessionId, participant.victoryDate);
+  const blockReason = await getVictoryDayBlockReason(participantId, classSessionId, row.victoryDate);
   if (blockReason) return { error: blockReason };
 
   const tableNumber = tableEnabled ? await assignTableNumber(classSessionId) : null;
@@ -206,17 +204,32 @@ export interface CheckinRosterEntry {
   id: number;
   firstName: string;
   lastName: string;
+  middleInitial: string | null;
+  mobileNumber: string | null;
+  lifestage: string | null;
+  gender: string;
+  preferredNameOnId: string | null;
+  isWalkIn: boolean;
+  victoryDate: string | null;
   registrationFee: string | null;
-  alreadyCheckedIn: boolean;
+  checkInId: number | null;
+  checkedInAt: Date | null;
+  checkInRemarks: string | null;
+  checkInStatus: CheckInStatus | null;
   tableNumber: number | null;
+  victoryDayDate: string | null;
+  victoryDayCount: number;
+  totalVictoryDaySessions: number;
+  completedVictoryDay: boolean;
+  alreadyCheckedIn: boolean;
   victoryDayBlockReason: string | null;
 }
 
 /**
  * Bulk-preloads everyone eligible to check in to a session, with their
  * current check-in state and victory-day eligibility already computed, so
- * the QR scanner can resolve a scan from the client cache instead of
- * round-tripping to the server for every single scan.
+ * the QR scanner and the manual name search can both resolve from this one
+ * client-side cache instead of round-tripping to the server per scan/keystroke.
  */
 export async function getCheckinRoster(
   sessionId: number,
@@ -230,9 +243,18 @@ export async function getCheckinRoster(
       id: participants.id,
       firstName: participants.firstName,
       lastName: participants.lastName,
-      registrationFee: participants.registrationFee,
+      middleInitial: participants.middleInitial,
+      mobileNumber: participants.mobileNumber,
+      lifestage: participants.lifestage,
+      gender: participants.gender,
+      preferredNameOnId: participants.preferredNameOnId,
+      isWalkIn: participants.isWalkIn,
       victoryDate: participants.victoryDate,
+      registrationFee: participants.registrationFee,
       checkInId: checkIns.id,
+      checkedInAt: checkIns.checkedInAt,
+      checkInRemarks: checkIns.remarks,
+      checkInStatus: checkIns.status,
       tableNumber: checkIns.tableNumber,
     })
     .from(participants)
@@ -247,42 +269,45 @@ export async function getCheckinRoster(
 
   if (rows.length === 0) return [];
 
-  const needsVictoryCheck = !isVictoryDay && requiresVictoryDay;
-  let totalVictoryDaySessions = 0;
-  const victoryAttendanceCount: Record<number, number> = {};
+  const ids = rows.map((r) => r.id);
+  const year = currentYearPH();
 
-  if (needsVictoryCheck) {
-    const ids = rows.map((r) => r.id);
-    const year = currentYearPH();
-    const [[totals], victoryCheckIns] = await Promise.all([
-      db
-        .select({ totalVictoryDaySessions: count() })
-        .from(classSessions)
-        .where(
-          and(
-            eq(classSessions.isVictoryDay, true),
-            gte(classSessions.sessionDate, `${year}-01-01`),
-            lt(classSessions.sessionDate, `${year + 1}-01-01`)
-          )
-        ),
-      db
-        .select({ participantId: checkIns.participantId })
-        .from(checkIns)
-        .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
-        .where(and(inArray(checkIns.participantId, ids), eq(classSessions.isVictoryDay, true))),
-    ]);
-    totalVictoryDaySessions = totals.totalVictoryDaySessions;
-    for (const v of victoryCheckIns) {
-      victoryAttendanceCount[v.participantId] = (victoryAttendanceCount[v.participantId] ?? 0) + 1;
-    }
+  const [[totals], victoryCheckIns] = await Promise.all([
+    db
+      .select({ totalVictoryDaySessions: count() })
+      .from(classSessions)
+      .where(
+        and(
+          eq(classSessions.isVictoryDay, true),
+          gte(classSessions.sessionDate, `${year}-01-01`),
+          lt(classSessions.sessionDate, `${year + 1}-01-01`)
+        )
+      ),
+    db
+      .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
+      .from(checkIns)
+      .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
+      .where(and(inArray(checkIns.participantId, ids), eq(classSessions.isVictoryDay, true))),
+  ]);
+
+  const totalVictoryDaySessions = totals.totalVictoryDaySessions;
+  const victoryDayDateMap: Record<number, string> = {};
+  const victoryAttendanceCount: Record<number, number> = {};
+  for (const v of victoryCheckIns) {
+    victoryDayDateMap[v.participantId] ??= v.sessionDate;
+    victoryAttendanceCount[v.participantId] = (victoryAttendanceCount[v.participantId] ?? 0) + 1;
   }
+
+  const needsVictoryCheck = !isVictoryDay && requiresVictoryDay;
 
   return rows.map((r) => {
     const alreadyCheckedIn = r.checkInId != null;
+    const attended = victoryAttendanceCount[r.id] ?? 0;
+    const completedVictoryDay = attended >= totalVictoryDaySessions;
+
     let victoryDayBlockReason: string | null = null;
     if (!alreadyCheckedIn && needsVictoryCheck && !r.victoryDate) {
-      const attended = victoryAttendanceCount[r.id] ?? 0;
-      if (totalVictoryDaySessions > 0 && attended >= totalVictoryDaySessions) {
+      if (totalVictoryDaySessions > 0 && completedVictoryDay) {
         victoryDayBlockReason = null;
       } else if (attended > 0) {
         victoryDayBlockReason = `Victory Day incomplete (${attended}/${totalVictoryDaySessions})`;
@@ -290,13 +315,29 @@ export async function getCheckinRoster(
         victoryDayBlockReason = "No Victory Day yet";
       }
     }
+
     return {
       id: r.id,
       firstName: toTitleCase(r.firstName),
       lastName: toTitleCase(r.lastName),
+      middleInitial: r.middleInitial ? toTitleCase(r.middleInitial) : null,
+      mobileNumber: r.mobileNumber,
+      lifestage: r.lifestage,
+      gender: r.gender,
+      preferredNameOnId: r.preferredNameOnId,
+      isWalkIn: r.isWalkIn,
+      victoryDate: r.victoryDate,
       registrationFee: r.registrationFee,
-      alreadyCheckedIn,
+      checkInId: r.checkInId,
+      checkedInAt: r.checkedInAt,
+      checkInRemarks: r.checkInRemarks,
+      checkInStatus: r.checkInStatus,
       tableNumber: r.tableNumber,
+      victoryDayDate: victoryDayDateMap[r.id] ?? null,
+      victoryDayCount: attended,
+      totalVictoryDaySessions,
+      completedVictoryDay,
+      alreadyCheckedIn,
       victoryDayBlockReason,
     };
   });

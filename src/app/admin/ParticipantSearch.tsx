@@ -7,7 +7,21 @@ import { SessionCheckInList } from "./SessionCheckInList";
 import { QrScanner, QR_PREFIX, type QrScannerHandle } from "./QrScanner";
 import { ORIENTATION_SESSION_NAME } from "@/lib/constants";
 
-type Results = Awaited<ReturnType<typeof searchParticipants>>;
+type Results = CheckinRosterEntry[];
+
+function filterRoster(roster: Map<number, CheckinRosterEntry>, query: string): CheckinRosterEntry[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return Array.from(roster.values())
+    .filter(
+      (p) =>
+        p.lastName.toLowerCase().includes(q) ||
+        p.firstName.toLowerCase().includes(q) ||
+        (p.mobileNumber ?? "").toLowerCase().includes(q)
+    )
+    .sort((a, b) => a.lastName.localeCompare(b.lastName))
+    .slice(0, 30);
+}
 
 function isScannedCode(text: string): boolean {
   return text.startsWith(QR_PREFIX) && /^\d+$/.test(text.slice(QR_PREFIX.length));
@@ -40,10 +54,15 @@ function SearchSkeleton() {
 export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requiresVictoryDay, initialQ, qrCheckin, victoryDayAllowAllClasses, autoOpenQrScanner, confirmBeforeCheckIn, showTableNumber, autoCheckin, autoCheckin915 }: { sessionId: number; sessionName: string; isVictoryDay: boolean; requiresVictoryDay: boolean; initialQ?: string; qrCheckin?: boolean; victoryDayAllowAllClasses?: boolean; autoOpenQrScanner?: boolean; confirmBeforeCheckIn?: boolean; showTableNumber?: boolean; autoCheckin?: boolean; autoCheckin915?: boolean }) {
   const isOrientation = sessionName === ORIENTATION_SESSION_NAME;
   const [q, setQ] = useState(initialQ ?? "");
-  const [results, setResults] = useState<Results>([]);
+  const [committedQuery, setCommittedQuery] = useState("");
+  const [fallbackResults, setFallbackResults] = useState<Results>([]);
   const [searched, setSearched] = useState(false);
   const [pending, setPending] = useState(false);
   const [roster, setRoster] = useState<Map<number, CheckinRosterEntry>>(new Map());
+  const [rosterLoaded, setRosterLoaded] = useState(false);
+  // Once the roster's loaded, results are derived from it live — so a check-in
+  // (via QR or the list below) is reflected immediately, with no re-fetch race.
+  const results = rosterLoaded ? filterRoster(roster, committedQuery) : fallbackResults;
   const router = useRouter();
   const searchParams = useSearchParams();
   const scrollAfterSearch = useRef(false);
@@ -70,9 +89,17 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
   function runSearch(query: string) {
     setSearched(true);
     scrollAfterSearch.current = true;
+    setCommittedQuery(query);
+
+    // Once the roster's loaded, results are derived from it — nothing to fetch.
+    if (rosterLoaded) {
+      setPending(false);
+      return;
+    }
+
     setPending(true);
     searchParticipants(sessionId, query, isVictoryDay, victoryDayAllowAllClasses, isOrientation).then((data) => {
-      setResults(data);
+      setFallbackResults(data.map((r) => ({ ...r, alreadyCheckedIn: r.checkInId != null, victoryDayBlockReason: null })));
       setPending(false);
     });
   }
@@ -88,7 +115,8 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
     if (isScannedCode(trimmed)) {
       setQ("");
       setSearched(false);
-      setResults([]);
+      setCommittedQuery("");
+      setFallbackResults([]);
       qrScannerRef.current?.scan(trimmed);
       return;
     }
@@ -126,20 +154,21 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
-  // Preload the session roster once so QR scans can resolve instantly from
-  // memory instead of round-tripping to the server on every scan.
+  // Preload the session roster once so both QR scans and manual name search
+  // can resolve instantly from memory instead of round-tripping to the
+  // server per scan / per keystroke.
   useEffect(() => {
-    if (!qrCheckin) return;
     let cancelled = false;
     getCheckinRoster(sessionId, isVictoryDay, requiresVictoryDay, victoryDayAllowAllClasses, isOrientation).then((rows) => {
       if (cancelled) return;
       setRoster(new Map(rows.map((r) => [r.id, r])));
+      setRosterLoaded(true);
     });
     return () => {
       cancelled = true;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, qrCheckin]);
+  }, [sessionId]);
 
   return (
     <div>
@@ -177,7 +206,7 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
           onChange={(e) => {
             const val = e.target.value;
             setQ(val);
-            if (!val.trim()) { setSearched(false); setResults([]); }
+            if (!val.trim()) { setSearched(false); setCommittedQuery(""); setFallbackResults([]); }
           }}
           placeholder="Search by name or mobile number..."
           className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
@@ -204,6 +233,7 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
               isVictoryDay={isVictoryDay}
               requiresVictoryDay={requiresVictoryDay}
               onAction={() => runSearch(q)}
+              onRosterUpdate={updateRoster}
               searchQuery={q.trim()}
               confirmBeforeCheckIn={confirmBeforeCheckIn}
               showTableNumber={showTableNumber}

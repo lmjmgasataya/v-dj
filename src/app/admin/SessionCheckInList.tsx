@@ -10,6 +10,7 @@ import { CheckInStatusPicker, checkInStatusBadgeClass } from "./CheckInStatusPic
 import { checkInStatusTextClass } from "@/lib/checkinStatus";
 import { checkInStatusForDate, isOnTimeWindow, isWithinLateCutoff } from "@/lib/date";
 import type { CheckInStatus } from "@/db/schema";
+import type { CheckinRosterEntry } from "./actions";
 
 interface ParticipantWithStatus {
   id: number;
@@ -31,16 +32,19 @@ interface ParticipantWithStatus {
   checkInRemarks: string | null;
   checkInStatus: CheckInStatus | null;
   tableNumber: number | null;
+  alreadyCheckedIn?: boolean;
 }
 
-function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, confirmBeforeCheckIn = true, showTableNumber = true, autoCheckin = false, autoCheckin915 = false }: { p: ParticipantWithStatus; sessionId: number; isVictoryDay: boolean; requiresVictoryDay: boolean; onAction?: () => void; confirmBeforeCheckIn?: boolean; showTableNumber?: boolean; autoCheckin?: boolean; autoCheckin915?: boolean }) {
+type RosterUpdate = (participantId: number, patch: Partial<CheckinRosterEntry>) => void;
+
+function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, onRosterUpdate, confirmBeforeCheckIn = true, showTableNumber = true, autoCheckin = false, autoCheckin915 = false }: { p: ParticipantWithStatus; sessionId: number; isVictoryDay: boolean; requiresVictoryDay: boolean; onAction?: () => void; onRosterUpdate?: RosterUpdate; confirmBeforeCheckIn?: boolean; showTableNumber?: boolean; autoCheckin?: boolean; autoCheckin915?: boolean }) {
   const [pending, startTransition] = useTransition();
   const [showModal, setShowModal] = useState(false);
   const [remarks, setRemarks] = useState("");
   const [status, setStatus] = useState<CheckInStatus>("On-time");
   const [successInfo, setSuccessInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null; status: CheckInStatus } | null>(null);
   const toast = useToast();
-  const isCheckedIn = p.checkInId != null;
+  const isCheckedIn = p.checkInId != null || !!p.alreadyCheckedIn;
   const hasVictoryDay = !!p.victoryDate || p.completedVictoryDay;
   const isIncomplete = !!p.victoryDayDate && !p.completedVictoryDay && !p.victoryDate;
   const blocked = requiresVictoryDay && !isVictoryDay && !hasVictoryDay;
@@ -53,11 +57,19 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
       if ("error" in result) {
         toast.show(result.error, "error");
       } else {
+        const resolvedStatus = statusOverride ?? checkInStatusForDate(new Date());
         setSuccessInfo({
           firstName: toTitleCase(p.firstName),
           lastName: toTitleCase(p.lastName),
           tableNumber: result.tableNumber,
-          status: statusOverride ?? checkInStatusForDate(new Date()),
+          status: resolvedStatus,
+        });
+        onRosterUpdate?.(p.id, {
+          alreadyCheckedIn: true,
+          tableNumber: result.tableNumber,
+          checkedInAt: new Date(),
+          checkInStatus: resolvedStatus,
+          checkInRemarks: remarksValue || null,
         });
       }
       onAction?.();
@@ -153,6 +165,14 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
                   startTransition(async () => {
                     await removeCheckIn(p.id, sessionId);
                     toast.show("Check-in removed.");
+                    onRosterUpdate?.(p.id, {
+                      alreadyCheckedIn: false,
+                      checkInId: null,
+                      tableNumber: null,
+                      checkedInAt: null,
+                      checkInStatus: null,
+                      checkInRemarks: null,
+                    });
                     onAction?.();
                   });
                 }}
@@ -243,6 +263,7 @@ export function SessionCheckInList({
   isVictoryDay,
   requiresVictoryDay,
   onAction,
+  onRosterUpdate,
   searchQuery,
   confirmBeforeCheckIn,
   showTableNumber,
@@ -254,6 +275,7 @@ export function SessionCheckInList({
   isVictoryDay: boolean;
   requiresVictoryDay: boolean;
   onAction?: () => void;
+  onRosterUpdate?: RosterUpdate;
   searchQuery?: string;
   confirmBeforeCheckIn?: boolean;
   showTableNumber?: boolean;
@@ -278,7 +300,7 @@ export function SessionCheckInList({
         )}
       </div>
       {participants.map((p) => (
-        <CheckInRow key={p.id} p={p} sessionId={sessionId} isVictoryDay={isVictoryDay} requiresVictoryDay={requiresVictoryDay} onAction={onAction} confirmBeforeCheckIn={confirmBeforeCheckIn} showTableNumber={showTableNumber} autoCheckin={autoCheckin} autoCheckin915={autoCheckin915} />
+        <CheckInRow key={p.id} p={p} sessionId={sessionId} isVictoryDay={isVictoryDay} requiresVictoryDay={requiresVictoryDay} onAction={onAction} onRosterUpdate={onRosterUpdate} confirmBeforeCheckIn={confirmBeforeCheckIn} showTableNumber={showTableNumber} autoCheckin={autoCheckin} autoCheckin915={autoCheckin915} />
       ))}
     </div>
   );

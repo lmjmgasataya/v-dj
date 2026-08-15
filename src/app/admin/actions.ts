@@ -43,22 +43,29 @@ export async function setCheckinFlag(key: CheckinSettingsFlagKey, enabled: boole
   await toastRedirectBack("Setting updated.");
 }
 
-async function getVictoryDayBlockReason(participantId: number, classSessionId: number): Promise<string | null> {
-  const [session] = await db
-    .select({ isVictoryDay: classSessions.isVictoryDay, requiresVictoryDay: classSessions.requiresVictoryDay })
-    .from(classSessions)
-    .where(eq(classSessions.id, classSessionId))
-    .limit(1);
+async function getVictoryDayBlockReason(
+  participantId: number,
+  classSessionId: number,
+  precomputedVictoryDate?: string | null
+): Promise<string | null> {
+  const [[session], victoryDate] = await Promise.all([
+    db
+      .select({ isVictoryDay: classSessions.isVictoryDay, requiresVictoryDay: classSessions.requiresVictoryDay })
+      .from(classSessions)
+      .where(eq(classSessions.id, classSessionId))
+      .limit(1),
+    precomputedVictoryDate !== undefined
+      ? Promise.resolve(precomputedVictoryDate)
+      : db
+          .select({ victoryDate: participants.victoryDate })
+          .from(participants)
+          .where(eq(participants.id, participantId))
+          .limit(1)
+          .then((rows) => rows[0]?.victoryDate ?? null),
+  ]);
 
   if (!session || session.isVictoryDay || !session.requiresVictoryDay) return null;
-
-  const [participant] = await db
-    .select({ victoryDate: participants.victoryDate })
-    .from(participants)
-    .where(eq(participants.id, participantId))
-    .limit(1);
-
-  if (participant?.victoryDate) return null;
+  if (victoryDate) return null;
 
   const year = currentYearPH();
   const [[{ totalVictoryDaySessions }], [{ attended }]] = await Promise.all([
@@ -90,10 +97,13 @@ export async function checkInParticipant(
   remarks?: string,
   status?: CheckInStatus
 ): Promise<{ error: string } | { success: true; tableNumber: number | null }> {
-  const blockReason = await getVictoryDayBlockReason(participantId, classSessionId);
+  const [blockReason, tableEnabled] = await Promise.all([
+    getVictoryDayBlockReason(participantId, classSessionId),
+    isTableAssignmentEnabled(),
+  ]);
   if (blockReason) return { error: blockReason };
 
-  const tableNumber = (await isTableAssignmentEnabled()) ? await assignTableNumber(classSessionId) : null;
+  const tableNumber = tableEnabled ? await assignTableNumber(classSessionId) : null;
   await db
     .insert(checkIns)
     .values({ participantId, classSessionId, remarks: remarks || null, tableNumber, status: status ?? checkInStatusForDate(new Date()), method: "Search" })
@@ -117,24 +127,26 @@ export async function lookupParticipantForQr(
     }
   | { error: string }
 > {
-  const [participant] = await db
-    .select({
-      id: participants.id,
-      firstName: participants.firstName,
-      lastName: participants.lastName,
-      registrationFee: participants.registrationFee,
-    })
-    .from(participants)
-    .where(and(eq(participants.id, participantId), isNull(participants.deletedAt)))
-    .limit(1);
+  const [[participant], [existing]] = await Promise.all([
+    db
+      .select({
+        id: participants.id,
+        firstName: participants.firstName,
+        lastName: participants.lastName,
+        registrationFee: participants.registrationFee,
+        victoryDate: participants.victoryDate,
+      })
+      .from(participants)
+      .where(and(eq(participants.id, participantId), isNull(participants.deletedAt)))
+      .limit(1),
+    db
+      .select({ id: checkIns.id, tableNumber: checkIns.tableNumber })
+      .from(checkIns)
+      .where(and(eq(checkIns.participantId, participantId), eq(checkIns.classSessionId, classSessionId)))
+      .limit(1),
+  ]);
 
   if (!participant) return { error: "Participant not found" };
-
-  const [existing] = await db
-    .select({ id: checkIns.id, tableNumber: checkIns.tableNumber })
-    .from(checkIns)
-    .where(and(eq(checkIns.participantId, participantId), eq(checkIns.classSessionId, classSessionId)))
-    .limit(1);
 
   return {
     firstName: toTitleCase(participant.firstName),
@@ -142,7 +154,7 @@ export async function lookupParticipantForQr(
     alreadyCheckedIn: !!existing,
     registrationFee: participant.registrationFee,
     tableNumber: existing?.tableNumber ?? null,
-    victoryDayBlockReason: existing ? null : await getVictoryDayBlockReason(participantId, classSessionId),
+    victoryDayBlockReason: existing ? null : await getVictoryDayBlockReason(participantId, classSessionId, participant.victoryDate),
   };
 }
 
@@ -156,36 +168,138 @@ export async function checkInByQr(
   | { firstName: string; lastName: string; alreadyCheckedIn: boolean; tableNumber: number | null }
   | { error: string }
 > {
-  const [participant] = await db
-    .select({ id: participants.id, firstName: participants.firstName, lastName: participants.lastName })
-    .from(participants)
-    .where(and(eq(participants.id, participantId), isNull(participants.deletedAt)))
-    .limit(1);
+  const [[participant], [existing], tableEnabled] = await Promise.all([
+    db
+      .select({ id: participants.id, firstName: participants.firstName, lastName: participants.lastName, victoryDate: participants.victoryDate })
+      .from(participants)
+      .where(and(eq(participants.id, participantId), isNull(participants.deletedAt)))
+      .limit(1),
+    db
+      .select({ id: checkIns.id, tableNumber: checkIns.tableNumber })
+      .from(checkIns)
+      .where(and(eq(checkIns.participantId, participantId), eq(checkIns.classSessionId, classSessionId)))
+      .limit(1),
+    isTableAssignmentEnabled(),
+  ]);
 
   if (!participant) return { error: "Participant not found" };
 
   const firstName = toTitleCase(participant.firstName);
   const lastName = toTitleCase(participant.lastName);
 
-  const [existing] = await db
-    .select({ id: checkIns.id, tableNumber: checkIns.tableNumber })
-    .from(checkIns)
-    .where(and(eq(checkIns.participantId, participantId), eq(checkIns.classSessionId, classSessionId)))
-    .limit(1);
-
   if (existing) {
     return { firstName, lastName, alreadyCheckedIn: true, tableNumber: existing.tableNumber };
   }
 
-  const blockReason = await getVictoryDayBlockReason(participantId, classSessionId);
+  const blockReason = await getVictoryDayBlockReason(participantId, classSessionId, participant.victoryDate);
   if (blockReason) return { error: blockReason };
 
-  const tableNumber = (await isTableAssignmentEnabled()) ? await assignTableNumber(classSessionId) : null;
+  const tableNumber = tableEnabled ? await assignTableNumber(classSessionId) : null;
   await db.insert(checkIns).values({ participantId, classSessionId, remarks: remarks || null, tableNumber, status: status ?? checkInStatusForDate(new Date()), method }).onConflictDoNothing();
   revalidatePath("/admin");
   revalidatePath("/sessions");
 
   return { firstName, lastName, alreadyCheckedIn: false, tableNumber };
+}
+
+export interface CheckinRosterEntry {
+  id: number;
+  firstName: string;
+  lastName: string;
+  registrationFee: string | null;
+  alreadyCheckedIn: boolean;
+  tableNumber: number | null;
+  victoryDayBlockReason: string | null;
+}
+
+/**
+ * Bulk-preloads everyone eligible to check in to a session, with their
+ * current check-in state and victory-day eligibility already computed, so
+ * the QR scanner can resolve a scan from the client cache instead of
+ * round-tripping to the server for every single scan.
+ */
+export async function getCheckinRoster(
+  sessionId: number,
+  isVictoryDay: boolean,
+  requiresVictoryDay: boolean,
+  allowAllClasses = false,
+  isOrientation = false
+): Promise<CheckinRosterEntry[]> {
+  const rows = await db
+    .select({
+      id: participants.id,
+      firstName: participants.firstName,
+      lastName: participants.lastName,
+      registrationFee: participants.registrationFee,
+      victoryDate: participants.victoryDate,
+      checkInId: checkIns.id,
+      tableNumber: checkIns.tableNumber,
+    })
+    .from(participants)
+    .leftJoin(checkIns, and(eq(checkIns.participantId, participants.id), eq(checkIns.classSessionId, sessionId)))
+    .where(
+      and(
+        isNull(participants.deletedAt),
+        isVictoryDay && !allowAllClasses ? notInArray(participants.registrationFee, ["C", "D"]) : undefined,
+        isOrientation ? inArray(participants.registrationFee, ORIENTATION_ALLOWED_CLASSES) : undefined
+      )
+    );
+
+  if (rows.length === 0) return [];
+
+  const needsVictoryCheck = !isVictoryDay && requiresVictoryDay;
+  let totalVictoryDaySessions = 0;
+  const victoryAttendanceCount: Record<number, number> = {};
+
+  if (needsVictoryCheck) {
+    const ids = rows.map((r) => r.id);
+    const year = currentYearPH();
+    const [[totals], victoryCheckIns] = await Promise.all([
+      db
+        .select({ totalVictoryDaySessions: count() })
+        .from(classSessions)
+        .where(
+          and(
+            eq(classSessions.isVictoryDay, true),
+            gte(classSessions.sessionDate, `${year}-01-01`),
+            lt(classSessions.sessionDate, `${year + 1}-01-01`)
+          )
+        ),
+      db
+        .select({ participantId: checkIns.participantId })
+        .from(checkIns)
+        .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
+        .where(and(inArray(checkIns.participantId, ids), eq(classSessions.isVictoryDay, true))),
+    ]);
+    totalVictoryDaySessions = totals.totalVictoryDaySessions;
+    for (const v of victoryCheckIns) {
+      victoryAttendanceCount[v.participantId] = (victoryAttendanceCount[v.participantId] ?? 0) + 1;
+    }
+  }
+
+  return rows.map((r) => {
+    const alreadyCheckedIn = r.checkInId != null;
+    let victoryDayBlockReason: string | null = null;
+    if (!alreadyCheckedIn && needsVictoryCheck && !r.victoryDate) {
+      const attended = victoryAttendanceCount[r.id] ?? 0;
+      if (totalVictoryDaySessions > 0 && attended >= totalVictoryDaySessions) {
+        victoryDayBlockReason = null;
+      } else if (attended > 0) {
+        victoryDayBlockReason = `Victory Day incomplete (${attended}/${totalVictoryDaySessions})`;
+      } else {
+        victoryDayBlockReason = "No Victory Day yet";
+      }
+    }
+    return {
+      id: r.id,
+      firstName: toTitleCase(r.firstName),
+      lastName: toTitleCase(r.lastName),
+      registrationFee: r.registrationFee,
+      alreadyCheckedIn,
+      tableNumber: r.tableNumber,
+      victoryDayBlockReason,
+    };
+  });
 }
 
 export async function removeCheckIn(participantId: number, classSessionId: number) {

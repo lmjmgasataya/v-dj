@@ -54,13 +54,14 @@ export function getTableCapacity(tableNumber: number, ranges: TableRange[]): num
 }
 
 export async function assignTableNumber(classSessionId: number): Promise<number | null> {
-  const ranges = await getTableRanges();
-
-  const rows = await db
-    .select({ tableNumber: checkIns.tableNumber, occupied: count() })
-    .from(checkIns)
-    .where(and(eq(checkIns.classSessionId, classSessionId), isNotNull(checkIns.tableNumber)))
-    .groupBy(checkIns.tableNumber);
+  const [ranges, rows] = await Promise.all([
+    getTableRanges(),
+    db
+      .select({ tableNumber: checkIns.tableNumber, occupied: count() })
+      .from(checkIns)
+      .where(and(eq(checkIns.classSessionId, classSessionId), isNotNull(checkIns.tableNumber)))
+      .groupBy(checkIns.tableNumber),
+  ]);
 
   const occupiedByTable = new Map(rows.map((r) => [r.tableNumber!, r.occupied]));
 

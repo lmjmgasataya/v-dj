@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { searchParticipants } from "./actions";
+import { searchParticipants, getCheckinRoster, type CheckinRosterEntry } from "./actions";
 import { SessionCheckInList } from "./SessionCheckInList";
 import { QrScanner, QR_PREFIX, type QrScannerHandle } from "./QrScanner";
 import { ORIENTATION_SESSION_NAME } from "@/lib/constants";
@@ -43,11 +43,22 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
   const [results, setResults] = useState<Results>([]);
   const [searched, setSearched] = useState(false);
   const [pending, setPending] = useState(false);
+  const [roster, setRoster] = useState<Map<number, CheckinRosterEntry>>(new Map());
   const router = useRouter();
   const searchParams = useSearchParams();
   const scrollAfterSearch = useRef(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const qrScannerRef = useRef<QrScannerHandle>(null);
+
+  function updateRoster(participantId: number, patch: Partial<CheckinRosterEntry>) {
+    setRoster((prev) => {
+      const existing = prev.get(participantId);
+      if (!existing) return prev;
+      const next = new Map(prev);
+      next.set(participantId, { ...existing, ...patch });
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (scrollAfterSearch.current && !pending) {
@@ -115,6 +126,21 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
+  // Preload the session roster once so QR scans can resolve instantly from
+  // memory instead of round-tripping to the server on every scan.
+  useEffect(() => {
+    if (!qrCheckin) return;
+    let cancelled = false;
+    getCheckinRoster(sessionId, isVictoryDay, requiresVictoryDay, victoryDayAllowAllClasses, isOrientation).then((rows) => {
+      if (cancelled) return;
+      setRoster(new Map(rows.map((r) => [r.id, r])));
+    });
+    return () => {
+      cancelled = true;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, qrCheckin]);
+
   return (
     <div>
       {qrCheckin && (
@@ -130,6 +156,8 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
             showTableNumber={showTableNumber}
             autoCheckin={autoCheckin}
             autoCheckin915={autoCheckin915}
+            roster={roster}
+            onRosterUpdate={updateRoster}
             onCheckIn={(info) => {
               const nextQuery = info.lastName.trim() || q;
               setQ(nextQuery);

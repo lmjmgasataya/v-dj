@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { lookupParticipantForQr, checkInByQr } from "./actions";
+import { lookupParticipantForQr, checkInByQr, type CheckinRosterEntry } from "./actions";
 import { FEE_CATEGORIES } from "@/components/form";
 import { ORIENTATION_ALLOWED_CLASSES } from "@/lib/constants";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -77,10 +77,16 @@ interface QrScannerProps {
   autoCheckin?: boolean;
   autoCheckin915?: boolean;
   onCheckIn?: (info: CheckInResultInfo) => void;
+  /** Preloaded session roster, keyed by participant id — lets a scan resolve
+   * instantly from memory instead of round-tripping to the server. Falls
+   * back to a server lookup on a cache miss (e.g. a walk-in added after the
+   * roster loaded). */
+  roster?: Map<number, CheckinRosterEntry>;
+  onRosterUpdate?: (participantId: number, patch: Partial<CheckinRosterEntry>) => void;
 }
 
 export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function QrScanner(
-  { sessionId, isVictoryDay, allowAllClasses, isOrientation, autoOpen, confirmBeforeCheckIn = true, showTableNumber = true, autoCheckin = false, autoCheckin915 = false, onCheckIn },
+  { sessionId, isVictoryDay, allowAllClasses, isOrientation, autoOpen, confirmBeforeCheckIn = true, showTableNumber = true, autoCheckin = false, autoCheckin915 = false, onCheckIn, roster, onRosterUpdate },
   ref
 ) {
   const [status, setStatus] = useState<Status>(autoOpen ? "scanning" : "idle");
@@ -116,12 +122,14 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
         20000
       );
       onCheckInRef.current?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
+      onRosterUpdate?.(participantId, { alreadyCheckedIn: true, tableNumber: result.tableNumber });
       setStatus(restingStatus);
     } else {
       const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table available";
       const resultMessage = `Checked in: ${result.lastName}, ${result.firstName} — ${tableMsg}`;
       setSuccessInfo({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber, status: statusOverride ?? checkInStatusForDate(new Date()) });
       onCheckInRef.current?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: false, tableNumber: result.tableNumber });
+      onRosterUpdate?.(participantId, { alreadyCheckedIn: true, tableNumber: result.tableNumber });
     }
     setPending(null);
     setRemarks("");
@@ -136,8 +144,21 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     }
 
     playSuccessSound();
-    setStatus("loading");
-    const result = await lookupParticipantForQr(participantId, sessionId);
+
+    const cached = roster?.get(participantId);
+    const result = cached
+      ? {
+          firstName: cached.firstName,
+          lastName: cached.lastName,
+          alreadyCheckedIn: cached.alreadyCheckedIn,
+          registrationFee: cached.registrationFee,
+          victoryDayBlockReason: cached.victoryDayBlockReason,
+          tableNumber: cached.tableNumber,
+        }
+      : await (async () => {
+          setStatus("loading");
+          return lookupParticipantForQr(participantId, sessionId);
+        })();
 
     if ("error" in result) {
       setStatus("error");

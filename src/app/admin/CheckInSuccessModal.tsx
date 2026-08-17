@@ -12,6 +12,7 @@ export function CheckInSuccessModal({
   tableNumber,
   showTable = true,
   status = "On-time",
+  alreadyCheckedIn = false,
   onDismiss,
 }: {
   firstName: string;
@@ -19,6 +20,7 @@ export function CheckInSuccessModal({
   tableNumber: number | null;
   showTable?: boolean;
   status?: CheckInStatus;
+  alreadyCheckedIn?: boolean;
   onDismiss: () => void;
 }) {
   const [secondsLeft, setSecondsLeft] = useState(AUTO_DISMISS_SECONDS);
@@ -46,11 +48,15 @@ export function CheckInSuccessModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 flex flex-col items-center gap-1 text-center">
-        <div className={`w-20 h-20 rounded-full ${checkInStatusBgClass(status)} flex items-center justify-center mb-3 animate-check-circle-pop`}>
-          <CheckCircleIcon className={checkInStatusTextClass(status)} />
+        <div className={`w-20 h-20 rounded-full ${alreadyCheckedIn ? "bg-blue-100" : checkInStatusBgClass(status)} flex items-center justify-center mb-3 animate-check-circle-pop`}>
+          <CheckCircleIcon className={alreadyCheckedIn ? "text-blue-600" : checkInStatusTextClass(status)} />
         </div>
-        <p className="text-xl font-bold text-gray-900">You&rsquo;re checked in, {firstName}!</p>
-        <p className="text-sm text-gray-500">{lastName} &middot; Welcome!</p>
+        <p className="text-xl font-bold text-gray-900">
+          {alreadyCheckedIn ? `${firstName} is already checked in` : `You’re checked in, ${firstName}!`}
+        </p>
+        <p className="text-sm text-gray-500">
+          {lastName} &middot; {alreadyCheckedIn ? "No need to check in again" : "Welcome!"}
+        </p>
 
         {showTable && (
           <div className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-6 py-5 flex flex-col items-center gap-1 mt-6">

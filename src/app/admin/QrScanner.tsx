@@ -4,7 +4,6 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "re
 import { lookupParticipantForQr, checkInByQr, type CheckinRosterEntry } from "./actions";
 import { FEE_CATEGORIES } from "@/components/form";
 import { ORIENTATION_ALLOWED_CLASSES } from "@/lib/constants";
-import { useToast } from "@/components/toast/ToastProvider";
 import { CheckInSuccessModal } from "./CheckInSuccessModal";
 import { CheckInStatusPicker } from "./CheckInStatusPicker";
 import { checkInStatusForDate, isOnTimeWindow, isWithinLateCutoff } from "@/lib/date";
@@ -33,6 +32,18 @@ interface PendingParticipant {
   registrationFee: string | null;
   victoryDayBlockReason: string | null;
   method: CheckInMethod;
+}
+
+// html5-qrcode's stop() throws synchronously (not a rejected promise) when the
+// scanner isn't currently running/paused, so a plain `.catch()` can't guard
+// it — wrap the call itself in try/catch.
+async function safeStop(scanner: { stop: () => Promise<void> } | null) {
+  if (!scanner) return;
+  try {
+    await scanner.stop();
+  } catch {
+    // already stopped, never started, or mid-transition — nothing to do
+  }
 }
 
 function playSuccessSound() {
@@ -96,7 +107,8 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
   const [checkInStatus, setCheckInStatus] = useState<CheckInStatus>("On-time");
   const [mirrored, setMirrored] = useState(false);
   const [successInfo, setSuccessInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null; status: CheckInStatus } | null>(null);
-  const toast = useToast();
+  const [alreadyInfo, setAlreadyInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null; restingStatus: Status } | null>(null);
+  const [loadingLabel, setLoadingLabel] = useState("Loading…");
   const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
   const onCheckInRef = useRef(onCheckIn);
   useEffect(() => {
@@ -104,6 +116,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
   });
 
   async function submitCheckIn(participantId: number, remarksValue: string, restingStatus: Status, statusOverride: CheckInStatus | undefined, method: CheckInMethod) {
+    setLoadingLabel("Checking in…");
     setStatus("loading");
     const result = await checkInByQr(participantId, sessionId, remarksValue || undefined, statusOverride, method);
     if ("error" in result) {
@@ -113,17 +126,9 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
       const displayName = `${result.lastName}, ${result.firstName}`;
       const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table assigned";
       const resultMessage = `${displayName} is already checked in — ${tableMsg}.`;
-      toast.show(
-        <>
-          {displayName} is already checked in —{" "}
-          {result.tableNumber ? <strong>Table {result.tableNumber}</strong> : "no table assigned"}.
-        </>,
-        "info",
-        20000
-      );
+      setAlreadyInfo({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber, restingStatus });
       onCheckInRef.current?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
       onRosterUpdate?.(participantId, { alreadyCheckedIn: true, tableNumber: result.tableNumber });
-      setStatus(restingStatus);
     } else {
       const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table available";
       const resultMessage = `Checked in: ${result.lastName}, ${result.firstName} — ${tableMsg}`;
@@ -146,19 +151,21 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     playSuccessSound();
 
     const cached = roster?.get(participantId);
-    const result = cached
-      ? {
-          firstName: cached.firstName,
-          lastName: cached.lastName,
-          alreadyCheckedIn: cached.alreadyCheckedIn,
-          registrationFee: cached.registrationFee,
-          victoryDayBlockReason: cached.victoryDayBlockReason,
-          tableNumber: cached.tableNumber,
-        }
-      : await (async () => {
-          setStatus("loading");
-          return lookupParticipantForQr(participantId, sessionId);
-        })();
+    let result;
+    if (cached) {
+      result = {
+        firstName: cached.firstName,
+        lastName: cached.lastName,
+        alreadyCheckedIn: cached.alreadyCheckedIn,
+        registrationFee: cached.registrationFee,
+        victoryDayBlockReason: cached.victoryDayBlockReason,
+        tableNumber: cached.tableNumber,
+      };
+    } else {
+      setLoadingLabel("Looking up participant…");
+      setStatus("loading");
+      result = await lookupParticipantForQr(participantId, sessionId);
+    }
 
     if ("error" in result) {
       setStatus("error");
@@ -166,16 +173,8 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     } else if (result.alreadyCheckedIn) {
       const displayName = `${result.lastName}, ${result.firstName}`;
       const resultMessage = `${displayName} is already checked in.`;
-      toast.show(
-        <>
-          {displayName} is already checked in —{" "}
-          {result.tableNumber ? <strong>Table {result.tableNumber}</strong> : "no table assigned"}.
-        </>,
-        "info",
-        20000
-      );
+      setAlreadyInfo({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber, restingStatus });
       onCheckInRef.current?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
-      setStatus(restingStatus);
     } else {
       const victoryDayRestricted = isVictoryDay && !allowAllClasses && !VICTORY_DAY_ALLOWED_CLASSES.includes(result.registrationFee ?? "");
       const orientationRestricted = !!isOrientation && !ORIENTATION_ALLOWED_CLASSES.includes(result.registrationFee ?? "");
@@ -235,7 +234,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
           },
           async (decodedText: string) => {
             if (cancelled) return;
-            await scanner.stop().catch(() => {});
+            await safeStop(scanner);
             scannerRef.current = null;
             await processScannedCode(decodedText, "scanning", "Webcam");
           },
@@ -263,11 +262,11 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
 
     return () => {
       cancelled = true;
-      scannerRef.current?.stop().catch(() => {});
+      void safeStop(scannerRef.current);
       scannerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, sessionId, toast]);
+  }, [status, sessionId]);
 
   // Hardware (keyboard-wedge) scanner: these devices just "type" the decoded
   // text followed by Enter, as fast keystrokes, wherever focus happens to be.
@@ -276,7 +275,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
   // focused — so normal typing (e.g. a name search starting with "d") is
   // never touched.
   useEffect(() => {
-    if (status === "confirming" || status === "loading") return;
+    if (status === "confirming" || status === "loading" || alreadyInfo || successInfo) return;
 
     let buffer = "";
     let lastTime = 0;
@@ -324,7 +323,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, sessionId, toast]);
+  }, [status, sessionId, alreadyInfo, successInfo]);
 
   async function handleConfirm() {
     if (!pending) return;
@@ -337,6 +336,11 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
   function handleDismissSuccess() {
     setSuccessInfo(null);
     setStatus("scanning");
+  }
+
+  function handleDismissAlready() {
+    if (alreadyInfo) setStatus(alreadyInfo.restingStatus);
+    setAlreadyInfo(null);
   }
 
   function handleCancel() {
@@ -383,13 +387,6 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
           </button>
         )}
 
-        {status === "loading" && (
-          <div className="flex items-center justify-center gap-2 py-3 text-sm text-gray-500">
-            <span className="animate-spin inline-block">⏳</span>
-            Loading...
-          </div>
-        )}
-
         {status === "error" && (
           <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 flex items-center justify-between gap-3">
             <p className="text-sm text-red-700">{message}</p>
@@ -403,6 +400,15 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
           </div>
         )}
       </div>
+
+      {status === "loading" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-8 flex flex-col items-center gap-3">
+            <span className="animate-spin inline-block text-4xl">⏳</span>
+            <p className="text-sm text-gray-500">{loadingLabel}</p>
+          </div>
+        </div>
+      )}
 
       {status === "confirming" && pending && (() => {
         const victoryDayRestricted = isVictoryDay && !allowAllClasses && !VICTORY_DAY_ALLOWED_CLASSES.includes(pending.registrationFee ?? "");
@@ -472,6 +478,17 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
           status={successInfo.status}
           showTable={showTableNumber}
           onDismiss={handleDismissSuccess}
+        />
+      )}
+
+      {alreadyInfo && (
+        <CheckInSuccessModal
+          firstName={alreadyInfo.firstName}
+          lastName={alreadyInfo.lastName}
+          tableNumber={alreadyInfo.tableNumber}
+          showTable={showTableNumber}
+          alreadyCheckedIn
+          onDismiss={handleDismissAlready}
         />
       )}
     </>

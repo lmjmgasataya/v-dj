@@ -114,6 +114,16 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
   useEffect(() => {
     onCheckInRef.current = onCheckIn;
   });
+  // The camera-decode and hardware-scanner listeners are set up in effects
+  // that don't re-run on every render (see their dependency arrays below), so
+  // a scan can otherwise resolve against a `roster` snapshot from whenever
+  // those effects last ran — e.g. still showing "already checked in" right
+  // after an undo elsewhere on the page patched the roster via
+  // `onRosterUpdate`. Read through a ref so every scan sees the latest roster.
+  const rosterRef = useRef(roster);
+  useEffect(() => {
+    rosterRef.current = roster;
+  });
 
   async function submitCheckIn(participantId: number, remarksValue: string, statusOverride: CheckInStatus | undefined, method: CheckInMethod) {
     setLoadingLabel("Checking in…");
@@ -150,7 +160,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
 
     playSuccessSound();
 
-    const cached = roster?.get(participantId);
+    const cached = rosterRef.current?.get(participantId);
     let result;
     if (cached) {
       result = {

@@ -22,7 +22,7 @@ const CHECKIN_SETTINGS = [
   {
     key: "qr_auto_open_scanner" as const,
     label: "QR check-in — auto-open camera after selecting a session",
-    description: "The camera scanner opens automatically once a session is selected, instead of waiting for Scan QR Code to be clicked.",
+    description: "The camera scanner opens automatically once a session is selected, instead of waiting for Scan QR Code to be clicked. Recommended to turn off if you're using a barcode scanner.",
   },
 ];
 

@@ -97,13 +97,17 @@ export async function checkInParticipant(
   remarks?: string,
   status?: CheckInStatus
 ): Promise<{ error: string } | { success: true; tableNumber: number | null }> {
-  const [blockReason, tableEnabled] = await Promise.all([
+  // assignTableNumber is a pure read (no reservation), so it's safe to run it
+  // speculatively alongside the eligibility checks instead of waiting for
+  // them first — worst case it's an extra read that goes unused if blocked.
+  const [blockReason, tableEnabled, tableNumberIfEnabled] = await Promise.all([
     getVictoryDayBlockReason(participantId, classSessionId),
     isTableAssignmentEnabled(),
+    assignTableNumber(classSessionId),
   ]);
   if (blockReason) return { error: blockReason };
 
-  const tableNumber = tableEnabled ? await assignTableNumber(classSessionId) : null;
+  const tableNumber = tableEnabled ? tableNumberIfEnabled : null;
   await db
     .insert(checkIns)
     .values({ participantId, classSessionId, remarks: remarks || null, tableNumber, status: status ?? checkInStatusForDate(new Date()), method: "Search" })
@@ -127,19 +131,25 @@ export async function lookupParticipantForQr(
     }
   | { error: string }
 > {
-  const [row] = await db
-    .select({
-      firstName: participants.firstName,
-      lastName: participants.lastName,
-      registrationFee: participants.registrationFee,
-      victoryDate: participants.victoryDate,
-      checkInId: checkIns.id,
-      tableNumber: checkIns.tableNumber,
-    })
-    .from(participants)
-    .leftJoin(checkIns, and(eq(checkIns.participantId, participants.id), eq(checkIns.classSessionId, classSessionId)))
-    .where(and(eq(participants.id, participantId), isNull(participants.deletedAt)))
-    .limit(1);
+  // Run the block-reason check alongside the row lookup instead of after it —
+  // it's a pure read, so it's fine to compute speculatively and discard when
+  // the participant turns out to already be checked in.
+  const [[row], blockReason] = await Promise.all([
+    db
+      .select({
+        firstName: participants.firstName,
+        lastName: participants.lastName,
+        registrationFee: participants.registrationFee,
+        victoryDate: participants.victoryDate,
+        checkInId: checkIns.id,
+        tableNumber: checkIns.tableNumber,
+      })
+      .from(participants)
+      .leftJoin(checkIns, and(eq(checkIns.participantId, participants.id), eq(checkIns.classSessionId, classSessionId)))
+      .where(and(eq(participants.id, participantId), isNull(participants.deletedAt)))
+      .limit(1),
+    getVictoryDayBlockReason(participantId, classSessionId),
+  ]);
 
   if (!row) return { error: "Participant not found" };
 
@@ -150,7 +160,7 @@ export async function lookupParticipantForQr(
     alreadyCheckedIn,
     registrationFee: row.registrationFee,
     tableNumber: row.tableNumber,
-    victoryDayBlockReason: alreadyCheckedIn ? null : await getVictoryDayBlockReason(participantId, classSessionId, row.victoryDate),
+    victoryDayBlockReason: alreadyCheckedIn ? null : blockReason,
   };
 }
 
@@ -164,12 +174,16 @@ export async function checkInByQr(
   | { firstName: string; lastName: string; alreadyCheckedIn: boolean; tableNumber: number | null }
   | { error: string }
 > {
-  const [[row], tableEnabled] = await Promise.all([
+  // Every branch below except the final row lookup is a pure read with no
+  // dependency on the others, so run them all speculatively up front instead
+  // of chaining sequential round trips — the common case (a fresh, unblocked
+  // check-in) uses all four results; the "already checked in" / blocked cases
+  // just discard the extras.
+  const [[row], tableEnabled, blockReason, tableNumberIfEnabled] = await Promise.all([
     db
       .select({
         firstName: participants.firstName,
         lastName: participants.lastName,
-        victoryDate: participants.victoryDate,
         checkInId: checkIns.id,
         tableNumber: checkIns.tableNumber,
       })
@@ -178,6 +192,8 @@ export async function checkInByQr(
       .where(and(eq(participants.id, participantId), isNull(participants.deletedAt)))
       .limit(1),
     isTableAssignmentEnabled(),
+    getVictoryDayBlockReason(participantId, classSessionId),
+    assignTableNumber(classSessionId),
   ]);
 
   if (!row) return { error: "Participant not found" };
@@ -189,10 +205,9 @@ export async function checkInByQr(
     return { firstName, lastName, alreadyCheckedIn: true, tableNumber: row.tableNumber };
   }
 
-  const blockReason = await getVictoryDayBlockReason(participantId, classSessionId, row.victoryDate);
   if (blockReason) return { error: blockReason };
 
-  const tableNumber = tableEnabled ? await assignTableNumber(classSessionId) : null;
+  const tableNumber = tableEnabled ? tableNumberIfEnabled : null;
   await db.insert(checkIns).values({ participantId, classSessionId, remarks: remarks || null, tableNumber, status: status ?? checkInStatusForDate(new Date()), method }).onConflictDoNothing();
   revalidatePath("/admin");
   revalidatePath("/sessions");

@@ -16,14 +16,20 @@ export default async function AdminPage({
   const { session, q: initialQ = "" } = await searchParams;
   const sessionId = session ? parseInt(session, 10) : null;
 
-  const defaultBatch = await db
-    .select()
-    .from(batches)
-    .where(eq(batches.isDefault, true))
-    .limit(1)
-    .then((rows) => rows[0] ?? null);
+  // featureFlags doesn't depend on the default batch, so fetch it alongside
+  // instead of after — this page re-renders on every check-in via
+  // revalidatePath, so shaving a round trip here matters.
+  const [defaultBatch, flags] = await Promise.all([
+    db
+      .select()
+      .from(batches)
+      .where(eq(batches.isDefault, true))
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
+    db.select().from(featureFlags),
+  ]);
 
-  const [sessions, feeBreakdown, flags] = await Promise.all([
+  const [sessions, feeBreakdown] = await Promise.all([
     defaultBatch
       ? db
           .select()
@@ -46,8 +52,6 @@ export default async function AdminPage({
           .groupBy(participants.registrationFee)
           .orderBy(participants.registrationFee)
       : [],
-
-    db.select().from(featureFlags),
   ]);
 
   const flagMap = Object.fromEntries(flags.map((f) => [f.key, f.enabled]));

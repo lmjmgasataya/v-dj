@@ -108,6 +108,11 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
   const [mirrored, setMirrored] = useState(false);
   const [successInfo, setSuccessInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null; status: CheckInStatus } | null>(null);
   const [alreadyInfo, setAlreadyInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null } | null>(null);
+  // Bumped each time a new scan result is shown, so a rescan that arrives
+  // while a popup is still up (e.g. the barcode-scanner flow, which no
+  // longer waits for the popup to be dismissed) remounts the modal instead
+  // of reusing it — otherwise its own auto-dismiss countdown wouldn't reset.
+  const [resultSeq, setResultSeq] = useState(0);
   const [loadingLabel, setLoadingLabel] = useState("Loading…");
   const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
   const onCheckInRef = useRef(onCheckIn);
@@ -125,6 +130,19 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     rosterRef.current = roster;
   });
 
+  // Replaces whatever popup is currently showing (success or already-checked-in)
+  // with the new result, and forces a remount so its countdown starts fresh.
+  function presentSuccess(info: { firstName: string; lastName: string; tableNumber: number | null; status: CheckInStatus }) {
+    setAlreadyInfo(null);
+    setResultSeq((s) => s + 1);
+    setSuccessInfo(info);
+  }
+  function presentAlready(info: { firstName: string; lastName: string; tableNumber: number | null }) {
+    setSuccessInfo(null);
+    setResultSeq((s) => s + 1);
+    setAlreadyInfo(info);
+  }
+
   async function submitCheckIn(participantId: number, remarksValue: string, statusOverride: CheckInStatus | undefined, method: CheckInMethod) {
     setLoadingLabel("Checking in…");
     setStatus("loading");
@@ -136,13 +154,13 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
       const displayName = `${result.lastName}, ${result.firstName}`;
       const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table assigned";
       const resultMessage = `${displayName} is already checked in — ${tableMsg}.`;
-      setAlreadyInfo({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber });
+      presentAlready({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber });
       onCheckInRef.current?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
       onRosterUpdate?.(participantId, { alreadyCheckedIn: true, tableNumber: result.tableNumber });
     } else {
       const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table available";
       const resultMessage = `Checked in: ${result.lastName}, ${result.firstName} — ${tableMsg}`;
-      setSuccessInfo({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber, status: statusOverride ?? checkInStatusForDate(new Date()) });
+      presentSuccess({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber, status: statusOverride ?? checkInStatusForDate(new Date()) });
       onCheckInRef.current?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: false, tableNumber: result.tableNumber });
       onRosterUpdate?.(participantId, { alreadyCheckedIn: true, tableNumber: result.tableNumber });
     }
@@ -183,7 +201,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     } else if (result.alreadyCheckedIn) {
       const displayName = `${result.lastName}, ${result.firstName}`;
       const resultMessage = `${displayName} is already checked in.`;
-      setAlreadyInfo({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber });
+      presentAlready({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber });
       onCheckInRef.current?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
     } else {
       const victoryDayRestricted = isVictoryDay && !allowAllClasses && !VICTORY_DAY_ALLOWED_CLASSES.includes(result.registrationFee ?? "");
@@ -197,6 +215,8 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
       } else if (!confirmBeforeCheckIn && !restricted) {
         await submitCheckIn(participantId, "", undefined, method);
       } else {
+        setSuccessInfo(null);
+        setAlreadyInfo(null);
         setCheckInStatus(checkInStatusForDate(new Date()));
         setPending({
           id: participantId,
@@ -285,7 +305,11 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
   // focused — so normal typing (e.g. a name search starting with "d") is
   // never touched.
   useEffect(() => {
-    if (status === "confirming" || status === "loading" || alreadyInfo || successInfo) return;
+    // Deliberately does NOT bail on "loading" or an open success/already
+    // popup — a barcode-scanner rescan should register immediately and
+    // replace the current popup, rather than waiting out its countdown.
+    // "confirming" still blocks: that dialog needs an explicit decision.
+    if (status === "confirming") return;
 
     let buffer = "";
     let lastTime = 0;
@@ -333,7 +357,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, sessionId, alreadyInfo, successInfo]);
+  }, [status, sessionId]);
 
   async function handleConfirm() {
     if (!pending) return;
@@ -482,6 +506,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
 
       {successInfo && (
         <CheckInSuccessModal
+          key={resultSeq}
           firstName={successInfo.firstName}
           lastName={successInfo.lastName}
           tableNumber={successInfo.tableNumber}
@@ -493,6 +518,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
 
       {alreadyInfo && (
         <CheckInSuccessModal
+          key={resultSeq}
           firstName={alreadyInfo.firstName}
           lastName={alreadyInfo.lastName}
           tableNumber={alreadyInfo.tableNumber}

@@ -19,6 +19,11 @@ const CHECKIN_SETTINGS = [
     label: "Auto check-in before 9:15 AM",
     description: "Arrivals on or before 9:15 AM skip the confirmation popup and are marked On-time or Late automatically.",
   },
+  {
+    key: "qr_auto_open_scanner" as const,
+    label: "QR check-in — auto-open camera after selecting a session",
+    description: "The camera scanner opens automatically once a session is selected, instead of waiting for Scan QR Code to be clicked.",
+  },
 ];
 
 export function CheckInSettingsButton({ flags }: { flags: Record<string, boolean> }) {

@@ -107,7 +107,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
   const [checkInStatus, setCheckInStatus] = useState<CheckInStatus>("On-time");
   const [mirrored, setMirrored] = useState(false);
   const [successInfo, setSuccessInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null; status: CheckInStatus } | null>(null);
-  const [alreadyInfo, setAlreadyInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null; restingStatus: Status } | null>(null);
+  const [alreadyInfo, setAlreadyInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null } | null>(null);
   const [loadingLabel, setLoadingLabel] = useState("Loading…");
   const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
   const onCheckInRef = useRef(onCheckIn);
@@ -115,7 +115,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     onCheckInRef.current = onCheckIn;
   });
 
-  async function submitCheckIn(participantId: number, remarksValue: string, restingStatus: Status, statusOverride: CheckInStatus | undefined, method: CheckInMethod) {
+  async function submitCheckIn(participantId: number, remarksValue: string, statusOverride: CheckInStatus | undefined, method: CheckInMethod) {
     setLoadingLabel("Checking in…");
     setStatus("loading");
     const result = await checkInByQr(participantId, sessionId, remarksValue || undefined, statusOverride, method);
@@ -126,7 +126,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
       const displayName = `${result.lastName}, ${result.firstName}`;
       const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table assigned";
       const resultMessage = `${displayName} is already checked in — ${tableMsg}.`;
-      setAlreadyInfo({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber, restingStatus });
+      setAlreadyInfo({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber });
       onCheckInRef.current?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
       onRosterUpdate?.(participantId, { alreadyCheckedIn: true, tableNumber: result.tableNumber });
     } else {
@@ -140,7 +140,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     setRemarks("");
   }
 
-  async function processScannedCode(decodedText: string, restingStatus: Status, method: CheckInMethod) {
+  async function processScannedCode(decodedText: string, method: CheckInMethod) {
     const participantId = parseParticipantId(decodedText);
     if (!participantId) {
       setStatus("error");
@@ -173,7 +173,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     } else if (result.alreadyCheckedIn) {
       const displayName = `${result.lastName}, ${result.firstName}`;
       const resultMessage = `${displayName} is already checked in.`;
-      setAlreadyInfo({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber, restingStatus });
+      setAlreadyInfo({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber });
       onCheckInRef.current?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
     } else {
       const victoryDayRestricted = isVictoryDay && !allowAllClasses && !VICTORY_DAY_ALLOWED_CLASSES.includes(result.registrationFee ?? "");
@@ -181,11 +181,11 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
       const restricted = victoryDayRestricted || orientationRestricted || !!result.victoryDayBlockReason;
 
       if (autoCheckin && !restricted && isOnTimeWindow()) {
-        await submitCheckIn(participantId, "", restingStatus, "On-time", method);
+        await submitCheckIn(participantId, "", "On-time", method);
       } else if (autoCheckin915 && !restricted && isWithinLateCutoff()) {
-        await submitCheckIn(participantId, "", restingStatus, checkInStatusForDate(new Date()), method);
+        await submitCheckIn(participantId, "", checkInStatusForDate(new Date()), method);
       } else if (!confirmBeforeCheckIn && !restricted) {
-        await submitCheckIn(participantId, "", restingStatus, undefined, method);
+        await submitCheckIn(participantId, "", undefined, method);
       } else {
         setCheckInStatus(checkInStatusForDate(new Date()));
         setPending({
@@ -203,7 +203,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
 
   useImperativeHandle(ref, () => ({
     scan: (code: string) => {
-      void processScannedCode(code, "idle", "QR Reader");
+      void processScannedCode(code, "QR Reader");
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [sessionId]);
@@ -236,7 +236,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
             if (cancelled) return;
             await safeStop(scanner);
             scannerRef.current = null;
-            await processScannedCode(decodedText, "scanning", "Webcam");
+            await processScannedCode(decodedText, "Webcam");
           },
           undefined
         );
@@ -304,7 +304,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
         buffer = "";
         if (candidate.length > QR_PREFIX.length && matchesPrefix(candidate)) {
           e.preventDefault();
-          void processScannedCode(candidate, status, "QR Reader");
+          void processScannedCode(candidate, "QR Reader");
         }
         return;
       }
@@ -330,17 +330,17 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     if (isVictoryDay && !allowAllClasses && !VICTORY_DAY_ALLOWED_CLASSES.includes(pending.registrationFee ?? "")) return;
     if (isOrientation && !ORIENTATION_ALLOWED_CLASSES.includes(pending.registrationFee ?? "")) return;
     if (pending.victoryDayBlockReason) return;
-    await submitCheckIn(pending.id, remarks, "scanning", checkInStatus, pending.method);
+    await submitCheckIn(pending.id, remarks, checkInStatus, pending.method);
   }
 
   function handleDismissSuccess() {
     setSuccessInfo(null);
-    setStatus("scanning");
+    setStatus(autoOpen ? "scanning" : "idle");
   }
 
   function handleDismissAlready() {
-    if (alreadyInfo) setStatus(alreadyInfo.restingStatus);
     setAlreadyInfo(null);
+    setStatus(autoOpen ? "scanning" : "idle");
   }
 
   function handleCancel() {

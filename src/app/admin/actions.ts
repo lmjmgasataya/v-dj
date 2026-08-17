@@ -23,7 +23,7 @@ async function isTableAssignmentEnabled(): Promise<boolean> {
   return flag?.enabled ?? true;
 }
 
-const CHECKIN_SETTINGS_FLAG_KEYS = ["checkin_confirm_popup", "checkin_autocheckin", "checkin_autocheckin_915"] as const;
+const CHECKIN_SETTINGS_FLAG_KEYS = ["checkin_confirm_popup", "checkin_autocheckin", "checkin_autocheckin_915", "qr_auto_open_scanner"] as const;
 type CheckinSettingsFlagKey = (typeof CHECKIN_SETTINGS_FLAG_KEYS)[number];
 
 export async function setCheckinFlag(key: CheckinSettingsFlagKey, enabled: boolean) {

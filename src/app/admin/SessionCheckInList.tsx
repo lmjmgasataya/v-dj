@@ -53,32 +53,52 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
   const isIncomplete = !!p.victoryDayDate && !p.completedVictoryDay && !p.victoryDate;
   const blocked = requiresVictoryDay && !isVictoryDay && !hasVictoryDay;
 
+  function queueOffline(remarksValue: string, statusOverride?: CheckInStatus) {
+    setShowModal(false);
+    setRemarks("");
+    const resolvedStatus = statusOverride ?? checkInStatusForDate(new Date());
+    enqueueCheckIn({ participantId: p.id, sessionId, remarks: remarksValue || undefined, status: statusOverride, method: "Search" });
+    setSuccessInfo({
+      firstName: toTitleCase(p.firstName),
+      lastName: toTitleCase(p.lastName),
+      tableNumber: null,
+      status: resolvedStatus,
+      pendingSync: true,
+    });
+    onRosterUpdate?.(p.id, {
+      alreadyCheckedIn: true,
+      tableNumber: null,
+      checkedInAt: new Date(),
+      checkInStatus: resolvedStatus,
+      checkInRemarks: remarksValue || null,
+    });
+    onAction?.();
+  }
+
   function submitCheckIn(remarksValue: string, statusOverride?: CheckInStatus) {
     if (!isOnline) {
-      setShowModal(false);
-      setRemarks("");
-      const resolvedStatus = statusOverride ?? checkInStatusForDate(new Date());
-      enqueueCheckIn({ participantId: p.id, sessionId, remarks: remarksValue || undefined, status: statusOverride, method: "Search" });
-      setSuccessInfo({
-        firstName: toTitleCase(p.firstName),
-        lastName: toTitleCase(p.lastName),
-        tableNumber: null,
-        status: resolvedStatus,
-        pendingSync: true,
-      });
-      onRosterUpdate?.(p.id, {
-        alreadyCheckedIn: true,
-        tableNumber: null,
-        checkedInAt: new Date(),
-        checkInStatus: resolvedStatus,
-        checkInRemarks: remarksValue || null,
-      });
-      onAction?.();
+      queueOffline(remarksValue, statusOverride);
       return;
     }
 
     startTransition(async () => {
-      const result = await checkInParticipant(p.id, sessionId, remarksValue || undefined, statusOverride);
+      let result;
+      try {
+        result = await checkInParticipant(p.id, sessionId, remarksValue || undefined, statusOverride);
+      } catch {
+        // Connection dropped mid-click — fall back to the offline queue
+        // instead of letting a failed Server Action surface as an uncaught
+        // rejection (which can trigger a hard navigation on some failures).
+        if (offlineCheckin) {
+          queueOffline(remarksValue, statusOverride);
+          return;
+        }
+        toast.show("Check-in failed — check your connection and try again.", "error");
+        setShowModal(false);
+        setRemarks("");
+        onAction?.();
+        return;
+      }
       setShowModal(false);
       setRemarks("");
       if ("error" in result) {

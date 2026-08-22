@@ -149,18 +149,23 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
   }
 
   async function submitCheckIn(participantId: number, remarksValue: string, statusOverride: CheckInStatus | undefined, method: CheckInMethod) {
-    if (!isOnline) {
+    function queueOffline(): boolean {
       const cached = rosterRef.current?.get(participantId);
-      if (!cached) {
-        setStatus("error");
-        setMessage("Participant not in the offline roster — reconnect to check them in.");
-        return;
-      }
+      if (!cached) return false;
       enqueueCheckIn({ participantId, sessionId, remarks: remarksValue || undefined, status: statusOverride, method });
       const resolvedStatus = statusOverride ?? checkInStatusForDate(new Date());
       presentSuccess({ firstName: cached.firstName, lastName: cached.lastName, tableNumber: null, status: resolvedStatus, pendingSync: true });
       onCheckInRef.current?.({ lastName: cached.lastName, message: `Checked in: ${cached.lastName}, ${cached.firstName} — pending sync`, alreadyCheckedIn: false, tableNumber: null });
       onRosterUpdate?.(participantId, { alreadyCheckedIn: true, tableNumber: null, checkInStatus: resolvedStatus, checkInRemarks: remarksValue || null });
+      return true;
+    }
+
+    if (!isOnline) {
+      if (!queueOffline()) {
+        setStatus("error");
+        setMessage("Participant not in the offline roster — reconnect to check them in.");
+        return;
+      }
       setPending(null);
       setRemarks("");
       return;
@@ -168,7 +173,23 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
 
     setLoadingLabel("Checking in…");
     setStatus("loading");
-    const result = await checkInByQr(participantId, sessionId, remarksValue || undefined, statusOverride, method);
+    let result;
+    try {
+      result = await checkInByQr(participantId, sessionId, remarksValue || undefined, statusOverride, method);
+    } catch {
+      // Connection dropped mid-click — fall back to the offline queue instead
+      // of letting a failed Server Action surface as an uncaught rejection.
+      if (offlineCheckin && queueOffline()) {
+        setPending(null);
+        setRemarks("");
+        return;
+      }
+      setStatus("error");
+      setMessage("Check-in failed — check your connection and try again.");
+      setPending(null);
+      setRemarks("");
+      return;
+    }
     if ("error" in result) {
       setStatus("error");
       setMessage(result.error);
@@ -218,7 +239,13 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     } else {
       setLoadingLabel("Looking up participant…");
       setStatus("loading");
-      result = await lookupParticipantForQr(participantId, sessionId);
+      try {
+        result = await lookupParticipantForQr(participantId, sessionId);
+      } catch {
+        setStatus("error");
+        setMessage("Lookup failed — check your connection and try again.");
+        return;
+      }
     }
 
     if ("error" in result) {

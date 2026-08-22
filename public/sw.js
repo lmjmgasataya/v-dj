@@ -27,6 +27,22 @@ async function matchByPathname(pathname) {
   return match ? cache.match(match) : undefined;
 }
 
+// event.respondWith() requires a real Response — resolving to undefined (e.g.
+// nothing cached yet for this path at all) is invalid and is what produces
+// the browser's generic "This page couldn't load" interstitial instead of
+// anything useful. Always land on a real Response as the last resort.
+function offlineFallbackResponse() {
+  return new Response(
+    "<!doctype html><html><head><meta charset='utf-8'><title>Offline</title></head>" +
+      "<body style='font-family:system-ui,sans-serif;padding:2.5rem;text-align:center;color:#374151'>" +
+      "<h1>You're offline</h1>" +
+      "<p>This page hasn't been loaded on this device before, so it can't be shown without a connection.</p>" +
+      "<p>Reconnect once, then it'll keep working offline from then on.</p>" +
+      "</body></html>",
+    { status: 200, headers: { "Content-Type": "text/html" } }
+  );
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
@@ -47,7 +63,9 @@ self.addEventListener("fetch", (event) => {
           if (exact) return exact;
           const samePath = await matchByPathname(url.pathname);
           if (samePath) return samePath;
-          return matchByPathname("/admin");
+          const adminFallback = await matchByPathname("/admin");
+          if (adminFallback) return adminFallback;
+          return offlineFallbackResponse();
         })
     );
     return;

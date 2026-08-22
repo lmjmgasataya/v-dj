@@ -22,7 +22,13 @@ export function WalkInForm({ sessionId, newDatePicker, offlineCheckin = false }:
     }
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
-      const result = await addWalkIn(sessionId, formData);
+      let result;
+      try {
+        result = await addWalkIn(sessionId, formData);
+      } catch {
+        toast.show("Walk-in registration failed — check your connection and try again.", "error");
+        return;
+      }
       setFormKey((k) => k + 1);
       toast.show(
         <>

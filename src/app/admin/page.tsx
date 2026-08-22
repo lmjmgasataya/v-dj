@@ -8,6 +8,7 @@ import { AdminSessionArea } from "./AdminSessionArea";
 import { WalkInForm } from "./WalkInForm";
 import { CheckInSettingsButton } from "./CheckInSettingsButton";
 import { OfflineSyncBar } from "./OfflineSyncBar";
+import { RosterPrefetcher } from "./RosterPrefetcher";
 
 export default async function AdminPage({
   searchParams,
@@ -82,7 +83,12 @@ export default async function AdminPage({
         <CheckInSettingsButton flags={flagMap} />
       </div>
 
-      {flagMap["offline_checkin"] && <OfflineSyncBar />}
+      {flagMap["offline_checkin"] && (
+        <>
+          <OfflineSyncBar />
+          <RosterPrefetcher sessions={sessions} victoryDayAllowAllClasses={flagMap["victory_day_allow_all_classes"] ?? false} />
+        </>
+      )}
 
       <div className="px-4 py-3 rounded-xl border border-indigo-100 bg-indigo-50 w-fit flex flex-col gap-2">
         <div className="flex items-center gap-2">

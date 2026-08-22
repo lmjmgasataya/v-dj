@@ -7,6 +7,7 @@ import { SessionCheckInList } from "./SessionCheckInList";
 import { QrScanner, QR_PREFIX, type QrScannerHandle } from "./QrScanner";
 import { ORIENTATION_SESSION_NAME } from "@/lib/constants";
 import { saveRosterSnapshot, loadRosterSnapshot } from "@/lib/offlineStore";
+import { useOnlineStatus } from "@/lib/useOnlineStatus";
 
 type Results = CheckinRosterEntry[];
 
@@ -61,6 +62,9 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
   const [pending, setPending] = useState(false);
   const [roster, setRoster] = useState<Map<number, CheckinRosterEntry>>(new Map());
   const [rosterLoaded, setRosterLoaded] = useState(false);
+  const [searchUnavailableOffline, setSearchUnavailableOffline] = useState(false);
+  const onlineStatus = useOnlineStatus();
+  const isOnline = !offlineCheckin || onlineStatus;
   // Once the roster's loaded, results are derived from it live — so a check-in
   // (via QR or the list below) is reflected immediately, with no re-fetch race.
   const results = rosterLoaded ? filterRoster(roster, committedQuery) : fallbackResults;
@@ -91,6 +95,7 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
     setSearched(true);
     scrollAfterSearch.current = true;
     setCommittedQuery(query);
+    setSearchUnavailableOffline(false);
 
     // Once the roster's loaded, results are derived from it — nothing to fetch.
     if (rosterLoaded) {
@@ -99,10 +104,28 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
     }
 
     setPending(true);
-    searchParticipants(sessionId, query, isVictoryDay, victoryDayAllowAllClasses, isOrientation).then((data) => {
-      setFallbackResults(data.map((r) => ({ ...r, alreadyCheckedIn: r.checkInId != null, victoryDayBlockReason: null })));
-      setPending(false);
-    });
+    searchParticipants(sessionId, query, isVictoryDay, victoryDayAllowAllClasses, isOrientation)
+      .then((data) => {
+        setFallbackResults(data.map((r) => ({ ...r, alreadyCheckedIn: r.checkInId != null, victoryDayBlockReason: null })));
+        setPending(false);
+      })
+      .catch(() => {
+        // Offline and the roster never finished preloading for this session
+        // (e.g. it's the first time this device has opened this session) —
+        // fall back to whatever roster snapshot was last cached, if any.
+        if (offlineCheckin) {
+          const cached = loadRosterSnapshot(sessionId);
+          if (cached.length > 0) {
+            setRoster(new Map(cached.map((r) => [r.id, r])));
+            setRosterLoaded(true);
+            setPending(false);
+            return;
+          }
+        }
+        setFallbackResults([]);
+        setSearchUnavailableOffline(true);
+        setPending(false);
+      });
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -232,10 +255,18 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
         </button>
       </form>
 
+      {!isOnline && !rosterLoaded && (
+        <p className="mt-3 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          No offline participant list cached for this session yet — connect once while online to enable offline search.
+        </p>
+      )}
+
       {searched && (
         <div className="mt-4">
           {pending && results.length === 0 ? (
             <SearchSkeleton />
+          ) : searchUnavailableOffline ? (
+            <p className="text-sm text-amber-700">Can&rsquo;t search offline — no cached participant list for this session.</p>
           ) : results.length === 0 ? (
             <p className="text-sm text-gray-500">No participants found for &ldquo;{q}&rdquo;.</p>
           ) : (

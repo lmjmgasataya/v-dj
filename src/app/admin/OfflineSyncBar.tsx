@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { checkInByQr } from "./actions";
+import { checkInByQr, revalidateAfterOfflineSync } from "./actions";
 import { listPending, removePending, PENDING_CHANGED_EVENT, type PendingCheckIn } from "@/lib/offlineStore";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -33,10 +33,14 @@ export function OfflineSyncBar() {
     syncingRef.current = true;
     setSyncing(true);
 
+    let syncedAny = false;
     for (const item of queue) {
       let result;
       try {
-        result = await checkInByQr(item.participantId, item.sessionId, item.remarks, item.status, item.method);
+        // skipRevalidate=true — revalidating after every item in the batch
+        // would push a full-page refresh to /admin per item, which looks
+        // like the page reloading over and over. Revalidate once at the end.
+        result = await checkInByQr(item.participantId, item.sessionId, item.remarks, item.status, item.method, true);
       } catch {
         // network issue — stop here, retry the rest next time we come online
         break;
@@ -47,7 +51,10 @@ export function OfflineSyncBar() {
         toast.show(`Offline check-in for participant #${item.participantId} could not sync: ${result.error}`, "error");
       }
       removePending(item.localId);
+      syncedAny = true;
     }
+
+    if (syncedAny) await revalidateAfterOfflineSync();
 
     setSyncing(false);
     syncingRef.current = false;

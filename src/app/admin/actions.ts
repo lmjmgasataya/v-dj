@@ -170,6 +170,7 @@ export async function checkInByQr(
   remarks?: string,
   status?: CheckInStatus,
   method: CheckInMethod = "QR Reader",
+  skipRevalidate = false,
 ): Promise<
   | { firstName: string; lastName: string; alreadyCheckedIn: boolean; tableNumber: number | null }
   | { error: string }
@@ -209,10 +210,20 @@ export async function checkInByQr(
 
   const tableNumber = tableEnabled ? tableNumberIfEnabled : null;
   await db.insert(checkIns).values({ participantId, classSessionId, remarks: remarks || null, tableNumber, status: status ?? checkInStatusForDate(new Date()), method }).onConflictDoNothing();
-  revalidatePath("/admin");
-  revalidatePath("/sessions");
+  if (!skipRevalidate) {
+    revalidatePath("/admin");
+    revalidatePath("/sessions");
+  }
 
   return { firstName, lastName, alreadyCheckedIn: false, tableNumber };
+}
+
+// Replaying a batch of queued offline check-ins calls checkInByQr with
+// skipRevalidate so each one doesn't push a live full-page refresh to
+// whoever's viewing /admin — revalidate once here after the whole batch.
+export async function revalidateAfterOfflineSync() {
+  revalidatePath("/admin");
+  revalidatePath("/sessions");
 }
 
 export interface CheckinRosterEntry {

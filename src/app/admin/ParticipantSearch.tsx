@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { searchParticipants, getCheckinRoster, type CheckinRosterEntry } from "./actions";
 import { SessionCheckInList } from "./SessionCheckInList";
 import { QrScanner, QR_PREFIX, type QrScannerHandle } from "./QrScanner";
@@ -68,8 +67,6 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
   // Once the roster's loaded, results are derived from it live — so a check-in
   // (via QR or the list below) is reflected immediately, with no re-fetch race.
   const results = rosterLoaded ? filterRoster(roster, committedQuery) : fallbackResults;
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const scrollAfterSearch = useRef(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const qrScannerRef = useRef<QrScannerHandle>(null);
@@ -145,14 +142,6 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
       return;
     }
 
-    // Syncing the URL needs a server round trip (Next re-renders /admin for
-    // the new searchParams) — skip it offline, where that request would fail
-    // and the router's hard-reload fallback would wipe all local state.
-    if (isOnline) {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("q", trimmed);
-      router.replace(`/admin?${params.toString()}`, { scroll: false });
-    }
     runSearch(q);
   }
 
@@ -165,11 +154,6 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
     if (q.trim().startsWith(QR_PREFIX)) return;
 
     debounceTimer.current = setTimeout(() => {
-      if (isOnline) {
-        const params = new URLSearchParams(searchParams.toString());
-        params.set("q", q.trim());
-        router.replace(`/admin?${params.toString()}`, { scroll: false });
-      }
       runSearch(q);
     }, 400);
 

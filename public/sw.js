@@ -1,4 +1,4 @@
-const CACHE_NAME = "dj-shell-v1";
+const CACHE_NAME = "dj-shell-v2";
 const STATIC_PREFIXES = ["/_next/static/"];
 
 self.addEventListener("install", () => {

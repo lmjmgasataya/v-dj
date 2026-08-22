@@ -75,10 +75,11 @@ export function OfflineSyncBar() {
   const count = pending.length;
 
   if (!isOnline) {
-    if (count === 0) return null;
     return (
       <Banner tone="warn">
-        Offline — {count} check-in{count !== 1 ? "s" : ""} queued, will sync when back online.
+        {count > 0
+          ? `Offline — ${count} check-in${count !== 1 ? "s" : ""} queued, will sync when back online.`
+          : "Offline — check-ins will be saved locally and synced when back online."}
       </Banner>
     );
   }

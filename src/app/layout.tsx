@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
 import { NavigationProgress } from "@/components/NavigationProgress";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { ToastProvider } from "@/components/toast/ToastProvider";
 import { FlashToastBridge } from "@/components/toast/FlashToastBridge";
 import "./globals.css";
@@ -27,6 +28,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <FlashToastBridge />
           </Suspense>
           <NavigationProgress />
+          <ServiceWorkerRegister />
           <header className="text-white shadow" style={{ backgroundColor: "#00428E" }}>
             <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
               <Link href={session?.role === "vg_leader" ? "/vg-portal" : "/"} className="hover:opacity-80 transition">

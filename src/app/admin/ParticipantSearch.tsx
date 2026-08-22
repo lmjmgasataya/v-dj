@@ -6,6 +6,7 @@ import { searchParticipants, getCheckinRoster, type CheckinRosterEntry } from ".
 import { SessionCheckInList } from "./SessionCheckInList";
 import { QrScanner, QR_PREFIX, type QrScannerHandle } from "./QrScanner";
 import { ORIENTATION_SESSION_NAME } from "@/lib/constants";
+import { saveRosterSnapshot, loadRosterSnapshot } from "@/lib/offlineStore";
 
 type Results = CheckinRosterEntry[];
 
@@ -51,7 +52,7 @@ function SearchSkeleton() {
   );
 }
 
-export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requiresVictoryDay, initialQ, qrCheckin, victoryDayAllowAllClasses, autoOpenQrScanner, confirmBeforeCheckIn, showTableNumber, autoCheckin, autoCheckin915 }: { sessionId: number; sessionName: string; isVictoryDay: boolean; requiresVictoryDay: boolean; initialQ?: string; qrCheckin?: boolean; victoryDayAllowAllClasses?: boolean; autoOpenQrScanner?: boolean; confirmBeforeCheckIn?: boolean; showTableNumber?: boolean; autoCheckin?: boolean; autoCheckin915?: boolean }) {
+export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requiresVictoryDay, initialQ, qrCheckin, victoryDayAllowAllClasses, autoOpenQrScanner, confirmBeforeCheckIn, showTableNumber, autoCheckin, autoCheckin915, offlineCheckin }: { sessionId: number; sessionName: string; isVictoryDay: boolean; requiresVictoryDay: boolean; initialQ?: string; qrCheckin?: boolean; victoryDayAllowAllClasses?: boolean; autoOpenQrScanner?: boolean; confirmBeforeCheckIn?: boolean; showTableNumber?: boolean; autoCheckin?: boolean; autoCheckin915?: boolean; offlineCheckin?: boolean }) {
   const isOrientation = sessionName === ORIENTATION_SESSION_NAME;
   const [q, setQ] = useState(initialQ ?? "");
   const [committedQuery, setCommittedQuery] = useState("");
@@ -159,11 +160,21 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
   // server per scan / per keystroke.
   useEffect(() => {
     let cancelled = false;
-    getCheckinRoster(sessionId, isVictoryDay, requiresVictoryDay, victoryDayAllowAllClasses, isOrientation).then((rows) => {
-      if (cancelled) return;
-      setRoster(new Map(rows.map((r) => [r.id, r])));
-      setRosterLoaded(true);
-    });
+    getCheckinRoster(sessionId, isVictoryDay, requiresVictoryDay, victoryDayAllowAllClasses, isOrientation)
+      .then((rows) => {
+        if (cancelled) return;
+        setRoster(new Map(rows.map((r) => [r.id, r])));
+        setRosterLoaded(true);
+        if (offlineCheckin) saveRosterSnapshot(sessionId, rows);
+      })
+      .catch(() => {
+        if (cancelled || !offlineCheckin) return;
+        const cached = loadRosterSnapshot(sessionId);
+        if (cached.length > 0) {
+          setRoster(new Map(cached.map((r) => [r.id, r])));
+          setRosterLoaded(true);
+        }
+      });
     return () => {
       cancelled = true;
     };
@@ -185,6 +196,7 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
             showTableNumber={showTableNumber}
             autoCheckin={autoCheckin}
             autoCheckin915={autoCheckin915}
+            offlineCheckin={offlineCheckin}
             roster={roster}
             onRosterUpdate={updateRoster}
             onCheckIn={(info) => {
@@ -237,6 +249,7 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
               searchQuery={q.trim()}
               confirmBeforeCheckIn={confirmBeforeCheckIn}
               showTableNumber={showTableNumber}
+              offlineCheckin={offlineCheckin}
               autoCheckin={autoCheckin}
               autoCheckin915={autoCheckin915}
             />

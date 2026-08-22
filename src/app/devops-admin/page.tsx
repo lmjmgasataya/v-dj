@@ -23,6 +23,7 @@ const FLAG_LABELS: Record<string, string> = {
   checkin_confirm_popup: "Check-in — show confirmation popup before check-in (see /admin settings)",
   checkin_table_assignment: "Check-in — assign table number on check-in (see /table-management/settings)",
   checkin_autocheckin: "Check-in — auto check-in (skip popup, mark On-time) for arrivals on or before 9:00 AM",
+  offline_checkin: "Check-in — allow scanning/searching to queue locally and sync later when the connection drops (see /admin)",
 };
 
 async function getDbStats() {

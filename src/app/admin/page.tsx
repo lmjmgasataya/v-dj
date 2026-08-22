@@ -7,6 +7,7 @@ import { ParticipantSearch } from "./ParticipantSearch";
 import { AdminSessionArea } from "./AdminSessionArea";
 import { WalkInForm } from "./WalkInForm";
 import { CheckInSettingsButton } from "./CheckInSettingsButton";
+import { OfflineSyncBar } from "./OfflineSyncBar";
 
 export default async function AdminPage({
   searchParams,
@@ -81,6 +82,8 @@ export default async function AdminPage({
         <CheckInSettingsButton flags={flagMap} />
       </div>
 
+      {flagMap["offline_checkin"] && <OfflineSyncBar />}
+
       <div className="px-4 py-3 rounded-xl border border-indigo-100 bg-indigo-50 w-fit flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <span className="text-2xl font-bold text-indigo-600">{registeredCount}</span>
@@ -125,7 +128,7 @@ export default async function AdminPage({
                 <span className="text-indigo-600 font-medium">{selectedSession.name}</span>
               </p>
             </div>
-            <ParticipantSearch key={selectedSession.id} sessionId={selectedSession.id} sessionName={selectedSession.name} isVictoryDay={selectedSession.isVictoryDay} requiresVictoryDay={selectedSession.requiresVictoryDay} initialQ={initialQ} qrCheckin={flagMap["qr_checkin"] ?? false} victoryDayAllowAllClasses={flagMap["victory_day_allow_all_classes"] ?? false} autoOpenQrScanner={flagMap["qr_auto_open_scanner"] ?? false} confirmBeforeCheckIn={flagMap["checkin_confirm_popup"] ?? true} showTableNumber={flagMap["checkin_table_assignment"] ?? true} autoCheckin={flagMap["checkin_autocheckin"] ?? false} autoCheckin915={flagMap["checkin_autocheckin_915"] ?? false} />
+            <ParticipantSearch key={selectedSession.id} sessionId={selectedSession.id} sessionName={selectedSession.name} isVictoryDay={selectedSession.isVictoryDay} requiresVictoryDay={selectedSession.requiresVictoryDay} initialQ={initialQ} qrCheckin={flagMap["qr_checkin"] ?? false} victoryDayAllowAllClasses={flagMap["victory_day_allow_all_classes"] ?? false} autoOpenQrScanner={flagMap["qr_auto_open_scanner"] ?? false} confirmBeforeCheckIn={flagMap["checkin_confirm_popup"] ?? true} showTableNumber={flagMap["checkin_table_assignment"] ?? true} autoCheckin={flagMap["checkin_autocheckin"] ?? false} autoCheckin915={flagMap["checkin_autocheckin_915"] ?? false} offlineCheckin={flagMap["offline_checkin"] ?? false} />
           </div>
         )}
 
@@ -139,7 +142,7 @@ export default async function AdminPage({
                 <span className="text-indigo-600 font-medium">{selectedSession.name}</span>
               </p>
             </div>
-            <WalkInForm sessionId={selectedSession.id} newDatePicker={flagMap["new_date_picker"] ?? false} />
+            <WalkInForm sessionId={selectedSession.id} newDatePicker={flagMap["new_date_picker"] ?? false} offlineCheckin={flagMap["offline_checkin"] ?? false} />
           </div>
         )}
       </AdminSessionArea>

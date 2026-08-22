@@ -7,6 +7,8 @@ import { ORIENTATION_ALLOWED_CLASSES } from "@/lib/constants";
 import { CheckInSuccessModal } from "./CheckInSuccessModal";
 import { CheckInStatusPicker } from "./CheckInStatusPicker";
 import { checkInStatusForDate, isOnTimeWindow, isWithinLateCutoff } from "@/lib/date";
+import { useOnlineStatus } from "@/lib/useOnlineStatus";
+import { enqueueCheckIn } from "@/lib/offlineStore";
 import type { CheckInStatus, CheckInMethod } from "@/db/schema";
 
 export const QR_PREFIX = "dj:participant:";
@@ -87,6 +89,7 @@ interface QrScannerProps {
   showTableNumber?: boolean;
   autoCheckin?: boolean;
   autoCheckin915?: boolean;
+  offlineCheckin?: boolean;
   onCheckIn?: (info: CheckInResultInfo) => void;
   /** Preloaded session roster, keyed by participant id — lets a scan resolve
    * instantly from memory instead of round-tripping to the server. Falls
@@ -97,16 +100,18 @@ interface QrScannerProps {
 }
 
 export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function QrScanner(
-  { sessionId, isVictoryDay, allowAllClasses, isOrientation, autoOpen, confirmBeforeCheckIn = true, showTableNumber = true, autoCheckin = false, autoCheckin915 = false, onCheckIn, roster, onRosterUpdate },
+  { sessionId, isVictoryDay, allowAllClasses, isOrientation, autoOpen, confirmBeforeCheckIn = true, showTableNumber = true, autoCheckin = false, autoCheckin915 = false, offlineCheckin = false, onCheckIn, roster, onRosterUpdate },
   ref
 ) {
+  const onlineStatus = useOnlineStatus();
+  const isOnline = !offlineCheckin || onlineStatus;
   const [status, setStatus] = useState<Status>(autoOpen ? "scanning" : "idle");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState<PendingParticipant | null>(null);
   const [remarks, setRemarks] = useState("");
   const [checkInStatus, setCheckInStatus] = useState<CheckInStatus>("On-time");
   const [mirrored, setMirrored] = useState(false);
-  const [successInfo, setSuccessInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null; status: CheckInStatus } | null>(null);
+  const [successInfo, setSuccessInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null; status: CheckInStatus; pendingSync?: boolean } | null>(null);
   const [alreadyInfo, setAlreadyInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null } | null>(null);
   // Bumped each time a new scan result is shown, so a rescan that arrives
   // while a popup is still up (e.g. the barcode-scanner flow, which no
@@ -132,7 +137,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
 
   // Replaces whatever popup is currently showing (success or already-checked-in)
   // with the new result, and forces a remount so its countdown starts fresh.
-  function presentSuccess(info: { firstName: string; lastName: string; tableNumber: number | null; status: CheckInStatus }) {
+  function presentSuccess(info: { firstName: string; lastName: string; tableNumber: number | null; status: CheckInStatus; pendingSync?: boolean }) {
     setAlreadyInfo(null);
     setResultSeq((s) => s + 1);
     setSuccessInfo(info);
@@ -144,6 +149,23 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
   }
 
   async function submitCheckIn(participantId: number, remarksValue: string, statusOverride: CheckInStatus | undefined, method: CheckInMethod) {
+    if (!isOnline) {
+      const cached = rosterRef.current?.get(participantId);
+      if (!cached) {
+        setStatus("error");
+        setMessage("Participant not in the offline roster — reconnect to check them in.");
+        return;
+      }
+      enqueueCheckIn({ participantId, sessionId, remarks: remarksValue || undefined, status: statusOverride, method });
+      const resolvedStatus = statusOverride ?? checkInStatusForDate(new Date());
+      presentSuccess({ firstName: cached.firstName, lastName: cached.lastName, tableNumber: null, status: resolvedStatus, pendingSync: true });
+      onCheckInRef.current?.({ lastName: cached.lastName, message: `Checked in: ${cached.lastName}, ${cached.firstName} — pending sync`, alreadyCheckedIn: false, tableNumber: null });
+      onRosterUpdate?.(participantId, { alreadyCheckedIn: true, tableNumber: null, checkInStatus: resolvedStatus, checkInRemarks: remarksValue || null });
+      setPending(null);
+      setRemarks("");
+      return;
+    }
+
     setLoadingLabel("Checking in…");
     setStatus("loading");
     const result = await checkInByQr(participantId, sessionId, remarksValue || undefined, statusOverride, method);
@@ -189,6 +211,10 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
         victoryDayBlockReason: cached.victoryDayBlockReason,
         tableNumber: cached.tableNumber,
       };
+    } else if (!isOnline) {
+      setStatus("error");
+      setMessage("Participant not in the offline roster — reconnect to check them in.");
+      return;
     } else {
       setLoadingLabel("Looking up participant…");
       setStatus("loading");
@@ -457,6 +483,11 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
                 {pending.lastName}, {pending.firstName} — Class {classLabel(pending.registrationFee)}
               </p>
             </div>
+            {!isOnline && (
+              <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
+                You&rsquo;re offline — this check-in will be saved locally and synced later.
+              </div>
+            )}
             {restricted && (
               <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
                 {orientationRestricted
@@ -511,6 +542,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
           lastName={successInfo.lastName}
           tableNumber={successInfo.tableNumber}
           status={successInfo.status}
+          pendingSync={successInfo.pendingSync}
           showTable={showTableNumber}
           onDismiss={handleDismissSuccess}
         />

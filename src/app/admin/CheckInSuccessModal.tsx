@@ -13,6 +13,7 @@ export function CheckInSuccessModal({
   showTable = true,
   status = "On-time",
   alreadyCheckedIn = false,
+  pendingSync = false,
   onDismiss,
 }: {
   firstName: string;
@@ -21,6 +22,7 @@ export function CheckInSuccessModal({
   showTable?: boolean;
   status?: CheckInStatus;
   alreadyCheckedIn?: boolean;
+  pendingSync?: boolean;
   onDismiss: () => void;
 }) {
   const [secondsLeft, setSecondsLeft] = useState(AUTO_DISMISS_SECONDS);
@@ -58,10 +60,20 @@ export function CheckInSuccessModal({
           {lastName} &middot; {alreadyCheckedIn ? "No need to check in again" : "Welcome!"}
         </p>
 
+        {pendingSync && (
+          <p className="mt-3 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-3 py-1">
+            Saved offline — will sync when back online
+          </p>
+        )}
+
         {showTable && (
-          <div className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-6 py-5 flex flex-col items-center gap-1 mt-6">
+          <div className={`w-full rounded-2xl border px-6 py-5 flex flex-col items-center gap-1 mt-6 ${pendingSync ? "border-amber-200 bg-amber-50" : "border-gray-200 bg-gray-50"}`}>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Your Table</p>
-            <p className="text-5xl font-extrabold text-indigo-600 leading-tight">{tableNumber ?? "—"}</p>
+            {pendingSync ? (
+              <p className="text-lg font-bold text-amber-700 leading-tight">Pending sync</p>
+            ) : (
+              <p className="text-5xl font-extrabold text-indigo-600 leading-tight">{tableNumber ?? "—"}</p>
+            )}
           </div>
         )}
 

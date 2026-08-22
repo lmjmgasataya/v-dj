@@ -9,6 +9,8 @@ import { CheckInSuccessModal } from "./CheckInSuccessModal";
 import { CheckInStatusPicker, checkInStatusBadgeClass } from "./CheckInStatusPicker";
 import { checkInStatusTextClass } from "@/lib/checkinStatus";
 import { checkInStatusForDate, isOnTimeWindow, isWithinLateCutoff } from "@/lib/date";
+import { useOnlineStatus } from "@/lib/useOnlineStatus";
+import { enqueueCheckIn } from "@/lib/offlineStore";
 import type { CheckInStatus } from "@/db/schema";
 import type { CheckinRosterEntry } from "./actions";
 
@@ -37,19 +39,44 @@ interface ParticipantWithStatus {
 
 type RosterUpdate = (participantId: number, patch: Partial<CheckinRosterEntry>) => void;
 
-function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, onRosterUpdate, confirmBeforeCheckIn = true, showTableNumber = true, autoCheckin = false, autoCheckin915 = false }: { p: ParticipantWithStatus; sessionId: number; isVictoryDay: boolean; requiresVictoryDay: boolean; onAction?: () => void; onRosterUpdate?: RosterUpdate; confirmBeforeCheckIn?: boolean; showTableNumber?: boolean; autoCheckin?: boolean; autoCheckin915?: boolean }) {
+function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, onRosterUpdate, confirmBeforeCheckIn = true, showTableNumber = true, autoCheckin = false, autoCheckin915 = false, offlineCheckin = false }: { p: ParticipantWithStatus; sessionId: number; isVictoryDay: boolean; requiresVictoryDay: boolean; onAction?: () => void; onRosterUpdate?: RosterUpdate; confirmBeforeCheckIn?: boolean; showTableNumber?: boolean; autoCheckin?: boolean; autoCheckin915?: boolean; offlineCheckin?: boolean }) {
   const [pending, startTransition] = useTransition();
   const [showModal, setShowModal] = useState(false);
   const [remarks, setRemarks] = useState("");
   const [status, setStatus] = useState<CheckInStatus>("On-time");
-  const [successInfo, setSuccessInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null; status: CheckInStatus } | null>(null);
+  const [successInfo, setSuccessInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null; status: CheckInStatus; pendingSync?: boolean } | null>(null);
   const toast = useToast();
+  const onlineStatus = useOnlineStatus();
+  const isOnline = !offlineCheckin || onlineStatus;
   const isCheckedIn = p.checkInId != null || !!p.alreadyCheckedIn;
   const hasVictoryDay = !!p.victoryDate || p.completedVictoryDay;
   const isIncomplete = !!p.victoryDayDate && !p.completedVictoryDay && !p.victoryDate;
   const blocked = requiresVictoryDay && !isVictoryDay && !hasVictoryDay;
 
   function submitCheckIn(remarksValue: string, statusOverride?: CheckInStatus) {
+    if (!isOnline) {
+      setShowModal(false);
+      setRemarks("");
+      const resolvedStatus = statusOverride ?? checkInStatusForDate(new Date());
+      enqueueCheckIn({ participantId: p.id, sessionId, remarks: remarksValue || undefined, status: statusOverride, method: "Search" });
+      setSuccessInfo({
+        firstName: toTitleCase(p.firstName),
+        lastName: toTitleCase(p.lastName),
+        tableNumber: null,
+        status: resolvedStatus,
+        pendingSync: true,
+      });
+      onRosterUpdate?.(p.id, {
+        alreadyCheckedIn: true,
+        tableNumber: null,
+        checkedInAt: new Date(),
+        checkInStatus: resolvedStatus,
+        checkInRemarks: remarksValue || null,
+      });
+      onAction?.();
+      return;
+    }
+
     startTransition(async () => {
       const result = await checkInParticipant(p.id, sessionId, remarksValue || undefined, statusOverride);
       setShowModal(false);
@@ -207,6 +234,11 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
                 {toTitleCase(p.lastName)}, {toTitleCase(p.firstName)}{p.middleInitial ? ` ${toTitleCase(p.middleInitial)}.` : ""}
               </p>
             </div>
+            {!isOnline && (
+              <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
+                You&rsquo;re offline — this check-in will be saved locally and synced later.
+              </div>
+            )}
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700">Status</label>
               <CheckInStatusPicker value={status} onChange={setStatus} />
@@ -249,6 +281,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
           lastName={successInfo.lastName}
           tableNumber={successInfo.tableNumber}
           status={successInfo.status}
+          pendingSync={successInfo.pendingSync}
           showTable={showTableNumber}
           onDismiss={() => setSuccessInfo(null)}
         />
@@ -269,6 +302,7 @@ export function SessionCheckInList({
   showTableNumber,
   autoCheckin,
   autoCheckin915,
+  offlineCheckin,
 }: {
   participants: ParticipantWithStatus[];
   sessionId: number;
@@ -281,6 +315,7 @@ export function SessionCheckInList({
   showTableNumber?: boolean;
   autoCheckin?: boolean;
   autoCheckin915?: boolean;
+  offlineCheckin?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -300,7 +335,7 @@ export function SessionCheckInList({
         )}
       </div>
       {participants.map((p) => (
-        <CheckInRow key={p.id} p={p} sessionId={sessionId} isVictoryDay={isVictoryDay} requiresVictoryDay={requiresVictoryDay} onAction={onAction} onRosterUpdate={onRosterUpdate} confirmBeforeCheckIn={confirmBeforeCheckIn} showTableNumber={showTableNumber} autoCheckin={autoCheckin} autoCheckin915={autoCheckin915} />
+        <CheckInRow key={p.id} p={p} sessionId={sessionId} isVictoryDay={isVictoryDay} requiresVictoryDay={requiresVictoryDay} onAction={onAction} onRosterUpdate={onRosterUpdate} confirmBeforeCheckIn={confirmBeforeCheckIn} showTableNumber={showTableNumber} autoCheckin={autoCheckin} autoCheckin915={autoCheckin915} offlineCheckin={offlineCheckin} />
       ))}
     </div>
   );

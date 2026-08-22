@@ -5,14 +5,21 @@ import { addWalkIn } from "./actions";
 import { Field, inputCls, selectCls, SERVICE_OPTIONS } from "@/components/form";
 import { DatePickerField } from "@/components/DatePickerField";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useOnlineStatus } from "@/lib/useOnlineStatus";
 
-export function WalkInForm({ sessionId, newDatePicker }: { sessionId: number; newDatePicker: boolean }) {
+export function WalkInForm({ sessionId, newDatePicker, offlineCheckin = false }: { sessionId: number; newDatePicker: boolean; offlineCheckin?: boolean }) {
   const [pending, startTransition] = useTransition();
   const [formKey, setFormKey] = useState(0);
   const toast = useToast();
+  const onlineStatus = useOnlineStatus();
+  const isOnline = !offlineCheckin || onlineStatus;
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!isOnline) {
+      toast.show("Walk-in registration requires an internet connection.", "error");
+      return;
+    }
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
       const result = await addWalkIn(sessionId, formData);
@@ -35,6 +42,11 @@ export function WalkInForm({ sessionId, newDatePicker }: { sessionId: number; ne
         onSubmit={handleSubmit}
         className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4"
       >
+        {!isOnline && (
+          <div className="sm:col-span-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
+            Walk-in registration requires an internet connection.
+          </div>
+        )}
         <Field label="Last Name" required>
           <input name="lastName" required className={inputCls} />
         </Field>
@@ -95,7 +107,7 @@ export function WalkInForm({ sessionId, newDatePicker }: { sessionId: number; ne
         <div className="sm:col-span-2 flex justify-end">
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || !isOnline}
             className="bg-[#00428E] hover:bg-[#003578] disabled:opacity-50 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition"
           >
             {pending ? "Adding..." : "Add Walk-in"}

@@ -1,11 +1,9 @@
 import { db } from "@/db";
 import { classSessions, checkIns, participants, featureFlags, batches } from "@/db/schema";
-import { and, count, eq, isNull, ne } from "drizzle-orm";
+import { and, count, eq, inArray, isNull, ne } from "drizzle-orm";
 import { FEE_CATEGORIES } from "@/components/form";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { ParticipantSearch } from "./ParticipantSearch";
 import { AdminSessionArea } from "./AdminSessionArea";
-import { WalkInForm } from "./WalkInForm";
 import { CheckInSettingsButton } from "./CheckInSettingsButton";
 import { OfflineSyncBar } from "./OfflineSyncBar";
 import { RosterPrefetcher } from "./RosterPrefetcher";
@@ -59,16 +57,18 @@ export default async function AdminPage({
   const flagMap = Object.fromEntries(flags.map((f) => [f.key, f.enabled]));
 
   const registeredCount = feeBreakdown.reduce((s, r) => s + r.total, 0);
-  const selectedSession = sessionId ? (sessions.find((s) => s.id === sessionId) ?? null) : null;
 
-  const attendeeCount = selectedSession
-    ? (
-        await db
-          .select({ count: count() })
-          .from(checkIns)
-          .where(and(eq(checkIns.classSessionId, selectedSession.id), ne(checkIns.status, "Absent")))
-      )[0]?.count ?? 0
-    : 0;
+  // Fetched for every session up front (instead of just the selected one) so
+  // switching sessions client-side never needs a server round trip — required
+  // for the session picker to keep working offline (see AdminSessionArea).
+  const attendeeCountRows = sessions.length
+    ? await db
+        .select({ sessionId: checkIns.classSessionId, total: count() })
+        .from(checkIns)
+        .where(and(inArray(checkIns.classSessionId, sessions.map((s) => s.id)), ne(checkIns.status, "Absent")))
+        .groupBy(checkIns.classSessionId)
+    : [];
+  const attendeeCounts = Object.fromEntries(attendeeCountRows.map((r) => [r.sessionId, r.total]));
 
   return (
     <div className="flex flex-col gap-6">
@@ -116,42 +116,20 @@ export default async function AdminPage({
 
       <AdminSessionArea
         sessions={sessions}
-        selectedId={sessionId}
+        initialSelectedId={sessionId}
         batchName={defaultBatch?.name}
-        attendeeInfo={
-          selectedSession
-            ? { sessionId: selectedSession.id, sessionName: selectedSession.name, attendeeCount }
-            : null
-        }
-      >
-        {/* Step 2: Search participant */}
-        {selectedSession && !selectedSession.allowsWalkIn && (
-          <div id="search-participant" className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00428E] text-white text-xs font-bold shrink-0">2</span>
-              <p className="text-sm font-semibold text-gray-700">
-                Search Participant —{" "}
-                <span className="text-indigo-600 font-medium">{selectedSession.name}</span>
-              </p>
-            </div>
-            <ParticipantSearch key={selectedSession.id} sessionId={selectedSession.id} sessionName={selectedSession.name} isVictoryDay={selectedSession.isVictoryDay} requiresVictoryDay={selectedSession.requiresVictoryDay} initialQ={initialQ} qrCheckin={flagMap["qr_checkin"] ?? false} victoryDayAllowAllClasses={flagMap["victory_day_allow_all_classes"] ?? false} autoOpenQrScanner={flagMap["qr_auto_open_scanner"] ?? false} confirmBeforeCheckIn={flagMap["checkin_confirm_popup"] ?? true} showTableNumber={flagMap["checkin_table_assignment"] ?? true} autoCheckin={flagMap["checkin_autocheckin"] ?? false} autoCheckin915={flagMap["checkin_autocheckin_915"] ?? false} offlineCheckin={flagMap["offline_checkin"] ?? false} />
-          </div>
-        )}
-
-        {/* Step 2: Add walk-in */}
-        {selectedSession && selectedSession.allowsWalkIn && (
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00428E] text-white text-xs font-bold shrink-0">2.1</span>
-              <p className="text-sm font-semibold text-gray-700">
-                Add Walk-in —{" "}
-                <span className="text-indigo-600 font-medium">{selectedSession.name}</span>
-              </p>
-            </div>
-            <WalkInForm sessionId={selectedSession.id} newDatePicker={flagMap["new_date_picker"] ?? false} offlineCheckin={flagMap["offline_checkin"] ?? false} />
-          </div>
-        )}
-      </AdminSessionArea>
+        attendeeCounts={attendeeCounts}
+        initialQ={initialQ}
+        qrCheckin={flagMap["qr_checkin"] ?? false}
+        victoryDayAllowAllClasses={flagMap["victory_day_allow_all_classes"] ?? false}
+        autoOpenQrScanner={flagMap["qr_auto_open_scanner"] ?? false}
+        confirmBeforeCheckIn={flagMap["checkin_confirm_popup"] ?? true}
+        showTableNumber={flagMap["checkin_table_assignment"] ?? true}
+        autoCheckin={flagMap["checkin_autocheckin"] ?? false}
+        autoCheckin915={flagMap["checkin_autocheckin_915"] ?? false}
+        offlineCheckin={flagMap["offline_checkin"] ?? false}
+        newDatePicker={flagMap["new_date_picker"] ?? false}
+      />
     </div>
   );
 }

@@ -1,45 +1,55 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useTransition, useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { ClassSession } from "@/db/schema";
 import { SessionAttendeesModal } from "./SessionAttendeesModal";
-
-function StepSkeleton() {
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 animate-pulse flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <div className="w-6 h-6 rounded-full bg-gray-200 shrink-0" />
-        <div className="h-4 bg-gray-200 rounded w-52" />
-      </div>
-      <div className="h-10 bg-gray-200 rounded-lg" />
-      <div className="flex flex-col gap-2.5">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="h-9 bg-gray-200 rounded-lg" />
-        ))}
-      </div>
-    </div>
-  );
-}
+import { ParticipantSearch } from "./ParticipantSearch";
+import { WalkInForm } from "./WalkInForm";
+import { useOnlineStatus } from "@/lib/useOnlineStatus";
 
 export function AdminSessionArea({
   sessions,
-  selectedId,
+  initialSelectedId,
   batchName,
-  attendeeInfo,
-  children,
+  attendeeCounts,
+  initialQ,
+  qrCheckin,
+  victoryDayAllowAllClasses,
+  autoOpenQrScanner,
+  confirmBeforeCheckIn,
+  showTableNumber,
+  autoCheckin,
+  autoCheckin915,
+  offlineCheckin,
+  newDatePicker,
 }: {
   sessions: ClassSession[];
-  selectedId: number | null;
+  initialSelectedId: number | null;
   batchName?: string;
-  attendeeInfo: { sessionId: number; sessionName: string; attendeeCount: number } | null;
-  children: React.ReactNode;
+  attendeeCounts: Record<number, number>;
+  initialQ?: string;
+  qrCheckin?: boolean;
+  victoryDayAllowAllClasses?: boolean;
+  autoOpenQrScanner?: boolean;
+  confirmBeforeCheckIn?: boolean;
+  showTableNumber?: boolean;
+  autoCheckin?: boolean;
+  autoCheckin915?: boolean;
+  offlineCheckin?: boolean;
+  newDatePicker?: boolean;
 }) {
   const router = useRouter();
   const currentParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
+  // Owned client-side (not derived from the URL) so picking a session never
+  // needs a server round trip — required for it to keep working offline.
+  // The URL is still kept in sync as a nice-to-have (deep links, refresh)
+  // whenever we're actually online to do so.
+  const [selectedId, setSelectedId] = useState<number | null>(initialSelectedId);
   const containerRef = useRef<HTMLDivElement>(null);
+  const onlineStatus = useOnlineStatus();
+  const isOnline = !offlineCheckin || onlineStatus;
 
   const selectedSession = sessions.find((s) => s.id === selectedId) ?? null;
 
@@ -52,10 +62,13 @@ export function AdminSessionArea({
 
   function handleSelect(id: number | null) {
     setOpen(false);
-    const params = new URLSearchParams(currentParams.toString());
-    if (id) params.set("session", String(id));
-    else params.delete("session");
-    startTransition(() => router.push(`/admin?${params.toString()}`));
+    setSelectedId(id);
+    if (isOnline) {
+      const params = new URLSearchParams(currentParams.toString());
+      if (id) params.set("session", String(id));
+      else params.delete("session");
+      router.replace(`/admin?${params.toString()}`, { scroll: false });
+    }
   }
 
   useEffect(() => {
@@ -80,11 +93,11 @@ export function AdminSessionArea({
             </p>
           </div>
 
-          {attendeeInfo && !isPending && (
+          {selectedSession && (
             <SessionAttendeesModal
-              sessionId={attendeeInfo.sessionId}
-              sessionName={attendeeInfo.sessionName}
-              attendeeCount={attendeeInfo.attendeeCount}
+              sessionId={selectedSession.id}
+              sessionName={selectedSession.name}
+              attendeeCount={attendeeCounts[selectedSession.id] ?? 0}
             />
           )}
         </div>
@@ -92,20 +105,15 @@ export function AdminSessionArea({
         <div ref={containerRef} className="relative">
           <button
             type="button"
-            disabled={isPending}
             onClick={() => setOpen((v) => !v)}
             className="w-full flex items-center justify-between rounded-lg border border-gray-300 px-4 py-2.5 text-sm bg-white disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-left"
           >
             <span className={selectedSession ? "text-gray-900" : "text-gray-400"}>
               {selectedSession ? formatOption(selectedSession) : "-- Select a session --"}
             </span>
-            {isPending ? (
-              <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin shrink-0 ml-2" />
-            ) : (
-              <svg className="w-4 h-4 text-gray-400 shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            )}
+            <svg className="w-4 h-4 text-gray-400 shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
           </button>
 
           {open && (
@@ -132,8 +140,48 @@ export function AdminSessionArea({
         </div>
       </div>
 
-      {/* Below Step 1: skeleton while navigating, children when settled */}
-      {isPending ? <StepSkeleton /> : children}
+      {/* Step 2: Search participant */}
+      {selectedSession && !selectedSession.allowsWalkIn && (
+        <div id="search-participant" className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00428E] text-white text-xs font-bold shrink-0">2</span>
+            <p className="text-sm font-semibold text-gray-700">
+              Search Participant —{" "}
+              <span className="text-indigo-600 font-medium">{selectedSession.name}</span>
+            </p>
+          </div>
+          <ParticipantSearch
+            key={selectedSession.id}
+            sessionId={selectedSession.id}
+            sessionName={selectedSession.name}
+            isVictoryDay={selectedSession.isVictoryDay}
+            requiresVictoryDay={selectedSession.requiresVictoryDay}
+            initialQ={selectedSession.id === initialSelectedId ? initialQ : undefined}
+            qrCheckin={qrCheckin}
+            victoryDayAllowAllClasses={victoryDayAllowAllClasses}
+            autoOpenQrScanner={autoOpenQrScanner}
+            confirmBeforeCheckIn={confirmBeforeCheckIn}
+            showTableNumber={showTableNumber}
+            autoCheckin={autoCheckin}
+            autoCheckin915={autoCheckin915}
+            offlineCheckin={offlineCheckin}
+          />
+        </div>
+      )}
+
+      {/* Step 2: Add walk-in */}
+      {selectedSession && selectedSession.allowsWalkIn && (
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00428E] text-white text-xs font-bold shrink-0">2.1</span>
+            <p className="text-sm font-semibold text-gray-700">
+              Add Walk-in —{" "}
+              <span className="text-indigo-600 font-medium">{selectedSession.name}</span>
+            </p>
+          </div>
+          <WalkInForm sessionId={selectedSession.id} newDatePicker={newDatePicker ?? false} offlineCheckin={offlineCheckin} />
+        </div>
+      )}
     </>
   );
 }

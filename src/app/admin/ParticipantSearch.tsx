@@ -145,9 +145,14 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
       return;
     }
 
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("q", trimmed);
-    router.replace(`/admin?${params.toString()}`, { scroll: false });
+    // Syncing the URL needs a server round trip (Next re-renders /admin for
+    // the new searchParams) — skip it offline, where that request would fail
+    // and the router's hard-reload fallback would wipe all local state.
+    if (isOnline) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("q", trimmed);
+      router.replace(`/admin?${params.toString()}`, { scroll: false });
+    }
     runSearch(q);
   }
 
@@ -160,9 +165,11 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
     if (q.trim().startsWith(QR_PREFIX)) return;
 
     debounceTimer.current = setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("q", q.trim());
-      router.replace(`/admin?${params.toString()}`, { scroll: false });
+      if (isOnline) {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("q", q.trim());
+        router.replace(`/admin?${params.toString()}`, { scroll: false });
+      }
       runSearch(q);
     }, 400);
 

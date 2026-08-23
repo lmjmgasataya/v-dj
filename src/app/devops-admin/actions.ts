@@ -25,6 +25,7 @@ export async function toggleFlag(key: string) {
       set: { enabled: sql`NOT ${featureFlags.enabled}`, updatedAt: new Date() },
     });
   revalidatePath("/devops-admin");
+  revalidatePath("/admin");
   await toastRedirectBack("Flag toggled.");
 }
 

@@ -24,6 +24,12 @@ const CHECKIN_SETTINGS = [
     label: "Webcam QR check-in — auto-open camera after selecting a session",
     description: "The camera scanner opens automatically once a session is selected, instead of waiting for Scan QR Code to be clicked. Recommended to turn off if you're using a barcode scanner.",
   },
+  {
+    key: "offline_checkin" as const,
+    label: "Offline check-in",
+    description: "When the connection drops, check-ins are saved on this device and synced automatically once it's back online. Turn on before the event on every device that will be used.",
+    beta: true,
+  },
 ];
 
 export function CheckInSettingsButton({ flags }: { flags: Record<string, boolean> }) {
@@ -62,7 +68,14 @@ export function CheckInSettingsButton({ flags }: { flags: Record<string, boolean
               return (
                 <li key={setting.key} className="flex items-center justify-between gap-3 px-4 py-3">
                   <div>
-                    <p className="text-xs font-medium text-gray-800">{setting.label}</p>
+                    <p className="text-xs font-medium text-gray-800 flex items-center gap-1.5">
+                      {setting.label}
+                      {setting.beta && (
+                        <span className="text-[9px] font-semibold uppercase tracking-wide text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full px-1.5 py-0.5">
+                          Beta
+                        </span>
+                      )}
+                    </p>
                     <p className="text-[11px] text-gray-500 mt-0.5">{setting.description}</p>
                   </div>
                   <form action={setCheckinFlag.bind(null, setting.key, !enabled)}>

@@ -1,12 +1,11 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import type { ClassSession } from "@/db/schema";
 import { SessionAttendeesModal } from "./SessionAttendeesModal";
 import { ParticipantSearch } from "./ParticipantSearch";
 import { WalkInForm } from "./WalkInForm";
-import { useOnlineStatus } from "@/lib/useOnlineStatus";
 
 export function AdminSessionArea({
   sessions,
@@ -39,17 +38,17 @@ export function AdminSessionArea({
   offlineCheckin?: boolean;
   newDatePicker?: boolean;
 }) {
-  const router = useRouter();
   const currentParams = useSearchParams();
   const [open, setOpen] = useState(false);
   // Owned client-side (not derived from the URL) so picking a session never
   // needs a server round trip — required for it to keep working offline.
-  // The URL is still kept in sync as a nice-to-have (deep links, refresh)
-  // whenever we're actually online to do so.
+  // The URL is still kept in sync as a nice-to-have (deep links, refresh),
+  // via the native History API rather than router.replace() — a real Next.js
+  // navigation fetches fresh RSC data, and when that fetch fails (offline, or
+  // navigator.onLine hasn't caught up yet) the router can fall back to a full
+  // page reload, which is exactly what this is meant to avoid.
   const [selectedId, setSelectedId] = useState<number | null>(initialSelectedId);
   const containerRef = useRef<HTMLDivElement>(null);
-  const onlineStatus = useOnlineStatus();
-  const isOnline = !offlineCheckin || onlineStatus;
 
   const selectedSession = sessions.find((s) => s.id === selectedId) ?? null;
 
@@ -63,12 +62,10 @@ export function AdminSessionArea({
   function handleSelect(id: number | null) {
     setOpen(false);
     setSelectedId(id);
-    if (isOnline) {
-      const params = new URLSearchParams(currentParams.toString());
-      if (id) params.set("session", String(id));
-      else params.delete("session");
-      router.replace(`/admin?${params.toString()}`, { scroll: false });
-    }
+    const params = new URLSearchParams(currentParams.toString());
+    if (id) params.set("session", String(id));
+    else params.delete("session");
+    window.history.replaceState(null, "", `/admin?${params.toString()}`);
   }
 
   useEffect(() => {

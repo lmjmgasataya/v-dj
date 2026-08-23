@@ -153,6 +153,14 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
     // to reach handleSubmit, which handles the "dj:participant:" case.
     if (q.trim().startsWith(QR_PREFIX)) return;
 
+    // Once the roster's preloaded, search is just an in-memory filter — no
+    // need to debounce a fetch that isn't happening, so run it immediately.
+    if (rosterLoaded) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      runSearch(q);
+      return;
+    }
+
     debounceTimer.current = setTimeout(() => {
       runSearch(q);
     }, 400);
@@ -161,7 +169,7 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
+  }, [q, rosterLoaded]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

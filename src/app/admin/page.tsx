@@ -8,6 +8,7 @@ import { CheckInSettingsButton } from "./CheckInSettingsButton";
 import { OfflineSyncBar } from "./OfflineSyncBar";
 import { RosterPrefetcher } from "./RosterPrefetcher";
 import { ConnectionStatus } from "./ConnectionStatus";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 export default async function AdminPage({
   searchParams,
@@ -87,10 +88,12 @@ export default async function AdminPage({
         </div>
       </div>
 
+      <ServiceWorkerRegister enabled={flagMap["offline_checkin"] ?? false} />
+
       {flagMap["offline_checkin"] && (
         <>
           <OfflineSyncBar />
-          <RosterPrefetcher sessions={sessions} victoryDayAllowAllClasses={flagMap["victory_day_allow_all_classes"] ?? false} />
+          <RosterPrefetcher sessions={sessions} victoryDayAllowAllClasses={flagMap["victory_day_allow_all_classes"] ?? false} qrCheckin={flagMap["qr_checkin"] ?? false} />
         </>
       )}
 

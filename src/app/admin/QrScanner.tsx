@@ -135,6 +135,16 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     rosterRef.current = roster;
   });
 
+  // Warms the browser's cache for the camera scanner's (~1MB) dependency as
+  // soon as this session's check-in screen loads, rather than waiting for the
+  // first click on "Scan QR Code" — so it's already available if that first
+  // click happens to be offline. Failures are silently ignored here; the
+  // real error (if it's still missing when actually needed) surfaces from
+  // the dynamic import in the scanning effect below.
+  useEffect(() => {
+    import("html5-qrcode").catch(() => {});
+  }, []);
+
   // Replaces whatever popup is currently showing (success or already-checked-in)
   // with the new result, and forces a remount so its countdown starts fresh.
   function presentSuccess(info: { firstName: string; lastName: string; tableNumber: number | null; status: CheckInStatus; pendingSync?: boolean }) {
@@ -297,7 +307,16 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     let cancelled = false;
 
     async function init() {
-      const { Html5Qrcode } = await import("html5-qrcode");
+      let Html5Qrcode;
+      try {
+        ({ Html5Qrcode } = await import("html5-qrcode"));
+      } catch {
+        if (!cancelled) {
+          setStatus("error");
+          setMessage("Camera scanner unavailable offline — open it once while connected to enable it on this device.");
+        }
+        return;
+      }
       if (cancelled) return;
 
       const scanner = new Html5Qrcode(CONTAINER_ID);

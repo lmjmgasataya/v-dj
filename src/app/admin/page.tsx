@@ -7,6 +7,7 @@ import { AdminSessionArea } from "./AdminSessionArea";
 import { CheckInSettingsButton } from "./CheckInSettingsButton";
 import { OfflineSyncBar } from "./OfflineSyncBar";
 import { RosterPrefetcher } from "./RosterPrefetcher";
+import { ConnectionStatus } from "./ConnectionStatus";
 
 export default async function AdminPage({
   searchParams,
@@ -80,7 +81,10 @@ export default async function AdminPage({
             <p className="text-sm text-gray-500 mt-0.5">{defaultBatch.name}</p>
           )}
         </div>
-        <CheckInSettingsButton flags={flagMap} />
+        <div className="flex items-center gap-2 shrink-0">
+          {flagMap["offline_checkin"] && <ConnectionStatus />}
+          <CheckInSettingsButton flags={flagMap} />
+        </div>
       </div>
 
       {flagMap["offline_checkin"] && (

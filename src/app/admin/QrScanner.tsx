@@ -8,7 +8,8 @@ import { CheckInSuccessModal } from "./CheckInSuccessModal";
 import { CheckInStatusPicker } from "./CheckInStatusPicker";
 import { checkInStatusForDate, isOnTimeWindow, isWithinLateCutoff } from "@/lib/date";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
-import { enqueueCheckIn } from "@/lib/offlineStore";
+import { enqueueCheckIn, removePending } from "@/lib/offlineStore";
+import { raceWithTimeout, SLOW_CHECKIN_TIMEOUT_MS } from "@/lib/raceWithTimeout";
 import type { CheckInStatus, CheckInMethod } from "@/db/schema";
 
 export const QR_PREFIX = "dj:participant:";
@@ -90,6 +91,7 @@ interface QrScannerProps {
   autoCheckin?: boolean;
   autoCheckin915?: boolean;
   offlineCheckin?: boolean;
+  checkinTimeoutFallback?: boolean;
   onCheckIn?: (info: CheckInResultInfo) => void;
   /** Preloaded session roster, keyed by participant id — lets a scan resolve
    * instantly from memory instead of round-tripping to the server. Falls
@@ -100,7 +102,7 @@ interface QrScannerProps {
 }
 
 export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function QrScanner(
-  { sessionId, isVictoryDay, allowAllClasses, isOrientation, autoOpen, confirmBeforeCheckIn = true, showTableNumber = true, autoCheckin = false, autoCheckin915 = false, offlineCheckin = false, onCheckIn, roster, onRosterUpdate },
+  { sessionId, isVictoryDay, allowAllClasses, isOrientation, autoOpen, confirmBeforeCheckIn = true, showTableNumber = true, autoCheckin = false, autoCheckin915 = false, offlineCheckin = false, checkinTimeoutFallback = false, onCheckIn, roster, onRosterUpdate },
   ref
 ) {
   const onlineStatus = useOnlineStatus();
@@ -159,15 +161,15 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
   }
 
   async function submitCheckIn(participantId: number, remarksValue: string, statusOverride: CheckInStatus | undefined, method: CheckInMethod) {
-    function queueOffline(): boolean {
+    function queueOffline() {
       const cached = rosterRef.current?.get(participantId);
-      if (!cached) return false;
-      enqueueCheckIn({ participantId, sessionId, remarks: remarksValue || undefined, status: statusOverride, method });
+      if (!cached) return null;
+      const queued = enqueueCheckIn({ participantId, sessionId, remarks: remarksValue || undefined, status: statusOverride, method });
       const resolvedStatus = statusOverride ?? checkInStatusForDate(new Date());
       presentSuccess({ firstName: cached.firstName, lastName: cached.lastName, tableNumber: null, status: resolvedStatus, pendingSync: true });
       onCheckInRef.current?.({ lastName: cached.lastName, message: `Checked in: ${cached.lastName}, ${cached.firstName} — pending sync`, alreadyCheckedIn: false, tableNumber: null });
       onRosterUpdate?.(participantId, { alreadyCheckedIn: true, tableNumber: null, checkInStatus: resolvedStatus, checkInRemarks: remarksValue || null });
-      return true;
+      return queued;
     }
 
     if (!isOnline) {
@@ -185,7 +187,36 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     setStatus("loading");
     let result;
     try {
-      result = await checkInByQr(participantId, sessionId, remarksValue || undefined, statusOverride, method);
+      const call = checkInByQr(participantId, sessionId, remarksValue || undefined, statusOverride, method);
+      if (offlineCheckin && checkinTimeoutFallback) {
+        const raced = await raceWithTimeout(call, SLOW_CHECKIN_TIMEOUT_MS);
+        if (raced.timedOut) {
+          // Still online, but taking too long — queue it like a real failure
+          // so the volunteer isn't left waiting. The original call keeps
+          // running server-side (it can't be cancelled), so if it turns out
+          // to have actually succeeded, drop the redundant queued copy
+          // instead of syncing a duplicate later.
+          const queued = queueOffline();
+          if (queued) {
+            raced.settled
+              .then((r) => {
+                if (!("error" in r)) removePending(queued.localId);
+              })
+              .catch(() => {
+                // also failed once it finally settled — it's already queued
+              });
+            setPending(null);
+            setRemarks("");
+            return;
+          }
+          setStatus("error");
+          setMessage("Participant not in the offline roster — reconnect to check them in.");
+          return;
+        }
+        result = raced.value;
+      } else {
+        result = await call;
+      }
     } catch {
       // Connection dropped mid-click — fall back to the offline queue instead
       // of letting a failed Server Action surface as an uncaught rejection.

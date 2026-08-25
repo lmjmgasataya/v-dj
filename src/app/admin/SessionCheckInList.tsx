@@ -10,7 +10,8 @@ import { CheckInStatusPicker, checkInStatusBadgeClass } from "./CheckInStatusPic
 import { checkInStatusTextClass } from "@/lib/checkinStatus";
 import { checkInStatusForDate, isOnTimeWindow, isWithinLateCutoff } from "@/lib/date";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
-import { enqueueCheckIn } from "@/lib/offlineStore";
+import { enqueueCheckIn, removePending } from "@/lib/offlineStore";
+import { raceWithTimeout, SLOW_CHECKIN_TIMEOUT_MS } from "@/lib/raceWithTimeout";
 import type { CheckInStatus } from "@/db/schema";
 import type { CheckinRosterEntry } from "./actions";
 
@@ -39,7 +40,7 @@ interface ParticipantWithStatus {
 
 type RosterUpdate = (participantId: number, patch: Partial<CheckinRosterEntry>) => void;
 
-function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, onRosterUpdate, confirmBeforeCheckIn = true, showTableNumber = true, autoCheckin = false, autoCheckin915 = false, offlineCheckin = false }: { p: ParticipantWithStatus; sessionId: number; isVictoryDay: boolean; requiresVictoryDay: boolean; onAction?: () => void; onRosterUpdate?: RosterUpdate; confirmBeforeCheckIn?: boolean; showTableNumber?: boolean; autoCheckin?: boolean; autoCheckin915?: boolean; offlineCheckin?: boolean }) {
+function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, onRosterUpdate, confirmBeforeCheckIn = true, showTableNumber = true, autoCheckin = false, autoCheckin915 = false, offlineCheckin = false, checkinTimeoutFallback = false }: { p: ParticipantWithStatus; sessionId: number; isVictoryDay: boolean; requiresVictoryDay: boolean; onAction?: () => void; onRosterUpdate?: RosterUpdate; confirmBeforeCheckIn?: boolean; showTableNumber?: boolean; autoCheckin?: boolean; autoCheckin915?: boolean; offlineCheckin?: boolean; checkinTimeoutFallback?: boolean }) {
   const [pending, startTransition] = useTransition();
   const [showModal, setShowModal] = useState(false);
   const [remarks, setRemarks] = useState("");
@@ -57,7 +58,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
     setShowModal(false);
     setRemarks("");
     const resolvedStatus = statusOverride ?? checkInStatusForDate(new Date());
-    enqueueCheckIn({ participantId: p.id, sessionId, remarks: remarksValue || undefined, status: statusOverride, method: "Search" });
+    const queued = enqueueCheckIn({ participantId: p.id, sessionId, remarks: remarksValue || undefined, status: statusOverride, method: "Search" });
     setSuccessInfo({
       firstName: toTitleCase(p.firstName),
       lastName: toTitleCase(p.lastName),
@@ -73,6 +74,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
       checkInRemarks: remarksValue || null,
     });
     onAction?.();
+    return queued;
   }
 
   function submitCheckIn(remarksValue: string, statusOverride?: CheckInStatus) {
@@ -82,9 +84,31 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
     }
 
     startTransition(async () => {
+      const call = checkInParticipant(p.id, sessionId, remarksValue || undefined, statusOverride);
       let result;
       try {
-        result = await checkInParticipant(p.id, sessionId, remarksValue || undefined, statusOverride);
+        if (offlineCheckin && checkinTimeoutFallback) {
+          const raced = await raceWithTimeout(call, SLOW_CHECKIN_TIMEOUT_MS);
+          if (raced.timedOut) {
+            // Still online, but taking too long — queue it like a real
+            // failure so the volunteer isn't left waiting. The original call
+            // keeps running server-side (it can't be cancelled), so if it
+            // turns out to have actually succeeded, drop the redundant
+            // queued copy instead of syncing a duplicate later.
+            const queued = queueOffline(remarksValue, statusOverride);
+            raced.settled
+              .then((r) => {
+                if (queued && !("error" in r)) removePending(queued.localId);
+              })
+              .catch(() => {
+                // also failed once it finally settled — it's already queued
+              });
+            return;
+          }
+          result = raced.value;
+        } else {
+          result = await call;
+        }
       } catch {
         // Connection dropped mid-click — fall back to the offline queue
         // instead of letting a failed Server Action surface as an uncaught
@@ -323,6 +347,7 @@ export function SessionCheckInList({
   autoCheckin,
   autoCheckin915,
   offlineCheckin,
+  checkinTimeoutFallback,
 }: {
   participants: ParticipantWithStatus[];
   sessionId: number;
@@ -336,6 +361,7 @@ export function SessionCheckInList({
   autoCheckin?: boolean;
   autoCheckin915?: boolean;
   offlineCheckin?: boolean;
+  checkinTimeoutFallback?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -355,7 +381,7 @@ export function SessionCheckInList({
         )}
       </div>
       {participants.map((p) => (
-        <CheckInRow key={p.id} p={p} sessionId={sessionId} isVictoryDay={isVictoryDay} requiresVictoryDay={requiresVictoryDay} onAction={onAction} onRosterUpdate={onRosterUpdate} confirmBeforeCheckIn={confirmBeforeCheckIn} showTableNumber={showTableNumber} autoCheckin={autoCheckin} autoCheckin915={autoCheckin915} offlineCheckin={offlineCheckin} />
+        <CheckInRow key={p.id} p={p} sessionId={sessionId} isVictoryDay={isVictoryDay} requiresVictoryDay={requiresVictoryDay} onAction={onAction} onRosterUpdate={onRosterUpdate} confirmBeforeCheckIn={confirmBeforeCheckIn} showTableNumber={showTableNumber} autoCheckin={autoCheckin} autoCheckin915={autoCheckin915} offlineCheckin={offlineCheckin} checkinTimeoutFallback={checkinTimeoutFallback} />
       ))}
     </div>
   );

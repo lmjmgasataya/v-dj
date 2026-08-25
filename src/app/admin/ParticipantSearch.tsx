@@ -52,7 +52,7 @@ function SearchSkeleton() {
   );
 }
 
-export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requiresVictoryDay, initialQ, qrCheckin, victoryDayAllowAllClasses, autoOpenQrScanner, confirmBeforeCheckIn, showTableNumber, autoCheckin, autoCheckin915, offlineCheckin }: { sessionId: number; sessionName: string; isVictoryDay: boolean; requiresVictoryDay: boolean; initialQ?: string; qrCheckin?: boolean; victoryDayAllowAllClasses?: boolean; autoOpenQrScanner?: boolean; confirmBeforeCheckIn?: boolean; showTableNumber?: boolean; autoCheckin?: boolean; autoCheckin915?: boolean; offlineCheckin?: boolean }) {
+export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requiresVictoryDay, initialQ, qrCheckin, victoryDayAllowAllClasses, autoOpenQrScanner, confirmBeforeCheckIn, showTableNumber, autoCheckin, autoCheckin915, offlineCheckin, checkinTimeoutFallback }: { sessionId: number; sessionName: string; isVictoryDay: boolean; requiresVictoryDay: boolean; initialQ?: string; qrCheckin?: boolean; victoryDayAllowAllClasses?: boolean; autoOpenQrScanner?: boolean; confirmBeforeCheckIn?: boolean; showTableNumber?: boolean; autoCheckin?: boolean; autoCheckin915?: boolean; offlineCheckin?: boolean; checkinTimeoutFallback?: boolean }) {
   const isOrientation = sessionName === ORIENTATION_SESSION_NAME;
   const [q, setQ] = useState(initialQ ?? "");
   const [committedQuery, setCommittedQuery] = useState("");
@@ -219,6 +219,7 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
             autoCheckin={autoCheckin}
             autoCheckin915={autoCheckin915}
             offlineCheckin={offlineCheckin}
+            checkinTimeoutFallback={checkinTimeoutFallback}
             roster={roster}
             onRosterUpdate={updateRoster}
             onCheckIn={(info) => {
@@ -280,6 +281,7 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
               confirmBeforeCheckIn={confirmBeforeCheckIn}
               showTableNumber={showTableNumber}
               offlineCheckin={offlineCheckin}
+              checkinTimeoutFallback={checkinTimeoutFallback}
               autoCheckin={autoCheckin}
               autoCheckin915={autoCheckin915}
             />

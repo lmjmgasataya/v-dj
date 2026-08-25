@@ -135,6 +135,7 @@ export default async function AdminPage({
         autoCheckin={flagMap["checkin_autocheckin"] ?? false}
         autoCheckin915={flagMap["checkin_autocheckin_915"] ?? false}
         offlineCheckin={flagMap["offline_checkin"] ?? false}
+        checkinTimeoutFallback={flagMap["checkin_timeout_fallback"] ?? false}
         newDatePicker={flagMap["new_date_picker"] ?? false}
       />
     </div>

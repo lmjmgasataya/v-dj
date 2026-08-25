@@ -21,6 +21,7 @@ export function AdminSessionArea({
   autoCheckin,
   autoCheckin915,
   offlineCheckin,
+  checkinTimeoutFallback,
   newDatePicker,
 }: {
   sessions: ClassSession[];
@@ -36,6 +37,7 @@ export function AdminSessionArea({
   autoCheckin?: boolean;
   autoCheckin915?: boolean;
   offlineCheckin?: boolean;
+  checkinTimeoutFallback?: boolean;
   newDatePicker?: boolean;
 }) {
   const currentParams = useSearchParams();
@@ -162,6 +164,7 @@ export function AdminSessionArea({
             autoCheckin={autoCheckin}
             autoCheckin915={autoCheckin915}
             offlineCheckin={offlineCheckin}
+            checkinTimeoutFallback={checkinTimeoutFallback}
           />
         </div>
       )}

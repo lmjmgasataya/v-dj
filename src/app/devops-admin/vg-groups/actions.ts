@@ -24,7 +24,7 @@ export async function createVgGroup(formData: FormData) {
     time: formData.get("time") as string,
     frequency,
     otherFrequency: frequency === "Others" ? (formData.get("otherFrequency") as string) || null : null,
-    lifeStage: lifeStage as typeof victoryGroups.$inferInsert["lifeStage"],
+    lifeStage: lifeStage ? [lifeStage as NonNullable<typeof victoryGroups.$inferInsert["lifeStage"]>[number]] : null,
   });
   revalidatePath("/devops-admin/vg-groups");
   await toastRedirectBack("VG group created.");

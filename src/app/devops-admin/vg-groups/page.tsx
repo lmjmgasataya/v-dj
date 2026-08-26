@@ -75,7 +75,7 @@ export default async function VgGroupsPage() {
                   <td className="px-4 py-2.5 text-gray-500">
                     {g.frequency === "Others" && g.otherFrequency ? g.otherFrequency : g.frequency}
                   </td>
-                  <td className="px-4 py-2.5 text-gray-500">{g.lifeStage ?? "—"}</td>
+                  <td className="px-4 py-2.5 text-gray-500">{g.lifeStage?.length ? g.lifeStage.join(", ") : "—"}</td>
                   <td className="px-4 py-2.5 text-right">
                     <ConfirmDeleteButton
                       action={deleteVgGroup}

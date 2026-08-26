@@ -34,14 +34,12 @@ function parseFrequency(formData: FormData) {
 }
 
 function parseLifeStage(formData: FormData) {
-  const val = formData.get("lifeStage") as string;
-  return { lifeStage: val ? (val as LifeStage) : null };
+  const values = formData.getAll("lifeStage") as string[];
+  return { lifeStage: values.length ? (values as LifeStage[]) : null };
 }
 
 function parseStatus(formData: FormData) {
-  const isActive = formData.get("isActive") === "true";
-  const remarks = isActive ? null : ((formData.get("remarks") as string) || null);
-  return { isActive, remarks };
+  return { isActive: formData.get("activelyLeadingConfirmed") === "on" };
 }
 
 export async function addOwnVictoryGroup(formData: FormData) {

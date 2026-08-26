@@ -14,7 +14,8 @@ export function feeLabel(value: string | null | undefined): string {
 
 export const DISCIPLESHIP_JOURNEY_STEPS = [
   "One2One",
-  "Victory Weekend",
+  "Victory Weekend/Victory Day",
+  "Spiritual Foundations",
   "Church Community",
   "Purple Book Class",
   "Making Disciples",

@@ -1,0 +1,1 @@
+ALTER TABLE "victory_groups" ALTER COLUMN "life_stage" SET DATA TYPE "public"."lifestage"[] USING (CASE WHEN "life_stage" IS NULL THEN NULL ELSE ARRAY["life_stage"] END);

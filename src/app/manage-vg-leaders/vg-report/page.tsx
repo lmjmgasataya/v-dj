@@ -56,7 +56,9 @@ export default async function VictoryGroupReportPage() {
   for (const g of groups) {
     dayCounts.set(g.day, (dayCounts.get(g.day) ?? 0) + 1);
     frequencyCounts.set(g.frequency, (frequencyCounts.get(g.frequency) ?? 0) + 1);
-    if (g.lifeStage) lifeStageCounts.set(g.lifeStage, (lifeStageCounts.get(g.lifeStage) ?? 0) + 1);
+    for (const stage of g.lifeStage ?? []) {
+      lifeStageCounts.set(stage, (lifeStageCounts.get(stage) ?? 0) + 1);
+    }
     const status = g.isActive ? "Active" : "Inactive";
     statusCounts.set(status, (statusCounts.get(status) ?? 0) + 1);
     placeCounts.set(g.place, (placeCounts.get(g.place) ?? 0) + 1);
@@ -143,7 +145,7 @@ export default async function VictoryGroupReportPage() {
                     <td className="px-4 py-2.5 text-gray-500">
                       {g.frequency === "Others" ? (g.otherFrequency ?? "Others") : g.frequency}
                     </td>
-                    <td className="px-4 py-2.5 text-gray-500">{g.lifeStage ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-gray-500">{g.lifeStage?.length ? g.lifeStage.join(", ") : "—"}</td>
                     <td className="px-4 py-2.5 text-gray-500">{g.intern ?? "—"}</td>
                     <td className="px-4 py-2.5">
                       <span

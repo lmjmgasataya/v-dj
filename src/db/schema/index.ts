@@ -9,6 +9,7 @@ import {
   integer,
   unique,
   index,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 export const lifestageEnum = pgEnum("lifestage", [
@@ -213,6 +214,30 @@ export const appSettings = pgTable("app_settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const vgReportSnapshots = pgTable("vg_report_snapshots", {
+  id: serial("id").primaryKey(),
+  label: text("label").notNull(),
+  asOfDate: date("as_of_date").notNull(),
+  data: jsonb("data").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [unique().on(t.label)]);
+
+export const vgConvergenceAttendance = pgTable("vg_convergence_attendance", {
+  id: serial("id").primaryKey(),
+  label: text("label").notNull(),
+  eventDate: date("event_date").notNull(),
+  attendees: integer("attendees").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const leadership113Batches = pgTable("leadership_113_batches", {
+  id: serial("id").primaryKey(),
+  batchName: text("batch_name").notNull(),
+  actual: integer("actual").notNull(),
+  goal: integer("goal").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const smsLogs = pgTable("sms_logs", {
   id: serial("id").primaryKey(),
   recipientName: text("recipient_name").notNull(),
@@ -237,3 +262,6 @@ export type SmsMessageTemplate = typeof smsMessageTemplates.$inferSelect;
 export type SmsApiKey = typeof smsApiKeys.$inferSelect;
 export type SmsLog = typeof smsLogs.$inferSelect;
 export type AppSetting = typeof appSettings.$inferSelect;
+export type VgReportSnapshot = typeof vgReportSnapshots.$inferSelect;
+export type VgConvergenceAttendance = typeof vgConvergenceAttendance.$inferSelect;
+export type Leadership113Batch = typeof leadership113Batches.$inferSelect;

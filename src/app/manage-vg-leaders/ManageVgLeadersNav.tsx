@@ -7,6 +7,7 @@ const NAV = [
   { href: "/manage-vg-leaders/leaders", label: "VG Leaders" },
   { href: "/manage-vg-leaders/report", label: "Report" },
   { href: "/manage-vg-leaders/vg-report", label: "Victory Group Report" },
+  { href: "/manage-vg-leaders/quarterly-report", label: "Quarterly Report" },
 ];
 
 export function ManageVgLeadersNav() {

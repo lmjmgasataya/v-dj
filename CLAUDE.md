@@ -24,10 +24,7 @@ npm run db:seed      # Seed database (loads .env.local automatically)
 
 There are no tests configured in this project.
 
-Local Postgres runs via Docker:
-```bash
-docker compose up -d  # Starts postgres:16 on :5432 and Adminer on :8080
-```
+The database is hosted on Supabase (not a local Docker Postgres) — `DATABASE_URL`/`DATABASE_URL_UNPOOLED` in `.env.local` point at it directly. Don't check for or start a local Docker Postgres container. To apply schema changes, run `npm run db:push` (it targets Supabase directly); don't assume `docker compose` is running.
 
 ## Architecture
 

@@ -10,6 +10,7 @@ import {
   unique,
   index,
   jsonb,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 export const lifestageEnum = pgEnum("lifestage", [
@@ -58,6 +59,7 @@ export const victoryGroupLeaders = pgTable("victory_group_leaders", {
   discipleshipJourneyCompleted: text("discipleship_journey_completed"),
   graduateOfLeadership113: boolean("graduate_of_leadership_113"),
   ownVgLeaderName: text("own_vg_leader_name"),
+  ownVgLeaderId: integer("own_vg_leader_id").references((): AnyPgColumn => victoryGroupLeaders.id),
   profileCompleted: boolean("profile_completed").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),

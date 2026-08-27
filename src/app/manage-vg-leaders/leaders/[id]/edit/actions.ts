@@ -28,6 +28,7 @@ export async function updateVGLeader(id: number, formData: FormData) {
           ? null
           : formData.get("graduateOfLeadership113") === "true",
       ownVgLeaderName: (formData.get("ownVgLeaderName") as string) || null,
+      ownVgLeaderId: formData.get("ownVgLeaderId") ? Number(formData.get("ownVgLeaderId")) : null,
     })
     .where(eq(victoryGroupLeaders.id, id));
 

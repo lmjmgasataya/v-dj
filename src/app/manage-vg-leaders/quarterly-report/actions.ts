@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { SERVICE_BUCKETS, type VgSnapshotData } from "@/lib/vgSnapshot";
+import type { VgSnapshotData } from "@/lib/vgSnapshot";
 import { computeVgSnapshotCounts } from "@/lib/vgSnapshotCompute";
 
 async function requireDeveloper() {
@@ -23,14 +23,6 @@ export async function createVgReportSnapshot(formData: FormData) {
   const leadershipGroupsGoal = Number(formData.get("leadershipGroupsGoal") || 0);
 
   const computed = await computeVgSnapshotCounts();
-
-  let leadershipGroupsTotal = 0;
-  for (const bucket of SERVICE_BUCKETS) {
-    const count = Number(formData.get(`leadershipGroups.${bucket}`) || 0);
-    computed.byService[bucket].leadershipGroups = count;
-    leadershipGroupsTotal += count;
-  }
-  computed.totals.leadershipGroups = leadershipGroupsTotal;
 
   const data: VgSnapshotData = {
     ...computed,

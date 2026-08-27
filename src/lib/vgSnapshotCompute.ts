@@ -10,17 +10,26 @@ import {
   type VgSnapshotData,
 } from "@/lib/vgSnapshot";
 
-function isInternSet(intern: string | null): boolean {
+export function isInternSet(intern: string | null): boolean {
   return !!intern && intern.trim().toLowerCase() !== "none";
 }
 
-/** Computes the derivable counts (VG Leaders / Victory Groups / Interns, by service bucket and gender) from live data. Leadership Groups and goals aren't modeled anywhere yet, so they default to 0 and are filled in by hand when a snapshot is created. */
+/**
+ * Computes the derivable counts (VG Leaders / Victory Groups / Interns / Leadership Group Leaders,
+ * by service bucket and gender) from live data. A VG leader is a Leadership Group Leader when at
+ * least one other VG leader has named them (via `ownVgLeaderId`) as their own VG leader.
+ */
 export async function computeVgSnapshotCounts(): Promise<
   Pick<VgSnapshotData, "byService" | "totals" | "vglByGender" | "genderTotals">
 > {
   const [leaders, groups] = await Promise.all([
     db
-      .select({ id: victoryGroupLeaders.id, gender: victoryGroupLeaders.gender, serviceAttending: victoryGroupLeaders.serviceAttending })
+      .select({
+        id: victoryGroupLeaders.id,
+        gender: victoryGroupLeaders.gender,
+        serviceAttending: victoryGroupLeaders.serviceAttending,
+        ownVgLeaderId: victoryGroupLeaders.ownVgLeaderId,
+      })
       .from(victoryGroupLeaders)
       .where(isNull(victoryGroupLeaders.deletedAt)),
     db
@@ -65,12 +74,24 @@ export async function computeVgSnapshotCounts(): Promise<
     if (leader?.gender === "Female") vglByGender[bucket].female += 1;
   }
 
+  const leadershipGroupLeaderIds = new Set(
+    leaders.filter((l) => l.ownVgLeaderId != null).map((l) => l.ownVgLeaderId as number)
+  );
+  for (const leaderId of leadershipGroupLeaderIds) {
+    const leader = leaderById.get(leaderId);
+    if (!leader) continue;
+    const bucket = serviceToBucket(leader.serviceAttending ?? null);
+    if (!bucket) continue;
+    byService[bucket].leadershipGroups += 1;
+  }
+
   const totals = emptyBucketCounts();
   const genderTotals = { male: 0, female: 0 };
   for (const bucket of SERVICE_BUCKETS) {
     totals.vgLeaders += byService[bucket].vgLeaders;
     totals.victoryGroups += byService[bucket].victoryGroups;
     totals.interns += byService[bucket].interns;
+    totals.leadershipGroups += byService[bucket].leadershipGroups;
     genderTotals.male += vglByGender[bucket].male;
     genderTotals.female += vglByGender[bucket].female;
   }

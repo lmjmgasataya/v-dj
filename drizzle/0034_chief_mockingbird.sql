@@ -1,0 +1,2 @@
+ALTER TABLE "victory_group_leaders" ADD COLUMN "own_vg_leader_id" integer;--> statement-breakpoint
+ALTER TABLE "victory_group_leaders" ADD CONSTRAINT "victory_group_leaders_own_vg_leader_id_victory_group_leaders_id_fk" FOREIGN KEY ("own_vg_leader_id") REFERENCES "public"."victory_group_leaders"("id") ON DELETE no action ON UPDATE no action;

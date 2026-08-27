@@ -87,7 +87,7 @@ function PerBucketTable({
     { label: "VG Leaders", key: "vgLeaders" },
     { label: "Victory Groups", key: "victoryGroups" },
     { label: "Interns", key: "interns" },
-    { label: "Leadership Groups", key: "leadershipGroups" },
+    { label: "Leadership Group Leaders", key: "leadershipGroups" },
   ];
 
   return (
@@ -174,7 +174,7 @@ export default async function QuarterlyReportPage() {
                 {(["vgLeaders", "victoryGroups", "interns", "leadershipGroups"] as const).map((key) => (
                   <div key={key}>
                     <p className="text-gray-500 capitalize">
-                      {key === "vgLeaders" ? "VG Leaders" : key === "victoryGroups" ? "Victory Groups" : key === "interns" ? "Interns" : "Leadership Groups"}
+                      {key === "vgLeaders" ? "VG Leaders" : key === "victoryGroups" ? "Victory Groups" : key === "interns" ? "Interns" : "Leadership Group Leaders"}
                     </p>
                     <p className="text-lg font-bold text-gray-900">{latest.data.totals[key]}</p>
                   </div>
@@ -196,7 +196,7 @@ export default async function QuarterlyReportPage() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Leadership Groups</p>
+                  <p className="text-gray-500">Leadership Group Leaders</p>
                   <p className="text-lg font-bold text-gray-900">
                     {latest.data.totals.leadershipGroups} <span className="text-gray-400 text-sm font-normal">/ {latest.data.goals.leadershipGroups}</span>
                   </p>
@@ -213,7 +213,7 @@ export default async function QuarterlyReportPage() {
           <CountsTable title="Number of VG Leaders" metric="vgLeaders" latest={latest} previous={previous} />
           <CountsTable title="Number of Victory Groups" metric="victoryGroups" latest={latest} previous={previous} />
           <CountsTable title="Number of Interns" metric="interns" latest={latest} previous={previous} />
-          <CountsTable title="Number of Leadership Groups" metric="leadershipGroups" latest={latest} previous={previous} />
+          <CountsTable title="Number of Leadership Group Leaders" metric="leadershipGroups" latest={latest} previous={previous} />
 
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100">

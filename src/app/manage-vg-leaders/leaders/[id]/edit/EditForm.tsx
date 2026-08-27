@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { updateVGLeader } from "./actions";
 import { Field, Section, CheckboxOption, inputCls, selectCls, SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
+import { OwnVgLeaderField } from "@/components/OwnVgLeaderField";
 import type { VictoryGroupLeader } from "@/db/schema";
 import { lifestageEnum } from "@/db/schema";
 
@@ -62,9 +63,11 @@ export function EditForm({ leader }: { leader: VictoryGroupLeader }) {
         <Field label="Facebook / Messenger Name" className="sm:col-span-2">
           <input name="facebookMessengerName" defaultValue={leader.facebookMessengerName ?? ""} className={inputCls} placeholder="e.g. Juan dela Cruz" />
         </Field>
-        <Field label="Name of your Victory Group Leader" className="sm:col-span-2">
-          <input name="ownVgLeaderName" defaultValue={leader.ownVgLeaderName ?? ""} className={inputCls} />
-        </Field>
+        <OwnVgLeaderField
+          excludeId={leader.id}
+          defaultName={leader.ownVgLeaderName ?? ""}
+          defaultId={leader.ownVgLeaderId}
+        />
       </Section>
 
       <Section title="Discipleship Journey" description="Please check all that you have completed.">

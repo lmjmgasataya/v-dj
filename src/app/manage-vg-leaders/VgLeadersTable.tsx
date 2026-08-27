@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { toTitleCase } from "@/lib/text";
 import { ParticipantsCell, type ParticipantsCellEntry } from "@/components/ParticipantsCell";
-import { resetVgLeaderPin } from "../actions";
+import { resetVgLeaderPin } from "./actions";
 
 export interface VgLeaderRow {
   id: number;
@@ -25,12 +25,10 @@ const selectCls =
   "rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent";
 
 type ProfileFilter = "all" | "complete" | "incomplete";
-type ClaimedFilter = "all" | "claimed" | "unclaimed";
 
 export function VgLeadersTable({ rows }: { rows: VgLeaderRow[] }) {
   const [q, setQ] = useState("");
   const [profileFilter, setProfileFilter] = useState<ProfileFilter>("all");
-  const [claimedFilter, setClaimedFilter] = useState<ClaimedFilter>("all");
 
   const query = q.trim().toLowerCase();
   const filtered = rows.filter((l) => {
@@ -40,8 +38,6 @@ export function VgLeadersTable({ rows }: { rows: VgLeaderRow[] }) {
     }
     if (profileFilter === "complete" && !l.profileCompleted) return false;
     if (profileFilter === "incomplete" && l.profileCompleted) return false;
-    if (claimedFilter === "claimed" && !l.claimed) return false;
-    if (claimedFilter === "unclaimed" && l.claimed) return false;
     return true;
   });
 
@@ -63,20 +59,11 @@ export function VgLeadersTable({ rows }: { rows: VgLeaderRow[] }) {
           <option value="complete">Profile Complete</option>
           <option value="incomplete">Profile Incomplete</option>
         </select>
-        <select
-          value={claimedFilter}
-          onChange={(e) => setClaimedFilter(e.target.value as ClaimedFilter)}
-          className={selectCls}
-        >
-          <option value="all">All Accounts</option>
-          <option value="claimed">Claimed</option>
-          <option value="unclaimed">Not Claimed</option>
-        </select>
       </div>
 
       {filtered.length === 0 ? (
         <p className="px-6 py-8 text-sm text-gray-400 text-center">
-          {rows.length === 0 ? "No active VG leaders." : "No VG leaders match the current filters."}
+          {rows.length === 0 ? "None yet." : "No entries match the current filters."}
         </p>
       ) : (
         <div className="overflow-x-auto">

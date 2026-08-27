@@ -5,6 +5,7 @@ import { SERVICE_BUCKETS, type VgSnapshotData, type VgServiceBucket } from "@/li
 import { SnapshotForm, SnapshotListItem } from "./SnapshotForm";
 import { ConvergenceSection } from "./ConvergenceSection";
 import { Leadership113Section } from "./Leadership113Section";
+import { ComparisonPicker } from "./ComparisonPicker";
 
 function ChangeCell({ diff }: { diff: number }) {
   if (diff === 0) return <span className="text-gray-400">–</span>;
@@ -129,29 +130,59 @@ function PerBucketTable({
   );
 }
 
-export default async function QuarterlyReportPage() {
-  const [snapshots, convergenceEntries, batches] = await Promise.all([
+export default async function QuarterlyReportPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ a?: string; b?: string }>;
+}) {
+  const [{ a: aParam, b: bParam }, snapshots, convergenceEntries, batches] = await Promise.all([
+    searchParams,
     db.select().from(vgReportSnapshots).orderBy(desc(vgReportSnapshots.asOfDate)),
     db.select().from(vgConvergenceAttendance).orderBy(asc(vgConvergenceAttendance.eventDate)),
     db.select().from(leadership113Batches).orderBy(asc(leadership113Batches.id)),
   ]);
 
-  const latestRow = snapshots[0];
-  const previousRow = snapshots[1] ?? null;
+  const aId = aParam ? parseInt(aParam, 10) : null;
+  const bId = bParam ? parseInt(bParam, 10) : null;
+
+  const latestRow = (aId != null ? snapshots.find((s) => s.id === aId) : null) ?? snapshots[0];
+  const latestIndex = latestRow ? snapshots.findIndex((s) => s.id === latestRow.id) : -1;
+  const previousRow = bParam !== undefined
+    ? (bId != null ? snapshots.find((s) => s.id === bId) ?? null : null)
+    : (snapshots[latestIndex + 1] ?? null);
 
   const latest = latestRow ? { label: latestRow.label, data: latestRow.data as VgSnapshotData } : null;
   const previous = previousRow ? { label: previousRow.label, data: previousRow.data as VgSnapshotData } : null;
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-4 flex items-center justify-between">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-gray-800">Quarterly Discipleship Report</p>
           <p className="text-xs text-gray-500 mt-0.5">
             Each snapshot captures a point-in-time count. Save one at the end of every quarter to get quarter-over-quarter comparisons below.
           </p>
         </div>
-        <SnapshotForm />
+        <div className="flex flex-wrap items-center gap-3">
+          {snapshots.length > 0 && (
+            <ComparisonPicker
+              snapshots={snapshots.map((s) => ({ id: s.id, label: s.label }))}
+              aId={latestRow!.id}
+              bId={previousRow?.id ?? null}
+            />
+          )}
+          {latest && (
+            <a
+              href={`/api/report/quarterly-pdf?a=${latestRow!.id}${previousRow ? `&b=${previousRow.id}` : ""}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-semibold text-white bg-[#00428E] hover:bg-[#003578] px-3 py-1.5 rounded-lg transition"
+            >
+              Export PDF
+            </a>
+          )}
+          <SnapshotForm />
+        </div>
       </div>
 
       {!latest ? (

@@ -16,30 +16,17 @@ function ChangeCell({ diff }: { diff: number }) {
   );
 }
 
-function CountsTable({
+function RowsTable({
   title,
-  metric,
+  rows,
   latest,
   previous,
 }: {
   title: string;
-  metric: keyof VgSnapshotData["totals"];
+  rows: { label: string; value: number; prev: number | null; bold?: boolean }[];
   latest: { label: string; data: VgSnapshotData };
   previous: { label: string; data: VgSnapshotData } | null;
 }) {
-  const rows: { label: string; value: number; prev: number | null }[] = [
-    ...SERVICE_BUCKETS.map((bucket) => ({
-      label: bucket,
-      value: latest.data.byService[bucket][metric],
-      prev: previous ? previous.data.byService[bucket][metric] : null,
-    })),
-    {
-      label: "TOTAL",
-      value: latest.data.totals[metric],
-      prev: previous ? previous.data.totals[metric] : null,
-    },
-  ];
-
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100">
@@ -57,7 +44,7 @@ function CountsTable({
           </thead>
           <tbody className="divide-y divide-gray-100">
             {rows.map((row) => (
-              <tr key={row.label} className={row.label === "TOTAL" ? "bg-gray-50 font-semibold" : "hover:bg-gray-50"}>
+              <tr key={row.label} className={row.bold ? "bg-gray-50 font-semibold" : "hover:bg-gray-50"}>
                 <td className="px-4 py-2.5 text-gray-700">{row.label}</td>
                 <td className="px-4 py-2.5 text-gray-900">{row.value}</td>
                 {previous && <td className="px-4 py-2.5 text-gray-500">{row.prev}</td>}
@@ -73,6 +60,57 @@ function CountsTable({
       </div>
     </div>
   );
+}
+
+const METRIC_LABELS: { label: string; key: keyof VgSnapshotData["totals"] }[] = [
+  { label: "VG Leaders", key: "vgLeaders" },
+  { label: "Victory Groups", key: "victoryGroups" },
+  { label: "Interns", key: "interns" },
+  { label: "Leadership Group Leaders", key: "leadershipGroups" },
+];
+
+function MetricsTotalsTable({
+  latest,
+  previous,
+}: {
+  latest: { label: string; data: VgSnapshotData };
+  previous: { label: string; data: VgSnapshotData } | null;
+}) {
+  const rows = METRIC_LABELS.map((m) => ({
+    label: m.label,
+    value: latest.data.totals[m.key],
+    prev: previous ? previous.data.totals[m.key] : null,
+  }));
+
+  return <RowsTable title="Number of Leaders" rows={rows} latest={latest} previous={previous} />;
+}
+
+function CountsTable({
+  title,
+  metric,
+  latest,
+  previous,
+}: {
+  title: string;
+  metric: keyof VgSnapshotData["totals"];
+  latest: { label: string; data: VgSnapshotData };
+  previous: { label: string; data: VgSnapshotData } | null;
+}) {
+  const rows = [
+    ...SERVICE_BUCKETS.map((bucket) => ({
+      label: bucket,
+      value: latest.data.byService[bucket][metric],
+      prev: previous ? previous.data.byService[bucket][metric] : null,
+    })),
+    {
+      label: "TOTAL",
+      value: latest.data.totals[metric],
+      prev: previous ? previous.data.totals[metric] : null,
+      bold: true,
+    },
+  ];
+
+  return <RowsTable title={title} rows={rows} latest={latest} previous={previous} />;
 }
 
 function PerBucketTable({
@@ -191,12 +229,7 @@ export default async function QuarterlyReportPage({
         </p>
       ) : (
         <>
-          <CountsTable
-            title="Number of Leaders"
-            metric="vgLeaders"
-            latest={latest}
-            previous={previous}
-          />
+          <MetricsTotalsTable latest={latest} previous={previous} />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">

@@ -3,12 +3,15 @@
 import { db } from "@/db";
 import { victoryGroupLeaders, type lifestageEnum } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { toastRedirect } from "@/lib/toast";
+import { revalidatePath } from "next/cache";
+import { toastRedirect, toastRedirectBack } from "@/lib/toast";
 import { toTitleCase } from "@/lib/text";
+import { resolveOwnVgLeader } from "@/lib/ownVgLeader";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
 
 export async function updateVGLeader(id: number, formData: FormData) {
+  const ownVgLeader = await resolveOwnVgLeader(formData, id);
   await db
     .update(victoryGroupLeaders)
     .set({
@@ -27,12 +30,22 @@ export async function updateVGLeader(id: number, formData: FormData) {
         formData.get("graduateOfLeadership113") === ""
           ? null
           : formData.get("graduateOfLeadership113") === "true",
-      ownVgLeaderName: (formData.get("ownVgLeaderName") as string) || null,
-      ownVgLeaderId: formData.get("ownVgLeaderId") ? Number(formData.get("ownVgLeaderId")) : null,
+      ...ownVgLeader,
+      isActive: formData.get("isActive") === "on",
+      updatedAt: new Date(),
     })
     .where(eq(victoryGroupLeaders.id, id));
 
   toastRedirect("/manage-vg-leaders/leaders", "VG leader updated.");
+}
+
+export async function acknowledgeLeaderCurrent(id: number) {
+  await db
+    .update(victoryGroupLeaders)
+    .set({ isActive: true, updatedAt: new Date() })
+    .where(eq(victoryGroupLeaders.id, id));
+  revalidatePath(`/manage-vg-leaders/leaders/${id}`);
+  await toastRedirectBack("Marked as current.");
 }
 
 export async function deleteVGLeader(id: number) {

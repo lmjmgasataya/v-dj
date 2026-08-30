@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { victoryGroupLeaders } from "@/db/schema";
-import { isNull } from "drizzle-orm";
+import { victoryGroupLeaders, users } from "@/db/schema";
+import { and, eq, isNull, isNotNull } from "drizzle-orm";
 import { SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
 import { HorizontalBarChart, AgeChart } from "../Charts";
 
@@ -27,10 +27,16 @@ function ageBucket(age: number | null): string | null {
 }
 
 export default async function VgLeaderReportPage() {
-  const leaders = await db
-    .select()
-    .from(victoryGroupLeaders)
-    .where(isNull(victoryGroupLeaders.deletedAt));
+  const [allLeaders, claimedAccounts] = await Promise.all([
+    db.select().from(victoryGroupLeaders).where(isNull(victoryGroupLeaders.deletedAt)),
+    db
+      .select({ vgLeaderId: users.vgLeaderId })
+      .from(users)
+      .where(and(eq(users.role, "vg_leader"), isNotNull(users.pinHash))),
+  ]);
+
+  const claimedIds = new Set(claimedAccounts.map((a) => a.vgLeaderId));
+  const leaders = allLeaders.filter((l) => claimedIds.has(l.id));
 
   const total = leaders.length;
 
@@ -74,7 +80,7 @@ export default async function VgLeaderReportPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-sm text-gray-500 -mt-2">{total} active VG leader{total !== 1 ? "s" : ""}</p>
+      <p className="text-sm text-gray-500 -mt-2">{total} VG leader{total !== 1 ? "s" : ""} with a claimed portal account</p>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
         <p className="text-sm font-semibold text-gray-700 mb-1">Discipleship Journey</p>

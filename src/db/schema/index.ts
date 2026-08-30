@@ -61,6 +61,8 @@ export const victoryGroupLeaders = pgTable("victory_group_leaders", {
   ownVgLeaderName: text("own_vg_leader_name"),
   ownVgLeaderId: integer("own_vg_leader_id").references((): AnyPgColumn => victoryGroupLeaders.id),
   profileCompleted: boolean("profile_completed").default(false).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
 }, (t) => [unique().on(t.lastName, t.firstName, t.mobileNumber)]);

@@ -1,0 +1,2 @@
+ALTER TABLE "victory_group_leaders" ADD COLUMN "is_active" boolean DEFAULT true NOT NULL;--> statement-breakpoint
+ALTER TABLE "victory_group_leaders" ADD COLUMN "updated_at" timestamp DEFAULT now() NOT NULL;

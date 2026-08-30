@@ -10,6 +10,7 @@ import { lifestageEnum } from "@/db/schema";
 export function EditForm({ leader }: { leader: VictoryGroupLeader }) {
   const [pending, startTransition] = useTransition();
   const completedSteps = (leader.discipleshipJourneyCompleted ?? "").split(",").filter(Boolean);
+  const [ownVgLeaderLastName, ownVgLeaderFirstName] = (leader.ownVgLeaderName ?? "").split(",").map((s) => s.trim());
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -65,9 +66,15 @@ export function EditForm({ leader }: { leader: VictoryGroupLeader }) {
         </Field>
         <OwnVgLeaderField
           excludeId={leader.id}
-          defaultName={leader.ownVgLeaderName ?? ""}
+          defaultLastName={ownVgLeaderLastName}
+          defaultFirstName={ownVgLeaderFirstName}
           defaultId={leader.ownVgLeaderId}
         />
+        <div className="sm:col-span-2 border-t border-gray-100 pt-3">
+          <CheckboxOption name="isActive" defaultChecked={leader.isActive} align="start">
+            I am actively leading a Victory Group
+          </CheckboxOption>
+        </div>
       </Section>
 
       <Section title="Discipleship Journey" description="Please check all that you have completed.">

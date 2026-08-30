@@ -6,6 +6,8 @@ import { EditForm } from "./EditForm";
 import { DeleteButton } from "./DeleteButton";
 import { VictoryGroupsSection } from "./VictoryGroupsSection";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { acknowledgeLeaderCurrent } from "./actions";
+import { getProfileFreshness, FRESHNESS_BANNER_CLASS, FRESHNESS_MESSAGE } from "@/lib/vgLeaderStatus";
 
 export default async function EditVGLeaderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -27,8 +29,26 @@ export default async function EditVGLeaderPage({ params }: { params: Promise<{ i
 
   if (!leader) notFound();
 
+  const freshness = getProfileFreshness(leader.updatedAt);
+  const dateStr = leader.updatedAt.toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" });
+
   return (
     <div>
+      <div className={`mb-6 rounded-xl border px-4 py-3 flex items-center justify-between gap-4 ${FRESHNESS_BANNER_CLASS[freshness]}`}>
+        <div>
+          <p className="text-sm font-semibold">Last updated {dateStr}</p>
+          <p className="text-xs mt-0.5">{FRESHNESS_MESSAGE[freshness]}</p>
+        </div>
+        <form action={acknowledgeLeaderCurrent.bind(null, leader.id)}>
+          <button
+            type="submit"
+            className="shrink-0 bg-white border border-current text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-black/5 transition"
+          >
+            Mark as current
+          </button>
+        </form>
+      </div>
+
       <div className="mb-6">
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Manage VG Leaders", href: "/manage-vg-leaders" }, { label: "VG Leaders", href: "/manage-vg-leaders/leaders" }, { label: `${leader.lastName}, ${leader.firstName}` }]} />
         <div className="flex items-start justify-between">

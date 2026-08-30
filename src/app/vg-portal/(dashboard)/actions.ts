@@ -15,6 +15,7 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { toTitleCase } from "@/lib/text";
 import { recomputeProfileCompleted } from "@/lib/vgLeaderProfile";
+import { resolveOwnVgLeader } from "@/lib/ownVgLeader";
 
 type Day = (typeof dayOfWeekEnum.enumValues)[number];
 type Frequency = (typeof vgFrequencyEnum.enumValues)[number];
@@ -38,10 +39,6 @@ function parseLifeStage(formData: FormData) {
   return { lifeStage: values.length ? (values as LifeStage[]) : null };
 }
 
-function parseStatus(formData: FormData) {
-  return { isActive: formData.get("activelyLeadingConfirmed") === "on" };
-}
-
 export async function addOwnVictoryGroup(formData: FormData) {
   const session = await requireVgLeader();
   await db.insert(victoryGroups).values({
@@ -51,7 +48,7 @@ export async function addOwnVictoryGroup(formData: FormData) {
     time: formData.get("time") as string,
     ...parseFrequency(formData),
     ...parseLifeStage(formData),
-    ...parseStatus(formData),
+    isActive: true,
     intern: (formData.get("intern") as string) || null,
   });
   await recomputeProfileCompleted(session.vgLeaderId);
@@ -68,7 +65,6 @@ export async function updateOwnVictoryGroup(id: number, formData: FormData) {
       time: formData.get("time") as string,
       ...parseFrequency(formData),
       ...parseLifeStage(formData),
-      ...parseStatus(formData),
       intern: (formData.get("intern") as string) || null,
     })
     .where(and(eq(victoryGroups.id, id), eq(victoryGroups.vgLeaderId, session.vgLeaderId)));
@@ -86,8 +82,18 @@ export async function deleteOwnVictoryGroup(id: number) {
   revalidatePath("/vg-portal");
 }
 
+export async function acknowledgeProfileCurrent() {
+  const session = await requireVgLeader();
+  await db
+    .update(victoryGroupLeaders)
+    .set({ isActive: true, updatedAt: new Date() })
+    .where(eq(victoryGroupLeaders.id, session.vgLeaderId));
+  revalidatePath("/vg-portal");
+}
+
 export async function updateOwnProfile(formData: FormData) {
   const session = await requireVgLeader();
+  const ownVgLeader = await resolveOwnVgLeader(formData, session.vgLeaderId);
   const [updated] = await db
     .update(victoryGroupLeaders)
     .set({
@@ -105,8 +111,9 @@ export async function updateOwnProfile(formData: FormData) {
         formData.get("graduateOfLeadership113") === ""
           ? null
           : formData.get("graduateOfLeadership113") === "true",
-      ownVgLeaderName: (formData.get("ownVgLeaderName") as string) || null,
-      ownVgLeaderId: formData.get("ownVgLeaderId") ? Number(formData.get("ownVgLeaderId")) : null,
+      ...ownVgLeader,
+      isActive: formData.get("isActive") === "on",
+      updatedAt: new Date(),
     })
     .where(eq(victoryGroupLeaders.id, session.vgLeaderId))
     .returning();

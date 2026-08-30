@@ -1,7 +1,11 @@
 import { db } from "@/db";
 import { victoryGroups, victoryGroupLeaders, dayOfWeekEnum, vgFrequencyEnum } from "@/db/schema";
-import { eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
+import Link from "next/link";
 import { HorizontalBarChart } from "../Charts";
+import { VgReportFilters } from "./VgReportFilters";
+
+const PAGE_SIZE = 20;
 
 const DAY_ORDER = dayOfWeekEnum.enumValues;
 const FREQUENCY_ORDER = vgFrequencyEnum.enumValues;
@@ -23,7 +27,14 @@ const TIME_ORDER = Array.from({ length: 18 }, (_, i) => {
   return `${display}:00 ${ampm}`;
 });
 
-export default async function VictoryGroupReportPage() {
+export default async function VictoryGroupReportPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ gender?: string; service?: string; day?: string; time?: string; lifestage?: string; page?: string }>;
+}) {
+  const { gender = "", service = "", day = "", time = "", lifestage = "", page: pageParam } = await searchParams;
+  const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
+
   const groups = await db
     .select({
       id: victoryGroups.id,
@@ -41,7 +52,16 @@ export default async function VictoryGroupReportPage() {
     })
     .from(victoryGroups)
     .innerJoin(victoryGroupLeaders, eq(victoryGroups.vgLeaderId, victoryGroupLeaders.id))
-    .where(isNull(victoryGroups.deletedAt))
+    .where(
+      and(
+        isNull(victoryGroups.deletedAt),
+        gender ? eq(victoryGroupLeaders.gender, gender) : undefined,
+        service ? eq(victoryGroupLeaders.serviceAttending, service) : undefined,
+        day ? eq(victoryGroups.day, day as (typeof dayOfWeekEnum.enumValues)[number]) : undefined,
+        time ? eq(victoryGroups.time, time) : undefined,
+        lifestage ? sql`${lifestage} = ANY(${victoryGroups.lifeStage})` : undefined,
+      )
+    )
     .orderBy(victoryGroups.day, victoryGroups.time);
 
   const total = groups.length;
@@ -80,9 +100,111 @@ export default async function VictoryGroupReportPage() {
     (r) => r.count > 0
   );
 
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pageGroups = groups.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  function pageHref(p: number) {
+    const params = new URLSearchParams();
+    if (gender) params.set("gender", gender);
+    if (service) params.set("service", service);
+    if (day) params.set("day", day);
+    if (time) params.set("time", time);
+    if (lifestage) params.set("lifestage", lifestage);
+    if (p > 1) params.set("page", String(p));
+    const qs = params.toString();
+    return `/manage-vg-leaders/vg-report${qs ? `?${qs}` : ""}`;
+  }
+
   return (
     <div className="flex flex-col gap-6">
+      <VgReportFilters gender={gender} service={service} day={day} time={time} lifestage={lifestage} />
       <p className="text-sm text-gray-500 -mt-2">{total} active victory group{total !== 1 ? "s" : ""}</p>
+
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-800">All Victory Groups</h3>
+        </div>
+        {groups.length === 0 ? (
+          <p className="px-6 py-8 text-sm text-gray-400 text-center">No victory groups yet.</p>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                  <tr>
+                    <th className="px-4 py-2 text-left font-medium">Leader</th>
+                    <th className="px-4 py-2 text-left font-medium">Place</th>
+                    <th className="px-4 py-2 text-left font-medium">Day</th>
+                    <th className="px-4 py-2 text-left font-medium">Time</th>
+                    <th className="px-4 py-2 text-left font-medium">Frequency</th>
+                    <th className="px-4 py-2 text-left font-medium">Life Stage</th>
+                    <th className="px-4 py-2 text-left font-medium">Intern</th>
+                    <th className="px-4 py-2 text-left font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {pageGroups.map((g) => (
+                    <tr key={g.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-2.5 text-gray-700">{g.leaderLastName}, {g.leaderFirstName}</td>
+                      <td className="px-4 py-2.5 text-gray-700">{g.place}</td>
+                      <td className="px-4 py-2.5 text-gray-500">{g.day}</td>
+                      <td className="px-4 py-2.5 text-gray-500">{g.time}</td>
+                      <td className="px-4 py-2.5 text-gray-500">
+                        {g.frequency === "Others" ? (g.otherFrequency ?? "Others") : g.frequency}
+                      </td>
+                      <td className="px-4 py-2.5 text-gray-500">{g.lifeStage?.length ? g.lifeStage.join(", ") : "—"}</td>
+                      <td className="px-4 py-2.5 text-gray-500">{g.intern ?? "—"}</td>
+                      <td className="px-4 py-2.5">
+                        <span
+                          className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                            g.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                          }`}
+                        >
+                          {g.isActive ? "Active" : "Inactive"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between text-sm px-6 py-4 border-t border-gray-100">
+                <span className="text-gray-500">
+                  Page {page} of {totalPages}
+                </span>
+                <div className="flex gap-2">
+                  {page > 1 ? (
+                    <Link
+                      href={pageHref(page - 1)}
+                      className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition"
+                    >
+                      ← Previous
+                    </Link>
+                  ) : (
+                    <span className="px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-300 font-medium cursor-not-allowed">
+                      ← Previous
+                    </span>
+                  )}
+                  {page < totalPages ? (
+                    <Link
+                      href={pageHref(page + 1)}
+                      className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition"
+                    >
+                      Next →
+                    </Link>
+                  ) : (
+                    <span className="px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-300 font-medium cursor-not-allowed">
+                      Next →
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
         <p className="text-sm font-semibold text-gray-700 mb-1">Status</p>
@@ -112,56 +234,6 @@ export default async function VictoryGroupReportPage() {
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
         <p className="text-sm font-semibold text-gray-700 mb-1">Life Stage</p>
         <HorizontalBarChart data={lifeStageData} color="#818cf8" tooltipLabel="Groups" />
-      </div>
-
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h3 className="font-semibold text-gray-800">All Victory Groups</h3>
-        </div>
-        {groups.length === 0 ? (
-          <p className="px-6 py-8 text-sm text-gray-400 text-center">No victory groups yet.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
-                <tr>
-                  <th className="px-4 py-2 text-left font-medium">Leader</th>
-                  <th className="px-4 py-2 text-left font-medium">Place</th>
-                  <th className="px-4 py-2 text-left font-medium">Day</th>
-                  <th className="px-4 py-2 text-left font-medium">Time</th>
-                  <th className="px-4 py-2 text-left font-medium">Frequency</th>
-                  <th className="px-4 py-2 text-left font-medium">Life Stage</th>
-                  <th className="px-4 py-2 text-left font-medium">Intern</th>
-                  <th className="px-4 py-2 text-left font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {groups.map((g) => (
-                  <tr key={g.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2.5 text-gray-700">{g.leaderLastName}, {g.leaderFirstName}</td>
-                    <td className="px-4 py-2.5 text-gray-700">{g.place}</td>
-                    <td className="px-4 py-2.5 text-gray-500">{g.day}</td>
-                    <td className="px-4 py-2.5 text-gray-500">{g.time}</td>
-                    <td className="px-4 py-2.5 text-gray-500">
-                      {g.frequency === "Others" ? (g.otherFrequency ?? "Others") : g.frequency}
-                    </td>
-                    <td className="px-4 py-2.5 text-gray-500">{g.lifeStage?.length ? g.lifeStage.join(", ") : "—"}</td>
-                    <td className="px-4 py-2.5 text-gray-500">{g.intern ?? "—"}</td>
-                    <td className="px-4 py-2.5">
-                      <span
-                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                          g.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                        }`}
-                      >
-                        {g.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
     </div>
   );

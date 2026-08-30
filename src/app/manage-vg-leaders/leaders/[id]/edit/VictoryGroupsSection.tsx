@@ -148,17 +148,6 @@ function GroupForm({
         />
         <p className="text-xs text-gray-400 mt-1">Write &quot;None&quot; if there is none.</p>
       </div>
-      <div className="sm:col-span-2 border-t border-indigo-100 pt-3">
-        <p className="text-xs font-medium text-gray-700 mb-1.5">I am actively leading a Victory Group</p>
-        <CheckboxOption
-          name="activelyLeadingConfirmed"
-          required
-          defaultChecked={defaultValues?.isActive ?? true}
-          align="start"
-        >
-          I am confirming that I am actively leading a Victory Group
-        </CheckboxOption>
-      </div>
       <div className="sm:col-span-2 flex justify-end gap-2 pt-1">
         <button type="button" onClick={onCancel} className="text-sm text-gray-600 hover:text-gray-800 px-4 py-1.5 rounded-lg border border-gray-300 bg-white">
           Cancel

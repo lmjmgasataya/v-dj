@@ -20,7 +20,7 @@ const DEVELOPER_ONLY = [
 
 const PUBLIC_PATHS = [/^\/login/, /^\/vg-portal\/claim/, /^\/vg-portal\/login/];
 
-const VG_LEADER_ALLOWED = [/^\/vg-portal/];
+const VG_LEADER_ALLOWED = [/^\/vg-portal/, /^\/api\/vg-leaders/];
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

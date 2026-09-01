@@ -23,13 +23,31 @@ export type VgBucketCounts = {
   leadershipGroups: number;
 };
 
+export type VgLeaderRef = { id: number; name: string };
+export type VgGroupRef = { id: number; label: string };
+
+export type VgBucketDetail = {
+  vgLeaders: VgLeaderRef[];
+  victoryGroups: VgGroupRef[];
+  interns: string[];
+  leadershipGroups: VgLeaderRef[];
+};
+
 export type VgSnapshotData = {
   byService: Record<VgServiceBucket, VgBucketCounts>;
   totals: VgBucketCounts;
   vglByGender: Record<VgServiceBucket, { male: number; female: number }>;
   genderTotals: { male: number; female: number };
   goals: { vgLeaders: number; leadershipGroups: number };
+  // Omitted on snapshots saved before drill-down existed, and on manually-entered
+  // snapshots (no underlying leader/group records to list) — always optional.
+  detailsByService?: Record<VgServiceBucket, VgBucketDetail>;
+  totalsDetail?: VgBucketDetail;
 };
+
+export function emptyBucketDetail(): VgBucketDetail {
+  return { vgLeaders: [], victoryGroups: [], interns: [], leadershipGroups: [] };
+}
 
 export function emptyBucketCounts(): VgBucketCounts {
   return { vgLeaders: 0, victoryGroups: 0, interns: 0, leadershipGroups: 0 };

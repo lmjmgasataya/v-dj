@@ -27,3 +27,15 @@ export const FRESHNESS_MESSAGE: Record<ProfileFreshness, string> = {
   stale: "It's been about a month — please confirm your info is still current.",
   overdue: "This hasn't been confirmed in over 2 months.",
 };
+
+const QUARTERLY_ACTIVE_DAYS = 90;
+
+/**
+ * Used only for quarterly-report tagging: a VG leader is expected to update their
+ * profile ~3x/year, so no update in the last quarter counts as inactive. Distinct
+ * from the manual `isActive` toggle and the `getProfileFreshness` UI badge above.
+ */
+export function isQuarterlyActive(updatedAt: Date, now: Date = new Date()): boolean {
+  const days = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24);
+  return days < QUARTERLY_ACTIVE_DAYS;
+}

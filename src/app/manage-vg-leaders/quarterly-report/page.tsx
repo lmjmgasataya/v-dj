@@ -1,11 +1,21 @@
 import { db } from "@/db";
 import { vgReportSnapshots, vgConvergenceAttendance, leadership113Batches } from "@/db/schema";
 import { desc, asc } from "drizzle-orm";
-import { SERVICE_BUCKETS, type VgSnapshotData, type VgServiceBucket } from "@/lib/vgSnapshot";
+import { SERVICE_BUCKETS, type VgSnapshotData, type VgServiceBucket, type VgBucketDetail } from "@/lib/vgSnapshot";
+import { computeVgSnapshotCounts } from "@/lib/vgSnapshotCompute";
 import { SnapshotForm, SnapshotListItem } from "./SnapshotForm";
 import { ConvergenceSection } from "./ConvergenceSection";
 import { Leadership113Section } from "./Leadership113Section";
 import { ComparisonPicker } from "./ComparisonPicker";
+import { DrillDownValue } from "./DrillDownValue";
+
+function detailItems(detail: VgBucketDetail | undefined, key: keyof VgSnapshotData["totals"]): string[] | null {
+  if (!detail) return null;
+  if (key === "vgLeaders") return detail.vgLeaders.map((r) => r.name);
+  if (key === "leadershipGroups") return detail.leadershipGroups.map((r) => r.name);
+  if (key === "victoryGroups") return detail.victoryGroups.map((r) => r.label);
+  return detail.interns;
+}
 
 function ChangeCell({ diff }: { diff: number }) {
   if (diff === 0) return <span className="text-gray-400">–</span>;
@@ -23,7 +33,7 @@ function RowsTable({
   previous,
 }: {
   title: string;
-  rows: { label: string; value: number; prev: number | null; bold?: boolean }[];
+  rows: { label: string; value: number; prev: number | null; bold?: boolean; detail?: string[] | null; prevDetail?: string[] | null }[];
   latest: { label: string; data: VgSnapshotData };
   previous: { label: string; data: VgSnapshotData } | null;
 }) {
@@ -46,8 +56,14 @@ function RowsTable({
             {rows.map((row) => (
               <tr key={row.label} className={row.bold ? "bg-gray-50 font-semibold" : "hover:bg-gray-50"}>
                 <td className="px-4 py-2.5 text-gray-700">{row.label}</td>
-                <td className="px-4 py-2.5 text-gray-900">{row.value}</td>
-                {previous && <td className="px-4 py-2.5 text-gray-500">{row.prev}</td>}
+                <td className="px-4 py-2.5 text-gray-900">
+                  <DrillDownValue value={row.value} items={row.detail} />
+                </td>
+                {previous && (
+                  <td className="px-4 py-2.5 text-gray-500">
+                    <DrillDownValue value={row.prev ?? 0} items={row.prevDetail} />
+                  </td>
+                )}
                 {previous && (
                   <td className="px-4 py-2.5">
                     <ChangeCell diff={row.value - (row.prev ?? 0)} />
@@ -80,6 +96,8 @@ function MetricsTotalsTable({
     label: m.label,
     value: latest.data.totals[m.key],
     prev: previous ? previous.data.totals[m.key] : null,
+    detail: detailItems(latest.data.totalsDetail, m.key),
+    prevDetail: previous ? detailItems(previous.data.totalsDetail, m.key) : null,
   }));
 
   return <RowsTable title="Number of Leaders" rows={rows} latest={latest} previous={previous} />;
@@ -101,12 +119,16 @@ function CountsTable({
       label: bucket,
       value: latest.data.byService[bucket][metric],
       prev: previous ? previous.data.byService[bucket][metric] : null,
+      detail: detailItems(latest.data.detailsByService?.[bucket], metric),
+      prevDetail: previous ? detailItems(previous.data.detailsByService?.[bucket], metric) : null,
     })),
     {
       label: "TOTAL",
       value: latest.data.totals[metric],
       prev: previous ? previous.data.totals[metric] : null,
       bold: true,
+      detail: detailItems(latest.data.totalsDetail, metric),
+      prevDetail: previous ? detailItems(previous.data.totalsDetail, metric) : null,
     },
   ];
 
@@ -148,11 +170,19 @@ function PerBucketTable({
             {metrics.map((m) => {
               const value = latest.data.byService[bucket][m.key];
               const prev = previous ? previous.data.byService[bucket][m.key] : null;
+              const detail = detailItems(latest.data.detailsByService?.[bucket], m.key);
+              const prevDetail = previous ? detailItems(previous.data.detailsByService?.[bucket], m.key) : null;
               return (
                 <tr key={m.key}>
                   <td className="px-4 py-2.5 text-gray-200">{m.label}</td>
-                  <td className="px-4 py-2.5 text-white font-semibold">{value}</td>
-                  {previous && <td className="px-4 py-2.5 text-gray-400">{prev}</td>}
+                  <td className="px-4 py-2.5 text-white font-semibold">
+                    <DrillDownValue value={value} items={detail} />
+                  </td>
+                  {previous && (
+                    <td className="px-4 py-2.5 text-gray-400">
+                      <DrillDownValue value={prev ?? 0} items={prevDetail} />
+                    </td>
+                  )}
                   {previous && (
                     <td className="px-4 py-2.5">
                       <ChangeCell diff={value - (prev ?? 0)} />
@@ -173,12 +203,15 @@ export default async function QuarterlyReportPage({
 }: {
   searchParams: Promise<{ a?: string; b?: string }>;
 }) {
-  const [{ a: aParam, b: bParam }, snapshots, convergenceEntries, batches] = await Promise.all([
+  const [{ a: aParam, b: bParam }, snapshots, convergenceEntries, batches, liveCounts] = await Promise.all([
     searchParams,
     db.select().from(vgReportSnapshots).orderBy(desc(vgReportSnapshots.asOfDate)),
     db.select().from(vgConvergenceAttendance).orderBy(asc(vgConvergenceAttendance.eventDate)),
     db.select().from(leadership113Batches).orderBy(asc(leadership113Batches.id)),
+    computeVgSnapshotCounts(),
   ]);
+
+  const live = { label: "Live Now", data: { ...liveCounts, goals: { vgLeaders: 0, leadershipGroups: 0 } } };
 
   const aId = aParam ? parseInt(aParam, 10) : null;
   const bId = bParam ? parseInt(bParam, 10) : null;
@@ -219,8 +252,19 @@ export default async function QuarterlyReportPage({
               Export PDF
             </a>
           )}
-          <SnapshotForm />
         </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-4">
+        <SnapshotForm />
+      </div>
+
+      <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+          <p className="text-sm font-semibold text-green-800">Live Now</p>
+        </div>
+        <MetricsTotalsTable latest={live} previous={null} />
       </div>
 
       {!latest ? (

@@ -59,6 +59,7 @@ export async function addOwnVictoryGroup(formData: FormData) {
   await replaceGroupInterns(group.id, formData);
   await recomputeProfileCompleted(session.vgLeaderId);
   revalidatePath("/vg-portal");
+  revalidatePath("/vg-portal/profile");
 }
 
 export async function updateOwnVictoryGroup(id: number, formData: FormData) {
@@ -76,6 +77,7 @@ export async function updateOwnVictoryGroup(id: number, formData: FormData) {
   await replaceGroupInterns(id, formData);
   await recomputeProfileCompleted(session.vgLeaderId);
   revalidatePath("/vg-portal");
+  revalidatePath("/vg-portal/profile");
 }
 
 export async function deleteOwnVictoryGroup(id: number) {
@@ -86,6 +88,7 @@ export async function deleteOwnVictoryGroup(id: number) {
     .where(and(eq(victoryGroups.id, id), eq(victoryGroups.vgLeaderId, session.vgLeaderId)));
   await recomputeProfileCompleted(session.vgLeaderId);
   revalidatePath("/vg-portal");
+  revalidatePath("/vg-portal/profile");
 }
 
 export async function acknowledgeProfileCurrent() {
@@ -95,6 +98,7 @@ export async function acknowledgeProfileCurrent() {
     .set({ isActive: true, updatedAt: new Date() })
     .where(eq(victoryGroupLeaders.id, session.vgLeaderId));
   revalidatePath("/vg-portal");
+  revalidatePath("/vg-portal/profile");
 }
 
 export async function updateOwnProfile(formData: FormData) {
@@ -141,4 +145,5 @@ export async function updateOwnProfile(formData: FormData) {
 
   await recomputeProfileCompleted(session.vgLeaderId);
   revalidatePath("/vg-portal");
+  revalidatePath("/vg-portal/profile");
 }

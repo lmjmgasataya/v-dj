@@ -10,6 +10,22 @@ export function currentYearPH(): number {
   return parseInt(todayPH().slice(0, 4), 10);
 }
 
+export function currentMonthPH(): number {
+  return parseInt(todayPH().slice(5, 7), 10);
+}
+
+export function monthYearPH(date: Date): { year: number; month: number } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "numeric",
+  }).formatToParts(date);
+  return {
+    year: Number(parts.find((p) => p.type === "year")?.value ?? 0),
+    month: Number(parts.find((p) => p.type === "month")?.value ?? 0),
+  };
+}
+
 const ON_TIME_CUTOFF_MINUTES = 9 * 60; // 9:00 AM
 const LATE_CUTOFF_MINUTES = 9 * 60 + 15; // 9:15 AM
 

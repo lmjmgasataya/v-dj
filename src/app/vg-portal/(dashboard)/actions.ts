@@ -119,9 +119,9 @@ export async function updateOwnProfile(formData: FormData) {
       facebookMessengerName: (formData.get("facebookMessengerName") as string) || null,
       discipleshipJourneyCompleted: formData.getAll("discipleshipJourneyCompleted").join(",") || null,
       graduateOfLeadership113:
-        formData.get("graduateOfLeadership113") === ""
-          ? null
-          : formData.get("graduateOfLeadership113") === "true",
+        formData.get("graduateOfLeadership113")
+          ? formData.get("graduateOfLeadership113") === "true"
+          : null,
       ...ownVgLeader,
       startedLeadingVg: (formData.get("startedLeadingVg") as (typeof startedLeadingVgEnum.enumValues)[number]) || null,
       isLeadershipGroupLeader,

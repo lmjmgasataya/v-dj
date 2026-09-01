@@ -73,7 +73,7 @@ export function EditForm({ leader, leadershipGroupMembers }: { leader: VictoryGr
           defaultId={leader.ownVgLeaderId}
         />
         <div className="sm:col-span-2 border-t border-gray-100 pt-3">
-          <CheckboxOption name="isActive" defaultChecked={leader.isActive} align="start">
+          <CheckboxOption name="isActive" defaultChecked={leader.isActive} align="start" labelClassName="font-semibold">
             I am actively leading a Victory Group
           </CheckboxOption>
         </div>

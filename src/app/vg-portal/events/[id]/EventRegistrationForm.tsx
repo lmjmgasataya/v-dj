@@ -55,7 +55,7 @@ export function EventRegistrationForm({
     <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col gap-6">
       {showAttendance && (
         <div>
-          <p className="text-sm font-medium text-gray-700 mb-2">Will you attend?</p>
+          <p className="text-sm font-medium text-gray-700 mb-2">Will you attend? <span className="text-red-500">*</span></p>
           <input type="hidden" name="willAttend" value={willAttend === null ? "" : String(willAttend)} />
           <div className="flex gap-3">
             <button

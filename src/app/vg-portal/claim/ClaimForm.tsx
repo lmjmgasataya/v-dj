@@ -73,7 +73,7 @@ function NameStep({ onChecked }: { onChecked: (v: Checked) => void }) {
     <Card title="VG Leader Portal" description="Enter your name to access your account.">
       <form action={formAction} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">First Name</label>
+          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">First Name <span className="text-red-500">*</span></label>
           <input
             name="firstName"
             autoFocus
@@ -82,7 +82,7 @@ function NameStep({ onChecked }: { onChecked: (v: Checked) => void }) {
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Last Name</label>
+          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Last Name <span className="text-red-500">*</span></label>
           <input
             name="lastName"
             required
@@ -121,7 +121,7 @@ function LoginPinStep({
     <Card title={`Welcome back, ${name}!`} description="Enter your 5-digit PIN to continue.">
       <form action={formAction} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">PIN</label>
+          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">PIN <span className="text-red-500">*</span></label>
           <PinInput name="pin" autoFocus />
         </div>
 
@@ -167,11 +167,11 @@ function SetupPinStep({
     >
       <form action={formAction} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">PIN</label>
+          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">PIN <span className="text-red-500">*</span></label>
           <PinInput name="pin" autoFocus />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Confirm PIN</label>
+          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Confirm PIN <span className="text-red-500">*</span></label>
           <PinInput name="confirmPin" />
         </div>
 
@@ -217,11 +217,11 @@ function RegisterStep({
     >
       <form action={formAction} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">PIN</label>
+          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">PIN <span className="text-red-500">*</span></label>
           <PinInput name="pin" autoFocus />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Confirm PIN</label>
+          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Confirm PIN <span className="text-red-500">*</span></label>
           <PinInput name="confirmPin" />
         </div>
 

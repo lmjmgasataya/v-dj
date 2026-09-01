@@ -10,6 +10,7 @@ interface Props {
   defaultLastName?: string;
   defaultFirstName?: string;
   defaultId?: number | null;
+  required?: boolean;
 }
 
 type ActiveField = "last" | "first" | null;
@@ -19,6 +20,7 @@ export function OwnVgLeaderField({
   defaultLastName = "",
   defaultFirstName = "",
   defaultId = null,
+  required = false,
 }: Props) {
   const [lastName, setLastName] = useState(defaultLastName);
   const [firstName, setFirstName] = useState(defaultFirstName);
@@ -74,7 +76,7 @@ export function OwnVgLeaderField({
 
   return (
     <>
-      <Field label="Last Name of your Victory Group Leader">
+      <Field label="Last Name of your Victory Group Leader" required={required}>
         <input
           ref={lastNameRef}
           name="ownVgLeaderLastName"
@@ -93,7 +95,7 @@ export function OwnVgLeaderField({
         />
       </Field>
 
-      <Field label="First Name of your Victory Group Leader">
+      <Field label="First Name of your Victory Group Leader" required={required}>
         <input
           ref={firstNameRef}
           name="ownVgLeaderFirstName"

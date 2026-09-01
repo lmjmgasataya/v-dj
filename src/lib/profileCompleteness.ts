@@ -7,6 +7,7 @@ export type LeaderProfileFields = {
   serviceAttending: string | null;
   facebookMessengerName: string | null;
   ownVgLeaderName: string | null;
+  startedLeadingVg: string | null;
 };
 
 const PROFILE_FIELDS: { key: keyof LeaderProfileFields; label: string }[] = [
@@ -18,6 +19,7 @@ const PROFILE_FIELDS: { key: keyof LeaderProfileFields; label: string }[] = [
   { key: "serviceAttending", label: "Service Attending" },
   { key: "facebookMessengerName", label: "Facebook / Messenger Name" },
   { key: "ownVgLeaderName", label: "Name of your Victory Group Leader" },
+  { key: "startedLeadingVg", label: "When did you start leading a Victory Group?" },
 ];
 
 function isFieldMissing(leader: LeaderProfileFields, key: keyof LeaderProfileFields): boolean {

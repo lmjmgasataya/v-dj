@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { toTitleCase } from "@/lib/text";
 
@@ -27,6 +28,27 @@ const RELATION_BADGE_CLASS: Record<ParticipantsCellEntry["relation"], string> = 
 
 export function ParticipantsCell({ participants }: Props) {
   const [open, setOpen] = useState(false);
+  const [rect, setRect] = useState<{ top: number; left: number; width: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function updateRect() {
+      const el = buttonRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setRect({ top: r.bottom, left: r.left, width: r.width });
+    }
+
+    updateRect();
+    window.addEventListener("scroll", updateRect, true);
+    window.addEventListener("resize", updateRect);
+    return () => {
+      window.removeEventListener("scroll", updateRect, true);
+      window.removeEventListener("resize", updateRect);
+    };
+  }, [open]);
 
   if (participants.length === 0) {
     return <span className="text-gray-400 text-xs">—</span>;
@@ -35,6 +57,7 @@ export function ParticipantsCell({ participants }: Props) {
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
@@ -42,25 +65,31 @@ export function ParticipantsCell({ participants }: Props) {
         {participants.length} participant{participants.length !== 1 ? "s" : ""}
       </button>
 
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute z-50 left-0 top-full mt-1 w-64 max-h-64 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg py-1">
-            {participants.map((p) => (
-              <Link
-                key={`${p.relation}-${p.id}`}
-                href={`/participants/${p.id}/edit`}
-                className="flex items-center justify-between gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 hover:text-indigo-600"
-              >
-                <span className="truncate">{toTitleCase(p.lastName)}, {toTitleCase(p.firstName)}</span>
-                <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${RELATION_BADGE_CLASS[p.relation]}`}>
-                  {RELATION_LABEL[p.relation]}
-                </span>
-              </Link>
-            ))}
-          </div>
-        </>
-      )}
+      {open && rect && typeof document !== "undefined" &&
+        createPortal(
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+            <div
+              style={{ position: "fixed", top: rect.top, left: rect.left, width: Math.max(rect.width, 256) }}
+              className="z-50 mt-1 max-h-64 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg py-1"
+            >
+              {participants.map((p) => (
+                <Link
+                  key={`${p.relation}-${p.id}`}
+                  href={`/participants/${p.id}/edit`}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center justify-between gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 hover:text-indigo-600"
+                >
+                  <span className="truncate">{toTitleCase(p.lastName)}, {toTitleCase(p.firstName)}</span>
+                  <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${RELATION_BADGE_CLASS[p.relation]}`}>
+                    {RELATION_LABEL[p.relation]}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </>,
+          document.body
+        )}
     </div>
   );
 }

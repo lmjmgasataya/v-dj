@@ -52,6 +52,8 @@ export const registeredModeEnum = pgEnum("registered_mode", [
   "vgl_edit_registration",
 ]);
 
+export const startedLeadingVgEnum = pgEnum("started_leading_vg", ["before_this_year", "this_year"]);
+
 export const victoryGroupLeaders = pgTable("victory_group_leaders", {
   id: serial("id").primaryKey(),
   lastName: text("last_name").notNull(),
@@ -68,6 +70,8 @@ export const victoryGroupLeaders = pgTable("victory_group_leaders", {
   graduateOfLeadership113: boolean("graduate_of_leadership_113"),
   ownVgLeaderName: text("own_vg_leader_name"),
   ownVgLeaderId: integer("own_vg_leader_id").references((): AnyPgColumn => victoryGroupLeaders.id),
+  startedLeadingVg: startedLeadingVgEnum("started_leading_vg"),
+  isLeadershipGroupLeader: boolean("is_leadership_group_leader").default(false).notNull(),
   profileCompleted: boolean("profile_completed").default(false).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   registeredMode: registeredModeEnum("registered_mode").default("participant_registration").notNull(),
@@ -75,6 +79,13 @@ export const victoryGroupLeaders = pgTable("victory_group_leaders", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
 }, (t) => [unique().on(t.lastName, t.firstName, t.mobileNumber)]);
+
+export const leadershipGroupMembers = pgTable("leadership_group_members", {
+  id: serial("id").primaryKey(),
+  leaderId: integer("leader_id").references(() => victoryGroupLeaders.id).notNull(),
+  memberVgLeaderId: integer("member_vg_leader_id").references(() => victoryGroupLeaders.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [unique().on(t.leaderId, t.memberVgLeaderId)]);
 
 export const victoryGroups = pgTable("victory_groups", {
   id: serial("id").primaryKey(),
@@ -87,11 +98,18 @@ export const victoryGroups = pgTable("victory_groups", {
   frequency: vgFrequencyEnum("frequency").notNull(),
   otherFrequency: text("other_frequency"),
   lifeStage: lifestageEnum("life_stage").array(),
-  intern: text("intern"),
   isActive: boolean("is_active").default(true).notNull(),
   remarks: text("remarks"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
+});
+
+export const interns = pgTable("interns", {
+  id: serial("id").primaryKey(),
+  victoryGroupId: integer("victory_group_id").references(() => victoryGroups.id).notNull(),
+  lastName: text("last_name").notNull(),
+  firstName: text("first_name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const batches = pgTable("batches", {
@@ -196,6 +214,7 @@ export const eventCheckIns = pgTable(
       .notNull(),
     attendeeType: eventAudienceEnum("attendee_type").notNull(),
     vgLeaderId: integer("vg_leader_id").references(() => victoryGroupLeaders.id),
+    internId: integer("intern_id").references(() => interns.id),
     attendeeName: text("attendee_name").notNull(),
     checkedInAt: timestamp("checked_in_at").defaultNow().notNull(),
   },
@@ -203,8 +222,34 @@ export const eventCheckIns = pgTable(
     uniqueIndex("event_check_ins_event_leader_idx")
       .on(t.eventId, t.vgLeaderId)
       .where(sql`${t.vgLeaderId} is not null`),
+    uniqueIndex("event_check_ins_event_intern_idx")
+      .on(t.eventId, t.internId)
+      .where(sql`${t.internId} is not null`),
     index("event_check_ins_event_id_idx").on(t.eventId),
   ]
+);
+
+export const eventRegistrations = pgTable(
+  "event_registrations",
+  {
+    id: serial("id").primaryKey(),
+    eventId: integer("event_id").references(() => events.id).notNull(),
+    vgLeaderId: integer("vg_leader_id").references(() => victoryGroupLeaders.id).notNull(),
+    willAttend: boolean("will_attend").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.eventId, t.vgLeaderId)]
+);
+
+export const eventRegistrationInterns = pgTable(
+  "event_registration_interns",
+  {
+    id: serial("id").primaryKey(),
+    eventRegistrationId: integer("event_registration_id").references(() => eventRegistrations.id).notNull(),
+    internId: integer("intern_id").references(() => interns.id).notNull(),
+  },
+  (t) => [unique().on(t.eventRegistrationId, t.internId)]
 );
 
 export const roleEnum = pgEnum("user_role", ["admin_volunteer", "developer", "vg_leader"]);
@@ -312,3 +357,7 @@ export type VgConvergenceAttendance = typeof vgConvergenceAttendance.$inferSelec
 export type Leadership113Batch = typeof leadership113Batches.$inferSelect;
 export type Event = typeof events.$inferSelect;
 export type EventCheckIn = typeof eventCheckIns.$inferSelect;
+export type Intern = typeof interns.$inferSelect;
+export type LeadershipGroupMember = typeof leadershipGroupMembers.$inferSelect;
+export type EventRegistration = typeof eventRegistrations.$inferSelect;
+export type EventRegistrationIntern = typeof eventRegistrationInterns.$inferSelect;

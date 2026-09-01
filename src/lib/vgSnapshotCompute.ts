@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { victoryGroupLeaders, victoryGroups } from "@/db/schema";
+import { victoryGroupLeaders, victoryGroups, interns } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { isQuarterlyActive } from "@/lib/vgLeaderStatus";
 import {
@@ -20,15 +20,15 @@ export function isInternSet(intern: string | null): boolean {
 /**
  * Computes the derivable counts (VG Leaders / Victory Groups / Interns / Leadership Group Leaders,
  * by service bucket and gender) from live data, plus the underlying leader/group detail behind
- * each count (for report drill-down). A VG leader is a Leadership Group Leader when at least one
- * other VG leader has named them (via `ownVgLeaderId`) as their own VG leader. A VG leader counts
- * as active for this report when they've updated their profile within the last quarter
- * (`isQuarterlyActive`) — independent of whether they currently own any Victory Group.
+ * each count (for report drill-down). A VG leader is a Leadership Group Leader when they've
+ * self-declared it (`isLeadershipGroupLeader`) — bucketed by their own service, not their members'.
+ * A VG leader counts as active for this report when they've updated their profile within the last
+ * quarter (`isQuarterlyActive`), independent of whether they currently own any Victory Group.
  */
 export async function computeVgSnapshotCounts(): Promise<
   Pick<VgSnapshotData, "byService" | "totals" | "vglByGender" | "genderTotals" | "detailsByService" | "totalsDetail">
 > {
-  const [leaders, groups] = await Promise.all([
+  const [leaders, groups, internRows] = await Promise.all([
     db
       .select({
         id: victoryGroupLeaders.id,
@@ -36,7 +36,7 @@ export async function computeVgSnapshotCounts(): Promise<
         firstName: victoryGroupLeaders.firstName,
         gender: victoryGroupLeaders.gender,
         serviceAttending: victoryGroupLeaders.serviceAttending,
-        ownVgLeaderId: victoryGroupLeaders.ownVgLeaderId,
+        isLeadershipGroupLeader: victoryGroupLeaders.isLeadershipGroupLeader,
         updatedAt: victoryGroupLeaders.updatedAt,
       })
       .from(victoryGroupLeaders)
@@ -45,13 +45,15 @@ export async function computeVgSnapshotCounts(): Promise<
       .select({
         id: victoryGroups.id,
         vgLeaderId: victoryGroups.vgLeaderId,
-        intern: victoryGroups.intern,
         place: victoryGroups.place,
         day: victoryGroups.day,
         time: victoryGroups.time,
       })
       .from(victoryGroups)
       .where(and(eq(victoryGroups.isActive, true), isNull(victoryGroups.deletedAt))),
+    db
+      .select({ victoryGroupId: interns.victoryGroupId, lastName: interns.lastName, firstName: interns.firstName })
+      .from(interns),
   ]);
 
   const leaderById = new Map(leaders.map((l) => [l.id, l]));
@@ -59,6 +61,13 @@ export async function computeVgSnapshotCounts(): Promise<
     const l = leaderById.get(id);
     return l ? `${l.lastName}, ${l.firstName}` : `#${id}`;
   };
+
+  const internsByGroup = new Map<number, { lastName: string; firstName: string }[]>();
+  for (const i of internRows) {
+    const list = internsByGroup.get(i.victoryGroupId) ?? [];
+    list.push({ lastName: i.lastName, firstName: i.firstName });
+    internsByGroup.set(i.victoryGroupId, list);
+  }
 
   const byService: Record<VgServiceBucket, VgBucketCounts> = {
     "9AM & 11AM": emptyBucketCounts(),
@@ -84,9 +93,11 @@ export async function computeVgSnapshotCounts(): Promise<
       id: g.id,
       label: `${leaderName(g.vgLeaderId)} — ${g.day} ${g.time} @ ${g.place}`,
     });
-    if (isInternSet(g.intern)) {
+
+    const groupInterns = internsByGroup.get(g.id) ?? [];
+    for (const i of groupInterns) {
       byService[bucket].interns += 1;
-      detailsByService[bucket].interns.push(g.intern!.trim());
+      detailsByService[bucket].interns.push(`${i.lastName}, ${i.firstName}`);
     }
   }
 
@@ -110,17 +121,13 @@ export async function computeVgSnapshotCounts(): Promise<
     if (leader.gender === "Female") vglByGender[bucket].female += 1;
   }
 
-  // Leadership Group Leaders — unchanged rule.
-  const leadershipGroupLeaderIds = new Set(
-    leaders.filter((l) => l.ownVgLeaderId != null).map((l) => l.ownVgLeaderId as number)
-  );
-  for (const leaderId of leadershipGroupLeaderIds) {
-    const leader = leaderById.get(leaderId);
-    if (!leader) continue;
-    const bucket = serviceToBucket(leader.serviceAttending ?? null);
+  // Leadership Group Leaders — self-declared, bucketed by the LGL's own service.
+  for (const leader of leaders) {
+    if (!leader.isLeadershipGroupLeader) continue;
+    const bucket = serviceToBucket(leader.serviceAttending);
     if (!bucket) continue;
     byService[bucket].leadershipGroups += 1;
-    detailsByService[bucket].leadershipGroups.push({ id: leaderId, name: leaderName(leaderId) });
+    detailsByService[bucket].leadershipGroups.push({ id: leader.id, name: leaderName(leader.id) });
   }
 
   const totals = emptyBucketCounts();

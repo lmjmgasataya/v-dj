@@ -45,7 +45,7 @@ export function EventSmsClient({
     if (!selectedEvent) return;
     setTab(selectedEvent.audience[0] ?? null);
     setSelected(new Set());
-    getEventAudience(selectedEvent.audience).then((r) => {
+    getEventAudience(selectedEvent.id, selectedEvent.audience).then((r) => {
       setVgLeaders(r.vgLeaders);
       setInterns(r.interns);
     });

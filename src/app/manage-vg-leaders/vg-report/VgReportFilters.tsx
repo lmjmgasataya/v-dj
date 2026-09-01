@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { dayOfWeekEnum, vgFrequencyEnum } from "@/db/schema";
+import { SERVICE_OPTIONS } from "@/components/form";
 import { MultiSelectFilter } from "./MultiSelectFilter";
 
 const DAYS = dayOfWeekEnum.enumValues;
@@ -29,12 +30,14 @@ const HOURS = Array.from({ length: 18 }, (_, i) => {
 
 export function VgReportFilters({
   gender,
+  service,
   day,
   time,
   lifestage,
   frequency,
 }: {
   gender: string[];
+  service: string[];
   day: string[];
   time: string[];
   lifestage: string[];
@@ -43,9 +46,10 @@ export function VgReportFilters({
   const router = useRouter();
 
   function buildUrl(overrides: Record<string, string[]>) {
-    const vals = { gender, day, time, lifestage, frequency, ...overrides };
+    const vals = { gender, service, day, time, lifestage, frequency, ...overrides };
     const params = new URLSearchParams();
     if (vals.gender.length) params.set("gender", vals.gender.join(","));
+    if (vals.service.length) params.set("service", vals.service.join(","));
     if (vals.day.length) params.set("day", vals.day.join(","));
     if (vals.time.length) params.set("time", vals.time.join(","));
     if (vals.lifestage.length) params.set("lifestage", vals.lifestage.join(","));
@@ -55,12 +59,13 @@ export function VgReportFilters({
   }
 
   const hasFilters =
-    gender.length > 0 || day.length > 0 || time.length > 0 || lifestage.length > 0 || frequency.length > 0;
+    gender.length > 0 || service.length > 0 || day.length > 0 || time.length > 0 || lifestage.length > 0 || frequency.length > 0;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 flex flex-wrap items-center gap-2">
       <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide mr-1">Filters</span>
       <MultiSelectFilter label="Gender" options={GENDERS} selected={gender} onChange={(v) => router.push(buildUrl({ gender: v }))} />
+      <MultiSelectFilter label="Service" options={SERVICE_OPTIONS} selected={service} onChange={(v) => router.push(buildUrl({ service: v }))} />
       <MultiSelectFilter label="Day" options={DAYS} selected={day} onChange={(v) => router.push(buildUrl({ day: v }))} />
       <MultiSelectFilter label="Time" options={HOURS} selected={time} onChange={(v) => router.push(buildUrl({ time: v }))} />
       <MultiSelectFilter label="Frequency" options={FREQUENCIES} selected={frequency} onChange={(v) => router.push(buildUrl({ frequency: v }))} />

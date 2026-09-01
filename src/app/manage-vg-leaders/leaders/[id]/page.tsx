@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { victoryGroupLeaders, victoryGroups } from "@/db/schema";
-import { eq, isNull, and } from "drizzle-orm";
+import { victoryGroupLeaders, victoryGroups, interns, leadershipGroupMembers } from "@/db/schema";
+import { eq, isNull, and, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -40,8 +40,29 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
 
   if (!leader) notFound();
 
+  const groupIds = groups.map((g) => g.id);
+  const internRows = groupIds.length
+    ? await db.select().from(interns).where(inArray(interns.victoryGroupId, groupIds))
+    : [];
+  const internsByGroup: Record<number, { lastName: string; firstName: string }[]> = {};
+  for (const i of internRows) {
+    (internsByGroup[i.victoryGroupId] ??= []).push({ lastName: i.lastName, firstName: i.firstName });
+  }
+
   const completedSteps = (leader.discipleshipJourneyCompleted ?? "").split(",").filter(Boolean);
   const freshness = getProfileFreshness(leader.updatedAt);
+
+  const lglMembers = leader.isLeadershipGroupLeader
+    ? await db
+        .select({
+          id: victoryGroupLeaders.id,
+          lastName: victoryGroupLeaders.lastName,
+          firstName: victoryGroupLeaders.firstName,
+        })
+        .from(leadershipGroupMembers)
+        .innerJoin(victoryGroupLeaders, eq(leadershipGroupMembers.memberVgLeaderId, victoryGroupLeaders.id))
+        .where(eq(leadershipGroupMembers.leaderId, leaderId))
+    : [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -123,6 +144,45 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-indigo-50 border-b border-indigo-100 px-6 py-3">
+          <h3 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">Leadership</h3>
+        </div>
+        <dl className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+          <Row
+            label="Started Leading a Victory Group"
+            value={
+              leader.startedLeadingVg === "before_this_year"
+                ? "Before this year"
+                : leader.startedLeadingVg === "this_year"
+                  ? "This year"
+                  : null
+            }
+          />
+          <Row label="Leadership Group Leader?" value={leader.isLeadershipGroupLeader ? "Yes" : "No"} />
+          {leader.isLeadershipGroupLeader && (
+            <div className="sm:col-span-2">
+              <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">VG Leaders they lead</dt>
+              <dd className="text-sm text-gray-900">
+                {lglMembers.length === 0 ? (
+                  "—"
+                ) : (
+                  <ul className="flex flex-col gap-1">
+                    {lglMembers.map((m) => (
+                      <li key={m.id}>
+                        <Link href={`/manage-vg-leaders/leaders/${m.id}`} className="text-indigo-600 hover:text-indigo-800 underline">
+                          {m.lastName}, {m.firstName}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </dd>
+            </div>
+          )}
+        </dl>
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-indigo-50 border-b border-indigo-100 px-6 py-3">
           <h3 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">Discipleship Journey</h3>
         </div>
         <div className="p-6 flex flex-col gap-4">
@@ -153,17 +213,21 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
           {groups.length === 0 ? (
             <p className="text-sm text-gray-400">No victory groups yet.</p>
           ) : (
-            groups.map((g, index) => (
-              <div key={g.id} className="px-4 py-3 rounded-lg border border-gray-200">
-                <p className="text-sm font-semibold text-gray-900">Victory Group {index + 1}</p>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {g.place} · {DAY_ABBR[g.day]} · {g.time} ·{" "}
-                  {g.frequency === "Others" ? (g.otherFrequency ?? "Others") : g.frequency}
-                  {g.lifeStage?.length ? ` · ${g.lifeStage.join(", ")}` : ""}
-                  {g.intern ? ` · Intern: ${g.intern}` : ""}
-                </p>
-              </div>
-            ))
+            groups.map((g, index) => {
+              const groupInterns = internsByGroup[g.id] ?? [];
+              const internNames = groupInterns.map((i) => `${i.lastName}, ${i.firstName}`).join("; ");
+              return (
+                <div key={g.id} className="px-4 py-3 rounded-lg border border-gray-200">
+                  <p className="text-sm font-semibold text-gray-900">Victory Group {index + 1}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {g.place} · {DAY_ABBR[g.day]} · {g.time} ·{" "}
+                    {g.frequency === "Others" ? (g.otherFrequency ?? "Others") : g.frequency}
+                    {g.lifeStage?.length ? ` · ${g.lifeStage.join(", ")}` : ""}
+                    {internNames ? ` · Interns: ${internNames}` : ""}
+                  </p>
+                </div>
+              );
+            })
           )}
         </div>
       </div>

@@ -9,6 +9,11 @@ import { redirect } from "next/navigation";
 import { firstWord, toTitleCase } from "@/lib/text";
 import { isValidPin } from "@/lib/pin";
 
+function safeCallback(callbackUrl: string | null): string {
+  if (callbackUrl && callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")) return callbackUrl;
+  return "/vg-portal";
+}
+
 async function isPortalEnabled() {
   const [flag] = await db
     .select()
@@ -68,7 +73,7 @@ function parsePins(formData: FormData) {
   return { pin, confirmPin };
 }
 
-export async function setupPin(vgLeaderId: number, _: unknown, formData: FormData) {
+export async function setupPin(vgLeaderId: number, callbackUrl: string | null, _: unknown, formData: FormData) {
   const { pin, confirmPin } = parsePins(formData);
 
   if (!isValidPin(pin)) return { error: "Enter a 5-digit PIN." };
@@ -102,10 +107,10 @@ export async function setupPin(vgLeaderId: number, _: unknown, formData: FormDat
 
   const token = await signSession({ userId: user.id, name: user.name, role: "vg_leader", vgLeaderId });
   await setSessionCookie(token);
-  redirect("/vg-portal");
+  redirect(safeCallback(callbackUrl));
 }
 
-export async function verifyPin(vgLeaderId: number, _: unknown, formData: FormData) {
+export async function verifyPin(vgLeaderId: number, callbackUrl: string | null, _: unknown, formData: FormData) {
   const pin = ((formData.get("pin") as string) ?? "").trim();
   if (!isValidPin(pin)) return { error: "Enter your 5-digit PIN." };
 
@@ -122,10 +127,10 @@ export async function verifyPin(vgLeaderId: number, _: unknown, formData: FormDa
 
   const token = await signSession({ userId: account.id, name: account.name, role: "vg_leader", vgLeaderId });
   await setSessionCookie(token);
-  redirect("/vg-portal");
+  redirect(safeCallback(callbackUrl));
 }
 
-export async function registerNewLeader(firstName: string, lastName: string, _: unknown, formData: FormData) {
+export async function registerNewLeader(firstName: string, lastName: string, callbackUrl: string | null, _: unknown, formData: FormData) {
   const { pin, confirmPin } = parsePins(formData);
 
   if (!isValidPin(pin)) return { error: "Enter a 5-digit PIN." };
@@ -152,5 +157,5 @@ export async function registerNewLeader(firstName: string, lastName: string, _: 
 
   const token = await signSession({ userId: user.id, name: user.name, role: "vg_leader", vgLeaderId: leader.id });
   await setSessionCookie(token);
-  redirect("/vg-portal");
+  redirect(safeCallback(callbackUrl));
 }

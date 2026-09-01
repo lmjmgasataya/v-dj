@@ -1,13 +1,13 @@
 import { db } from "@/db";
-import { victoryGroups, victoryGroupLeaders } from "@/db/schema";
+import { interns, victoryGroups, victoryGroupLeaders } from "@/db/schema";
 import { isNull, eq } from "drizzle-orm";
-import { isInternSet } from "@/lib/vgSnapshotCompute";
 
 export default async function InternsPage() {
-  const groups = await db
+  const rows = await db
     .select({
-      id: victoryGroups.id,
-      intern: victoryGroups.intern,
+      id: interns.id,
+      lastName: interns.lastName,
+      firstName: interns.firstName,
       place: victoryGroups.place,
       day: victoryGroups.day,
       time: victoryGroups.time,
@@ -15,22 +15,19 @@ export default async function InternsPage() {
       leaderLastName: victoryGroupLeaders.lastName,
       leaderFirstName: victoryGroupLeaders.firstName,
     })
-    .from(victoryGroups)
+    .from(interns)
+    .innerJoin(victoryGroups, eq(interns.victoryGroupId, victoryGroups.id))
     .innerJoin(victoryGroupLeaders, eq(victoryGroups.vgLeaderId, victoryGroupLeaders.id))
     .where(isNull(victoryGroups.deletedAt))
-    .orderBy(victoryGroups.intern);
-
-  const interns = groups
-    .filter((g) => isInternSet(g.intern))
-    .sort((a, b) => (a.intern ?? "").localeCompare(b.intern ?? ""));
+    .orderBy(interns.lastName, interns.firstName);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
         <h3 className="font-semibold text-gray-800">Interns</h3>
-        <span className="text-xs text-gray-400">{interns.length} intern{interns.length !== 1 ? "s" : ""}</span>
+        <span className="text-xs text-gray-400">{rows.length} intern{rows.length !== 1 ? "s" : ""}</span>
       </div>
-      {interns.length === 0 ? (
+      {rows.length === 0 ? (
         <p className="px-6 py-8 text-sm text-gray-400 text-center">No interns recorded yet.</p>
       ) : (
         <div className="overflow-x-auto">
@@ -46,9 +43,9 @@ export default async function InternsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {interns.map((g) => (
+              {rows.map((g) => (
                 <tr key={g.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2.5 text-gray-900 font-medium">{g.intern}</td>
+                  <td className="px-4 py-2.5 text-gray-900 font-medium">{g.lastName}, {g.firstName}</td>
                   <td className="px-4 py-2.5 text-gray-700">{g.leaderLastName}, {g.leaderFirstName}</td>
                   <td className="px-4 py-2.5 text-gray-500">{g.place}</td>
                   <td className="px-4 py-2.5 text-gray-500">{g.day}</td>

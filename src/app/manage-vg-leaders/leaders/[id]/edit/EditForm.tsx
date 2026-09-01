@@ -1,16 +1,18 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { updateVGLeader } from "./actions";
-import { Field, Section, CheckboxOption, inputCls, selectCls, SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
+import { Field, Section, CheckboxOption, RadioOption, inputCls, selectCls, SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
 import { OwnVgLeaderField } from "@/components/OwnVgLeaderField";
+import { LeadershipGroupMembersField, type MemberRowValue } from "@/components/LeadershipGroupMembersField";
 import type { VictoryGroupLeader } from "@/db/schema";
 import { lifestageEnum } from "@/db/schema";
 
-export function EditForm({ leader }: { leader: VictoryGroupLeader }) {
+export function EditForm({ leader, leadershipGroupMembers }: { leader: VictoryGroupLeader; leadershipGroupMembers: MemberRowValue[] }) {
   const [pending, startTransition] = useTransition();
   const completedSteps = (leader.discipleshipJourneyCompleted ?? "").split(",").filter(Boolean);
   const [ownVgLeaderLastName, ownVgLeaderFirstName] = (leader.ownVgLeaderName ?? "").split(",").map((s) => s.trim());
+  const [isLGL, setIsLGL] = useState(leader.isLeadershipGroupLeader);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -74,6 +76,40 @@ export function EditForm({ leader }: { leader: VictoryGroupLeader }) {
           <CheckboxOption name="isActive" defaultChecked={leader.isActive} align="start">
             I am actively leading a Victory Group
           </CheckboxOption>
+        </div>
+      </Section>
+
+      <Section title="Leadership">
+        <div className="sm:col-span-2">
+          <p className="text-sm font-medium text-gray-700 mb-1.5">When did you start leading a Victory Group?</p>
+          <div className="flex flex-col gap-2">
+            <RadioOption
+              name="startedLeadingVg"
+              value="before_this_year"
+              label="I started leading before this year"
+              defaultChecked={leader.startedLeadingVg === "before_this_year"}
+            />
+            <RadioOption
+              name="startedLeadingVg"
+              value="this_year"
+              label="I started leading this year"
+              defaultChecked={leader.startedLeadingVg === "this_year"}
+            />
+          </div>
+        </div>
+        <div className="sm:col-span-2 border-t border-gray-100 pt-3">
+          <p className="text-sm font-medium text-gray-700">Are you a Leadership Group Leader?</p>
+          <p className="text-xs text-gray-400 mb-1.5">A Leadership Group Leader is leading at least one (1) Victory Group Leader.</p>
+          <div className="flex flex-col gap-2">
+            <RadioOption name="isLeadershipGroupLeader" value="true" label="Yes" checked={isLGL} onChange={() => setIsLGL(true)} />
+            <RadioOption name="isLeadershipGroupLeader" value="false" label="No" checked={!isLGL} onChange={() => setIsLGL(false)} />
+          </div>
+          {isLGL && (
+            <div className="mt-3">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">VG Leaders they lead</p>
+              <LeadershipGroupMembersField excludeId={leader.id} defaultMembers={leadershipGroupMembers} />
+            </div>
+          )}
         </div>
       </Section>
 

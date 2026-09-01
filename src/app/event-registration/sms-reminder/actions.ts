@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { victoryGroupLeaders, victoryGroups, users } from "@/db/schema";
-import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { victoryGroupLeaders, interns, eventRegistrations, eventRegistrationInterns } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
 
 export interface EventAudiencePerson {
   id: number;
@@ -11,63 +11,38 @@ export interface EventAudiencePerson {
 }
 
 export async function getEventAudience(
+  eventId: number,
   audience: ("vg_leader" | "intern")[]
 ): Promise<{ vgLeaders: EventAudiencePerson[]; interns: EventAudiencePerson[] }> {
-  const allLeaders = await db
-    .select({
-      id: victoryGroupLeaders.id,
-      lastName: victoryGroupLeaders.lastName,
-      firstName: victoryGroupLeaders.firstName,
-      mobileNumber: victoryGroupLeaders.mobileNumber,
-    })
-    .from(victoryGroupLeaders)
-    .where(isNull(victoryGroupLeaders.deletedAt))
-    .orderBy(victoryGroupLeaders.lastName);
-
   let vgLeaders: EventAudiencePerson[] = [];
   if (audience.includes("vg_leader")) {
-    const claimedLeaders = await db
+    const rows = await db
       .select({
         id: victoryGroupLeaders.id,
         lastName: victoryGroupLeaders.lastName,
         firstName: victoryGroupLeaders.firstName,
         mobileNumber: victoryGroupLeaders.mobileNumber,
       })
-      .from(victoryGroupLeaders)
-      .innerJoin(users, and(eq(users.vgLeaderId, victoryGroupLeaders.id), eq(users.role, "vg_leader")))
-      .where(and(isNotNull(users.pinHash), isNull(victoryGroupLeaders.deletedAt)))
+      .from(eventRegistrations)
+      .innerJoin(victoryGroupLeaders, eq(eventRegistrations.vgLeaderId, victoryGroupLeaders.id))
+      .where(and(eq(eventRegistrations.eventId, eventId), eq(eventRegistrations.willAttend, true)))
       .orderBy(victoryGroupLeaders.lastName);
 
-    vgLeaders = claimedLeaders.map((r) => ({ id: r.id, name: `${r.lastName}, ${r.firstName}`, mobileNumber: r.mobileNumber }));
+    vgLeaders = rows.map((r) => ({ id: r.id, name: `${r.lastName}, ${r.firstName}`, mobileNumber: r.mobileNumber }));
   }
 
-  let interns: EventAudiencePerson[] = [];
+  let internPeople: EventAudiencePerson[] = [];
   if (audience.includes("intern")) {
     const rows = await db
-      .selectDistinct({ intern: victoryGroups.intern })
-      .from(victoryGroups)
-      .where(
-        and(
-          isNull(victoryGroups.deletedAt),
-          eq(victoryGroups.isActive, true),
-          sql`${victoryGroups.intern} is not null and trim(${victoryGroups.intern}) <> '' and lower(${victoryGroups.intern}) <> 'none'`
-        )
-      );
+      .select({ id: interns.id, lastName: interns.lastName, firstName: interns.firstName })
+      .from(eventRegistrationInterns)
+      .innerJoin(eventRegistrations, eq(eventRegistrationInterns.eventRegistrationId, eventRegistrations.id))
+      .innerJoin(interns, eq(eventRegistrationInterns.internId, interns.id))
+      .where(and(eq(eventRegistrations.eventId, eventId), eq(eventRegistrations.willAttend, true)))
+      .orderBy(interns.lastName);
 
-    const leaderByName = new Map(
-      allLeaders.map((r) => [`${r.lastName.trim().toLowerCase()}|${r.firstName.trim().toLowerCase()}`, r])
-    );
-
-    const names = Array.from(new Set(rows.map((r) => (r.intern as string).trim())));
-    interns = names
-      .sort((a, b) => a.localeCompare(b))
-      .map((name, i) => {
-        const parts = name.split(",").map((p) => p.trim());
-        const match =
-          parts.length === 2 ? leaderByName.get(`${parts[0].toLowerCase()}|${parts[1].toLowerCase()}`) : undefined;
-        return { id: -(i + 1), name, mobileNumber: match?.mobileNumber ?? null };
-      });
+    internPeople = rows.map((r) => ({ id: r.id, name: `${r.lastName}, ${r.firstName}`, mobileNumber: null }));
   }
 
-  return { vgLeaders, interns };
+  return { vgLeaders, interns: internPeople };
 }

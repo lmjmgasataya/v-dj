@@ -34,15 +34,15 @@ function Card({
   );
 }
 
-export function ClaimForm() {
+export function ClaimForm({ callbackUrl = null }: { callbackUrl?: string | null }) {
   const [checked, setChecked] = useState<Checked | null>(null);
 
   if (checked?.matched === true && checked.mode === "setup") {
-    return <SetupPinStep vgLeaderId={checked.vgLeaderId} name={checked.name} onBack={() => setChecked(null)} />;
+    return <SetupPinStep vgLeaderId={checked.vgLeaderId} name={checked.name} callbackUrl={callbackUrl} onBack={() => setChecked(null)} />;
   }
 
   if (checked?.matched === true && checked.mode === "login") {
-    return <LoginPinStep vgLeaderId={checked.vgLeaderId} name={checked.name} onBack={() => setChecked(null)} />;
+    return <LoginPinStep vgLeaderId={checked.vgLeaderId} name={checked.name} callbackUrl={callbackUrl} onBack={() => setChecked(null)} />;
   }
 
   if (checked?.matched === false) {
@@ -50,6 +50,7 @@ export function ClaimForm() {
       <RegisterStep
         firstName={checked.firstName}
         lastName={checked.lastName}
+        callbackUrl={callbackUrl}
         onBack={() => setChecked(null)}
       />
     );
@@ -106,13 +107,15 @@ function NameStep({ onChecked }: { onChecked: (v: Checked) => void }) {
 function LoginPinStep({
   vgLeaderId,
   name,
+  callbackUrl,
   onBack,
 }: {
   vgLeaderId: number;
   name: string;
+  callbackUrl: string | null;
   onBack: () => void;
 }) {
-  const [state, formAction, pending] = useActionState(verifyPin.bind(null, vgLeaderId), undefined);
+  const [state, formAction, pending] = useActionState(verifyPin.bind(null, vgLeaderId, callbackUrl), undefined);
 
   return (
     <Card title={`Welcome back, ${name}!`} description="Enter your 5-digit PIN to continue.">
@@ -147,13 +150,15 @@ function LoginPinStep({
 function SetupPinStep({
   vgLeaderId,
   name,
+  callbackUrl,
   onBack,
 }: {
   vgLeaderId: number;
   name: string;
+  callbackUrl: string | null;
   onBack: () => void;
 }) {
-  const [state, formAction, pending] = useActionState(setupPin.bind(null, vgLeaderId), undefined);
+  const [state, formAction, pending] = useActionState(setupPin.bind(null, vgLeaderId, callbackUrl), undefined);
 
   return (
     <Card
@@ -195,13 +200,15 @@ function SetupPinStep({
 function RegisterStep({
   firstName,
   lastName,
+  callbackUrl,
   onBack,
 }: {
   firstName: string;
   lastName: string;
+  callbackUrl: string | null;
   onBack: () => void;
 }) {
-  const [state, formAction, pending] = useActionState(registerNewLeader.bind(null, firstName, lastName), undefined);
+  const [state, formAction, pending] = useActionState(registerNewLeader.bind(null, firstName, lastName, callbackUrl), undefined);
 
   return (
     <Card

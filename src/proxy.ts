@@ -21,7 +21,7 @@ const DEVELOPER_ONLY = [
   /^\/event-registration\/sms-reminder/,
 ];
 
-const PUBLIC_PATHS = [/^\/login/, /^\/vg-portal\/claim/, /^\/vg-portal\/login/];
+const PUBLIC_PATHS = [/^\/login/, /^\/vg-portal\/claim/, /^\/vg-portal\/login/, /^\/vg-portal\/events/];
 
 const VG_LEADER_ALLOWED = [/^\/vg-portal/, /^\/api\/vg-leaders/];
 

@@ -8,6 +8,7 @@ import {
   type dayOfWeekEnum,
   type vgFrequencyEnum,
   type lifestageEnum,
+  type startedLeadingVgEnum,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -16,6 +17,8 @@ import { redirect } from "next/navigation";
 import { toTitleCase } from "@/lib/text";
 import { recomputeProfileCompleted } from "@/lib/vgLeaderProfile";
 import { resolveOwnVgLeader } from "@/lib/ownVgLeader";
+import { replaceGroupInterns } from "@/lib/interns";
+import { resolveLeadershipGroupMembers, replaceLeadershipGroupMembers } from "@/lib/leadershipGroupMembers";
 
 type Day = (typeof dayOfWeekEnum.enumValues)[number];
 type Frequency = (typeof vgFrequencyEnum.enumValues)[number];
@@ -41,16 +44,19 @@ function parseLifeStage(formData: FormData) {
 
 export async function addOwnVictoryGroup(formData: FormData) {
   const session = await requireVgLeader();
-  await db.insert(victoryGroups).values({
-    vgLeaderId: session.vgLeaderId,
-    place: formData.get("place") as string,
-    day: formData.get("day") as Day,
-    time: formData.get("time") as string,
-    ...parseFrequency(formData),
-    ...parseLifeStage(formData),
-    isActive: true,
-    intern: (formData.get("intern") as string) || null,
-  });
+  const [group] = await db
+    .insert(victoryGroups)
+    .values({
+      vgLeaderId: session.vgLeaderId,
+      place: formData.get("place") as string,
+      day: formData.get("day") as Day,
+      time: formData.get("time") as string,
+      ...parseFrequency(formData),
+      ...parseLifeStage(formData),
+      isActive: true,
+    })
+    .returning({ id: victoryGroups.id });
+  await replaceGroupInterns(group.id, formData);
   await recomputeProfileCompleted(session.vgLeaderId);
   revalidatePath("/vg-portal");
 }
@@ -65,9 +71,9 @@ export async function updateOwnVictoryGroup(id: number, formData: FormData) {
       time: formData.get("time") as string,
       ...parseFrequency(formData),
       ...parseLifeStage(formData),
-      intern: (formData.get("intern") as string) || null,
     })
     .where(and(eq(victoryGroups.id, id), eq(victoryGroups.vgLeaderId, session.vgLeaderId)));
+  await replaceGroupInterns(id, formData);
   await recomputeProfileCompleted(session.vgLeaderId);
   revalidatePath("/vg-portal");
 }
@@ -94,6 +100,11 @@ export async function acknowledgeProfileCurrent() {
 export async function updateOwnProfile(formData: FormData) {
   const session = await requireVgLeader();
   const ownVgLeader = await resolveOwnVgLeader(formData, session.vgLeaderId);
+  const isLeadershipGroupLeader = formData.get("isLeadershipGroupLeader") === "true";
+  const memberIds = isLeadershipGroupLeader
+    ? await resolveLeadershipGroupMembers(formData, session.vgLeaderId)
+    : [];
+
   const [updated] = await db
     .update(victoryGroupLeaders)
     .set({
@@ -112,11 +123,15 @@ export async function updateOwnProfile(formData: FormData) {
           ? null
           : formData.get("graduateOfLeadership113") === "true",
       ...ownVgLeader,
+      startedLeadingVg: (formData.get("startedLeadingVg") as (typeof startedLeadingVgEnum.enumValues)[number]) || null,
+      isLeadershipGroupLeader,
       isActive: formData.get("isActive") === "on",
       updatedAt: new Date(),
     })
     .where(eq(victoryGroupLeaders.id, session.vgLeaderId))
     .returning();
+
+  await replaceLeadershipGroupMembers(session.vgLeaderId, memberIds);
 
   // Keep the account's display name (used in the header and future session tokens) in sync.
   await db

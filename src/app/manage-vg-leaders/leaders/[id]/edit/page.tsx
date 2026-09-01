@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { victoryGroupLeaders, victoryGroups } from "@/db/schema";
-import { eq, isNull, and } from "drizzle-orm";
+import { victoryGroupLeaders, victoryGroups, interns, leadershipGroupMembers } from "@/db/schema";
+import { eq, isNull, and, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { EditForm } from "./EditForm";
 import { DeleteButton } from "./DeleteButton";
@@ -28,6 +28,25 @@ export default async function EditVGLeaderPage({ params }: { params: Promise<{ i
   ]);
 
   if (!leader) notFound();
+
+  const groupIds = groups.map((g) => g.id);
+  const internRows = groupIds.length
+    ? await db.select().from(interns).where(inArray(interns.victoryGroupId, groupIds))
+    : [];
+  const internsByGroup: Record<number, { lastName: string; firstName: string }[]> = {};
+  for (const i of internRows) {
+    (internsByGroup[i.victoryGroupId] ??= []).push({ lastName: i.lastName, firstName: i.firstName });
+  }
+
+  const lglMemberRows = await db
+    .select({
+      id: victoryGroupLeaders.id,
+      lastName: victoryGroupLeaders.lastName,
+      firstName: victoryGroupLeaders.firstName,
+    })
+    .from(leadershipGroupMembers)
+    .innerJoin(victoryGroupLeaders, eq(leadershipGroupMembers.memberVgLeaderId, victoryGroupLeaders.id))
+    .where(eq(leadershipGroupMembers.leaderId, leaderId));
 
   const freshness = getProfileFreshness(leader.updatedAt);
   const dateStr = leader.updatedAt.toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric", timeZone: "Asia/Manila" });
@@ -65,8 +84,8 @@ export default async function EditVGLeaderPage({ params }: { params: Promise<{ i
         </div>
       </div>
       <div className="flex flex-col gap-6">
-        <EditForm leader={leader} />
-        <VictoryGroupsSection groups={groups} vgLeaderId={leaderId} />
+        <EditForm leader={leader} leadershipGroupMembers={lglMemberRows} />
+        <VictoryGroupsSection groups={groups} internsByGroup={internsByGroup} vgLeaderId={leaderId} />
       </div>
     </div>
   );

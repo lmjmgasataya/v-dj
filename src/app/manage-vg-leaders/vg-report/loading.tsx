@@ -3,7 +3,7 @@ export default function Loading() {
     <div className="flex flex-col gap-6">
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 flex flex-wrap items-center gap-2">
         <div className="h-3.5 w-12 rounded bg-gray-200 animate-pulse mr-1" />
-        {[70, 60, 70, 90, 90].map((w, i) => (
+        {[70, 70, 60, 70, 90, 90].map((w, i) => (
           <div key={i} className="h-9 rounded-lg bg-gray-100 animate-pulse" style={{ width: w }} />
         ))}
       </div>

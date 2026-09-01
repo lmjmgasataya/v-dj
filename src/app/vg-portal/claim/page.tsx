@@ -5,7 +5,12 @@ import { featureFlags } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { ClaimForm } from "./ClaimForm";
 
-export default async function ClaimPage() {
+export default async function ClaimPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ callbackUrl?: string }>;
+}) {
+  const { callbackUrl } = await searchParams;
   const session = await getSession();
   if (session) redirect("/");
 
@@ -28,5 +33,5 @@ export default async function ClaimPage() {
     );
   }
 
-  return <ClaimForm />;
+  return <ClaimForm callbackUrl={callbackUrl ?? null} />;
 }

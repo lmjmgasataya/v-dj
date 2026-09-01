@@ -2,8 +2,9 @@
 
 import { useRef, useState, useTransition } from "react";
 import { updateOwnProfile } from "./actions";
-import { Field, Section, CheckboxOption, inputCls, selectCls, SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
+import { Field, Section, CheckboxOption, RadioOption, inputCls, selectCls, SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
 import { OwnVgLeaderField } from "@/components/OwnVgLeaderField";
+import { LeadershipGroupMembersField, type MemberRowValue } from "@/components/LeadershipGroupMembersField";
 import type { VictoryGroupLeader } from "@/db/schema";
 import { lifestageEnum } from "@/db/schema";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -29,12 +30,21 @@ function ReviewSection({ title, children }: { title: string; children: React.Rea
   );
 }
 
-export function ProfileForm({ leader, hasActiveGroup }: { leader: VictoryGroupLeader; hasActiveGroup: boolean }) {
+export function ProfileForm({
+  leader,
+  hasActiveGroup,
+  leadershipGroupMembers,
+}: {
+  leader: VictoryGroupLeader;
+  hasActiveGroup: boolean;
+  leadershipGroupMembers: MemberRowValue[];
+}) {
   const [pending, startTransition] = useTransition();
   const toast = useToast();
   const completedSteps = (leader.discipleshipJourneyCompleted ?? "").split(",").filter(Boolean);
   const { percent, missing } = computeProfileProgress(leader, hasActiveGroup);
   const [ownVgLeaderLastName, ownVgLeaderFirstName] = (leader.ownVgLeaderName ?? "").split(",").map((s) => s.trim());
+  const [isLGL, setIsLGL] = useState(leader.isLeadershipGroupLeader);
 
   const [step, setStep] = useState<"form" | "review">("form");
   const [captured, setCaptured] = useState<Record<string, string | string[]>>({});
@@ -157,6 +167,52 @@ export function ProfileForm({ leader, hasActiveGroup }: { leader: VictoryGroupLe
             </div>
           </Section>
 
+          <Section title="Leadership">
+            <div className="sm:col-span-2">
+              <p className="text-sm font-medium text-gray-700 mb-1.5">When did you start leading a Victory Group?</p>
+              <div className="flex flex-col gap-2">
+                <RadioOption
+                  name="startedLeadingVg"
+                  value="before_this_year"
+                  label="I started leading before this year"
+                  defaultChecked={leader.startedLeadingVg === "before_this_year"}
+                />
+                <RadioOption
+                  name="startedLeadingVg"
+                  value="this_year"
+                  label="I started leading this year"
+                  defaultChecked={leader.startedLeadingVg === "this_year"}
+                />
+              </div>
+            </div>
+            <div className="sm:col-span-2 border-t border-gray-100 pt-3">
+              <p className="text-sm font-medium text-gray-700">Are you a Leadership Group Leader?</p>
+              <p className="text-xs text-gray-400 mb-1.5">A Leadership Group Leader is leading at least one (1) Victory Group Leader.</p>
+              <div className="flex flex-col gap-2">
+                <RadioOption
+                  name="isLeadershipGroupLeader"
+                  value="true"
+                  label="Yes"
+                  checked={isLGL}
+                  onChange={() => setIsLGL(true)}
+                />
+                <RadioOption
+                  name="isLeadershipGroupLeader"
+                  value="false"
+                  label="No"
+                  checked={!isLGL}
+                  onChange={() => setIsLGL(false)}
+                />
+              </div>
+              {isLGL && (
+                <div className="mt-3">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">VG Leaders you lead</p>
+                  <LeadershipGroupMembersField excludeId={leader.id} defaultMembers={leadershipGroupMembers} />
+                </div>
+              )}
+            </div>
+          </Section>
+
           <Section title="Discipleship Journey" description="Please check all that you have completed.">
             <div className="sm:col-span-2 flex flex-col gap-2.5">
               {DISCIPLESHIP_JOURNEY_STEPS.map((journeyStep) => (
@@ -217,6 +273,52 @@ export function ProfileForm({ leader, hasActiveGroup }: { leader: VictoryGroupLe
               value={captured.isActive === "on" ? "Yes" : "No"}
               span
             />
+          </ReviewSection>
+
+          <ReviewSection title="Leadership">
+            <ReviewRow
+              label="When did you start leading a Victory Group?"
+              value={
+                captured.startedLeadingVg === "before_this_year"
+                  ? "Before this year"
+                  : captured.startedLeadingVg === "this_year"
+                    ? "This year"
+                    : null
+              }
+              span
+            />
+            <ReviewRow
+              label="Leadership Group Leader?"
+              value={captured.isLeadershipGroupLeader === "true" ? "Yes" : "No"}
+              span
+            />
+            {captured.isLeadershipGroupLeader === "true" && (
+              <div className="sm:col-span-2">
+                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">VG Leaders you lead</dt>
+                <dd className="text-sm text-gray-900">
+                  {(() => {
+                    const names = Object.keys(captured)
+                      .filter((k) => /^lgl_\d+_lastName$/.test(k))
+                      .map((k) => {
+                        const i = k.match(/^lgl_(\d+)_lastName$/)![1];
+                        const last = captured[`lgl_${i}_lastName`];
+                        const first = captured[`lgl_${i}_firstName`];
+                        return [last, first].filter(Boolean).join(", ");
+                      })
+                      .filter(Boolean);
+                    return names.length ? (
+                      <ul className="list-disc list-inside space-y-0.5">
+                        {names.map((n) => (
+                          <li key={n}>{n}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      "—"
+                    );
+                  })()}
+                </dd>
+              </div>
+            )}
           </ReviewSection>
 
           <ReviewSection title="Discipleship Journey">

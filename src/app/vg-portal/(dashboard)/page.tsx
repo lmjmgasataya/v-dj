@@ -1,11 +1,17 @@
 import { db } from "@/db";
-import { victoryGroupLeaders, victoryGroups } from "@/db/schema";
+import { victoryGroupLeaders, victoryGroups, interns, leadershipGroupMembers, events, eventRegistrations } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { ProfileForm } from "./ProfileForm";
 import { MyVictoryGroups } from "./MyVictoryGroups";
 import { ProfileFreshnessBanner } from "./ProfileFreshnessBanner";
+
+const AUDIENCE_LABEL: Record<string, string> = {
+  vg_leader: "VG Leaders",
+  intern: "Interns",
+};
 
 export default async function VgPortalDashboardPage() {
   const session = await getSession();
@@ -30,10 +36,89 @@ export default async function VgPortalDashboardPage() {
 
   if (!leader) redirect("/login");
 
+  const groupIds = groups.map((g) => g.id);
+  const internRows = groupIds.length
+    ? await db.select().from(interns).where(inArray(interns.victoryGroupId, groupIds))
+    : [];
+  const internsByGroup: Record<number, { lastName: string; firstName: string }[]> = {};
+  for (const i of internRows) {
+    (internsByGroup[i.victoryGroupId] ??= []).push({ lastName: i.lastName, firstName: i.firstName });
+  }
+
   const hasActiveGroup = groups.some((g) => g.isActive);
+
+  const lglMemberRows = await db
+    .select({
+      id: victoryGroupLeaders.id,
+      lastName: victoryGroupLeaders.lastName,
+      firstName: victoryGroupLeaders.firstName,
+    })
+    .from(leadershipGroupMembers)
+    .innerJoin(victoryGroupLeaders, eq(leadershipGroupMembers.memberVgLeaderId, victoryGroupLeaders.id))
+    .where(eq(leadershipGroupMembers.leaderId, vgLeaderId));
+
+  const upcomingEvents = await db
+    .select({ id: events.id, name: events.name, eventDate: events.eventDate, audience: events.audience })
+    .from(events)
+    .where(and(isNull(events.deletedAt), eq(events.isDone, false)))
+    .orderBy(events.eventDate);
+
+  const eventIds = upcomingEvents.map((e) => e.id);
+  const myRegs = eventIds.length
+    ? await db
+        .select({ eventId: eventRegistrations.eventId, willAttend: eventRegistrations.willAttend })
+        .from(eventRegistrations)
+        .where(and(inArray(eventRegistrations.eventId, eventIds), eq(eventRegistrations.vgLeaderId, vgLeaderId)))
+    : [];
+  const regByEvent = new Map(myRegs.map((r) => [r.eventId, r.willAttend]));
 
   return (
     <>
+      {upcomingEvents.length > 0 && (
+        <div>
+          <p className="text-sm font-semibold text-gray-700 mb-2">Upcoming Events</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {upcomingEvents.map((e) => {
+              const dateStr = new Date(e.eventDate + "T00:00:00").toLocaleDateString("en-PH", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+                timeZone: "Asia/Manila",
+              });
+              const registered = regByEvent.get(e.id);
+              return (
+                <Link
+                  key={e.id}
+                  href={`/vg-portal/events/${e.id}`}
+                  className="flex flex-col gap-1.5 rounded-xl border border-gray-200 bg-white shadow-sm p-4 hover:border-indigo-300 hover:shadow-md transition"
+                >
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-gray-900 text-sm">{e.name}</span>
+                    {e.audience.map((a) => (
+                      <span key={a} className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
+                        {AUDIENCE_LABEL[a] ?? a}
+                      </span>
+                    ))}
+                  </div>
+                  <span className="text-xs text-gray-500">{dateStr}</span>
+                  <span
+                    className={`text-xs font-medium w-fit px-2 py-0.5 rounded-full ${
+                      registered === true
+                        ? "bg-green-100 text-green-700"
+                        : registered === false
+                          ? "bg-gray-100 text-gray-500"
+                          : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {registered === true ? "You're attending" : registered === false ? "Not attending" : "Register now"}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <ProfileFreshnessBanner updatedAt={leader.updatedAt} />
 
       <div className="flex items-start justify-between gap-4">
@@ -61,8 +146,8 @@ export default async function VgPortalDashboardPage() {
         </div>
       </div>
 
-      <ProfileForm leader={leader} hasActiveGroup={hasActiveGroup} />
-      <MyVictoryGroups groups={groups} />
+      <ProfileForm leader={leader} hasActiveGroup={hasActiveGroup} leadershipGroupMembers={lglMemberRows} />
+      <MyVictoryGroups groups={groups} internsByGroup={internsByGroup} />
 
       {/* "My Participants" — hidden for now.
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">

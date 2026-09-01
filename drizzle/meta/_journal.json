@@ -267,6 +267,13 @@
       "when": 1788233365835,
       "tag": "0037_mushy_victor_mancha",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1788273676971,
+      "tag": "0038_strange_mesmero",
+      "breakpoints": true
     }
   ]
 }

@@ -76,7 +76,7 @@ function AttendeeSearch({
     const res =
       r.attendeeType === "vg_leader"
         ? await checkInEventVgLeader(eventId, r.vgLeaderId!)
-        : await checkInEventIntern(eventId, r.attendeeName);
+        : await checkInEventIntern(eventId, r.internId!);
     setPendingKey(null);
     if (res.error) {
       setError(res.error);

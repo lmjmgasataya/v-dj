@@ -6,6 +6,8 @@ import { inputCls, selectCls, CheckboxOption } from "@/components/form";
 import type { VictoryGroup } from "@/db/schema";
 import { dayOfWeekEnum, vgFrequencyEnum, lifestageEnum } from "@/db/schema";
 
+type InternRow = { lastName: string; firstName: string };
+
 const PLACE_OPTIONS = ["Victory Iloilo Center", "Others"];
 
 const DAYS: (typeof dayOfWeekEnum.enumValues)[number][] = [
@@ -32,11 +34,13 @@ const HOURS = Array.from({ length: 18 }, (_, i) => {
 
 function GroupForm({
   defaultValues,
+  defaultInterns,
   onSave,
   onCancel,
   saveLabel,
 }: {
   defaultValues?: Partial<VictoryGroup>;
+  defaultInterns?: InternRow[];
   onSave: (formData: FormData) => Promise<void>;
   onCancel: () => void;
   saveLabel: string;
@@ -50,11 +54,20 @@ function GroupForm({
     defaultValues?.place && defaultValues.place !== "Victory Iloilo Center" ? defaultValues.place : ""
   );
   const [lifeStages, setLifeStages] = useState<string[]>(defaultValues?.lifeStage ?? []);
+  const [internRows, setInternRows] = useState<InternRow[]>(defaultInterns ?? []);
 
   function toggleLifeStage(stage: string) {
     setLifeStages((prev) =>
       prev.includes(stage) ? prev.filter((s) => s !== stage) : [...prev, stage]
     );
+  }
+
+  function updateInternRow(index: number, field: keyof InternRow, value: string) {
+    setInternRows((prev) => prev.map((r, i) => (i === index ? { ...r, [field]: value } : r)));
+  }
+
+  function removeInternRow(index: number) {
+    setInternRows((prev) => prev.filter((_, i) => i !== index));
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -138,15 +151,41 @@ function GroupForm({
         </div>
       </div>
       <div className="sm:col-span-2">
-        <label className="block text-xs font-medium text-gray-700 mb-1">Intern <span className="text-red-500">*</span></label>
-        <input
-          name="intern"
-          required
-          defaultValue={defaultValues?.intern ?? ""}
-          placeholder="Last Name, First Name"
-          className={inputCls}
-        />
-        <p className="text-xs text-gray-400 mt-1">Write &quot;None&quot; if there is none.</p>
+        <label className="block text-xs font-medium text-gray-700 mb-1">Interns</label>
+        <div className="flex flex-col gap-2">
+          {internRows.map((row, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input
+                name={`intern_${i}_lastName`}
+                value={row.lastName}
+                onChange={(e) => updateInternRow(i, "lastName", e.target.value)}
+                placeholder="Last Name"
+                className={inputCls}
+              />
+              <input
+                name={`intern_${i}_firstName`}
+                value={row.firstName}
+                onChange={(e) => updateInternRow(i, "firstName", e.target.value)}
+                placeholder="First Name"
+                className={inputCls}
+              />
+              <button
+                type="button"
+                onClick={() => removeInternRow(i)}
+                className="shrink-0 text-xs text-red-500 hover:text-red-700 px-2"
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setInternRows((prev) => [...prev, { lastName: "", firstName: "" }])}
+          className="mt-2 text-xs font-semibold text-indigo-600 hover:text-indigo-800 border border-indigo-300 bg-white px-3 py-1 rounded-lg transition"
+        >
+          + Add Intern
+        </button>
       </div>
       <div className="sm:col-span-2 flex justify-end gap-2 pt-1">
         <button type="button" onClick={onCancel} className="text-sm text-gray-600 hover:text-gray-800 px-4 py-1.5 rounded-lg border border-gray-300 bg-white">
@@ -162,10 +201,12 @@ function GroupForm({
 
 function GroupRow({
   group,
+  interns,
   vgLeaderId,
   label,
 }: {
   group: VictoryGroup;
+  interns: InternRow[];
   vgLeaderId: number;
   label: string;
 }) {
@@ -181,12 +222,15 @@ function GroupRow({
     return (
       <GroupForm
         defaultValues={group}
+        defaultInterns={interns}
         onSave={(formData) => updateVictoryGroup(group.id, vgLeaderId, formData)}
         onCancel={() => setEditing(false)}
         saveLabel="Save Changes"
       />
     );
   }
+
+  const internNames = interns.map((i) => `${i.lastName}, ${i.firstName}`).join("; ");
 
   return (
     <div className="flex items-center justify-between px-4 py-3 rounded-lg border border-gray-200 bg-white">
@@ -204,7 +248,7 @@ function GroupRow({
         <p className="text-xs text-gray-500">
           {group.place} · {group.day} · {group.time} · {group.frequency === "Others" ? (group.otherFrequency ?? "Others") : group.frequency}
           {group.lifeStage?.length ? ` · ${group.lifeStage.join(", ")}` : ""}
-          {group.intern ? ` · Intern: ${group.intern}` : ""}
+          {internNames ? ` · Interns: ${internNames}` : ""}
         </p>
       </div>
       <div className="flex items-center gap-3 shrink-0 ml-4">
@@ -221,9 +265,11 @@ function GroupRow({
 
 export function VictoryGroupsSection({
   groups,
+  internsByGroup,
   vgLeaderId,
 }: {
   groups: VictoryGroup[];
+  internsByGroup: Record<number, InternRow[]>;
   vgLeaderId: number;
 }) {
   const [adding, setAdding] = useState(false);
@@ -246,7 +292,7 @@ export function VictoryGroupsSection({
           <p className="text-sm text-gray-400">No victory groups yet.</p>
         )}
         {groups.map((g, index) => (
-          <GroupRow key={g.id} group={g} vgLeaderId={vgLeaderId} label={`Victory Group ${index + 1}`} />
+          <GroupRow key={g.id} group={g} interns={internsByGroup[g.id] ?? []} vgLeaderId={vgLeaderId} label={`Victory Group ${index + 1}`} />
         ))}
         {adding && (
           <GroupForm

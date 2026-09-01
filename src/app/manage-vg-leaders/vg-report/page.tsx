@@ -51,7 +51,6 @@ export default async function VictoryGroupReportPage({
       otherFrequency: victoryGroups.otherFrequency,
       lifeStage: victoryGroups.lifeStage,
       intern: victoryGroups.intern,
-      isActive: victoryGroups.isActive,
       remarks: victoryGroups.remarks,
       leaderLastName: victoryGroupLeaders.lastName,
       leaderFirstName: victoryGroupLeaders.firstName,
@@ -75,7 +74,6 @@ export default async function VictoryGroupReportPage({
   const dayCounts = new Map<string, number>();
   const frequencyCounts = new Map<string, number>();
   const lifeStageCounts = new Map<string, number>();
-  const statusCounts = new Map<string, number>();
   const placeCounts = new Map<string, number>();
   const timeCounts = new Map<string, number>();
 
@@ -85,8 +83,6 @@ export default async function VictoryGroupReportPage({
     for (const stage of g.lifeStage ?? []) {
       lifeStageCounts.set(stage, (lifeStageCounts.get(stage) ?? 0) + 1);
     }
-    const status = g.isActive ? "Active" : "Inactive";
-    statusCounts.set(status, (statusCounts.get(status) ?? 0) + 1);
     placeCounts.set(g.place, (placeCounts.get(g.place) ?? 0) + 1);
     timeCounts.set(g.time, (timeCounts.get(g.time) ?? 0) + 1);
   }
@@ -98,7 +94,6 @@ export default async function VictoryGroupReportPage({
   const lifeStageData = LIFESTAGE_ORDER.map((label) => ({ label, count: lifeStageCounts.get(label) ?? 0 })).filter(
     (r) => r.count > 0
   );
-  const statusData = ["Active", "Inactive"].map((label) => ({ label, count: statusCounts.get(label) ?? 0 }));
   const placeData = Array.from(placeCounts.entries())
     .map(([label, count]) => ({ label, count }))
     .sort((a, b) => b.count - a.count);
@@ -200,11 +195,6 @@ export default async function VictoryGroupReportPage({
             )}
           </>
         )}
-      </div>
-
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
-        <p className="text-sm font-semibold text-gray-700 mb-1">Status</p>
-        <HorizontalBarChart data={statusData} colors={{ Active: "#10b981", Inactive: "#9ca3af" }} tooltipLabel="Groups" />
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">

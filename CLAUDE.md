@@ -26,6 +26,25 @@ There are no tests configured in this project.
 
 The database is hosted on Supabase (not a local Docker Postgres) — `DATABASE_URL`/`DATABASE_URL_UNPOOLED` in `.env.local` point at it directly. Don't check for or start a local Docker Postgres container. To apply schema changes, run `npm run db:push` (it targets Supabase directly); don't assume `docker compose` is running.
 
+### Database backup
+
+Backups are plain-SQL `pg_dump`s run via Docker against `DATABASE_URL_UNPOOLED`, saved to `./backups/` — no local Postgres/`pg_dump` install needed. The Supabase project runs **PostgreSQL 17.6**, so use the matching `postgres:17-alpine` image. Run `--user "$(id -u):$(id -g)"` so output files are owned by the host user, not root.
+
+When asked to "do a db backup" (or similar), produce **both** of these, using the same timestamp for the pair:
+- **Full** — every schema (includes Supabase-managed `auth`/`storage`/etc.): `backups/backup_<YYYYMMDD_HHMMSS>.sql`
+- **Public only** — just this app's own tables (`public` schema): `backups/backup_public_<YYYYMMDD_HHMMSS>.sql`
+
+```bash
+mkdir -p backups
+TS=$(date +%Y%m%d_%H%M%S)
+docker run --rm --env-file .env.local --user "$(id -u):$(id -g)" -v "$(pwd)/backups:/backups" postgres:17-alpine \
+  sh -c "pg_dump \"\$DATABASE_URL_UNPOOLED\" -f /backups/backup_${TS}.sql"
+docker run --rm --env-file .env.local --user "$(id -u):$(id -g)" -v "$(pwd)/backups:/backups" postgres:17-alpine \
+  sh -c "pg_dump \"\$DATABASE_URL_UNPOOLED\" --schema=public -f /backups/backup_public_${TS}.sql"
+```
+
+`--env-file .env.local` passes `DATABASE_URL_UNPOOLED` into the container without ever printing the credential in a command line or tool output.
+
 ## Architecture
 
 **Discipleship Journey** — a registration and check-in system for Victory Iloilo church. Participants register for discipleship classes; admins check them in per session.

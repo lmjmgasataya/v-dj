@@ -16,6 +16,9 @@ const DEVELOPER_ONLY = [
   /^\/sessions\/new/,
   /^\/sessions\/\d+\/edit/,
   /^\/manage-vg-leaders/,
+  /^\/event-registration\/events\/new/,
+  /^\/event-registration\/events\/\d+\/edit/,
+  /^\/event-registration\/sms-reminder/,
 ];
 
 const PUBLIC_PATHS = [/^\/login/, /^\/vg-portal\/claim/, /^\/vg-portal\/login/];

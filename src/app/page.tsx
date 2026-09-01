@@ -14,6 +14,11 @@ export default async function Home() {
     : null;
   const showSmsSender = smsSenderFlag?.enabled ?? false;
 
+  const eventRegistrationFlag = isAdmin
+    ? await db.select().from(featureFlags).where(eq(featureFlags.key, "event_registration")).then((r) => r[0])
+    : null;
+  const showEventRegistration = eventRegistrationFlag?.enabled ?? false;
+
   return (
     <div className="flex flex-col items-center gap-8 py-12">
       <div className="text-center">
@@ -101,6 +106,16 @@ export default async function Home() {
             <span className="text-4xl">👤👤</span>
             <span className="text-lg font-semibold text-gray-900 text-center">Manage VG Leaders</span>
             <span className="text-sm text-gray-500 text-center">Manage VG leaders and portal accounts</span>
+          </Link>
+        )}
+        {isAdmin && showEventRegistration && (
+          <Link
+            href="/event-registration"
+            className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
+          >
+            <span className="text-4xl">🎉</span>
+            <span className="text-lg font-semibold text-gray-900 text-center">Event Registration</span>
+            <span className="text-sm text-gray-500 text-center">Custom events: check-in and SMS reminders</span>
           </Link>
         )}
         {isAdmin && (

@@ -253,6 +253,13 @@
       "when": 1788087144940,
       "tag": "0035_friendly_jack_power",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1788227430232,
+      "tag": "0036_spicy_hawkeye",
+      "breakpoints": true
     }
   ]
 }

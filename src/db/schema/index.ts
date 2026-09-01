@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   pgEnum,
@@ -8,6 +9,7 @@ import {
   date,
   integer,
   unique,
+  uniqueIndex,
   index,
   jsonb,
   type AnyPgColumn,
@@ -166,6 +168,38 @@ export const checkIns = pgTable(
   ]
 );
 
+export const eventAudienceEnum = pgEnum("event_audience", ["vg_leader", "intern"]);
+
+export const events = pgTable("events", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  eventDate: date("event_date").notNull(),
+  isDone: boolean("is_done").default(false).notNull(),
+  audience: eventAudienceEnum("audience").array().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
+});
+
+export const eventCheckIns = pgTable(
+  "event_check_ins",
+  {
+    id: serial("id").primaryKey(),
+    eventId: integer("event_id")
+      .references(() => events.id)
+      .notNull(),
+    attendeeType: eventAudienceEnum("attendee_type").notNull(),
+    vgLeaderId: integer("vg_leader_id").references(() => victoryGroupLeaders.id),
+    attendeeName: text("attendee_name").notNull(),
+    checkedInAt: timestamp("checked_in_at").defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("event_check_ins_event_leader_idx")
+      .on(t.eventId, t.vgLeaderId)
+      .where(sql`${t.vgLeaderId} is not null`),
+    index("event_check_ins_event_id_idx").on(t.eventId),
+  ]
+);
+
 export const roleEnum = pgEnum("user_role", ["admin_volunteer", "developer", "vg_leader"]);
 
 export const users = pgTable("users", {
@@ -269,3 +303,5 @@ export type AppSetting = typeof appSettings.$inferSelect;
 export type VgReportSnapshot = typeof vgReportSnapshots.$inferSelect;
 export type VgConvergenceAttendance = typeof vgConvergenceAttendance.$inferSelect;
 export type Leadership113Batch = typeof leadership113Batches.$inferSelect;
+export type Event = typeof events.$inferSelect;
+export type EventCheckIn = typeof eventCheckIns.$inferSelect;

@@ -275,49 +275,6 @@ export default async function QuarterlyReportPage({
         <>
           <MetricsTotalsTable latest={latest} previous={previous} />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Number of Leaders</p>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                {(["vgLeaders", "victoryGroups", "interns", "leadershipGroups"] as const).map((key) => (
-                  <div key={key}>
-                    <p className="text-gray-500 capitalize">
-                      {key === "vgLeaders" ? "VG Leaders" : key === "victoryGroups" ? "Victory Groups" : key === "interns" ? "Interns" : "Leadership Group Leaders"}
-                    </p>
-                    <p className="text-lg font-bold text-gray-900">{latest.data.totals[key]}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">2026 Goals</p>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <p className="text-gray-500">VG Leaders</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {latest.data.totals.vgLeaders} <span className="text-gray-400 text-sm font-normal">/ {latest.data.goals.vgLeaders}</span>
-                  </p>
-                  <p className="text-xs text-red-500">
-                    {latest.data.totals.vgLeaders - latest.data.goals.vgLeaders < 0
-                      ? `${latest.data.totals.vgLeaders - latest.data.goals.vgLeaders}`
-                      : `+${latest.data.totals.vgLeaders - latest.data.goals.vgLeaders}`}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Leadership Group Leaders</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {latest.data.totals.leadershipGroups} <span className="text-gray-400 text-sm font-normal">/ {latest.data.goals.leadershipGroups}</span>
-                  </p>
-                  <p className="text-xs text-red-500">
-                    {latest.data.totals.leadershipGroups - latest.data.goals.leadershipGroups < 0
-                      ? `${latest.data.totals.leadershipGroups - latest.data.goals.leadershipGroups}`
-                      : `+${latest.data.totals.leadershipGroups - latest.data.goals.leadershipGroups}`}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <CountsTable title="Number of VG Leaders" metric="vgLeaders" latest={latest} previous={previous} />
           <CountsTable title="Number of Victory Groups" metric="victoryGroups" latest={latest} previous={previous} />
           <CountsTable title="Number of Interns" metric="interns" latest={latest} previous={previous} />
@@ -354,6 +311,34 @@ export default async function QuarterlyReportPage({
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
+            <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">{latest.label} Goals</p>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-gray-500">VG Leaders</p>
+                <p className="text-lg font-bold text-gray-900">
+                  {latest.data.totals.vgLeaders} <span className="text-gray-400 text-sm font-normal">/ {latest.data.goals.vgLeaders}</span>
+                </p>
+                <p className="text-xs text-red-500">
+                  {latest.data.totals.vgLeaders - latest.data.goals.vgLeaders < 0
+                    ? `${latest.data.totals.vgLeaders - latest.data.goals.vgLeaders}`
+                    : `+${latest.data.totals.vgLeaders - latest.data.goals.vgLeaders}`}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500">Leadership Group Leaders</p>
+                <p className="text-lg font-bold text-gray-900">
+                  {latest.data.totals.leadershipGroups} <span className="text-gray-400 text-sm font-normal">/ {latest.data.goals.leadershipGroups}</span>
+                </p>
+                <p className="text-xs text-red-500">
+                  {latest.data.totals.leadershipGroups - latest.data.goals.leadershipGroups < 0
+                    ? `${latest.data.totals.leadershipGroups - latest.data.goals.leadershipGroups}`
+                    : `+${latest.data.totals.leadershipGroups - latest.data.goals.leadershipGroups}`}
+                </p>
+              </div>
             </div>
           </div>
 

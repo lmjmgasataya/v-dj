@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { victoryGroups, victoryGroupLeaders, dayOfWeekEnum, vgFrequencyEnum } from "@/db/schema";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import Link from "next/link";
 import { HorizontalBarChart } from "../Charts";
 import { VgReportFilters } from "./VgReportFilters";
@@ -30,10 +30,16 @@ const TIME_ORDER = Array.from({ length: 18 }, (_, i) => {
 export default async function VictoryGroupReportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ gender?: string; service?: string; day?: string; time?: string; lifestage?: string; page?: string }>;
+  searchParams: Promise<{ gender?: string; day?: string; time?: string; lifestage?: string; frequency?: string; page?: string }>;
 }) {
-  const { gender = "", service = "", day = "", time = "", lifestage = "", page: pageParam } = await searchParams;
+  const { gender = "", day = "", time = "", lifestage = "", frequency = "", page: pageParam } = await searchParams;
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
+
+  const genderList = gender ? gender.split(",") : [];
+  const dayList = day ? day.split(",") : [];
+  const timeList = time ? time.split(",") : [];
+  const lifestageList = lifestage ? lifestage.split(",") : [];
+  const frequencyList = frequency ? frequency.split(",") : [];
 
   const groups = await db
     .select({
@@ -55,11 +61,11 @@ export default async function VictoryGroupReportPage({
     .where(
       and(
         isNull(victoryGroups.deletedAt),
-        gender ? eq(victoryGroupLeaders.gender, gender) : undefined,
-        service ? eq(victoryGroupLeaders.serviceAttending, service) : undefined,
-        day ? eq(victoryGroups.day, day as (typeof dayOfWeekEnum.enumValues)[number]) : undefined,
-        time ? eq(victoryGroups.time, time) : undefined,
-        lifestage ? sql`${lifestage} = ANY(${victoryGroups.lifeStage})` : undefined,
+        genderList.length ? inArray(victoryGroupLeaders.gender, genderList) : undefined,
+        dayList.length ? inArray(victoryGroups.day, dayList as (typeof dayOfWeekEnum.enumValues)[number][]) : undefined,
+        timeList.length ? inArray(victoryGroups.time, timeList) : undefined,
+        lifestageList.length ? or(...lifestageList.map((ls) => sql`${ls} = ANY(${victoryGroups.lifeStage})`)) : undefined,
+        frequencyList.length ? inArray(victoryGroups.frequency, frequencyList as (typeof vgFrequencyEnum.enumValues)[number][]) : undefined,
       )
     )
     .orderBy(victoryGroups.day, victoryGroups.time);
@@ -106,10 +112,10 @@ export default async function VictoryGroupReportPage({
   function pageHref(p: number) {
     const params = new URLSearchParams();
     if (gender) params.set("gender", gender);
-    if (service) params.set("service", service);
     if (day) params.set("day", day);
     if (time) params.set("time", time);
     if (lifestage) params.set("lifestage", lifestage);
+    if (frequency) params.set("frequency", frequency);
     if (p > 1) params.set("page", String(p));
     const qs = params.toString();
     return `/manage-vg-leaders/vg-report${qs ? `?${qs}` : ""}`;
@@ -117,7 +123,7 @@ export default async function VictoryGroupReportPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <VgReportFilters gender={gender} service={service} day={day} time={time} lifestage={lifestage} />
+      <VgReportFilters gender={genderList} day={dayList} time={timeList} lifestage={lifestageList} frequency={frequencyList} />
       <p className="text-sm text-gray-500 -mt-2">{total} active victory group{total !== 1 ? "s" : ""}</p>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -139,7 +145,6 @@ export default async function VictoryGroupReportPage({
                     <th className="px-4 py-2 text-left font-medium">Frequency</th>
                     <th className="px-4 py-2 text-left font-medium">Life Stage</th>
                     <th className="px-4 py-2 text-left font-medium">Intern</th>
-                    <th className="px-4 py-2 text-left font-medium">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -154,15 +159,6 @@ export default async function VictoryGroupReportPage({
                       </td>
                       <td className="px-4 py-2.5 text-gray-500">{g.lifeStage?.length ? g.lifeStage.join(", ") : "—"}</td>
                       <td className="px-4 py-2.5 text-gray-500">{g.intern ?? "—"}</td>
-                      <td className="px-4 py-2.5">
-                        <span
-                          className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                            g.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                          }`}
-                        >
-                          {g.isActive ? "Active" : "Inactive"}
-                        </span>
-                      </td>
                     </tr>
                   ))}
                 </tbody>

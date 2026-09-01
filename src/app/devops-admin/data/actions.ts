@@ -112,6 +112,7 @@ export async function importTable(_prev: ImportResult | null, formData: FormData
           lifestage: nullable(r.lifestage) as typeof victoryGroupLeaders.$inferInsert["lifestage"],
           serviceAttending: nullable(r.serviceAttending),
           facebookMessengerName: nullable(r.facebookMessengerName),
+          registeredMode: "participant_registration" as const,
         }));
         for (const ch of chunk(vals, 100)) {
           await db.insert(victoryGroupLeaders).values(ch).onConflictDoNothing();

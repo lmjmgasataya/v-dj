@@ -43,7 +43,7 @@ export async function resolveOwnVgLeader(
 
   const [created] = await db
     .insert(victoryGroupLeaders)
-    .values({ lastName, firstName })
+    .values({ lastName, firstName, registeredMode: "vgl_edit_registration" })
     .returning({ id: victoryGroupLeaders.id });
 
   return { ownVgLeaderId: created.id, ownVgLeaderName: `${lastName}, ${firstName}` };

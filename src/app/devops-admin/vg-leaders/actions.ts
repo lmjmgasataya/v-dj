@@ -22,6 +22,7 @@ export async function createVgLeader(formData: FormData) {
     middleInitial: toTitleCase((formData.get("middleInitial") as string) || "") || null,
     mobileNumber: formData.get("mobileNumber") as string,
     facebookMessengerName: (formData.get("facebookMessengerName") as string) || null,
+    registeredMode: "participant_registration",
   }).onConflictDoNothing();
   revalidatePath("/devops-admin/vg-leaders");
   await toastRedirectBack("VG leader added.");

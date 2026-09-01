@@ -15,7 +15,7 @@ async function upsertVgLeader(
   mobileNumber: string,
   messengerName: string | null,
 ): Promise<number> {
-  await db.insert(victoryGroupLeaders).values({ lastName, firstName, mobileNumber, facebookMessengerName: messengerName }).onConflictDoNothing();
+  await db.insert(victoryGroupLeaders).values({ lastName, firstName, mobileNumber, facebookMessengerName: messengerName, registeredMode: "participant_registration" }).onConflictDoNothing();
   const [v] = await db
     .select({ id: victoryGroupLeaders.id })
     .from(victoryGroupLeaders)

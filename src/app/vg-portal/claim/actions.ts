@@ -142,7 +142,7 @@ export async function registerNewLeader(firstName: string, lastName: string, _: 
 
   const [leader] = await db
     .insert(victoryGroupLeaders)
-    .values({ firstName: titleFirstName, lastName: titleLastName, mobileNumber: null })
+    .values({ firstName: titleFirstName, lastName: titleLastName, mobileNumber: null, registeredMode: "vgl_portal_registration" })
     .returning();
 
   const [user] = await db

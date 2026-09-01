@@ -46,6 +46,12 @@ export const checkInStatusEnum = pgEnum("check_in_status", ["On-time", "Late", "
 
 export const checkInMethodEnum = pgEnum("check_in_method", ["Search", "Webcam", "QR Reader", "Walk-in"]);
 
+export const registeredModeEnum = pgEnum("registered_mode", [
+  "participant_registration",
+  "vgl_portal_registration",
+  "vgl_edit_registration",
+]);
+
 export const victoryGroupLeaders = pgTable("victory_group_leaders", {
   id: serial("id").primaryKey(),
   lastName: text("last_name").notNull(),
@@ -64,6 +70,7 @@ export const victoryGroupLeaders = pgTable("victory_group_leaders", {
   ownVgLeaderId: integer("own_vg_leader_id").references((): AnyPgColumn => victoryGroupLeaders.id),
   profileCompleted: boolean("profile_completed").default(false).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
+  registeredMode: registeredModeEnum("registered_mode").default("participant_registration").notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),

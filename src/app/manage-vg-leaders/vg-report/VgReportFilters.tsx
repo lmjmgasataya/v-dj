@@ -2,10 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { dayOfWeekEnum } from "@/db/schema";
-import { SERVICE_OPTIONS } from "@/components/form";
+import { dayOfWeekEnum, vgFrequencyEnum } from "@/db/schema";
+import { MultiSelectFilter } from "./MultiSelectFilter";
 
 const DAYS = dayOfWeekEnum.enumValues;
+const FREQUENCIES = vgFrequencyEnum.enumValues;
 
 const LIFESTAGES = [
   "Student (JHS/SHS)",
@@ -17,6 +18,8 @@ const LIFESTAGES = [
   "Senior",
 ];
 
+const GENDERS = ["Male", "Female"];
+
 const HOURS = Array.from({ length: 18 }, (_, i) => {
   const h = i + 5; // 5 AM to 10 PM
   const ampm = h < 12 ? "AM" : "PM";
@@ -24,93 +27,42 @@ const HOURS = Array.from({ length: 18 }, (_, i) => {
   return `${display}:00 ${ampm}`;
 });
 
-const selectCls =
-  "rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent";
-
 export function VgReportFilters({
   gender,
-  service,
   day,
   time,
   lifestage,
+  frequency,
 }: {
-  gender: string;
-  service: string;
-  day: string;
-  time: string;
-  lifestage: string;
+  gender: string[];
+  day: string[];
+  time: string[];
+  lifestage: string[];
+  frequency: string[];
 }) {
   const router = useRouter();
 
-  function buildUrl(overrides: Record<string, string>) {
-    const vals = { gender, service, day, time, lifestage, ...overrides };
+  function buildUrl(overrides: Record<string, string[]>) {
+    const vals = { gender, day, time, lifestage, frequency, ...overrides };
     const params = new URLSearchParams();
-    if (vals.gender) params.set("gender", vals.gender);
-    if (vals.service) params.set("service", vals.service);
-    if (vals.day) params.set("day", vals.day);
-    if (vals.time) params.set("time", vals.time);
-    if (vals.lifestage) params.set("lifestage", vals.lifestage);
+    if (vals.gender.length) params.set("gender", vals.gender.join(","));
+    if (vals.day.length) params.set("day", vals.day.join(","));
+    if (vals.time.length) params.set("time", vals.time.join(","));
+    if (vals.lifestage.length) params.set("lifestage", vals.lifestage.join(","));
+    if (vals.frequency.length) params.set("frequency", vals.frequency.join(","));
     const qs = params.toString();
     return `/manage-vg-leaders/vg-report${qs ? `?${qs}` : ""}`;
   }
 
-  const hasFilters = gender || service || day || time || lifestage;
+  const hasFilters = gender.length || day.length || time.length || lifestage.length || frequency.length;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <select
-        defaultValue={gender}
-        onChange={(e) => router.push(buildUrl({ gender: e.target.value }))}
-        className={selectCls}
-      >
-        <option value="">All Genders</option>
-        <option value="Male">Male</option>
-        <option value="Female">Female</option>
-      </select>
-
-      <select
-        defaultValue={service}
-        onChange={(e) => router.push(buildUrl({ service: e.target.value }))}
-        className={selectCls}
-      >
-        <option value="">All Services</option>
-        {SERVICE_OPTIONS.map((s) => (
-          <option key={s} value={s}>{s}</option>
-        ))}
-      </select>
-
-      <select
-        defaultValue={day}
-        onChange={(e) => router.push(buildUrl({ day: e.target.value }))}
-        className={selectCls}
-      >
-        <option value="">All Days</option>
-        {DAYS.map((d) => (
-          <option key={d} value={d}>{d}</option>
-        ))}
-      </select>
-
-      <select
-        defaultValue={time}
-        onChange={(e) => router.push(buildUrl({ time: e.target.value }))}
-        className={selectCls}
-      >
-        <option value="">All Times</option>
-        {HOURS.map((h) => (
-          <option key={h} value={h}>{h}</option>
-        ))}
-      </select>
-
-      <select
-        defaultValue={lifestage}
-        onChange={(e) => router.push(buildUrl({ lifestage: e.target.value }))}
-        className={selectCls}
-      >
-        <option value="">All Life Stages</option>
-        {LIFESTAGES.map((ls) => (
-          <option key={ls} value={ls}>{ls}</option>
-        ))}
-      </select>
+      <MultiSelectFilter label="Gender" options={GENDERS} selected={gender} onChange={(v) => router.push(buildUrl({ gender: v }))} />
+      <MultiSelectFilter label="Day" options={DAYS} selected={day} onChange={(v) => router.push(buildUrl({ day: v }))} />
+      <MultiSelectFilter label="Time" options={HOURS} selected={time} onChange={(v) => router.push(buildUrl({ time: v }))} />
+      <MultiSelectFilter label="Frequency" options={FREQUENCIES} selected={frequency} onChange={(v) => router.push(buildUrl({ frequency: v }))} />
+      <MultiSelectFilter label="Life Stage" options={LIFESTAGES} selected={lifestage} onChange={(v) => router.push(buildUrl({ lifestage: v }))} />
 
       {hasFilters && (
         <Link

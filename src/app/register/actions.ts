@@ -17,7 +17,7 @@ async function upsertVgLeader(
   mobileNumber: string,
   messengerName: string | null,
 ): Promise<number> {
-  await db.insert(victoryGroupLeaders).values({ lastName, firstName, mobileNumber, facebookMessengerName: messengerName }).onConflictDoUpdate({
+  await db.insert(victoryGroupLeaders).values({ lastName, firstName, mobileNumber, facebookMessengerName: messengerName, registeredMode: "participant_registration" }).onConflictDoUpdate({
     target: [victoryGroupLeaders.lastName, victoryGroupLeaders.firstName, victoryGroupLeaders.mobileNumber],
     set: { facebookMessengerName: messengerName },
   });

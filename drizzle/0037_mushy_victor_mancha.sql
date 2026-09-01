@@ -1,0 +1,2 @@
+CREATE TYPE "public"."registered_mode" AS ENUM('participant_registration', 'vgl_portal_registration', 'vgl_edit_registration');--> statement-breakpoint
+ALTER TABLE "victory_group_leaders" ADD COLUMN "registered_mode" "registered_mode" DEFAULT 'participant_registration' NOT NULL;

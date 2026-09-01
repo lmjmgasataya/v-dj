@@ -24,8 +24,8 @@ function normalizePhone(raw: string): string | null {
 function applySessionVars(template: string, session: ClassSession | null): string {
   if (!session) return template;
   const date = new Date(session.sessionDate + "T12:00:00");
-  const day = date.toLocaleDateString("en-US", { weekday: "long" });
-  const formattedDate = date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const day = date.toLocaleDateString("en-US", { weekday: "long", timeZone: "Asia/Manila" });
+  const formattedDate = date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "Asia/Manila" });
   return template
     .replace(/\{session_name\}/gi, session.name)
     .replace(/\{session_day\}/gi, day)
@@ -517,7 +517,7 @@ export function SmsSenderClient({ batches, templates, defaultKey }: { batches: B
                   <option value="">Select a session (optional)…</option>
                   {sessions.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.name} — {new Date(s.sessionDate + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      {s.name} — {new Date(s.sessionDate + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila" })}
                     </option>
                   ))}
                 </select>

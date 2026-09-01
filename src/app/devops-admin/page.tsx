@@ -159,7 +159,7 @@ export default async function DevopsAdminPage() {
                     {user.role}
                   </span>
                   <span className="text-xs text-gray-400">
-                    {user.createdAt.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+                    {user.createdAt.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila" })}
                   </span>
                 </div>
               </div>

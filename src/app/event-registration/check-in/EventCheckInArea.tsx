@@ -231,7 +231,7 @@ export function EventCheckInArea({ events }: { events: EventOption[] }) {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-gray-400">
-                      {new Date(c.checkedInAt).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit" })}
+                      {new Date(c.checkedInAt).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Manila" })}
                     </span>
                     <button
                       onClick={() => handleUndo(c.id)}

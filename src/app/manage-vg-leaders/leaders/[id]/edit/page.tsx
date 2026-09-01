@@ -30,7 +30,7 @@ export default async function EditVGLeaderPage({ params }: { params: Promise<{ i
   if (!leader) notFound();
 
   const freshness = getProfileFreshness(leader.updatedAt);
-  const dateStr = leader.updatedAt.toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" });
+  const dateStr = leader.updatedAt.toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric", timeZone: "Asia/Manila" });
 
   return (
     <div>

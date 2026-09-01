@@ -118,7 +118,7 @@ export default async function DataPage() {
             <p className="text-sm font-semibold text-gray-800">{smsLogStats.count.toLocaleString()} rows</p>
             {smsLogStats.oldest && (
               <p className="text-xs text-gray-400 mt-0.5">
-                oldest: {smsLogStats.oldest.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+                oldest: {smsLogStats.oldest.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila" })}
               </p>
             )}
           </div>

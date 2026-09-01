@@ -241,6 +241,7 @@ function formatDate(iso: string) {
     month: "long",
     day: "numeric",
     year: "numeric",
+    timeZone: "Asia/Manila",
   });
 }
 

@@ -13,7 +13,7 @@ const DAY_ABBR: Record<string, string> = {
 };
 
 function fmtDate(d: Date) {
-  return d.toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" });
+  return d.toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric", timeZone: "Asia/Manila" });
 }
 
 function Row({ label, value }: { label: string; value?: string | null }) {

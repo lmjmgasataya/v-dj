@@ -1,6 +1,6 @@
 import type { CheckInStatus } from "@/db/schema";
 
-const TZ = "Asia/Manila";
+export const TZ = "Asia/Manila";
 
 export function todayPH(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: TZ });

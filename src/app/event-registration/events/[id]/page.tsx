@@ -99,7 +99,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
                   </span>
                 </div>
                 <span className="text-xs text-gray-400">
-                  {new Date(c.checkedInAt).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit" })}
+                  {new Date(c.checkedInAt).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Manila" })}
                 </span>
               </li>
             ))}

@@ -9,7 +9,7 @@ export function ProfileFreshnessBanner({ updatedAt }: { updatedAt: Date }) {
   const [pending, startTransition] = useTransition();
   const toast = useToast();
   const freshness = getProfileFreshness(updatedAt);
-  const dateStr = updatedAt.toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" });
+  const dateStr = updatedAt.toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric", timeZone: "Asia/Manila" });
 
   function handleAcknowledge() {
     startTransition(async () => {

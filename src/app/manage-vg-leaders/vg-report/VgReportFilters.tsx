@@ -54,10 +54,12 @@ export function VgReportFilters({
     return `/manage-vg-leaders/vg-report${qs ? `?${qs}` : ""}`;
   }
 
-  const hasFilters = gender.length || day.length || time.length || lifestage.length || frequency.length;
+  const hasFilters =
+    gender.length > 0 || day.length > 0 || time.length > 0 || lifestage.length > 0 || frequency.length > 0;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 flex flex-wrap items-center gap-2">
+      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide mr-1">Filters</span>
       <MultiSelectFilter label="Gender" options={GENDERS} selected={gender} onChange={(v) => router.push(buildUrl({ gender: v }))} />
       <MultiSelectFilter label="Day" options={DAYS} selected={day} onChange={(v) => router.push(buildUrl({ day: v }))} />
       <MultiSelectFilter label="Time" options={HOURS} selected={time} onChange={(v) => router.push(buildUrl({ time: v }))} />

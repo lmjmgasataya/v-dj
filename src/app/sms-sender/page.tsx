@@ -48,7 +48,7 @@ export default async function SmsSenderPage() {
   return (
     <div className="max-w-3xl mx-auto flex flex-col gap-6 py-8 px-4">
       <div>
-        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "SMS Sender" }]} />
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Discipleship Journey Portal", href: "/journey" }, { label: "SMS Sender" }]} />
         <div className="flex items-start justify-between gap-4">
           <h2 className="text-2xl font-bold text-gray-900">SMS Sender</h2>
           <Link href="/sms-sender/queue" className="text-xs font-semibold text-[#00428E] hover:underline whitespace-nowrap mt-1.5">View SMS Queue →</Link>

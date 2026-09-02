@@ -29,7 +29,7 @@ export function NewSessionForm({
   return (
     <div className="flex flex-col gap-6 max-w-lg">
       <div>
-        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Sessions", href: "/sessions" }, { label: "New Session" }]} />
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Discipleship Journey Portal", href: "/journey" }, { label: "Sessions", href: "/sessions" }, { label: "New Session" }]} />
         <h2 className="text-2xl font-bold text-gray-900">New Session</h2>
       </div>
 

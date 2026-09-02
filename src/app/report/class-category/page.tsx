@@ -69,6 +69,7 @@ export default async function ClassCategoryReportPage({
         <Breadcrumbs
           items={[
             { label: "Home", href: "/" },
+            { label: "Discipleship Journey Portal", href: "/journey" },
             { label: "Reports", href: "/report" },
             { label: "Class Category" },
           ]}

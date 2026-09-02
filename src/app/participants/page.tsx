@@ -17,7 +17,7 @@ export default async function ParticipantsPage({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Participants" }]} />
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Discipleship Journey Portal", href: "/journey" }, { label: "Participants" }]} />
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-900">Participants</h2>
           <div className="flex items-center gap-3">

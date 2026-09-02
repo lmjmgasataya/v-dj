@@ -126,7 +126,7 @@ export default async function SessionDetailPage({
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between">
         <div>
-          <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Sessions", href: "/sessions" }, { label: session.name }]} />
+          <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Discipleship Journey Portal", href: "/journey" }, { label: "Sessions", href: "/sessions" }, { label: session.name }]} />
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-bold text-gray-900">{session.name}</h2>
             {isDeveloper && (

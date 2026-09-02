@@ -64,8 +64,8 @@ export default async function VgPortalDashboardPage() {
     <>
       {upcomingEvents.length > 0 && (
         <div>
-          <p className="text-sm font-semibold text-gray-700 mb-2">Upcoming Events</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <p className="text-base font-semibold text-gray-700 mb-3">Upcoming Events</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {upcomingEvents.map((e) => {
               const dateStr = new Date(e.eventDate + "T00:00:00").toLocaleDateString("en-PH", {
                 month: "short",
@@ -78,19 +78,19 @@ export default async function VgPortalDashboardPage() {
                 <Link
                   key={e.id}
                   href={`/vg-portal/events/${e.id}`}
-                  className="flex flex-col gap-1.5 rounded-xl border border-gray-200 bg-white shadow-sm p-4 hover:border-indigo-300 hover:shadow-md transition"
+                  className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white shadow-sm p-5 hover:border-indigo-300 hover:shadow-md transition"
                 >
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-gray-900 text-sm">{e.name}</span>
+                    <span className="font-semibold text-gray-900 text-base">{e.name}</span>
                     {e.audience.map((a) => (
-                      <span key={a} className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
+                      <span key={a} className="text-sm font-medium bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-full">
                         {AUDIENCE_LABEL[a] ?? a}
                       </span>
                     ))}
                   </div>
-                  <span className="text-xs text-gray-500">{dateStr}</span>
+                  <span className="text-sm text-gray-500">{dateStr}</span>
                   <span
-                    className={`text-xs font-medium w-fit px-2 py-0.5 rounded-full ${
+                    className={`text-sm font-medium w-fit px-2.5 py-1 rounded-full ${
                       registered === true
                         ? "bg-green-100 text-green-700"
                         : registered === false
@@ -108,20 +108,20 @@ export default async function VgPortalDashboardPage() {
       )}
 
       <div>
-        <p className="text-sm font-semibold text-gray-700 mb-0.5">Profile Updating</p>
-        <p className="text-xs text-gray-400 mb-2">Confirm your profile once each quarter (Jan–Mar, Apr–Jun, Jul–Sep).</p>
-        <div className="grid grid-cols-1 gap-3">
+        <p className="text-base font-semibold text-gray-700 mb-1">Profile Updating</p>
+        <p className="text-sm text-gray-400 mb-3">Confirm your profile once each quarter (Jan–Mar, Apr–Jun, Jul–Sep).</p>
+        <div className="grid grid-cols-1 gap-4">
           {quarters.map((q) => {
             const cardClass =
-              "flex flex-col gap-2 rounded-xl border p-4 transition " +
+              "flex flex-col gap-2.5 rounded-xl border p-5 transition " +
               (q.clickable
                 ? "border-gray-200 bg-white shadow-sm hover:border-indigo-300 hover:shadow-md cursor-pointer"
                 : "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed");
 
             const content = (
               <>
-                <span className="font-semibold text-gray-900 text-sm">{q.label}</span>
-                <span className={`text-xs font-medium w-fit px-2 py-0.5 rounded-full ${QUARTER_STATUS_BADGE[q.status]}`}>
+                <span className="font-semibold text-gray-900 text-base">{q.label}</span>
+                <span className={`text-sm font-medium w-fit px-2.5 py-1 rounded-full ${QUARTER_STATUS_BADGE[q.status]}`}>
                   {q.status === "incomplete" ? `${q.percent}% Complete` : QUARTER_STATUS_LABEL[q.status]}
                 </span>
               </>

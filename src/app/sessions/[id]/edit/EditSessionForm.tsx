@@ -33,7 +33,7 @@ export function EditSessionForm({
   return (
     <div className="flex flex-col gap-6 max-w-lg">
       <div>
-        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Sessions", href: "/sessions" }, { label: session.name, href: `/sessions/${session.id}` }, { label: "Edit" }]} />
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Discipleship Journey Portal", href: "/journey" }, { label: "Sessions", href: "/sessions" }, { label: session.name, href: `/sessions/${session.id}` }, { label: "Edit" }]} />
         <h2 className="text-2xl font-bold text-gray-900">Edit Session</h2>
       </div>
 

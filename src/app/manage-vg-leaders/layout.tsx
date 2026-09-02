@@ -10,7 +10,7 @@ export default async function ManageVgLeadersLayout({ children }: { children: Re
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-6">
       <div>
-        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Manage VG Leaders" }]} />
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "VG Leader Portal", href: "/vg-leader-portal" }, { label: "Manage VG Leaders" }]} />
         <h2 className="text-2xl font-bold text-gray-900">Manage VG Leaders</h2>
         <p className="text-sm text-gray-500 mt-0.5">Manage portal accounts and view VG leader reports.</p>
         <ManageVgLeadersNav />

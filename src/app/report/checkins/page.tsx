@@ -54,6 +54,7 @@ export default async function CheckInsReportPage({
         <Breadcrumbs
           items={[
             { label: "Home", href: "/" },
+            { label: "Discipleship Journey Portal", href: "/journey" },
             { label: "Reports", href: "/report" },
             { label: "Check-in Times" },
           ]}

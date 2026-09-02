@@ -150,7 +150,7 @@ export default async function RegistrationsReportPage({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Reports", href: "/report" }, { label: "Registrations" }]} />
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Discipleship Journey Portal", href: "/journey" }, { label: "Reports", href: "/report" }, { label: "Registrations" }]} />
         <h2 className="text-2xl font-bold text-gray-900">Registrations</h2>
         <p className="text-sm text-gray-500 mt-0.5">
           Daily sign-ups for {selectedBatch?.name ?? "—"}

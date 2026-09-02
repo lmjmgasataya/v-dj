@@ -27,7 +27,7 @@ export default async function SmsQueuePage() {
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-6 py-8 px-4">
       <div>
-        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "SMS Sender", href: "/sms-sender" }, { label: "Queue" }]} />
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Discipleship Journey Portal", href: "/journey" }, { label: "SMS Sender", href: "/sms-sender" }, { label: "Queue" }]} />
         <h2 className="text-2xl font-bold text-gray-900">SMS Queue</h2>
         <p className="text-xs text-gray-400 mt-1">Most recent sends, kept for 5 days. Showing the latest {logs.length}.</p>
       </div>

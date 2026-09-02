@@ -138,6 +138,7 @@ export default async function RemittancePage({
         <Breadcrumbs
           items={[
             { label: "Home", href: "/" },
+            { label: "Discipleship Journey Portal", href: "/journey" },
             { label: "Reports", href: "/report" },
             { label: "Remittance" },
           ]}

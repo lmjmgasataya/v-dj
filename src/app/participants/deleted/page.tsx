@@ -15,7 +15,7 @@ export default async function DeletedParticipantsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Participants", href: "/participants" }, { label: "Deleted" }]} />
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Discipleship Journey Portal", href: "/journey" }, { label: "Participants", href: "/participants" }, { label: "Deleted" }]} />
         <h2 className="text-2xl font-bold text-gray-900">Deleted Participants</h2>
         <p className="text-sm text-gray-500 mt-0.5">{rows.length} record{rows.length !== 1 ? "s" : ""}</p>
       </div>

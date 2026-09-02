@@ -16,7 +16,7 @@ export default async function BatchesPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Sessions", href: "/sessions" }, { label: "Batches" }]} />
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Discipleship Journey Portal", href: "/journey" }, { label: "Sessions", href: "/sessions" }, { label: "Batches" }]} />
         <h2 className="text-2xl font-bold text-gray-900">Class Sessions</h2>
       </div>
 

@@ -121,6 +121,7 @@ export default async function DemographicsPage({
         <Breadcrumbs
           items={[
             { label: "Home", href: "/" },
+            { label: "Discipleship Journey Portal", href: "/journey" },
             { label: "Reports", href: "/report" },
             { label: "Demographics" },
           ]}

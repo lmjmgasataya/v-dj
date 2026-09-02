@@ -21,6 +21,7 @@ export default async function MessageTemplatesPage() {
         <Breadcrumbs
           items={[
             { label: "Home", href: "/" },
+            { label: "Discipleship Journey Portal", href: "/journey" },
             { label: "SMS Sender", href: "/sms-sender" },
             { label: "Message Templates" },
           ]}

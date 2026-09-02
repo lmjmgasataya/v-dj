@@ -12,7 +12,7 @@ import "./globals.css";
 const geist = Geist({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Discipleship Journey",
+  title: "Victory Iloilo Discipleship Database",
   description: "Registration and check-in for Discipleship Journey",
 };
 
@@ -32,7 +32,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Link href={session?.role === "vg_leader" ? "/vg-portal" : "/"} className="hover:opacity-80 transition">
                 <p className="text-xs font-medium text-indigo-200 uppercase tracking-widest">Victory Iloilo</p>
                 <h1 className="text-lg font-bold leading-tight">
-                  {session?.role === "vg_leader" ? "VG Portal" : "Discipleship Journey"}
+                  {session?.role === "vg_leader" ? "VG Portal" : "Discipleship Database"}
                 </h1>
               </Link>
               {session && (

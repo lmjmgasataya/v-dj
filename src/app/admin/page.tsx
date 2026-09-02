@@ -76,7 +76,7 @@ export default async function AdminPage({
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Check-in" }]} />
+          <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Discipleship Journey Portal", href: "/journey" }, { label: "Check-in" }]} />
           <h2 className="text-2xl font-bold text-gray-900">Admin / Check-in</h2>
           {defaultBatch && (
             <p className="text-sm text-gray-500 mt-0.5">{defaultBatch.name}</p>

@@ -66,6 +66,7 @@ export function PrintBackClient({ count }: { count: number }) {
         <Breadcrumbs
           items={[
             { label: "Home", href: "/" },
+            { label: "Discipleship Journey Portal", href: "/journey" },
             { label: "Participants", href: "/participants" },
             { label: "Print IDs", href: "/participants/print-ids" },
             { label: "Back Page" },

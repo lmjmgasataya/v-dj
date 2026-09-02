@@ -99,6 +99,7 @@ export default async function CollectionMonitoringPage({
         <Breadcrumbs
           items={[
             { label: "Home", href: "/" },
+            { label: "Discipleship Journey Portal", href: "/journey" },
             { label: "Reports", href: "/report" },
             { label: "Collection Monitoring" },
           ]}

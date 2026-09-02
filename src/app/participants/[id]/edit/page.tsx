@@ -42,7 +42,7 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-6">
-        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Participants", href: "/participants" }, { label: `${participant.lastName}, ${participant.firstName}` }]} />
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Discipleship Journey Portal", href: "/journey" }, { label: "Participants", href: "/participants" }, { label: `${participant.lastName}, ${participant.firstName}` }]} />
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Edit Participant</h2>

@@ -28,6 +28,7 @@ export default async function EditBatchPage({ params }: { params: Promise<{ id: 
         <Breadcrumbs
           items={[
             { label: "Home", href: "/" },
+            { label: "Discipleship Journey Portal", href: "/journey" },
             { label: "Sessions", href: "/sessions" },
             { label: "Batches", href: "/sessions/batches" },
             { label: "Edit" },

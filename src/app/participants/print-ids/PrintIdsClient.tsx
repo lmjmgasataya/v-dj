@@ -119,6 +119,7 @@ export function PrintIdsClient({
         <Breadcrumbs
           items={[
             { label: "Home", href: "/" },
+            { label: "Discipleship Journey Portal", href: "/journey" },
             { label: "Participants", href: "/participants" },
             { label: "Print IDs" },
           ]}

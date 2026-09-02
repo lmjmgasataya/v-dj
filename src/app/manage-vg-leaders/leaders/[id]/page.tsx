@@ -70,6 +70,7 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
         <Breadcrumbs
           items={[
             { label: "Home", href: "/" },
+            { label: "VG Leader Portal", href: "/vg-leader-portal" },
             { label: "Manage VG Leaders", href: "/manage-vg-leaders" },
             { label: "VG Leaders", href: "/manage-vg-leaders/leaders" },
             { label: `${leader.lastName}, ${leader.firstName}` },

@@ -41,7 +41,7 @@ export default async function ReportPage({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Attendance Report" }]} />
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Discipleship Journey Portal", href: "/journey" }, { label: "Attendance Report" }]} />
         <h2 className="text-2xl font-bold text-gray-900">Attendance Report</h2>
         <p className="text-sm text-gray-500 mt-0.5">
           {sessions.length} session{sessions.length !== 1 ? "s" : ""} in{" "}

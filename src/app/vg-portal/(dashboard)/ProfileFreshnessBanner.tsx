@@ -1,12 +1,12 @@
 "use client";
 
-import { useTransition } from "react";
+// import { useTransition } from "react";
 // import { acknowledgeProfileCurrent } from "./actions";
 import { useToast } from "@/components/toast/ToastProvider";
 import { getProfileFreshness, FRESHNESS_BANNER_CLASS, FRESHNESS_MESSAGE } from "@/lib/vgLeaderStatus";
 
 export function ProfileFreshnessBanner({ updatedAt }: { updatedAt: Date }) {
-  const [pending, startTransition] = useTransition();
+  // const [pending, startTransition] = useTransition();
   const toast = useToast();
   const freshness = getProfileFreshness(updatedAt);
   const dateStr = updatedAt.toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric", timeZone: "Asia/Manila" });

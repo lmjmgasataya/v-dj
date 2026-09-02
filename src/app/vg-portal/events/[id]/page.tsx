@@ -12,16 +12,24 @@ const AUDIENCE_LABEL: Record<string, string> = {
 };
 
 export default async function EventRegistrationPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const eventId = parseInt(id, 10);
+  const { id: param } = await params;
+  const isNumeric = /^\d+$/.test(param);
+
+  const [event] = await db
+    .select()
+    .from(events)
+    .where(and(isNumeric ? eq(events.id, Number(param)) : eq(events.shareToken, param), isNull(events.deletedAt)))
+    .limit(1);
+
+  if (!event) notFound();
 
   const session = await getSession();
-  if (!session) redirect(`/vg-portal/claim?callbackUrl=/vg-portal/events/${eventId}`);
+  if (!session) redirect(`/vg-portal/claim?callbackUrl=/vg-portal/events/${param}`);
   if (session.role !== "vg_leader" || !session.vgLeaderId) redirect("/");
   const vgLeaderId = session.vgLeaderId;
+  const eventId = event.id;
 
-  const [[event], [existingReg], myGroups] = await Promise.all([
-    db.select().from(events).where(and(eq(events.id, eventId), isNull(events.deletedAt))).limit(1),
+  const [[existingReg], myGroups] = await Promise.all([
     db
       .select()
       .from(eventRegistrations)
@@ -32,8 +40,6 @@ export default async function EventRegistrationPage({ params }: { params: Promis
       .from(victoryGroups)
       .where(and(eq(victoryGroups.vgLeaderId, vgLeaderId), isNull(victoryGroups.deletedAt))),
   ]);
-
-  if (!event) notFound();
 
   const groupIds = myGroups.map((g) => g.id);
   const myInterns = groupIds.length

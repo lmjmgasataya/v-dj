@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { EventDoneCheckbox } from "./EventDoneCheckbox";
+import { getEventShareToken } from "./actions";
+import { useToast } from "@/components/toast/ToastProvider";
 
 const AUDIENCE_LABEL: Record<string, string> = {
   vg_leader: "VG Leaders",
@@ -21,6 +24,8 @@ interface EventRow {
 
 export function EventCard({ event: e, isDeveloper }: { event: EventRow; isDeveloper: boolean }) {
   const router = useRouter();
+  const toast = useToast();
+  const [copying, setCopying] = useState(false);
 
   const dateStr = new Date(e.eventDate + "T00:00:00").toLocaleDateString("en-PH", {
     weekday: "long",
@@ -29,6 +34,20 @@ export function EventCard({ event: e, isDeveloper }: { event: EventRow; isDevelo
     year: "numeric",
     timeZone: "Asia/Manila",
   });
+
+  async function handleCopyLink() {
+    setCopying(true);
+    try {
+      const token = await getEventShareToken(e.id);
+      const url = `${window.location.origin}/vg-portal/events/${token}`;
+      await navigator.clipboard.writeText(url);
+      toast.show("Link copied to clipboard.", "success");
+    } catch {
+      toast.show("Couldn't copy the link.", "error");
+    } finally {
+      setCopying(false);
+    }
+  }
 
   return (
     <div
@@ -66,6 +85,17 @@ export function EventCard({ event: e, isDeveloper }: { event: EventRow; isDevelo
             <p className="text-2xl font-bold text-indigo-600">{e.checkedInCount}</p>
             <p className="text-xs text-gray-400">checked in</p>
           </div>
+          <button
+            type="button"
+            onClick={(ev) => {
+              ev.stopPropagation();
+              handleCopyLink();
+            }}
+            disabled={copying}
+            className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline disabled:opacity-50 shrink-0"
+          >
+            {copying ? "Copying..." : "Copy Link"}
+          </button>
           {isDeveloper && (
             <Link
               href={`/event-registration/events/${e.id}/edit`}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { registerForEvent } from "../actions";
 import { useToast } from "@/components/toast/ToastProvider";
 
@@ -23,6 +24,7 @@ export function EventRegistrationForm({
   interns: InternOption[];
   defaultInternIds: number[];
 }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const toast = useToast();
   const [willAttend, setWillAttend] = useState<boolean | null>(defaultWillAttend);
@@ -46,6 +48,7 @@ export function EventRegistrationForm({
     startTransition(async () => {
       await registerForEvent(eventId, formData);
       toast.show("Registration saved.", "success");
+      router.push("/vg-portal");
     });
   }
 

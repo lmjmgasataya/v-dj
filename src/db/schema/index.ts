@@ -201,6 +201,7 @@ export const events = pgTable("events", {
   eventDate: date("event_date").notNull(),
   isDone: boolean("is_done").default(false).notNull(),
   audience: eventAudienceEnum("audience").array().notNull(),
+  shareToken: text("share_token").unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
 });

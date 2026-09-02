@@ -11,7 +11,6 @@ export default async function InternsPage() {
       place: victoryGroups.place,
       day: victoryGroups.day,
       time: victoryGroups.time,
-      isActive: victoryGroups.isActive,
       leaderLastName: victoryGroupLeaders.lastName,
       leaderFirstName: victoryGroupLeaders.firstName,
     })
@@ -39,7 +38,6 @@ export default async function InternsPage() {
                 <th className="px-4 py-2 text-left font-medium">Place</th>
                 <th className="px-4 py-2 text-left font-medium">Day</th>
                 <th className="px-4 py-2 text-left font-medium">Time</th>
-                <th className="px-4 py-2 text-left font-medium">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -50,15 +48,6 @@ export default async function InternsPage() {
                   <td className="px-4 py-2.5 text-gray-500">{g.place}</td>
                   <td className="px-4 py-2.5 text-gray-500">{g.day}</td>
                   <td className="px-4 py-2.5 text-gray-500">{g.time}</td>
-                  <td className="px-4 py-2.5">
-                    <span
-                      className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        g.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                      }`}
-                    >
-                      {g.isActive ? "Active" : "Inactive"}
-                    </span>
-                  </td>
                 </tr>
               ))}
             </tbody>

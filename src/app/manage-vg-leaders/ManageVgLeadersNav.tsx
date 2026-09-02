@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV = [
+  { href: "/manage-vg-leaders/leaders", label: "VG Leaders" },
   { href: "/manage-vg-leaders/disciplers", label: "Disciplers" },
   { href: "/manage-vg-leaders/interns", label: "Interns" },
 ];

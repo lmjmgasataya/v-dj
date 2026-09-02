@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { listEventCheckIns } from "../../check-in/actions";
+import { listEventRegisteredAttendees } from "../../check-in/actions";
 
 const AUDIENCE_LABEL: Record<string, string> = {
   vg_leader: "VG Leaders",
@@ -21,17 +21,19 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const eventId = parseInt(id, 10);
 
-  const [session, [event], checkIns] = await Promise.all([
+  const [session, [event]] = await Promise.all([
     getSession(),
     db
       .select()
       .from(events)
       .where(and(eq(events.id, eventId), isNull(events.deletedAt)))
       .limit(1),
-    listEventCheckIns(eventId),
   ]);
 
   if (!event) notFound();
+
+  const attendees = await listEventRegisteredAttendees(eventId, event.audience);
+  const checkedInCount = attendees.filter((a) => a.checkInId).length;
 
   const isDeveloper = session?.role === "developer";
   const dateStr = new Date(event.eventDate + "T00:00:00").toLocaleDateString("en-PH", {
@@ -83,27 +85,54 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="bg-indigo-50 border-b border-indigo-100 px-6 py-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">Checked In</h3>
-          <span className="text-sm font-semibold text-indigo-800">{checkIns.length}</span>
+          <h3 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">Registered vs Checked In</h3>
+          <span className="text-sm font-semibold text-indigo-800">
+            {checkedInCount} / {attendees.length}
+          </span>
         </div>
-        {checkIns.length === 0 ? (
-          <p className="px-6 py-8 text-sm text-gray-400 text-center">No one checked in yet.</p>
+        {attendees.length === 0 ? (
+          <p className="px-6 py-8 text-sm text-gray-400 text-center">No one has pre-registered yet.</p>
         ) : (
-          <ul className="divide-y divide-gray-100">
-            {checkIns.map((c) => (
-              <li key={c.id} className="px-6 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-900">{c.attendeeName}</span>
-                  <span className="text-xs font-medium bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
-                    {TYPE_LABEL[c.attendeeType] ?? c.attendeeType}
-                  </span>
-                </div>
-                <span className="text-xs text-gray-400">
-                  {new Date(c.checkedInAt).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Manila" })}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  <th className="px-6 py-2.5">Name</th>
+                  <th className="px-6 py-2.5">Type</th>
+                  <th className="px-6 py-2.5">Registered</th>
+                  <th className="px-6 py-2.5">Checked In</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {attendees.map((a) => (
+                  <tr key={a.key}>
+                    <td className="px-6 py-3 font-medium text-gray-900">{a.attendeeName}</td>
+                    <td className="px-6 py-3">
+                      <span className="text-xs font-medium bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                        {TYPE_LABEL[a.attendeeType] ?? a.attendeeType}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3">
+                      <span className="text-xs font-medium bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Yes</span>
+                    </td>
+                    <td className="px-6 py-3">
+                      {a.checkedInAt ? (
+                        <span className="text-xs text-gray-500">
+                          {new Date(a.checkedInAt).toLocaleTimeString("en-PH", {
+                            hour: "numeric",
+                            minute: "2-digit",
+                            timeZone: "Asia/Manila",
+                          })}
+                        </span>
+                      ) : (
+                        <span className="text-xs font-medium bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Not yet</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

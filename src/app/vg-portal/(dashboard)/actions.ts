@@ -91,16 +91,6 @@ export async function deleteOwnVictoryGroup(id: number) {
   revalidatePath("/vg-portal/profile");
 }
 
-export async function acknowledgeProfileCurrent() {
-  const session = await requireVgLeader();
-  await db
-    .update(victoryGroupLeaders)
-    .set({ isActive: true, updatedAt: new Date() })
-    .where(eq(victoryGroupLeaders.id, session.vgLeaderId));
-  revalidatePath("/vg-portal");
-  revalidatePath("/vg-portal/profile");
-}
-
 export async function updateOwnProfile(formData: FormData) {
   const session = await requireVgLeader();
   const ownVgLeader = await resolveOwnVgLeader(formData, session.vgLeaderId);

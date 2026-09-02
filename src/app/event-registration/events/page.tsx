@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { events, eventCheckIns } from "@/db/schema";
+import { events, eventCheckIns, eventRegistrations, eventRegistrationInterns } from "@/db/schema";
 import { eq, isNull, sql } from "drizzle-orm";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
@@ -10,20 +10,39 @@ export default async function EventsPage() {
   const session = await getSession();
   const isDeveloper = session?.role === "developer";
 
-  const rows = await db
-    .select({
-      id: events.id,
-      name: events.name,
-      eventDate: events.eventDate,
-      isDone: events.isDone,
-      audience: events.audience,
-      checkedInCount: sql<number>`count(${eventCheckIns.id})::int`,
-    })
-    .from(events)
-    .leftJoin(eventCheckIns, eq(eventCheckIns.eventId, events.id))
-    .where(isNull(events.deletedAt))
-    .groupBy(events.id)
-    .orderBy(sql`${events.eventDate} desc`);
+  const [rows, vglRegCounts, internRegCounts] = await Promise.all([
+    db
+      .select({
+        id: events.id,
+        name: events.name,
+        eventDate: events.eventDate,
+        isDone: events.isDone,
+        audience: events.audience,
+        checkedInCount: sql<number>`count(${eventCheckIns.id})::int`,
+      })
+      .from(events)
+      .leftJoin(eventCheckIns, eq(eventCheckIns.eventId, events.id))
+      .where(isNull(events.deletedAt))
+      .groupBy(events.id)
+      .orderBy(sql`${events.eventDate} desc`),
+    db
+      .select({ eventId: eventRegistrations.eventId, count: sql<number>`count(*)::int` })
+      .from(eventRegistrations)
+      .where(eq(eventRegistrations.willAttend, true))
+      .groupBy(eventRegistrations.eventId),
+    db
+      .select({ eventId: eventRegistrations.eventId, count: sql<number>`count(*)::int` })
+      .from(eventRegistrationInterns)
+      .innerJoin(eventRegistrations, eq(eventRegistrationInterns.eventRegistrationId, eventRegistrations.id))
+      .where(eq(eventRegistrations.willAttend, true))
+      .groupBy(eventRegistrations.eventId),
+  ]);
+
+  const preregisteredByEvent = new Map<number, number>();
+  for (const r of vglRegCounts) preregisteredByEvent.set(r.eventId, (preregisteredByEvent.get(r.eventId) ?? 0) + r.count);
+  for (const r of internRegCounts) preregisteredByEvent.set(r.eventId, (preregisteredByEvent.get(r.eventId) ?? 0) + r.count);
+
+  const eventRows = rows.map((e) => ({ ...e, preregisteredCount: preregisteredByEvent.get(e.id) ?? 0 }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -50,10 +69,10 @@ export default async function EventsPage() {
       </div>
 
       <div className="flex flex-col gap-3">
-        {rows.length === 0 ? (
+        {eventRows.length === 0 ? (
           <p className="text-sm text-gray-400">No events yet.</p>
         ) : (
-          rows.map((e) => <EventCard key={e.id} event={e} isDeveloper={isDeveloper} />)
+          eventRows.map((e) => <EventCard key={e.id} event={e} isDeveloper={isDeveloper} />)
         )}
       </div>
     </div>

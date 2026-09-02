@@ -29,7 +29,7 @@ export function EventRegistrationForm({
   const [selectedInternIds, setSelectedInternIds] = useState<Set<number>>(new Set(defaultInternIds));
 
   const showAttendance = audience.includes("vg_leader");
-  const showInterns = audience.includes("intern") && interns.length > 0;
+  const showInterns = audience.includes("intern") && interns.length > 0 && willAttend === true;
 
   function toggleIntern(id: number) {
     setSelectedInternIds((prev) => {
@@ -63,7 +63,7 @@ export function EventRegistrationForm({
               onClick={() => setWillAttend(true)}
               className={`flex-1 text-sm font-semibold px-4 py-2.5 rounded-lg border transition ${
                 willAttend === true
-                  ? "bg-[#00428E] text-white border-[#00428E]"
+                  ? "bg-green-600 text-white border-green-600"
                   : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
               }`}
             >
@@ -74,7 +74,7 @@ export function EventRegistrationForm({
               onClick={() => setWillAttend(false)}
               className={`flex-1 text-sm font-semibold px-4 py-2.5 rounded-lg border transition ${
                 willAttend === false
-                  ? "bg-gray-700 text-white border-gray-700"
+                  ? "bg-red-600 text-white border-red-600"
                   : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
               }`}
             >

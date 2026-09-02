@@ -16,6 +16,7 @@ interface EventRow {
   isDone: boolean;
   audience: ("vg_leader" | "intern")[];
   checkedInCount: number;
+  preregisteredCount: number;
 }
 
 export function EventCard({ event: e, isDeveloper }: { event: EventRow; isDeveloper: boolean }) {
@@ -57,6 +58,10 @@ export function EventCard({ event: e, isDeveloper }: { event: EventRow; isDevelo
           <span className="text-sm text-gray-500">{dateStr}</span>
         </div>
         <div className="flex items-center gap-4 shrink-0 ml-4">
+          <div className="text-right">
+            <p className="text-2xl font-bold text-amber-600">{e.preregisteredCount}</p>
+            <p className="text-xs text-gray-400">preregistered</p>
+          </div>
           <div className="text-right">
             <p className="text-2xl font-bold text-indigo-600">{e.checkedInCount}</p>
             <p className="text-xs text-gray-400">checked in</p>

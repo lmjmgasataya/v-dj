@@ -110,7 +110,7 @@ export default async function VgPortalDashboardPage() {
       <div>
         <p className="text-sm font-semibold text-gray-700 mb-0.5">Profile Updating</p>
         <p className="text-xs text-gray-400 mb-2">Confirm your profile once each quarter (Jan–Mar, Apr–Jun, Jul–Sep).</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3">
           {quarters.map((q) => {
             const cardClass =
               "flex flex-col gap-2 rounded-xl border p-4 transition " +

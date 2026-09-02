@@ -9,7 +9,7 @@ import {
   eventRegistrationInterns,
   type eventAudienceEnum,
 } from "@/db/schema";
-import { and, eq, ilike, isNull, or, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 type Audience = (typeof eventAudienceEnum.enumValues)[number];
@@ -22,6 +22,7 @@ export interface EventSearchResult {
   attendeeName: string;
   mobileNumber: string | null;
   checkInId: number | null;
+  checkedInAt: Date | null;
 }
 
 export interface EventCheckInRow {
@@ -31,7 +32,7 @@ export interface EventCheckInRow {
   checkedInAt: Date;
 }
 
-async function searchVgLeaders(eventId: number, q: string): Promise<EventSearchResult[]> {
+async function listRegisteredVgLeaders(eventId: number): Promise<EventSearchResult[]> {
   const rows = await db
     .select({
       id: victoryGroupLeaders.id,
@@ -39,6 +40,7 @@ async function searchVgLeaders(eventId: number, q: string): Promise<EventSearchR
       firstName: victoryGroupLeaders.firstName,
       mobileNumber: victoryGroupLeaders.mobileNumber,
       checkInId: eventCheckIns.id,
+      checkedInAt: eventCheckIns.checkedInAt,
     })
     .from(eventRegistrations)
     .innerJoin(victoryGroupLeaders, eq(eventRegistrations.vgLeaderId, victoryGroupLeaders.id))
@@ -50,12 +52,10 @@ async function searchVgLeaders(eventId: number, q: string): Promise<EventSearchR
       and(
         eq(eventRegistrations.eventId, eventId),
         eq(eventRegistrations.willAttend, true),
-        isNull(victoryGroupLeaders.deletedAt),
-        or(ilike(victoryGroupLeaders.lastName, `%${q}%`), ilike(victoryGroupLeaders.firstName, `%${q}%`))
+        isNull(victoryGroupLeaders.deletedAt)
       )
     )
-    .orderBy(victoryGroupLeaders.lastName)
-    .limit(20);
+    .orderBy(victoryGroupLeaders.lastName);
 
   return rows.map((r) => ({
     key: `vgl:${r.id}`,
@@ -65,30 +65,25 @@ async function searchVgLeaders(eventId: number, q: string): Promise<EventSearchR
     attendeeName: `${r.lastName}, ${r.firstName}`,
     mobileNumber: r.mobileNumber,
     checkInId: r.checkInId,
+    checkedInAt: r.checkedInAt,
   }));
 }
 
-async function searchInterns(eventId: number, q: string): Promise<EventSearchResult[]> {
+async function listRegisteredInterns(eventId: number): Promise<EventSearchResult[]> {
   const rows = await db
     .select({
       id: interns.id,
       lastName: interns.lastName,
       firstName: interns.firstName,
       checkInId: eventCheckIns.id,
+      checkedInAt: eventCheckIns.checkedInAt,
     })
     .from(eventRegistrationInterns)
     .innerJoin(eventRegistrations, eq(eventRegistrationInterns.eventRegistrationId, eventRegistrations.id))
     .innerJoin(interns, eq(eventRegistrationInterns.internId, interns.id))
     .leftJoin(eventCheckIns, and(eq(eventCheckIns.internId, interns.id), eq(eventCheckIns.eventId, eventId)))
-    .where(
-      and(
-        eq(eventRegistrations.eventId, eventId),
-        eq(eventRegistrations.willAttend, true),
-        or(ilike(interns.lastName, `%${q}%`), ilike(interns.firstName, `%${q}%`))
-      )
-    )
-    .orderBy(interns.lastName)
-    .limit(20);
+    .where(and(eq(eventRegistrations.eventId, eventId), eq(eventRegistrations.willAttend, true)))
+    .orderBy(interns.lastName);
 
   return rows.map((r) => ({
     key: `intern:${r.id}`,
@@ -98,15 +93,14 @@ async function searchInterns(eventId: number, q: string): Promise<EventSearchRes
     attendeeName: `${r.lastName}, ${r.firstName}`,
     mobileNumber: null,
     checkInId: r.checkInId,
+    checkedInAt: r.checkedInAt,
   }));
 }
 
-export async function searchEventAttendees(eventId: number, audience: Audience[], q: string): Promise<EventSearchResult[]> {
-  if (q.trim().length < 2) return [];
-
+export async function listEventRegisteredAttendees(eventId: number, audience: Audience[]): Promise<EventSearchResult[]> {
   const [vgl, internResults] = await Promise.all([
-    audience.includes("vg_leader") ? searchVgLeaders(eventId, q) : Promise.resolve([]),
-    audience.includes("intern") ? searchInterns(eventId, q) : Promise.resolve([]),
+    audience.includes("vg_leader") ? listRegisteredVgLeaders(eventId) : Promise.resolve([]),
+    audience.includes("intern") ? listRegisteredInterns(eventId) : Promise.resolve([]),
   ]);
 
   return [...vgl, ...internResults].sort((a, b) => a.attendeeName.localeCompare(b.attendeeName));

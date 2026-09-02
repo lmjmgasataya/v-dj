@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
-  searchEventAttendees,
+  listEventRegisteredAttendees,
   checkInEventVgLeader,
   checkInEventIntern,
   undoEventCheckIn,
@@ -38,31 +38,25 @@ function AttendeeSearch({
   refreshKey: number;
 }) {
   const [q, setQ] = useState("");
-  const [results, setResults] = useState<EventSearchResult[]>([]);
+  const [attendees, setAttendees] = useState<EventSearchResult[]>([]);
+  const [loading, setLoading] = useState(true);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  function search(value: string) {
-    setQ(value);
-    setError(null);
-    clearTimeout(timer.current);
-    if (value.trim().length < 2) {
-      setResults([]);
-      return;
-    }
-    timer.current = setTimeout(async () => {
-      setResults(await searchEventAttendees(eventId, audience, value));
-    }, 300);
-  }
+  const results = q.trim()
+    ? attendees.filter((r) => r.attendeeName.toLowerCase().includes(q.trim().toLowerCase()))
+    : attendees;
 
-  // Re-run the current search when check-ins change elsewhere (e.g. an undo from the
-  // "Checked In" list below), so a result row's status doesn't go stale.
+  // Preload the full pre-registered list for this event, and re-fetch when check-ins
+  // change elsewhere (e.g. an undo from the "Checked In" list below), so a row's status
+  // doesn't go stale. Search itself is purely client-side filtering of this list.
   useEffect(() => {
-    if (q.trim().length < 2) return;
     let cancelled = false;
-    searchEventAttendees(eventId, audience, q).then((r) => {
-      if (!cancelled) setResults(r);
+    listEventRegisteredAttendees(eventId, audience).then((r) => {
+      if (!cancelled) {
+        setAttendees(r);
+        setLoading(false);
+      }
     });
     return () => {
       cancelled = true;
@@ -82,7 +76,7 @@ function AttendeeSearch({
       setError(res.error);
       return;
     }
-    setResults((prev) => prev.map((x) => (x.key === r.key ? { ...x, checkInId: res.checkInId } : x)));
+    setAttendees((prev) => prev.map((x) => (x.key === r.key ? { ...x, checkInId: res.checkInId } : x)));
     onChange();
   }
 
@@ -91,7 +85,7 @@ function AttendeeSearch({
     setPendingKey(r.key);
     await undoEventCheckIn(r.checkInId);
     setPendingKey(null);
-    setResults((prev) => prev.map((x) => (x.key === r.key ? { ...x, checkInId: null } : x)));
+    setAttendees((prev) => prev.map((x) => (x.key === r.key ? { ...x, checkInId: null } : x)));
     onChange();
   }
 
@@ -99,12 +93,18 @@ function AttendeeSearch({
     <div className="flex flex-col gap-2">
       <input
         value={q}
-        onChange={(e) => search(e.target.value)}
+        onChange={(e) => setQ(e.target.value)}
         placeholder="Search by name..."
         className={inputCls}
       />
       {error && <p className="text-xs text-red-500">{error}</p>}
-      {results.length > 0 && (
+      {loading ? (
+        <p className="text-sm text-gray-400 py-2">Loading pre-registered attendees...</p>
+      ) : results.length === 0 ? (
+        <p className="text-sm text-gray-400 py-2">
+          {attendees.length === 0 ? "No one has pre-registered for this event yet." : "No matches."}
+        </p>
+      ) : (
         <div className="flex flex-col gap-2">
           {results.map((r) => (
             <div key={r.key} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-2.5">

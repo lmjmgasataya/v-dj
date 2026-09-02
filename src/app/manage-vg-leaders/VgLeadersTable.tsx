@@ -5,6 +5,7 @@ import Link from "next/link";
 import { toTitleCase } from "@/lib/text";
 import { ParticipantsCell, type ParticipantsCellEntry } from "@/components/ParticipantsCell";
 import { resetVgLeaderPin } from "./actions";
+import { MergeVgLeadersModal } from "./MergeVgLeadersModal";
 
 export interface VgLeaderRow {
   id: number;
@@ -26,9 +27,19 @@ const selectCls =
 
 type ProfileFilter = "all" | "complete" | "incomplete";
 
-export function VgLeadersTable({ rows }: { rows: VgLeaderRow[] }) {
+export function VgLeadersTable({ rows, enableMerge }: { rows: VgLeaderRow[]; enableMerge?: boolean }) {
   const [q, setQ] = useState("");
   const [profileFilter, setProfileFilter] = useState<ProfileFilter>("all");
+  const [selected, setSelected] = useState<number[]>([]);
+  const [merging, setMerging] = useState(false);
+
+  function toggleSelected(id: number) {
+    setSelected((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 2) return [prev[1], id];
+      return [...prev, id];
+    });
+  }
 
   const query = q.trim().toLowerCase();
   const filtered = rows.filter((l) => {
@@ -59,7 +70,27 @@ export function VgLeadersTable({ rows }: { rows: VgLeaderRow[] }) {
           <option value="complete">Profile Complete</option>
           <option value="incomplete">Profile Incomplete</option>
         </select>
+        {enableMerge && selected.length === 2 && (
+          <button
+            type="button"
+            onClick={() => setMerging(true)}
+            className="text-xs font-semibold text-white bg-[#00428E] hover:bg-[#003578] px-3 py-1.5 rounded-lg transition"
+          >
+            Merge Selected (2)
+          </button>
+        )}
       </div>
+
+      {merging && selected.length === 2 && (
+        <MergeVgLeadersModal
+          idA={selected[0]}
+          idB={selected[1]}
+          onClose={() => {
+            setMerging(false);
+            setSelected([]);
+          }}
+        />
+      )}
 
       {filtered.length === 0 ? (
         <p className="px-6 py-8 text-sm text-gray-400 text-center">
@@ -70,6 +101,7 @@ export function VgLeadersTable({ rows }: { rows: VgLeaderRow[] }) {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
               <tr>
+                {enableMerge && <th className="px-4 py-2 w-8" />}
                 <th className="px-4 py-2 text-left font-medium">Name</th>
                 <th className="px-4 py-2 text-left font-medium">Mobile</th>
                 <th className="px-4 py-2 text-left font-medium">Portal Account</th>
@@ -82,6 +114,15 @@ export function VgLeadersTable({ rows }: { rows: VgLeaderRow[] }) {
             <tbody className="divide-y divide-gray-100">
               {filtered.map((l) => (
                 <tr key={l.id} className="hover:bg-gray-50">
+                  {enableMerge && (
+                    <td className="px-4 py-2.5">
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(l.id)}
+                        onChange={() => toggleSelected(l.id)}
+                      />
+                    </td>
+                  )}
                   <td className="px-4 py-2.5">
                     <Link
                       href={`/manage-vg-leaders/leaders/${l.id}`}

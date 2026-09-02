@@ -254,6 +254,20 @@ export const eventRegistrationInterns = pgTable(
   (t) => [unique().on(t.eventRegistrationId, t.internId)]
 );
 
+// Interns register themselves for events, independent of their VG leader's own registration.
+export const internEventRegistrations = pgTable(
+  "intern_event_registrations",
+  {
+    id: serial("id").primaryKey(),
+    eventId: integer("event_id").references(() => events.id).notNull(),
+    internId: integer("intern_id").references(() => interns.id).notNull(),
+    willAttend: boolean("will_attend").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.eventId, t.internId)]
+);
+
 export const roleEnum = pgEnum("user_role", ["admin_volunteer", "developer", "vg_leader"]);
 
 export const users = pgTable("users", {
@@ -363,3 +377,4 @@ export type Intern = typeof interns.$inferSelect;
 export type LeadershipGroupMember = typeof leadershipGroupMembers.$inferSelect;
 export type EventRegistration = typeof eventRegistrations.$inferSelect;
 export type EventRegistrationIntern = typeof eventRegistrationInterns.$inferSelect;
+export type InternEventRegistration = typeof internEventRegistrations.$inferSelect;

@@ -26,7 +26,7 @@ interface EventRow {
 export function EventCard({ event: e, isDeveloper }: { event: EventRow; isDeveloper: boolean }) {
   const router = useRouter();
   const toast = useToast();
-  const [copying, setCopying] = useState(false);
+  const [copying, setCopying] = useState<"vg_leader" | "intern" | null>(null);
 
   const dateStr = new Date(e.eventDate + "T00:00:00").toLocaleDateString("en-PH", {
     weekday: "long",
@@ -36,17 +36,17 @@ export function EventCard({ event: e, isDeveloper }: { event: EventRow; isDevelo
     timeZone: "Asia/Manila",
   });
 
-  async function handleCopyLink() {
-    setCopying(true);
+  async function handleCopyLink(kind: "vg_leader" | "intern") {
+    setCopying(kind);
     try {
       const token = await getEventShareToken(e.id);
-      const url = `${window.location.origin}/vg-portal/events/${token}`;
+      const url = `${window.location.origin}/vg-portal/events/${token}${kind === "intern" ? "/intern" : ""}`;
       await navigator.clipboard.writeText(url);
       toast.show("Link copied to clipboard.", "success");
     } catch {
       toast.show("Couldn't copy the link.", "error");
     } finally {
-      setCopying(false);
+      setCopying(null);
     }
   }
 
@@ -91,13 +91,26 @@ export function EventCard({ event: e, isDeveloper }: { event: EventRow; isDevelo
             type="button"
             onClick={(ev) => {
               ev.stopPropagation();
-              handleCopyLink();
+              handleCopyLink("vg_leader");
             }}
-            disabled={copying}
+            disabled={copying !== null}
             className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline disabled:opacity-50 shrink-0"
           >
-            {copying ? "Copying..." : "Copy Link"}
+            {copying === "vg_leader" ? "Copying..." : "Copy VGL Link"}
           </button>
+          {e.audience.includes("intern") && (
+            <button
+              type="button"
+              onClick={(ev) => {
+                ev.stopPropagation();
+                handleCopyLink("intern");
+              }}
+              disabled={copying !== null}
+              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline disabled:opacity-50 shrink-0"
+            >
+              {copying === "intern" ? "Copying..." : "Copy Intern Link"}
+            </button>
+          )}
           {isDeveloper && (
             <Link
               href={`/event-registration/events/${e.id}/edit`}

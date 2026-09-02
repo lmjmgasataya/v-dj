@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { victoryGroupLeaders, interns, eventRegistrations, eventRegistrationInterns } from "@/db/schema";
+import { victoryGroupLeaders, interns, eventRegistrations, internEventRegistrations } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 
 export interface EventAudiencePerson {
@@ -35,10 +35,9 @@ export async function getEventAudience(
   if (audience.includes("intern")) {
     const rows = await db
       .select({ id: interns.id, lastName: interns.lastName, firstName: interns.firstName })
-      .from(eventRegistrationInterns)
-      .innerJoin(eventRegistrations, eq(eventRegistrationInterns.eventRegistrationId, eventRegistrations.id))
-      .innerJoin(interns, eq(eventRegistrationInterns.internId, interns.id))
-      .where(and(eq(eventRegistrations.eventId, eventId), eq(eventRegistrations.willAttend, true)))
+      .from(internEventRegistrations)
+      .innerJoin(interns, eq(internEventRegistrations.internId, interns.id))
+      .where(and(eq(internEventRegistrations.eventId, eventId), eq(internEventRegistrations.willAttend, true)))
       .orderBy(interns.lastName);
 
     internPeople = rows.map((r) => ({ id: r.id, name: `${r.lastName}, ${r.firstName}`, mobileNumber: null }));

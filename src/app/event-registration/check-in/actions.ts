@@ -6,7 +6,7 @@ import {
   interns,
   eventCheckIns,
   eventRegistrations,
-  eventRegistrationInterns,
+  internEventRegistrations,
   type eventAudienceEnum,
 } from "@/db/schema";
 import { and, eq, isNull, sql } from "drizzle-orm";
@@ -78,11 +78,10 @@ async function listRegisteredInterns(eventId: number): Promise<EventSearchResult
       checkInId: eventCheckIns.id,
       checkedInAt: eventCheckIns.checkedInAt,
     })
-    .from(eventRegistrationInterns)
-    .innerJoin(eventRegistrations, eq(eventRegistrationInterns.eventRegistrationId, eventRegistrations.id))
-    .innerJoin(interns, eq(eventRegistrationInterns.internId, interns.id))
+    .from(internEventRegistrations)
+    .innerJoin(interns, eq(internEventRegistrations.internId, interns.id))
     .leftJoin(eventCheckIns, and(eq(eventCheckIns.internId, interns.id), eq(eventCheckIns.eventId, eventId)))
-    .where(and(eq(eventRegistrations.eventId, eventId), eq(eventRegistrations.willAttend, true)))
+    .where(and(eq(internEventRegistrations.eventId, eventId), eq(internEventRegistrations.willAttend, true)))
     .orderBy(interns.lastName);
 
   return rows.map((r) => ({

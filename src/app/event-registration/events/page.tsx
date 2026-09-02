@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { events, eventCheckIns, eventRegistrations, eventRegistrationInterns } from "@/db/schema";
+import { events, eventCheckIns, eventRegistrations, internEventRegistrations } from "@/db/schema";
 import { eq, isNull, sql } from "drizzle-orm";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
@@ -32,11 +32,10 @@ export default async function EventsPage() {
       .where(eq(eventRegistrations.willAttend, true))
       .groupBy(eventRegistrations.eventId),
     db
-      .select({ eventId: eventRegistrations.eventId, count: sql<number>`count(*)::int` })
-      .from(eventRegistrationInterns)
-      .innerJoin(eventRegistrations, eq(eventRegistrationInterns.eventRegistrationId, eventRegistrations.id))
-      .where(eq(eventRegistrations.willAttend, true))
-      .groupBy(eventRegistrations.eventId),
+      .select({ eventId: internEventRegistrations.eventId, count: sql<number>`count(*)::int` })
+      .from(internEventRegistrations)
+      .where(eq(internEventRegistrations.willAttend, true))
+      .groupBy(internEventRegistrations.eventId),
   ]);
 
   const preregisteredByEvent = new Map<number, number>();

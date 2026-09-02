@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { events, victoryGroups, interns, eventRegistrations, eventRegistrationInterns } from "@/db/schema";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { events, eventRegistrations } from "@/db/schema";
+import { and, eq, isNull } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -29,31 +29,11 @@ export default async function EventRegistrationPage({ params }: { params: Promis
   const vgLeaderId = session.vgLeaderId;
   const eventId = event.id;
 
-  const [[existingReg], myGroups] = await Promise.all([
-    db
-      .select()
-      .from(eventRegistrations)
-      .where(and(eq(eventRegistrations.eventId, eventId), eq(eventRegistrations.vgLeaderId, vgLeaderId)))
-      .limit(1),
-    db
-      .select()
-      .from(victoryGroups)
-      .where(and(eq(victoryGroups.vgLeaderId, vgLeaderId), isNull(victoryGroups.deletedAt))),
-  ]);
-
-  const groupIds = myGroups.map((g) => g.id);
-  const myInterns = groupIds.length
-    ? await db.select().from(interns).where(inArray(interns.victoryGroupId, groupIds))
-    : [];
-
-  let defaultInternIds: number[] = [];
-  if (existingReg) {
-    const rows = await db
-      .select({ internId: eventRegistrationInterns.internId })
-      .from(eventRegistrationInterns)
-      .where(eq(eventRegistrationInterns.eventRegistrationId, existingReg.id));
-    defaultInternIds = rows.map((r) => r.internId);
-  }
+  const [existingReg] = await db
+    .select()
+    .from(eventRegistrations)
+    .where(and(eq(eventRegistrations.eventId, eventId), eq(eventRegistrations.vgLeaderId, vgLeaderId)))
+    .limit(1);
 
   const dateStr = new Date(event.eventDate + "T00:00:00").toLocaleDateString("en-PH", {
     weekday: "long",
@@ -79,13 +59,7 @@ export default async function EventRegistrationPage({ params }: { params: Promis
         {event.description && <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">{event.description}</p>}
       </div>
 
-      <EventRegistrationForm
-        eventId={eventId}
-        audience={event.audience}
-        defaultWillAttend={existingReg?.willAttend ?? null}
-        interns={myInterns.map((i) => ({ id: i.id, lastName: i.lastName, firstName: i.firstName }))}
-        defaultInternIds={defaultInternIds}
-      />
+      <EventRegistrationForm eventId={eventId} audience={event.audience} defaultWillAttend={existingReg?.willAttend ?? null} />
     </div>
   );
 }

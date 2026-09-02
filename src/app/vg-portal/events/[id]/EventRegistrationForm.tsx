@@ -5,42 +5,21 @@ import { useRouter } from "next/navigation";
 import { registerForEvent } from "../actions";
 import { useToast } from "@/components/toast/ToastProvider";
 
-interface InternOption {
-  id: number;
-  lastName: string;
-  firstName: string;
-}
-
 export function EventRegistrationForm({
   eventId,
   audience,
   defaultWillAttend,
-  interns,
-  defaultInternIds,
 }: {
   eventId: number;
   audience: ("vg_leader" | "intern")[];
   defaultWillAttend: boolean | null;
-  interns: InternOption[];
-  defaultInternIds: number[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const toast = useToast();
   const [willAttend, setWillAttend] = useState<boolean | null>(defaultWillAttend);
-  const [selectedInternIds, setSelectedInternIds] = useState<Set<number>>(new Set(defaultInternIds));
 
   const showAttendance = audience.includes("vg_leader");
-  const showInterns = audience.includes("intern") && interns.length > 0 && willAttend === true;
-
-  function toggleIntern(id: number) {
-    setSelectedInternIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -83,29 +62,6 @@ export function EventRegistrationForm({
             >
               I won&apos;t be able to attend
             </button>
-          </div>
-        </div>
-      )}
-
-      {showInterns && (
-        <div>
-          <p className="text-sm font-medium text-gray-700 mb-2">Which of your interns will attend?</p>
-          <div className="flex flex-col gap-2">
-            {interns.map((i) => (
-              <label
-                key={i.id}
-                className="flex items-center gap-2.5 rounded-lg border border-gray-200 px-4 py-2.5 cursor-pointer hover:bg-gray-50"
-              >
-                <input
-                  type="checkbox"
-                  name="internId"
-                  value={i.id}
-                  checked={selectedInternIds.has(i.id)}
-                  onChange={() => toggleIntern(i.id)}
-                />
-                <span className="text-sm text-gray-900">{i.lastName}, {i.firstName}</span>
-              </label>
-            ))}
           </div>
         </div>
       )}

@@ -72,7 +72,7 @@ export default async function EventsPage() {
         {eventRows.length === 0 ? (
           <p className="text-sm text-gray-400">No events yet.</p>
         ) : (
-          eventRows.map((e) => <EventCard key={e.id} event={e} isDeveloper={isDeveloper} />)
+          eventRows.map((e) => <EventCard key={e.id} event={e} />)
         )}
       </div>
     </div>

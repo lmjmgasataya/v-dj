@@ -18,7 +18,11 @@ export function ServiceWorkerRegister({ enabled }: { enabled: boolean }) {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
 
-    if (!enabled) {
+    // Next dev-server chunk URLs aren't reliably content-hashed/immutable the way
+    // production builds are, so a cache-first SW here will happily keep serving a
+    // stale JS bundle across edits — causing hydration mismatches against the
+    // freshly rendered (and freshly coded) server HTML. Never register in dev.
+    if (!enabled || process.env.NODE_ENV !== "production") {
       navigator.serviceWorker.getRegistrations().then((regs) => {
         regs.forEach((reg) => reg.unregister());
       });

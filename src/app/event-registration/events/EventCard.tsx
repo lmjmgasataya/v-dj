@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { EventDoneCheckbox } from "./EventDoneCheckbox";
 import { getEventShareToken } from "./actions";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -23,7 +22,7 @@ interface EventRow {
   preregisteredCount: number;
 }
 
-export function EventCard({ event: e, isDeveloper }: { event: EventRow; isDeveloper: boolean }) {
+export function EventCard({ event: e }: { event: EventRow }) {
   const router = useRouter();
   const toast = useToast();
   const [copying, setCopying] = useState<"vg_leader" | "intern" | null>(null);
@@ -94,7 +93,7 @@ export function EventCard({ event: e, isDeveloper }: { event: EventRow; isDevelo
               handleCopyLink("vg_leader");
             }}
             disabled={copying !== null}
-            className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline disabled:opacity-50 shrink-0"
+            className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 border border-indigo-300 bg-white px-3 py-1.5 rounded-lg transition disabled:opacity-50 shrink-0"
           >
             {copying === "vg_leader" ? "Copying..." : "Copy VGL Link"}
           </button>
@@ -106,19 +105,10 @@ export function EventCard({ event: e, isDeveloper }: { event: EventRow; isDevelo
                 handleCopyLink("intern");
               }}
               disabled={copying !== null}
-              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline disabled:opacity-50 shrink-0"
+              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 border border-indigo-300 bg-white px-3 py-1.5 rounded-lg transition disabled:opacity-50 shrink-0"
             >
               {copying === "intern" ? "Copying..." : "Copy Intern Link"}
             </button>
-          )}
-          {isDeveloper && (
-            <Link
-              href={`/event-registration/events/${e.id}/edit`}
-              onClick={(ev) => ev.stopPropagation()}
-              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline"
-            >
-              Edit
-            </Link>
           )}
           <span className="text-gray-300">›</span>
         </div>

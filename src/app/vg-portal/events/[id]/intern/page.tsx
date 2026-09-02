@@ -2,7 +2,6 @@ import { db } from "@/db";
 import { events } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { InternRegistrationForm } from "./InternRegistrationForm";
 
 export default async function InternEventRegistrationPage({ params }: { params: Promise<{ id: string }> }) {
@@ -28,7 +27,6 @@ export default async function InternEventRegistrationPage({ params }: { params: 
   return (
     <div className="max-w-3xl mx-auto flex flex-col gap-6">
       <div>
-        <Breadcrumbs items={[{ label: "Home", href: "/vg-portal" }, { label: event.name }]} />
         <h2 className="text-2xl font-bold text-gray-900">{event.name}</h2>
         <p className="text-sm text-gray-500 mt-1">{dateStr}</p>
         {event.description && <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">{event.description}</p>}

@@ -2,11 +2,10 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Geist } from "next/font/google";
 import { getSession } from "@/lib/auth";
-import { logout } from "@/app/login/actions";
 import { NavigationProgress } from "@/components/NavigationProgress";
 import { ToastProvider } from "@/components/toast/ToastProvider";
 import { FlashToastBridge } from "@/components/toast/FlashToastBridge";
-import { HeaderBrand } from "@/components/HeaderBrand";
+import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"] });
@@ -27,24 +26,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <FlashToastBridge />
           </Suspense>
           <NavigationProgress />
-          <header className="text-white shadow" style={{ backgroundColor: "#00428E" }}>
-            <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-              <HeaderBrand isVgLeaderSession={session?.role === "vg_leader"} />
-              {session && (
-                <div className="flex items-center gap-4">
-                  <span className="text-xs text-indigo-200 capitalize">{session.name}</span>
-                  <form action={logout}>
-                    <button
-                      type="submit"
-                      className="text-xs text-indigo-300 hover:text-white underline underline-offset-2 transition"
-                    >
-                      Sign out
-                    </button>
-                  </form>
-                </div>
-              )}
-            </div>
-          </header>
+          <SiteHeader session={session ? { name: session.name, role: session.role } : null} />
           <main className="max-w-5xl mx-auto px-4 py-8">{children}</main>
         </ToastProvider>
       </body>

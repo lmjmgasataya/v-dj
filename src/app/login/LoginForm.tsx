@@ -56,7 +56,7 @@ export default function LoginForm() {
             href="/vg-portal/claim"
             className="text-xs text-center text-gray-400 hover:text-gray-600 underline underline-offset-2"
           >
-            VG Leader? Go to the VG Portal
+            VG Leader? Go to the VG Leader Portal
           </a>
         </form>
       </div>

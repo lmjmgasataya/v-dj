@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeProfileProgress } from "@/lib/profileCompleteness";
 import { getProfileUpdateQuarters, type QuarterCardStatus } from "@/lib/vgQuarters";
+import { ProfileFreshnessBanner } from "./ProfileFreshnessBanner";
 
 const AUDIENCE_LABEL: Record<string, string> = {
   vg_leader: "VG Leaders",
@@ -22,6 +23,12 @@ const QUARTER_STATUS_LABEL: Record<QuarterCardStatus, string> = {
   updated: "Updated",
   incomplete: "Incomplete",
   not_updated: "Not Updated",
+};
+
+const QUARTER_MONTHS: Record<string, string> = {
+  q1: "Jan–Mar",
+  q2: "Apr–Jun",
+  q3: "Jul–Sep",
 };
 
 export default async function VgPortalDashboardPage() {
@@ -108,9 +115,15 @@ export default async function VgPortalDashboardPage() {
         </div>
       )}
 
+      <ProfileFreshnessBanner
+        updatedAt={leader.updatedAt}
+        isActive={leader.isActive}
+        profileCompleted={leader.profileCompleted}
+      />
+
       <div>
         <p className="text-base font-semibold text-gray-700 mb-1">Profile Updating</p>
-        <p className="text-sm text-gray-400 mb-3">Confirm your profile once each quarter (Jan–Mar, Apr–Jun, Jul–Sep).</p>
+        <p className="text-sm text-gray-400 mb-3">Confirm your profile once each quarter.</p>
         <div className="grid grid-cols-1 gap-4">
           {quarters.map((q) => {
             const cardClass =
@@ -121,7 +134,10 @@ export default async function VgPortalDashboardPage() {
 
             const content = (
               <>
-                <span className="font-semibold text-gray-900 text-base">{q.label}</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-semibold text-gray-900 text-base">{q.label}</span>
+                  <span className="text-sm text-gray-400">({QUARTER_MONTHS[q.key]})</span>
+                </div>
                 <span className={`text-sm font-medium w-fit px-2.5 py-1 rounded-full ${QUARTER_STATUS_BADGE[q.status]}`}>
                   {q.status === "incomplete" ? `${q.percent}% Complete` : QUARTER_STATUS_LABEL[q.status]}
                 </span>

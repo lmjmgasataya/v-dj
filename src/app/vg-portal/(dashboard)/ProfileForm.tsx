@@ -5,9 +5,9 @@ import { updateOwnProfile } from "./actions";
 import { Field, Section, CheckboxOption, RadioOption, inputCls, selectCls, SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
 import { OwnVgLeaderField } from "@/components/OwnVgLeaderField";
 import { LeadershipGroupMembersField, type MemberRowValue } from "@/components/LeadershipGroupMembersField";
-import type { VictoryGroupLeader } from "@/db/schema";
+import { MyVictoryGroups } from "./MyVictoryGroups";
+import type { VictoryGroupLeader, VictoryGroup } from "@/db/schema";
 import { lifestageEnum } from "@/db/schema";
-import { useToast } from "@/components/toast/ToastProvider";
 import { computeProfileProgress } from "@/lib/profileCompleteness";
 
 function ReviewRow({ label, value, span }: { label: string; value?: string | null; span?: boolean }) {
@@ -34,13 +34,16 @@ export function ProfileForm({
   leader,
   hasActiveGroup,
   leadershipGroupMembers,
+  groups,
+  internsByGroup,
 }: {
   leader: VictoryGroupLeader;
   hasActiveGroup: boolean;
   leadershipGroupMembers: MemberRowValue[];
+  groups: VictoryGroup[];
+  internsByGroup: Record<number, { lastName: string; firstName: string }[]>;
 }) {
   const [pending, startTransition] = useTransition();
-  const toast = useToast();
   const completedSteps = (leader.discipleshipJourneyCompleted ?? "").split(",").filter(Boolean);
   const { percent, missing } = computeProfileProgress(leader, hasActiveGroup);
   const [ownVgLeaderLastName, ownVgLeaderFirstName] = (leader.ownVgLeaderName ?? "").split(",").map((s) => s.trim());
@@ -71,8 +74,6 @@ export function ProfileForm({
     });
     startTransition(async () => {
       await updateOwnProfile(fd);
-      toast.show("Profile updated.", "success");
-      setStep("form");
     });
   }
 
@@ -105,8 +106,8 @@ export function ProfileForm({
       )}
 
       {/* ---- FORM (always mounted; hidden while reviewing so values are preserved) ---- */}
-      <div className={step === "review" ? "hidden" : ""}>
-        <form ref={formRef} onSubmit={handleFormSubmit} className="flex flex-col gap-6">
+      <div className={`flex flex-col gap-6 ${step === "review" ? "hidden" : ""}`}>
+        <form ref={formRef} id="profile-form" onSubmit={handleFormSubmit} className="flex flex-col gap-6">
           <Section title="My Information" description="Your last name is on file with an admin — contact one to change it.">
             <Field label="Last Name">
               <p className="text-sm text-gray-700 py-2">{leader.lastName}</p>
@@ -162,7 +163,7 @@ export function ProfileForm({
               required
             />
             <div className="sm:col-span-2 border-t border-gray-100 pt-3">
-              <CheckboxOption name="isActive" defaultChecked={leader.isActive} align="start">
+              <CheckboxOption name="isActive" defaultChecked={leader.isActive} align="start" labelClassName="font-semibold">
                 I am actively leading a Victory Group
               </CheckboxOption>
             </div>
@@ -252,16 +253,19 @@ export function ProfileForm({
               </div>
             </div>
           </Section>
-
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              className="bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition"
-            >
-              Review Changes
-            </button>
-          </div>
         </form>
+
+        <MyVictoryGroups groups={groups} internsByGroup={internsByGroup} />
+
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            form="profile-form"
+            className="bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition"
+          >
+            Review Changes
+          </button>
+        </div>
       </div>
 
       {/* ---- REVIEW ---- */}

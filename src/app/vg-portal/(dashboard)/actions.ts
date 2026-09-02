@@ -19,6 +19,7 @@ import { recomputeProfileCompleted } from "@/lib/vgLeaderProfile";
 import { resolveOwnVgLeader } from "@/lib/ownVgLeader";
 import { replaceGroupInterns } from "@/lib/interns";
 import { resolveLeadershipGroupMembers, replaceLeadershipGroupMembers } from "@/lib/leadershipGroupMembers";
+import { toastRedirect } from "@/lib/toast";
 
 type Day = (typeof dayOfWeekEnum.enumValues)[number];
 type Frequency = (typeof vgFrequencyEnum.enumValues)[number];
@@ -136,4 +137,6 @@ export async function updateOwnProfile(formData: FormData) {
   await recomputeProfileCompleted(session.vgLeaderId);
   revalidatePath("/vg-portal");
   revalidatePath("/vg-portal/profile");
+
+  toastRedirect("/vg-portal", "Profile updated.");
 }

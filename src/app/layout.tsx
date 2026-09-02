@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Geist } from "next/font/google";
-import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
 import { NavigationProgress } from "@/components/NavigationProgress";
 import { ToastProvider } from "@/components/toast/ToastProvider";
 import { FlashToastBridge } from "@/components/toast/FlashToastBridge";
+import { HeaderBrand } from "@/components/HeaderBrand";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"] });
@@ -29,12 +29,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <NavigationProgress />
           <header className="text-white shadow" style={{ backgroundColor: "#00428E" }}>
             <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-              <Link href={session?.role === "vg_leader" ? "/vg-portal" : "/"} className="hover:opacity-80 transition">
-                <p className="text-xs font-medium text-indigo-200 uppercase tracking-widest">Victory Iloilo</p>
-                <h1 className="text-lg font-bold leading-tight">
-                  {session?.role === "vg_leader" ? "VG Portal" : "Discipleship Database"}
-                </h1>
-              </Link>
+              <HeaderBrand isVgLeaderSession={session?.role === "vg_leader"} />
               {session && (
                 <div className="flex items-center gap-4">
                   <span className="text-xs text-indigo-200 capitalize">{session.name}</span>

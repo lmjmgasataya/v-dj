@@ -4,8 +4,6 @@ import { getSession } from "@/lib/auth";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { ProfileForm } from "../ProfileForm";
-import { MyVictoryGroups } from "../MyVictoryGroups";
-import { ProfileFreshnessBanner } from "../ProfileFreshnessBanner";
 
 export default async function VgPortalProfilePage() {
   const session = await getSession();
@@ -47,35 +45,20 @@ export default async function VgPortalProfilePage() {
 
   return (
     <>
-      <ProfileFreshnessBanner updatedAt={leader.updatedAt} />
-
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">My Victory Group</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {leader.lastName}, {leader.firstName}
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-1.5 shrink-0">
-          <span
-            className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-              leader.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-            }`}
-          >
-            {leader.isActive ? "Actively Leading" : "Not Currently Leading"}
-          </span>
-          <span
-            className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-              leader.profileCompleted ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
-            }`}
-          >
-            {leader.profileCompleted ? "Profile complete" : "Finish setting up your profile"}
-          </span>
-        </div>
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900">My Victory Group</h2>
+        <p className="text-sm text-gray-500 mt-0.5">
+          {leader.lastName}, {leader.firstName}
+        </p>
       </div>
 
-      <ProfileForm leader={leader} hasActiveGroup={hasActiveGroup} leadershipGroupMembers={lglMemberRows} />
-      <MyVictoryGroups groups={groups} internsByGroup={internsByGroup} />
+      <ProfileForm
+        leader={leader}
+        hasActiveGroup={hasActiveGroup}
+        leadershipGroupMembers={lglMemberRows}
+        groups={groups}
+        internsByGroup={internsByGroup}
+      />
     </>
   );
 }

@@ -22,8 +22,8 @@ export function isInternSet(intern: string | null): boolean {
  * by service bucket and gender) from live data, plus the underlying leader/group detail behind
  * each count (for report drill-down). A VG leader is a Leadership Group Leader when they've
  * self-declared it (`isLeadershipGroupLeader`) — bucketed by their own service, not their members'.
- * A VG leader counts as active for this report when they've updated their profile within the last
- * quarter (`isQuarterlyActive`), independent of whether they currently own any Victory Group.
+ * A VG leader counts as active for this report when they're currently leading a Victory Group
+ * (`isActive`) and have updated their profile within the last quarter (`isQuarterlyActive`).
  */
 export async function computeVgSnapshotCounts(): Promise<
   Pick<VgSnapshotData, "byService" | "totals" | "vglByGender" | "genderTotals" | "detailsByService" | "totalsDetail">
@@ -37,6 +37,7 @@ export async function computeVgSnapshotCounts(): Promise<
         gender: victoryGroupLeaders.gender,
         serviceAttending: victoryGroupLeaders.serviceAttending,
         isLeadershipGroupLeader: victoryGroupLeaders.isLeadershipGroupLeader,
+        isActive: victoryGroupLeaders.isActive,
         updatedAt: victoryGroupLeaders.updatedAt,
       })
       .from(victoryGroupLeaders)
@@ -101,8 +102,8 @@ export async function computeVgSnapshotCounts(): Promise<
     }
   }
 
-  // VG Leaders / gender — active means "updated within the last quarter", regardless of
-  // whether they currently own any Victory Group.
+  // VG Leaders / gender — active means currently leading a Victory Group and having
+  // updated their profile within the last quarter.
   const vglByGender: Record<VgServiceBucket, { male: number; female: number }> = {
     "9AM & 11AM": { male: 0, female: 0 },
     "2PM & 4PM": { male: 0, female: 0 },
@@ -111,6 +112,7 @@ export async function computeVgSnapshotCounts(): Promise<
   };
 
   for (const leader of leaders) {
+    if (!leader.isActive) continue;
     if (!isQuarterlyActive(leader.updatedAt)) continue;
     const bucket = serviceToBucket(leader.serviceAttending);
     if (!bucket) continue;

@@ -4,12 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV = [
-  { href: "/manage-vg-leaders/leaders", label: "VG Leaders" },
   { href: "/manage-vg-leaders/disciplers", label: "Disciplers" },
   { href: "/manage-vg-leaders/interns", label: "Interns" },
-  { href: "/manage-vg-leaders/report", label: "Report" },
-  { href: "/manage-vg-leaders/vg-report", label: "Victory Group" },
-  { href: "/manage-vg-leaders/quarterly-report", label: "Quarterly Report" },
 ];
 
 export function ManageVgLeadersNav() {

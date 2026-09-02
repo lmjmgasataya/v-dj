@@ -281,6 +281,13 @@
       "when": 1788311122419,
       "tag": "0039_odd_changeling",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1788317748427,
+      "tag": "0040_events_description",
+      "breakpoints": true
     }
   ]
 }

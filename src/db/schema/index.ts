@@ -198,6 +198,7 @@ export const eventAudienceEnum = pgEnum("event_audience", ["vg_leader", "intern"
 export const events = pgTable("events", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  description: text("description"),
   eventDate: date("event_date").notNull(),
   isDone: boolean("is_done").default(false).notNull(),
   audience: eventAudienceEnum("audience").array().notNull(),

@@ -44,6 +44,19 @@ export function EditEventForm({ event, newDatePicker }: { event: Event; newDateP
         </div>
 
         <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+            Description <span className="normal-case text-gray-400">(optional)</span>
+          </label>
+          <textarea
+            name="description"
+            rows={3}
+            defaultValue={event.description ?? ""}
+            placeholder="Details attendees should know about this event"
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Event Date</label>
           <DatePickerField
             name="eventDate"

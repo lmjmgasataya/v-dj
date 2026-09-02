@@ -15,6 +15,7 @@ export default async function EventsPage() {
       .select({
         id: events.id,
         name: events.name,
+        description: events.description,
         eventDate: events.eventDate,
         isDone: events.isDone,
         audience: events.audience,

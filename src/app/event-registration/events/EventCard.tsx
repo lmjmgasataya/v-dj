@@ -15,6 +15,7 @@ const AUDIENCE_LABEL: Record<string, string> = {
 interface EventRow {
   id: number;
   name: string;
+  description: string | null;
   eventDate: string;
   isDone: boolean;
   audience: ("vg_leader" | "intern")[];
@@ -75,6 +76,7 @@ export function EventCard({ event: e, isDeveloper }: { event: EventRow; isDevelo
             ))}
           </div>
           <span className="text-sm text-gray-500">{dateStr}</span>
+          {e.description && <span className="text-sm text-gray-500 truncate">{e.description}</span>}
         </div>
         <div className="flex items-center gap-4 shrink-0 ml-4">
           <div className="text-right">

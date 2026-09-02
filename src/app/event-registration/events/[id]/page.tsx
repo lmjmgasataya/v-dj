@@ -72,6 +72,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
             ))}
           </div>
           <p className="text-sm text-gray-500 mt-1">{dateStr}</p>
+          {event.description && <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">{event.description}</p>}
         </div>
         {isDeveloper && (
           <Link

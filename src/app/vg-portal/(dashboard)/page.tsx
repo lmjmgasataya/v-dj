@@ -46,7 +46,7 @@ export default async function VgPortalDashboardPage() {
   const quarters = getProfileUpdateQuarters(leader.updatedAt, percent);
 
   const upcomingEvents = await db
-    .select({ id: events.id, name: events.name, eventDate: events.eventDate, audience: events.audience })
+    .select({ id: events.id, name: events.name, description: events.description, eventDate: events.eventDate, audience: events.audience })
     .from(events)
     .where(and(isNull(events.deletedAt), eq(events.isDone, false)))
     .orderBy(events.eventDate);
@@ -89,6 +89,7 @@ export default async function VgPortalDashboardPage() {
                     ))}
                   </div>
                   <span className="text-sm text-gray-500">{dateStr}</span>
+                  {e.description && <span className="text-sm text-gray-600">{e.description}</span>}
                   <span
                     className={`text-sm font-medium w-fit px-2.5 py-1 rounded-full ${
                       registered === true

@@ -187,17 +187,16 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
           <h3 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">Discipleship Journey</h3>
         </div>
         <div className="p-6 flex flex-col gap-4">
-          <div className="flex flex-wrap gap-2">
-            {DISCIPLESHIP_JOURNEY_STEPS.map((s) => (
-              <span
-                key={s}
-                className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                  completedSteps.includes(s) ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"
-                }`}
-              >
-                {s}
-              </span>
-            ))}
+          <div className="flex flex-col gap-1.5">
+            {DISCIPLESHIP_JOURNEY_STEPS.map((s) => {
+              const done = completedSteps.includes(s);
+              return (
+                <div key={s} className="flex items-center gap-2 text-sm">
+                  <span className={done ? "text-green-600" : "text-gray-300"}>{done ? "✓" : "○"}</span>
+                  <span className={done ? "text-gray-900" : "text-gray-400"}>{s}</span>
+                </div>
+              );
+            })}
           </div>
           <Row
             label="Graduate of Leadership 113?"

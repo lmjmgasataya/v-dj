@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function PinInput({
   name,
@@ -13,6 +13,18 @@ export function PinInput({
 }) {
   const [digits, setDigits] = useState<string[]>(Array(length).fill(""));
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+
+  // The `autoFocus` attribute alone is unreliable here: this component usually
+  // mounts after an async server action resolves (e.g. checkIdentity), so by the
+  // time React commits, the browser is no longer inside the original tap's call
+  // stack — mobile browsers can silently skip the focus. Re-assert it post-paint.
+  useEffect(() => {
+    if (!autoFocus) return;
+    const raf = requestAnimationFrame(() => {
+      inputsRef.current[0]?.focus();
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [autoFocus]);
 
   function setDigit(index: number, raw: string) {
     const clean = raw.replace(/\D/g, "");

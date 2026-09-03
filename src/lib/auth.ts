@@ -9,7 +9,7 @@ function secret() {
   );
 }
 
-export type Role = "admin_volunteer" | "developer" | "vg_leader";
+export type Role = "admin_volunteer" | "developer" | "vg_leader" | "lead_pastor";
 
 export interface SessionPayload {
   userId: number;

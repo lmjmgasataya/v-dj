@@ -12,6 +12,7 @@ export default async function ParticipantsPage({
 }) {
   const [{ q = "", page: pageParam, lifestage = "", fee = "", gender = "", service = "", previousChurch = "", waterBaptism = "", victoryWeekend = "" }, session] = await Promise.all([searchParams, getSession()]);
   const isDeveloper = session?.role === "developer";
+  const isLeadPastor = session?.role === "lead_pastor";
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
 
   return (
@@ -35,7 +36,9 @@ export default async function ParticipantsPage({
             >
               <span>↓</span> Export Excel
             </a>
-            <Link href="/participants/deleted" className="text-xs text-gray-400 hover:text-gray-600 hover:underline">View deleted</Link>
+            {!isLeadPastor && (
+              <Link href="/participants/deleted" className="text-xs text-gray-400 hover:text-gray-600 hover:underline">View deleted</Link>
+            )}
           </div>
         </div>
       </div>

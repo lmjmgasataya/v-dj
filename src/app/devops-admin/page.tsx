@@ -172,6 +172,7 @@ export default async function DevopsAdminPage() {
                     <option value="admin_volunteer">admin_volunteer</option>
                     <option value="developer">developer</option>
                     <option value="vg_leader">vg_leader</option>
+                    <option value="lead_pastor">lead_pastor</option>
                   </select>
                   <button type="submit" className="text-xs px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
                     Save role
@@ -231,6 +232,7 @@ export default async function DevopsAdminPage() {
               <select name="role" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white">
                 <option value="admin_volunteer">admin_volunteer</option>
                 <option value="developer">developer</option>
+                <option value="lead_pastor">lead_pastor</option>
               </select>
             </div>
             <div className="col-span-2">

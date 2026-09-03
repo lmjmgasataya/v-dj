@@ -271,7 +271,7 @@ export const internEventRegistrations = pgTable(
   (t) => [unique().on(t.eventId, t.internId)]
 );
 
-export const roleEnum = pgEnum("user_role", ["admin_volunteer", "developer", "vg_leader"]);
+export const roleEnum = pgEnum("user_role", ["admin_volunteer", "developer", "vg_leader", "lead_pastor"]);
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),

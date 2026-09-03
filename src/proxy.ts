@@ -25,6 +25,17 @@ const PUBLIC_PATHS = [/^\/login/, /^\/vg-portal\/claim/, /^\/vg-portal\/login/, 
 
 const VG_LEADER_ALLOWED = [/^\/vg-portal/, /^\/api\/vg-leaders/];
 
+const LEAD_PASTOR_ALLOWED = [
+  /^\/$/,
+  /^\/journey/,
+  /^\/participants$/,
+  /^\/api\/participants\/export/,
+  /^\/sessions$/,
+  /^\/sessions\/\d+$/,
+  /^\/report(\/.*)?$/,
+  /^\/api\/report/,
+];
+
 function loginRedirect(request: NextRequest, pathname: string) {
   if (pathname.startsWith("/vg-portal")) {
     const callbackUrl = encodeURIComponent(pathname + request.nextUrl.search);
@@ -50,6 +61,13 @@ export default async function proxy(request: NextRequest) {
     if (role === "vg_leader") {
       if (!VG_LEADER_ALLOWED.some((re) => re.test(pathname))) {
         return NextResponse.redirect(new URL("/vg-portal", request.url));
+      }
+      return NextResponse.next();
+    }
+
+    if (role === "lead_pastor") {
+      if (!LEAD_PASTOR_ALLOWED.some((re) => re.test(pathname))) {
+        return NextResponse.redirect(new URL("/journey", request.url));
       }
       return NextResponse.next();
     }

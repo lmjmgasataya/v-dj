@@ -10,6 +10,7 @@ export default async function JourneyPortalPage() {
   const session = await getSession();
   if (!session) redirect("/");
   const isDeveloper = session.role === "developer";
+  const isLeadPastor = session.role === "lead_pastor";
 
   const smsSenderFlag = isDeveloper
     ? await db.select().from(featureFlags).where(eq(featureFlags.key, "sms_sender")).then((r) => r[0])
@@ -25,14 +26,16 @@ export default async function JourneyPortalPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Link
-          href="/register"
-          className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
-        >
-          <span className="text-4xl">📋</span>
-          <span className="text-lg font-semibold text-gray-900 text-center">Register</span>
-          <span className="text-sm text-gray-500 text-center">Enroll a new participant</span>
-        </Link>
+        {!isLeadPastor && (
+          <Link
+            href="/register"
+            className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
+          >
+            <span className="text-4xl">📋</span>
+            <span className="text-lg font-semibold text-gray-900 text-center">Register</span>
+            <span className="text-sm text-gray-500 text-center">Enroll a new participant</span>
+          </Link>
+        )}
         <Link
           href="/participants"
           className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
@@ -41,21 +44,23 @@ export default async function JourneyPortalPage() {
           <span className="text-lg font-semibold text-gray-900 text-center">Participants</span>
           <span className="text-sm text-gray-500 text-center">{isDeveloper ? "View and edit all records" : "View all records"}</span>
         </Link>
-        <Link
-          href="/admin"
-          className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
-        >
-          <span className="text-4xl">✅</span>
-          <span className="text-lg font-semibold text-gray-900 text-center">Check-in</span>
-          <span className="text-sm text-gray-500 text-center">Search and record attendance</span>
-        </Link>
+        {!isLeadPastor && (
+          <Link
+            href="/admin"
+            className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
+          >
+            <span className="text-4xl">✅</span>
+            <span className="text-lg font-semibold text-gray-900 text-center">Check-in</span>
+            <span className="text-sm text-gray-500 text-center">Search and record attendance</span>
+          </Link>
+        )}
         <Link
           href="/sessions"
           className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
         >
           <span className="text-4xl">📅</span>
           <span className="text-lg font-semibold text-gray-900 text-center">Sessions</span>
-          <span className="text-sm text-gray-500 text-center">Manage sessions and batches</span>
+          <span className="text-sm text-gray-500 text-center">{isLeadPastor ? "View sessions" : "Manage sessions and batches"}</span>
         </Link>
         <Link
           href="/report"
@@ -65,14 +70,16 @@ export default async function JourneyPortalPage() {
           <span className="text-lg font-semibold text-gray-900 text-center">Report</span>
           <span className="text-sm text-gray-500 text-center">Attendance completion matrix</span>
         </Link>
-        <Link
-          href="/table-management"
-          className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
-        >
-          <span className="text-4xl">🪑</span>
-          <span className="text-lg font-semibold text-gray-900 text-center">Table Management</span>
-          <span className="text-sm text-gray-500 text-center">Seating assignments and capacity</span>
-        </Link>
+        {!isLeadPastor && (
+          <Link
+            href="/table-management"
+            className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
+          >
+            <span className="text-4xl">🪑</span>
+            <span className="text-lg font-semibold text-gray-900 text-center">Table Management</span>
+            <span className="text-sm text-gray-500 text-center">Seating assignments and capacity</span>
+          </Link>
+        )}
         {isDeveloper && (
           <Link
             href="/participants/print-ids"

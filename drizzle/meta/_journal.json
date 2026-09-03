@@ -309,6 +309,13 @@
       "when": 1788418567067,
       "tag": "0043_luxuriant_songbird",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1788422779974,
+      "tag": "0044_third_loki",
+      "breakpoints": true
     }
   ]
 }

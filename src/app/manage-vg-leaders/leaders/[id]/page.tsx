@@ -42,7 +42,7 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
 
   const groupIds = groups.map((g) => g.id);
   const internRows = groupIds.length
-    ? await db.select().from(interns).where(inArray(interns.victoryGroupId, groupIds))
+    ? await db.select().from(interns).where(and(inArray(interns.victoryGroupId, groupIds), isNull(interns.deletedAt)))
     : [];
   const internsByGroup: Record<number, { lastName: string; firstName: string }[]> = {};
   for (const i of internRows) {

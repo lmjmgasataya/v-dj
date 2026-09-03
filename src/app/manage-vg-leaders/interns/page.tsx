@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { interns, victoryGroups, victoryGroupLeaders } from "@/db/schema";
-import { isNull, eq } from "drizzle-orm";
+import { and, isNull, eq } from "drizzle-orm";
 
 export default async function InternsPage() {
   const rows = await db
@@ -17,7 +17,7 @@ export default async function InternsPage() {
     .from(interns)
     .innerJoin(victoryGroups, eq(interns.victoryGroupId, victoryGroups.id))
     .innerJoin(victoryGroupLeaders, eq(victoryGroups.vgLeaderId, victoryGroupLeaders.id))
-    .where(isNull(victoryGroups.deletedAt))
+    .where(and(isNull(victoryGroups.deletedAt), isNull(interns.deletedAt)))
     .orderBy(interns.lastName, interns.firstName);
 
   return (

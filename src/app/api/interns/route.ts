@@ -23,6 +23,7 @@ export async function GET(request: Request) {
     .where(
       and(
         isNull(victoryGroups.deletedAt),
+        isNull(interns.deletedAt),
         or(ilike(interns.lastName, `%${q}%`), ilike(interns.firstName, `%${q}%`))
       )
     )

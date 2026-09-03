@@ -54,7 +54,8 @@ export async function computeVgSnapshotCounts(): Promise<
       .where(and(eq(victoryGroups.isActive, true), isNull(victoryGroups.deletedAt), eq(victoryGroups.type, "victory_group"))),
     db
       .select({ victoryGroupId: interns.victoryGroupId, lastName: interns.lastName, firstName: interns.firstName })
-      .from(interns),
+      .from(interns)
+      .where(isNull(interns.deletedAt)),
   ]);
 
   const leaderById = new Map(leaders.map((l) => [l.id, l]));

@@ -113,6 +113,7 @@ export const interns = pgTable("interns", {
   lastName: text("last_name").notNull(),
   firstName: text("first_name").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 export const batches = pgTable("batches", {

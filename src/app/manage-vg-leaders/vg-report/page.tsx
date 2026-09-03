@@ -108,7 +108,7 @@ export default async function VictoryGroupReportPage({
 
   const pageGroupIds = pageGroups.map((g) => g.id);
   const internRows = pageGroupIds.length
-    ? await db.select().from(interns).where(inArray(interns.victoryGroupId, pageGroupIds))
+    ? await db.select().from(interns).where(and(inArray(interns.victoryGroupId, pageGroupIds), isNull(interns.deletedAt)))
     : [];
   const internsByGroup: Record<number, string> = {};
   for (const i of internRows) {

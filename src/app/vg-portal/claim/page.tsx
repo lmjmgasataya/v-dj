@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
@@ -17,6 +18,37 @@ async function getEventNameForCallback(callbackUrl: string | null): Promise<stri
     .where(isNumeric ? eq(events.id, Number(param)) : eq(events.shareToken, param))
     .limit(1);
   return event?.name ?? null;
+}
+
+// This is the page link previews (Messenger, Telegram, etc.) actually land on:
+// deep links like /vg-portal/profile redirect here for anyone without a session,
+// which is what unauthenticated preview crawlers always are.
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ callbackUrl?: string }>;
+}): Promise<Metadata> {
+  const { callbackUrl } = await searchParams;
+
+  if (callbackUrl?.startsWith("/vg-portal/profile")) {
+    return {
+      title: "Update Your VG Profile — Victory Iloilo",
+      description: "Confirm your info, Victory Groups, and quarterly update as a Victory Group Leader.",
+    };
+  }
+
+  const eventName = await getEventNameForCallback(callbackUrl ?? null);
+  if (eventName) {
+    return {
+      title: `Register for ${eventName} — Victory Iloilo`,
+      description: `Log in to the VG Leader Portal to register for ${eventName}.`,
+    };
+  }
+
+  return {
+    title: "VG Leader Portal — Victory Iloilo",
+    description: "Log in or set up your account to manage your Victory Group.",
+  };
 }
 
 export default async function ClaimPage({

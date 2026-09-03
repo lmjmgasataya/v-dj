@@ -1,9 +1,15 @@
+import type { Metadata } from "next";
 import { db } from "@/db";
 import { victoryGroupLeaders, victoryGroups, interns, leadershipGroupMembers } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { ProfileForm } from "../ProfileForm";
+
+export const metadata: Metadata = {
+  title: "My Victory Group — Victory Iloilo",
+  description: "Update your profile, Victory Groups, and quarterly check-in status.",
+};
 
 export default async function VgPortalProfilePage() {
   const session = await getSession();

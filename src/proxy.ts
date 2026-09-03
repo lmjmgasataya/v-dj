@@ -25,6 +25,14 @@ const PUBLIC_PATHS = [/^\/login/, /^\/vg-portal\/claim/, /^\/vg-portal\/login/, 
 
 const VG_LEADER_ALLOWED = [/^\/vg-portal/, /^\/api\/vg-leaders/];
 
+function loginRedirect(request: NextRequest, pathname: string) {
+  if (pathname.startsWith("/vg-portal")) {
+    const callbackUrl = encodeURIComponent(pathname + request.nextUrl.search);
+    return NextResponse.redirect(new URL(`/vg-portal/claim?callbackUrl=${callbackUrl}`, request.url));
+  }
+  return NextResponse.redirect(new URL("/login", request.url));
+}
+
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -32,7 +40,7 @@ export default async function proxy(request: NextRequest) {
 
   const token = request.cookies.get(COOKIE)?.value;
   if (!token) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return loginRedirect(request, pathname);
   }
 
   try {
@@ -52,7 +60,7 @@ export default async function proxy(request: NextRequest) {
 
     return NextResponse.next();
   } catch {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return loginRedirect(request, pathname);
   }
 }
 

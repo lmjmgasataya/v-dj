@@ -189,7 +189,7 @@ export function ProfileForm({
                 I am actively leading a Victory Group
               </CheckboxOption>
               <p className="text-xs text-amber-700 mt-1 ml-[26px]">
-                This determines whether your profile counts as complete — leave it checked only if you&apos;re currently leading.
+                Check this only if you&apos;re currently leading a Victory Group.
               </p>
             </div>
           </Section>

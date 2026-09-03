@@ -80,6 +80,7 @@ export function OwnVgLeaderField({
         <input
           ref={lastNameRef}
           name="ownVgLeaderLastName"
+          required={required}
           className={inputCls}
           autoComplete="off"
           value={lastName}
@@ -99,6 +100,7 @@ export function OwnVgLeaderField({
         <input
           ref={firstNameRef}
           name="ownVgLeaderFirstName"
+          required={required}
           className={inputCls}
           autoComplete="off"
           value={firstName}

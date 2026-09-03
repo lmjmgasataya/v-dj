@@ -25,6 +25,14 @@ const QUARTER_DEFS = [
  * - the live quarter -> derived from whether `updatedAt` falls within it and
  *   whether the profile is 100% complete; only this one is ever clickable.
  */
+/** The current live quarter checkpoint (Q1-Q3 only), or null when outside any checkpoint window (Q4). */
+export function getLiveQuarter(): { key: string; label: string } | null {
+  const year = currentYearPH();
+  const month = currentMonthPH();
+  const q = QUARTER_DEFS.find((q) => month >= q.startMonth && month <= q.endMonth);
+  return q ? { key: q.key, label: `${q.label} ${year}` } : null;
+}
+
 export function getProfileUpdateQuarters(updatedAt: Date, profilePercent: number): QuarterCard[] {
   const year = currentYearPH();
   const month = currentMonthPH();

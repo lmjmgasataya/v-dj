@@ -55,11 +55,28 @@ export function ProfileForm({
 
   function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const fd = new FormData(formRef.current!);
+
+    if (isLGL) {
+      const hasMember = Array.from(fd.keys()).some(
+        (k) => /^lgl_\d+_lastName$/.test(k) && ((fd.get(k) as string) || "").trim()
+      );
+      if (!hasMember) {
+        alert("Please add at least one VG Leader you lead.");
+        return;
+      }
+    }
+
+    if (fd.getAll("discipleshipJourneyCompleted").length === 0) {
+      alert("Please select at least one completed step in the Discipleship Journey.");
+      return;
+    }
+
     if (groups.length === 0) {
       alert("Please add at least one Victory Group or Leadership Group before continuing.");
       return;
     }
-    const fd = new FormData(formRef.current!);
+
     const data: Record<string, string | string[]> = {};
     for (const key of new Set(fd.keys())) {
       const values = fd.getAll(key) as string[];
@@ -120,23 +137,23 @@ export function ProfileForm({
               <input name="firstName" required defaultValue={leader.firstName} className={inputCls} />
             </Field>
             <Field label="Nickname" required>
-              <input name="nickname" defaultValue={leader.nickname ?? ""} className={inputCls} />
+              <input name="nickname" required defaultValue={leader.nickname ?? ""} className={inputCls} />
             </Field>
             <Field label="Mobile Number" required>
               <input name="mobileNumber" required defaultValue={leader.mobileNumber ?? ""} className={inputCls} />
             </Field>
             <Field label="Age" required>
-              <input name="age" type="number" min={1} max={120} defaultValue={leader.age ?? ""} className={inputCls} />
+              <input name="age" type="number" required min={1} max={120} defaultValue={leader.age ?? ""} className={inputCls} />
             </Field>
             <Field label="Gender" required>
-              <select name="gender" defaultValue={leader.gender ?? ""} className={selectCls}>
+              <select name="gender" required defaultValue={leader.gender ?? ""} className={selectCls}>
                 <option value="">— Select —</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
               </select>
             </Field>
             <Field label="Lifestage" required>
-              <select name="lifestage" defaultValue={leader.lifestage ?? ""} className={selectCls}>
+              <select name="lifestage" required defaultValue={leader.lifestage ?? ""} className={selectCls}>
                 <option value="">— Select —</option>
                 {lifestageEnum.enumValues.map((l) => (
                   <option key={l} value={l}>{l}</option>
@@ -144,7 +161,7 @@ export function ProfileForm({
               </select>
             </Field>
             <Field label="Service Attending" required>
-              <select name="serviceAttending" defaultValue={leader.serviceAttending ?? ""} className={selectCls}>
+              <select name="serviceAttending" required defaultValue={leader.serviceAttending ?? ""} className={selectCls}>
                 <option value="">— Select —</option>
                 {SERVICE_OPTIONS.map((s) => (
                   <option key={s} value={s}>{s}</option>
@@ -154,6 +171,7 @@ export function ProfileForm({
             <Field label="Facebook / Messenger Name" className="sm:col-span-2" required>
               <input
                 name="facebookMessengerName"
+                required
                 defaultValue={leader.facebookMessengerName ?? ""}
                 className={inputCls}
                 placeholder="e.g. Juan dela Cruz"
@@ -166,10 +184,13 @@ export function ProfileForm({
               defaultId={leader.ownVgLeaderId}
               required
             />
-            <div className="sm:col-span-2 border-t border-gray-100 pt-3">
-              <CheckboxOption name="isActive" defaultChecked={leader.isActive} align="start" labelClassName="font-semibold">
+            <div className="sm:col-span-2 mt-1 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+              <CheckboxOption name="isActive" defaultChecked={leader.isActive} align="start" labelClassName="font-semibold text-amber-900">
                 I am actively leading a Victory Group
               </CheckboxOption>
+              <p className="text-xs text-amber-700 mt-1 ml-[26px]">
+                This determines whether your profile counts as complete — leave it checked only if you&apos;re currently leading.
+              </p>
             </div>
           </Section>
 
@@ -181,12 +202,14 @@ export function ProfileForm({
                   name="startedLeadingVg"
                   value="before_this_year"
                   label="I started leading before this year"
+                  required
                   defaultChecked={leader.startedLeadingVg === "before_this_year"}
                 />
                 <RadioOption
                   name="startedLeadingVg"
                   value="this_year"
                   label="I started leading this year"
+                  required
                   defaultChecked={leader.startedLeadingVg === "this_year"}
                 />
               </div>
@@ -246,12 +269,14 @@ export function ProfileForm({
                   name="graduateOfLeadership113"
                   value="true"
                   label="Yes"
+                  required
                   defaultChecked={leader.graduateOfLeadership113 === true}
                 />
                 <RadioOption
                   name="graduateOfLeadership113"
                   value="false"
                   label="No"
+                  required
                   defaultChecked={leader.graduateOfLeadership113 === false}
                 />
               </div>

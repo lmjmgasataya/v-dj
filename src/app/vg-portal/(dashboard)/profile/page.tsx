@@ -7,7 +7,9 @@ import { ProfileForm } from "../ProfileForm";
 
 export default async function VgPortalProfilePage() {
   const session = await getSession();
-  if (!session || session.role !== "vg_leader" || !session.vgLeaderId) redirect("/");
+  if (!session || session.role !== "vg_leader" || !session.vgLeaderId) {
+    redirect("/vg-portal/claim?callbackUrl=/vg-portal/profile");
+  }
 
   const vgLeaderId = session.vgLeaderId;
 

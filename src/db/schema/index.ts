@@ -204,6 +204,7 @@ export const events = pgTable("events", {
   name: text("name").notNull(),
   description: text("description"),
   eventDate: date("event_date").notNull(),
+  registrationDeadline: date("registration_deadline"),
   isDone: boolean("is_done").default(false).notNull(),
   audience: eventAudienceEnum("audience").array().notNull(),
   shareToken: text("share_token").unique(),

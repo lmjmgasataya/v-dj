@@ -11,6 +11,7 @@ export async function updateEvent(id: number, _: unknown, formData: FormData) {
   const name = ((formData.get("name") as string) || "").trim();
   const description = ((formData.get("description") as string) || "").trim();
   const eventDate = formData.get("eventDate") as string;
+  const registrationDeadline = (formData.get("registrationDeadline") as string) || null;
   const audience = formData.getAll("audience") as Audience[];
   const isDone = formData.get("isDone") === "on";
 
@@ -19,7 +20,7 @@ export async function updateEvent(id: number, _: unknown, formData: FormData) {
 
   await db
     .update(events)
-    .set({ name, description: description || null, eventDate, audience, isDone })
+    .set({ name, description: description || null, eventDate, registrationDeadline, audience, isDone })
     .where(eq(events.id, id));
 
   toastRedirect("/event-registration/events", "Event updated.");

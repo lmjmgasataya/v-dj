@@ -121,33 +121,53 @@ export default async function RegistrationReportPage({
             <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
               <tr>
                 <th className="px-4 py-2 text-left font-medium">Service</th>
-                <th className="px-4 py-2 text-right font-medium">Total VGL</th>
-                <th className="px-4 py-2 text-right font-medium">Attending</th>
-                <th className="px-4 py-2 text-right font-medium">Declined</th>
-                <th className="px-4 py-2 text-right font-medium">Registered</th>
-                <th className="px-4 py-2 text-right font-medium">Did Not Register</th>
+                <th className="px-4 py-2 text-right font-bold">
+                  <span className="cursor-help border-b border-dotted border-gray-400" title="Total active VG leaders in this service">
+                    Total VGL
+                  </span>
+                </th>
+                <th className="px-4 py-2 text-right font-medium">
+                  <span className="cursor-help border-b border-dotted border-gray-400" title="Registered and said they will attend">
+                    Attending
+                  </span>
+                </th>
+                <th className="px-4 py-2 text-right font-medium">
+                  <span className="cursor-help border-b border-dotted border-gray-400" title="Registered and said they won't attend">
+                    Declined
+                  </span>
+                </th>
+                <th className="px-4 py-2 text-right font-medium">
+                  <span className="cursor-help border-b border-dotted border-gray-400" title="Attending + Declined — everyone who responded either way">
+                    Registered
+                  </span>
+                </th>
+                <th className="px-4 py-2 text-right font-medium">
+                  <span className="cursor-help border-b border-dotted border-gray-400" title="Have not responded yet">
+                    Did Not Register
+                  </span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {summary.map((s) => (
                 <tr key={s.service} className="hover:bg-gray-50">
                   <td className="px-4 py-2.5 font-medium text-gray-800">{s.service}</td>
-                  <td className="px-4 py-2.5 text-right text-gray-500">{s.total}</td>
-                  <td className="px-4 py-2.5 text-right text-gray-500">{s.attending}</td>
-                  <td className="px-4 py-2.5 text-right text-gray-500">{s.declined}</td>
+                  <td className="px-4 py-2.5 text-right font-bold text-gray-800">{s.total}</td>
+                  <td className="px-4 py-2.5 text-right text-green-700 bg-green-50">{s.attending}</td>
+                  <td className="px-4 py-2.5 text-right text-red-700 bg-red-50">{s.declined}</td>
                   <td className="px-4 py-2.5 text-right text-gray-500">{s.registered}</td>
-                  <td className="px-4 py-2.5 text-right text-gray-500">{s.didNotRegister}</td>
+                  <td className="px-4 py-2.5 text-right text-gray-600 bg-gray-100">{s.didNotRegister}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
               <tr className="border-t border-gray-200 font-semibold">
                 <td className="px-4 py-2.5 text-gray-800">Total</td>
-                <td className="px-4 py-2.5 text-right text-gray-800">{totals.total}</td>
-                <td className="px-4 py-2.5 text-right text-gray-800">{totals.attending}</td>
-                <td className="px-4 py-2.5 text-right text-gray-800">{totals.declined}</td>
+                <td className="px-4 py-2.5 text-right font-bold text-gray-800">{totals.total}</td>
+                <td className="px-4 py-2.5 text-right text-green-700 bg-green-50">{totals.attending}</td>
+                <td className="px-4 py-2.5 text-right text-red-700 bg-red-50">{totals.declined}</td>
                 <td className="px-4 py-2.5 text-right text-gray-800">{totals.registered}</td>
-                <td className="px-4 py-2.5 text-right text-gray-800">{totals.didNotRegister}</td>
+                <td className="px-4 py-2.5 text-right text-gray-600 bg-gray-100">{totals.didNotRegister}</td>
               </tr>
             </tfoot>
           </table>

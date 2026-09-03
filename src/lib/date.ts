@@ -6,6 +6,11 @@ export function todayPH(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: TZ });
 }
 
+/** Registration is open through the deadline date itself; closed starting the day after. */
+export function isRegistrationClosed(registrationDeadline: string | null): boolean {
+  return registrationDeadline != null && todayPH() > registrationDeadline;
+}
+
 export function currentYearPH(): number {
   return parseInt(todayPH().slice(0, 4), 10);
 }

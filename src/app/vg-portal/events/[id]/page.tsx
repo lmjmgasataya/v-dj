@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { EventRegistrationForm } from "./EventRegistrationForm";
+import { isRegistrationClosed } from "@/lib/date";
 
 const AUDIENCE_LABEL: Record<string, string> = {
   vg_leader: "VG Leaders",
@@ -42,6 +43,15 @@ export default async function EventRegistrationPage({ params }: { params: Promis
     year: "numeric",
     timeZone: "Asia/Manila",
   });
+  const registrationClosed = isRegistrationClosed(event.registrationDeadline);
+  const deadlineStr = event.registrationDeadline
+    ? new Date(event.registrationDeadline + "T00:00:00").toLocaleDateString("en-PH", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+        timeZone: "Asia/Manila",
+      })
+    : null;
 
   return (
     <div className="max-w-3xl mx-auto flex flex-col gap-6">
@@ -56,10 +66,19 @@ export default async function EventRegistrationPage({ params }: { params: Promis
           ))}
         </div>
         <p className="text-sm text-gray-500 mt-1">{dateStr}</p>
+        {deadlineStr && !registrationClosed && (
+          <p className="text-xs text-gray-400 mt-0.5">Registration open through {deadlineStr}</p>
+        )}
         {event.description && <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">{event.description}</p>}
       </div>
 
-      <EventRegistrationForm eventId={eventId} audience={event.audience} defaultWillAttend={existingReg?.willAttend ?? null} />
+      {registrationClosed ? (
+        <p className="text-sm font-medium text-amber-700 bg-amber-50 border border-amber-100 rounded-xl p-6">
+          Registration for this event ended on {deadlineStr}.
+        </p>
+      ) : (
+        <EventRegistrationForm eventId={eventId} audience={event.audience} defaultWillAttend={existingReg?.willAttend ?? null} />
+      )}
     </div>
   );
 }

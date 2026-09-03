@@ -67,6 +67,18 @@ export function EditEventForm({ event, newDatePicker }: { event: Event; newDateP
           />
         </div>
 
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+            Registration Deadline <span className="normal-case text-gray-400">(optional — registration stays open until this date)</span>
+          </label>
+          <DatePickerField
+            name="registrationDeadline"
+            defaultValue={event.registrationDeadline ?? undefined}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            newDatePicker={newDatePicker}
+          />
+        </div>
+
         <div className="flex flex-col gap-2">
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Audience</label>
           <CheckboxOption name="audience" value="vg_leader" defaultChecked={event.audience.includes("vg_leader")} labelClassName="font-medium">

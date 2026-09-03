@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeProfileProgress } from "@/lib/profileCompleteness";
 import { getProfileUpdateQuarters, type QuarterCardStatus } from "@/lib/vgQuarters";
+import { isRegistrationClosed } from "@/lib/date";
 import { ProfileFreshnessBanner } from "./ProfileFreshnessBanner";
 
 const AUDIENCE_LABEL: Record<string, string> = {
@@ -53,7 +54,14 @@ export default async function VgPortalDashboardPage() {
   const quarters = getProfileUpdateQuarters(leader.updatedAt, percent);
 
   const upcomingEvents = await db
-    .select({ id: events.id, name: events.name, description: events.description, eventDate: events.eventDate, audience: events.audience })
+    .select({
+      id: events.id,
+      name: events.name,
+      description: events.description,
+      eventDate: events.eventDate,
+      audience: events.audience,
+      registrationDeadline: events.registrationDeadline,
+    })
     .from(events)
     .where(and(isNull(events.deletedAt), eq(events.isDone, false)))
     .orderBy(events.eventDate);
@@ -81,12 +89,10 @@ export default async function VgPortalDashboardPage() {
                 timeZone: "Asia/Manila",
               });
               const registered = regByEvent.get(e.id);
-              return (
-                <Link
-                  key={e.id}
-                  href={`/vg-portal/events/${e.id}`}
-                  className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white shadow-sm p-5 hover:border-indigo-300 hover:shadow-md transition"
-                >
+              const registrationClosed = isRegistrationClosed(e.registrationDeadline);
+
+              const content = (
+                <>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-gray-900 text-base">{e.name}</span>
                     {e.audience.map((a) => (
@@ -97,17 +103,40 @@ export default async function VgPortalDashboardPage() {
                   </div>
                   <span className="text-sm text-gray-500">{dateStr}</span>
                   {e.description && <span className="text-sm text-gray-600">{e.description}</span>}
-                  <span
-                    className={`text-sm font-medium w-fit px-2.5 py-1 rounded-full ${
-                      registered === true
-                        ? "bg-green-100 text-green-700"
-                        : registered === false
-                          ? "bg-gray-100 text-gray-500"
-                          : "bg-amber-100 text-amber-700"
-                    }`}
-                  >
-                    {registered === true ? "You're attending" : registered === false ? "Not attending" : "Register now"}
-                  </span>
+                  {registrationClosed ? (
+                    <span className="text-sm font-medium w-fit px-2.5 py-1 rounded-full bg-gray-200 text-gray-500">
+                      Registration has ended
+                    </span>
+                  ) : (
+                    <span
+                      className={`text-sm font-medium w-fit px-2.5 py-1 rounded-full ${
+                        registered === true
+                          ? "bg-green-100 text-green-700"
+                          : registered === false
+                            ? "bg-gray-100 text-gray-500"
+                            : "bg-amber-100 text-amber-700"
+                      }`}
+                    >
+                      {registered === true ? "You're attending" : registered === false ? "Not attending" : "Register now"}
+                    </span>
+                  )}
+                </>
+              );
+
+              return registrationClosed ? (
+                <div
+                  key={e.id}
+                  className="flex flex-col gap-2 rounded-xl border border-gray-300 bg-white shadow-sm opacity-75 cursor-not-allowed p-5"
+                >
+                  {content}
+                </div>
+              ) : (
+                <Link
+                  key={e.id}
+                  href={`/vg-portal/events/${e.id}`}
+                  className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white shadow-sm p-5 hover:border-indigo-300 hover:shadow-md transition"
+                >
+                  {content}
                 </Link>
               );
             })}
@@ -130,7 +159,7 @@ export default async function VgPortalDashboardPage() {
               "flex flex-col gap-2.5 rounded-xl border p-5 transition " +
               (q.clickable
                 ? "border-gray-200 bg-white shadow-sm hover:border-indigo-300 hover:shadow-md cursor-pointer"
-                : "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed");
+                : "border-gray-300 bg-white shadow-sm opacity-75 cursor-not-allowed");
 
             const content = (
               <>

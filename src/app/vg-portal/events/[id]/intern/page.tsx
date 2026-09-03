@@ -3,6 +3,7 @@ import { events } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { InternRegistrationForm } from "./InternRegistrationForm";
+import { isRegistrationClosed } from "@/lib/date";
 
 export default async function InternEventRegistrationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: param } = await params;
@@ -23,16 +24,32 @@ export default async function InternEventRegistrationPage({ params }: { params: 
     year: "numeric",
     timeZone: "Asia/Manila",
   });
+  const registrationClosed = isRegistrationClosed(event.registrationDeadline);
+  const deadlineStr = event.registrationDeadline
+    ? new Date(event.registrationDeadline + "T00:00:00").toLocaleDateString("en-PH", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+        timeZone: "Asia/Manila",
+      })
+    : null;
 
   return (
     <div className="max-w-3xl mx-auto flex flex-col gap-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900">{event.name}</h2>
         <p className="text-sm text-gray-500 mt-1">{dateStr}</p>
+        {deadlineStr && !registrationClosed && (
+          <p className="text-xs text-gray-400 mt-0.5">Registration open through {deadlineStr}</p>
+        )}
         {event.description && <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">{event.description}</p>}
       </div>
 
-      {event.audience.includes("intern") ? (
+      {registrationClosed ? (
+        <p className="text-sm font-medium text-amber-700 bg-amber-50 border border-amber-100 rounded-xl p-6">
+          Registration for this event ended on {deadlineStr}.
+        </p>
+      ) : event.audience.includes("intern") ? (
         <InternRegistrationForm eventId={event.id} />
       ) : (
         <p className="text-sm text-gray-500 bg-white rounded-xl border border-gray-200 shadow-sm p-6">

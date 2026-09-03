@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { vgReportSnapshots, vgConvergenceAttendance, leadership113Batches } from "@/db/schema";
 import { desc, asc } from "drizzle-orm";
+import { getSession } from "@/lib/auth";
 import { SERVICE_BUCKETS, type VgSnapshotData, type VgServiceBucket, type VgBucketDetail } from "@/lib/vgSnapshot";
 import { computeVgSnapshotCounts } from "@/lib/vgSnapshotCompute";
 import { SnapshotForm, SnapshotListItem } from "./SnapshotForm";
@@ -203,13 +204,16 @@ export default async function QuarterlyReportPage({
 }: {
   searchParams: Promise<{ a?: string; b?: string }>;
 }) {
-  const [{ a: aParam, b: bParam }, snapshots, convergenceEntries, batches, liveCounts] = await Promise.all([
+  const [{ a: aParam, b: bParam }, snapshots, convergenceEntries, batches, liveCounts, session] = await Promise.all([
     searchParams,
     db.select().from(vgReportSnapshots).orderBy(desc(vgReportSnapshots.asOfDate)),
     db.select().from(vgConvergenceAttendance).orderBy(asc(vgConvergenceAttendance.eventDate)),
     db.select().from(leadership113Batches).orderBy(asc(leadership113Batches.id)),
     computeVgSnapshotCounts(),
+    getSession(),
   ]);
+
+  const canEdit = session?.role === "developer";
 
   const live = { label: "Live Now", data: { ...liveCounts, goals: { vgLeaders: 0, leadershipGroups: 0 } } };
 
@@ -255,9 +259,11 @@ export default async function QuarterlyReportPage({
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-4">
-        <SnapshotForm />
-      </div>
+      {canEdit && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-4">
+          <SnapshotForm />
+        </div>
+      )}
 
       <div className="bg-green-50 border border-green-200 rounded-xl p-4">
         <div className="flex items-center gap-2 mb-2">
@@ -353,8 +359,8 @@ export default async function QuarterlyReportPage({
         </>
       )}
 
-      <ConvergenceSection entries={convergenceEntries} />
-      <Leadership113Section batches={batches} />
+      <ConvergenceSection entries={convergenceEntries} canEdit={canEdit} />
+      <Leadership113Section batches={batches} canEdit={canEdit} />
 
       {snapshots.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -362,7 +368,7 @@ export default async function QuarterlyReportPage({
             <h3 className="font-semibold text-gray-800">Saved Snapshots</h3>
           </div>
           <div className="p-4 flex flex-col gap-2">
-            {snapshots.map((s) => <SnapshotListItem key={s.id} snapshot={s} />)}
+            {snapshots.map((s) => <SnapshotListItem key={s.id} snapshot={s} canEdit={canEdit} />)}
           </div>
         </div>
       )}

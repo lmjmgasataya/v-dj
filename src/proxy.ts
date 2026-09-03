@@ -34,6 +34,14 @@ const LEAD_PASTOR_ALLOWED = [
   /^\/sessions\/\d+$/,
   /^\/report(\/.*)?$/,
   /^\/api\/report/,
+  /^\/vg-leader-portal/,
+  /^\/manage-vg-leaders\/report/,
+  /^\/manage-vg-leaders\/vg-report/,
+  /^\/manage-vg-leaders\/quarterly-report/,
+  /^\/event-registration$/,
+  /^\/event-registration\/events$/,
+  /^\/event-registration\/events\/\d+$/,
+  /^\/event-registration\/registration-report/,
 ];
 
 function loginRedirect(request: NextRequest, pathname: string) {

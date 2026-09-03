@@ -8,7 +8,7 @@ import { QuarterlyReportDocument, type QuarterlyPdfSnapshot } from "@/lib/quarte
 
 export async function GET(request: Request) {
   const session = await getSession();
-  if (!session || session.role !== "developer") {
+  if (!session || (session.role !== "developer" && session.role !== "lead_pastor")) {
     return new Response("Unauthorized", { status: 401 });
   }
 

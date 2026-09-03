@@ -225,7 +225,7 @@ function SnapshotEditForm({ snapshot, onDone }: { snapshot: VgReportSnapshot; on
   );
 }
 
-export function SnapshotListItem({ snapshot }: { snapshot: VgReportSnapshot }) {
+export function SnapshotListItem({ snapshot, canEdit }: { snapshot: VgReportSnapshot; canEdit: boolean }) {
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
 
@@ -244,21 +244,23 @@ export function SnapshotListItem({ snapshot }: { snapshot: VgReportSnapshot }) {
         <p className="text-sm font-medium text-gray-900">{snapshot.label}</p>
         <p className="text-xs text-gray-500">As of {snapshot.asOfDate}</p>
       </div>
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => setEditing(true)}
-          className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline"
-        >
-          Edit
-        </button>
-        <button
-          onClick={handleDelete}
-          disabled={pending}
-          className="text-xs text-red-500 hover:text-red-700 underline disabled:opacity-50"
-        >
-          {pending ? "Deleting..." : "Delete"}
-        </button>
-      </div>
+      {canEdit && (
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setEditing(true)}
+            className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline"
+          >
+            Edit
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={pending}
+            className="text-xs text-red-500 hover:text-red-700 underline disabled:opacity-50"
+          >
+            {pending ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

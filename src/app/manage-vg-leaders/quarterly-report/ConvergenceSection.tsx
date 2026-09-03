@@ -5,7 +5,7 @@ import { addConvergenceAttendance, deleteConvergenceAttendance } from "./actions
 import { inputCls } from "@/components/form";
 import type { VgConvergenceAttendance } from "@/db/schema";
 
-function Row({ entry }: { entry: VgConvergenceAttendance }) {
+function Row({ entry, canEdit }: { entry: VgConvergenceAttendance; canEdit: boolean }) {
   const [pending, startTransition] = useTransition();
 
   function handleDelete() {
@@ -19,15 +19,17 @@ function Row({ entry }: { entry: VgConvergenceAttendance }) {
       <td className="px-4 py-2.5 text-gray-500">{entry.eventDate}</td>
       <td className="px-4 py-2.5 text-gray-700 font-semibold">{entry.attendees}</td>
       <td className="px-4 py-2.5 text-right">
-        <button onClick={handleDelete} disabled={pending} className="text-xs text-red-500 hover:text-red-700 underline disabled:opacity-50">
-          {pending ? "Deleting..." : "Delete"}
-        </button>
+        {canEdit && (
+          <button onClick={handleDelete} disabled={pending} className="text-xs text-red-500 hover:text-red-700 underline disabled:opacity-50">
+            {pending ? "Deleting..." : "Delete"}
+          </button>
+        )}
       </td>
     </tr>
   );
 }
 
-export function ConvergenceSection({ entries }: { entries: VgConvergenceAttendance[] }) {
+export function ConvergenceSection({ entries, canEdit }: { entries: VgConvergenceAttendance[]; canEdit: boolean }) {
   const [pending, startTransition] = useTransition();
   const [adding, setAdding] = useState(false);
 
@@ -44,7 +46,7 @@ export function ConvergenceSection({ entries }: { entries: VgConvergenceAttendan
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="bg-indigo-50 border-b border-indigo-100 px-6 py-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">Leaders&apos; Convergence</h2>
-        {!adding && (
+        {canEdit && !adding && (
           <button
             onClick={() => setAdding(true)}
             className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 border border-indigo-300 bg-white px-3 py-1 rounded-lg transition"
@@ -67,12 +69,12 @@ export function ConvergenceSection({ entries }: { entries: VgConvergenceAttendan
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {entries.map((entry) => <Row key={entry.id} entry={entry} />)}
+              {entries.map((entry) => <Row key={entry.id} entry={entry} canEdit={canEdit} />)}
             </tbody>
           </table>
         </div>
       )}
-      {adding && (
+      {canEdit && adding && (
         <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 border-t border-gray-100 bg-gray-50">
           <div>
             <label className="block text-xs text-gray-500 mb-1">Label</label>

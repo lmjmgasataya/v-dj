@@ -23,7 +23,7 @@ export default async function RegistrationReportPage({
   searchParams: Promise<{ event?: string }>;
 }) {
   const session = await getSession();
-  if (!session || session.role !== "developer") redirect("/");
+  if (!session || (session.role !== "developer" && session.role !== "lead_pastor")) redirect("/");
 
   const { event: eventParam } = await searchParams;
 

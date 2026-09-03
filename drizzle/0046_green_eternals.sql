@@ -1,0 +1,1 @@
+DROP TABLE "event_registration_interns" CASCADE;

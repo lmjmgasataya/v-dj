@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { inputCls, selectCls, CheckboxOption } from "@/components/form";
 import type { VictoryGroup } from "@/db/schema";
 import { dayOfWeekEnum, vgFrequencyEnum, lifestageEnum } from "@/db/schema";
@@ -230,6 +230,9 @@ function GroupRow({
   interns,
   label,
   variant,
+  readOnly,
+  editing,
+  onEditingChange,
   onUpdate,
   onDelete,
 }: {
@@ -237,10 +240,12 @@ function GroupRow({
   interns: InternRow[];
   label: string;
   variant: Variant;
+  readOnly: boolean;
+  editing: boolean;
+  onEditingChange: (editing: boolean) => void;
   onUpdate: (id: number, formData: FormData) => Promise<void>;
   onDelete: (id: number) => void | Promise<void>;
 }) {
-  const [editing, setEditing] = useState(false);
   const [deletePending, startDeleteTransition] = useTransition();
 
   function handleDelete() {
@@ -254,7 +259,7 @@ function GroupRow({
         defaultValues={group}
         defaultInterns={interns}
         onSave={(formData) => onUpdate(group.id, formData)}
-        onCancel={() => setEditing(false)}
+        onCancel={() => onEditingChange(false)}
         saveLabel="Save Changes"
         groupType={group.type}
         variant={variant}
@@ -285,10 +290,10 @@ function GroupRow({
           {internNames ? ` · Interns: ${internNames}` : ""}
         </p>
       </div>
-      {variant === "portal" ? (
+      {!readOnly && (variant === "portal" ? (
         <div className="flex items-center gap-2 shrink-0 ml-4">
           <button
-            onClick={() => setEditing(true)}
+            onClick={() => onEditingChange(true)}
             className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 border border-indigo-300 bg-white px-3 py-1 rounded-lg transition"
           >
             <PencilIcon />
@@ -305,14 +310,14 @@ function GroupRow({
         </div>
       ) : (
         <div className="flex items-center gap-3 shrink-0 ml-4">
-          <button onClick={() => setEditing(true)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline">
+          <button onClick={() => onEditingChange(true)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline">
             Edit
           </button>
           <button onClick={handleDelete} disabled={deletePending} className="text-xs text-red-500 hover:text-red-700 underline disabled:opacity-50">
             {deletePending ? "Deleting..." : "Delete"}
           </button>
         </div>
-      )}
+      ))}
     </div>
   );
 }
@@ -327,6 +332,8 @@ export function VictoryGroupsPanel({
   emptyLabel = "No groups yet.",
   rowLabel = "Victory Group",
   variant,
+  readOnly = false,
+  onDirtyChange,
   onAdd,
   onUpdate,
   onDelete,
@@ -340,17 +347,24 @@ export function VictoryGroupsPanel({
   emptyLabel?: string;
   rowLabel?: string;
   variant: Variant;
+  readOnly?: boolean;
+  onDirtyChange?: (dirty: boolean) => void;
   onAdd: (formData: FormData) => Promise<void>;
   onUpdate: (id: number, formData: FormData) => Promise<void>;
   onDelete: (id: number) => void | Promise<void>;
 }) {
   const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    onDirtyChange?.(adding || editingId !== null);
+  }, [adding, editingId, onDirtyChange]);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="bg-indigo-50 border-b border-indigo-100 px-6 py-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">{title}</h2>
-        {!adding && (
+        {!readOnly && !adding && (
           <button
             onClick={() => setAdding(true)}
             className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 border border-indigo-300 bg-white px-3 py-1 rounded-lg transition"
@@ -370,11 +384,14 @@ export function VictoryGroupsPanel({
             interns={internsByGroup[g.id] ?? []}
             label={`${rowLabel} ${index + 1}`}
             variant={variant}
+            readOnly={readOnly}
+            editing={editingId === g.id}
+            onEditingChange={(editing) => setEditingId(editing ? g.id : null)}
             onUpdate={onUpdate}
             onDelete={onDelete}
           />
         ))}
-        {adding && (
+        {!readOnly && adding && (
           <GroupForm
             onSave={onAdd}
             onCancel={() => setAdding(false)}

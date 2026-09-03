@@ -51,10 +51,17 @@ export function ProfileForm({
 
   const [step, setStep] = useState<"form" | "review">("form");
   const [captured, setCaptured] = useState<Record<string, string | string[]>>({});
+  const [vgGroupsDirty, setVgGroupsDirty] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (vgGroupsDirty) {
+      alert("Please save or cancel your Victory Group changes before continuing.");
+      return;
+    }
+
     const fd = new FormData(formRef.current!);
 
     if (isLGL) {
@@ -276,7 +283,12 @@ export function ProfileForm({
           </Section>
         </form>
 
-        <MyVictoryGroups groups={groups} internsByGroup={internsByGroup} isLeadershipGroupLeader={isLGL} />
+        <MyVictoryGroups
+          groups={groups}
+          internsByGroup={internsByGroup}
+          isLeadershipGroupLeader={isLGL}
+          onDirtyChange={setVgGroupsDirty}
+        />
 
         <div className="flex justify-end">
           <button
@@ -376,6 +388,8 @@ export function ProfileForm({
               span
             />
           </ReviewSection>
+
+          <MyVictoryGroups groups={groups} internsByGroup={internsByGroup} isLeadershipGroupLeader={isLGL} readOnly />
 
           <div className="flex justify-end gap-3">
             <button

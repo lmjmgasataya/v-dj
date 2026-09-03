@@ -6,6 +6,7 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { listEventRegisteredAttendees } from "../../check-in/actions";
+import { RemoveInternButton } from "./RemoveInternButton";
 
 const AUDIENCE_LABEL: Record<string, string> = {
   vg_leader: "VG Leaders",
@@ -102,12 +103,20 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
                   <th className="px-6 py-2.5">Type</th>
                   <th className="px-6 py-2.5">Registered</th>
                   <th className="px-6 py-2.5">Checked In</th>
+                  {isDeveloper && <th className="px-6 py-2.5" />}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {attendees.map((a) => (
                   <tr key={a.key}>
-                    <td className="px-6 py-3 font-medium text-gray-900">{a.attendeeName}</td>
+                    <td className="px-6 py-3 font-medium text-gray-900">
+                      {a.attendeeName}
+                      {a.internRemovedFromGroup && (
+                        <p className="text-xs font-normal text-amber-600 mt-0.5">
+                          ⚠ Removed from their Victory Group by the leader
+                        </p>
+                      )}
+                    </td>
                     <td className="px-6 py-3">
                       <span className="text-xs font-medium bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
                         {TYPE_LABEL[a.attendeeType] ?? a.attendeeType}
@@ -129,6 +138,13 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
                         <span className="text-xs font-medium bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Not yet</span>
                       )}
                     </td>
+                    {isDeveloper && (
+                      <td className="px-6 py-3 text-right">
+                        {a.attendeeType === "intern" && a.internId != null && (
+                          <RemoveInternButton eventId={event.id} internId={a.internId} name={a.attendeeName} />
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

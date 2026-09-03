@@ -23,6 +23,7 @@ export interface EventSearchResult {
   mobileNumber: string | null;
   checkInId: number | null;
   checkedInAt: Date | null;
+  internRemovedFromGroup: boolean;
 }
 
 export interface EventCheckInRow {
@@ -66,6 +67,7 @@ async function listRegisteredVgLeaders(eventId: number): Promise<EventSearchResu
     mobileNumber: r.mobileNumber,
     checkInId: r.checkInId,
     checkedInAt: r.checkedInAt,
+    internRemovedFromGroup: false,
   }));
 }
 
@@ -75,6 +77,7 @@ async function listRegisteredInterns(eventId: number): Promise<EventSearchResult
       id: interns.id,
       lastName: interns.lastName,
       firstName: interns.firstName,
+      deletedAt: interns.deletedAt,
       checkInId: eventCheckIns.id,
       checkedInAt: eventCheckIns.checkedInAt,
     })
@@ -93,6 +96,7 @@ async function listRegisteredInterns(eventId: number): Promise<EventSearchResult
     mobileNumber: null,
     checkInId: r.checkInId,
     checkedInAt: r.checkedInAt,
+    internRemovedFromGroup: r.deletedAt != null,
   }));
 }
 
@@ -163,6 +167,16 @@ export async function checkInEventIntern(eventId: number, internId: number): Pro
 
 export async function undoEventCheckIn(checkInId: number) {
   await db.delete(eventCheckIns).where(eq(eventCheckIns.id, checkInId));
+  revalidatePath("/event-registration/check-in");
+}
+
+export async function removeInternEventRegistration(formData: FormData) {
+  const eventId = Number(formData.get("eventId"));
+  const internId = Number(formData.get("internId"));
+  await db
+    .delete(internEventRegistrations)
+    .where(and(eq(internEventRegistrations.eventId, eventId), eq(internEventRegistrations.internId, internId)));
+  revalidatePath(`/event-registration/events/${eventId}`);
   revalidatePath("/event-registration/check-in");
 }
 

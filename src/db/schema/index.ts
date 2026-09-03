@@ -75,7 +75,7 @@ export const victoryGroupLeaders = pgTable("victory_group_leaders", {
   startedLeadingVg: startedLeadingVgEnum("started_leading_vg"),
   isLeadershipGroupLeader: boolean("is_leadership_group_leader").default(false).notNull(),
   profileCompleted: boolean("profile_completed").default(false).notNull(),
-  isActive: boolean("is_active").default(false).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
   registeredMode: registeredModeEnum("registered_mode").default("participant_registration").notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

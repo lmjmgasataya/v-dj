@@ -174,43 +174,45 @@ function GroupForm({
           ))}
         </div>
       </div>
-      <div className="sm:col-span-2">
-        <label className="block text-xs font-medium text-gray-700 mb-1">Interns</label>
-        <div className="flex flex-col gap-2">
-          {internRows.map((row, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <input
-                name={`intern_${i}_lastName`}
-                value={row.lastName}
-                onChange={(e) => updateInternRow(i, "lastName", e.target.value)}
-                placeholder="Last Name"
-                className={fieldCls}
-              />
-              <input
-                name={`intern_${i}_firstName`}
-                value={row.firstName}
-                onChange={(e) => updateInternRow(i, "firstName", e.target.value)}
-                placeholder="First Name"
-                className={fieldCls}
-              />
-              <button
-                type="button"
-                onClick={() => removeInternRow(i)}
-                className="shrink-0 text-xs text-red-500 hover:text-red-700 px-2"
-              >
-                Remove
-              </button>
-            </div>
-          ))}
+      {groupType === "victory_group" && (
+        <div className="sm:col-span-2">
+          <label className="block text-xs font-medium text-gray-700 mb-1">Interns</label>
+          <div className="flex flex-col gap-2">
+            {internRows.map((row, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  name={`intern_${i}_lastName`}
+                  value={row.lastName}
+                  onChange={(e) => updateInternRow(i, "lastName", e.target.value)}
+                  placeholder="Last Name"
+                  className={fieldCls}
+                />
+                <input
+                  name={`intern_${i}_firstName`}
+                  value={row.firstName}
+                  onChange={(e) => updateInternRow(i, "firstName", e.target.value)}
+                  placeholder="First Name"
+                  className={fieldCls}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeInternRow(i)}
+                  className="shrink-0 text-xs text-red-500 hover:text-red-700 px-2"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setInternRows((prev) => [...prev, { lastName: "", firstName: "" }])}
+            className="mt-2 text-xs font-semibold text-indigo-600 hover:text-indigo-800 border border-indigo-300 bg-white px-3 py-1 rounded-lg transition"
+          >
+            + Add Intern
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setInternRows((prev) => [...prev, { lastName: "", firstName: "" }])}
-          className="mt-2 text-xs font-semibold text-indigo-600 hover:text-indigo-800 border border-indigo-300 bg-white px-3 py-1 rounded-lg transition"
-        >
-          + Add Intern
-        </button>
-      </div>
+      )}
       <div className="sm:col-span-2 flex justify-end gap-2 pt-1">
         <button type="button" onClick={onCancel} className="text-sm text-gray-600 hover:text-gray-800 px-4 py-1.5 rounded-lg border border-gray-300 bg-white">
           Cancel

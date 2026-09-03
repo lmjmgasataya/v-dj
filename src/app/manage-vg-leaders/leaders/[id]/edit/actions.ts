@@ -3,8 +3,7 @@
 import { db } from "@/db";
 import { victoryGroupLeaders, type lifestageEnum, type startedLeadingVgEnum } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
-import { toastRedirect, toastRedirectBack } from "@/lib/toast";
+import { toastRedirect } from "@/lib/toast";
 import { toTitleCase } from "@/lib/text";
 import { resolveOwnVgLeader } from "@/lib/ownVgLeader";
 import { resolveLeadershipGroupMembers, replaceLeadershipGroupMembers } from "@/lib/leadershipGroupMembers";
@@ -37,7 +36,6 @@ export async function updateVGLeader(id: number, formData: FormData) {
       ...ownVgLeader,
       startedLeadingVg: (formData.get("startedLeadingVg") as (typeof startedLeadingVgEnum.enumValues)[number]) || null,
       isLeadershipGroupLeader,
-      isActive: formData.get("isActive") === "on",
       updatedAt: new Date(),
     })
     .where(eq(victoryGroupLeaders.id, id));
@@ -45,15 +43,6 @@ export async function updateVGLeader(id: number, formData: FormData) {
   await replaceLeadershipGroupMembers(id, memberIds);
 
   toastRedirect("/manage-vg-leaders/leaders", "VG leader updated.");
-}
-
-export async function acknowledgeLeaderCurrent(id: number) {
-  await db
-    .update(victoryGroupLeaders)
-    .set({ isActive: true, updatedAt: new Date() })
-    .where(eq(victoryGroupLeaders.id, id));
-  revalidatePath(`/manage-vg-leaders/leaders/${id}`);
-  await toastRedirectBack("Marked as current.");
 }
 
 export async function deleteVGLeader(id: number) {

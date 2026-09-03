@@ -1,0 +1,1 @@
+ALTER TABLE "victory_group_leaders" ALTER COLUMN "is_active" SET DEFAULT true;

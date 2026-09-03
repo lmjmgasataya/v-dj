@@ -128,7 +128,6 @@ export async function updateOwnProfile(formData: FormData) {
       ...ownVgLeader,
       startedLeadingVg: (formData.get("startedLeadingVg") as (typeof startedLeadingVgEnum.enumValues)[number]) || null,
       isLeadershipGroupLeader,
-      isActive: formData.get("isActive") === "on",
       updatedAt: new Date(),
     })
     .where(eq(victoryGroupLeaders.id, session.vgLeaderId))

@@ -184,14 +184,6 @@ export function ProfileForm({
               defaultId={leader.ownVgLeaderId}
               required
             />
-            <div className="sm:col-span-2 mt-1 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-              <CheckboxOption name="isActive" defaultChecked={leader.isActive} align="start" labelClassName="font-semibold text-amber-900">
-                I am actively leading a Victory Group
-              </CheckboxOption>
-              <p className="text-xs text-amber-700 mt-1 ml-[26px]">
-                Check this only if you&apos;re currently leading a Victory Group.
-              </p>
-            </div>
           </Section>
 
           <Section title="Leadership">
@@ -313,11 +305,6 @@ export function ProfileForm({
             <ReviewRow
               label="Name of your Victory Group Leader"
               value={[captured.ownVgLeaderLastName, captured.ownVgLeaderFirstName].filter(Boolean).join(", ") || null}
-              span
-            />
-            <ReviewRow
-              label="Actively Leading a Victory Group"
-              value={captured.isActive === "on" ? "Yes" : "No"}
               span
             />
           </ReviewSection>

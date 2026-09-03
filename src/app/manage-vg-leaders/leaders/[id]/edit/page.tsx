@@ -6,7 +6,6 @@ import { EditForm } from "./EditForm";
 import { DeleteButton } from "./DeleteButton";
 import { VictoryGroupsSection } from "./VictoryGroupsSection";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { acknowledgeLeaderCurrent } from "./actions";
 import { getProfileFreshness, FRESHNESS_BANNER_CLASS, FRESHNESS_MESSAGE } from "@/lib/vgLeaderStatus";
 
 export default async function EditVGLeaderPage({ params }: { params: Promise<{ id: string }> }) {
@@ -58,14 +57,6 @@ export default async function EditVGLeaderPage({ params }: { params: Promise<{ i
           <p className="text-sm font-semibold">Last updated {dateStr}</p>
           <p className="text-xs mt-0.5">{FRESHNESS_MESSAGE[freshness]}</p>
         </div>
-        <form action={acknowledgeLeaderCurrent.bind(null, leader.id)}>
-          <button
-            type="submit"
-            className="shrink-0 bg-white border border-current text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-black/5 transition"
-          >
-            Mark as current
-          </button>
-        </form>
       </div>
 
       <div className="mb-6">

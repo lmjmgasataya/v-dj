@@ -42,6 +42,6 @@ export function computeProfileProgress(leader: LeaderProfileFields, hasActiveGro
   const percent = Math.round((completedSteps / totalSteps) * 100);
   return {
     percent,
-    missing: hasActiveGroup ? missing : [...missing, "At least 1 Victory Group"],
+    missing: hasActiveGroup ? missing : [...missing, "At least 1 Active Group (Victory or Leadership)"],
   };
 }

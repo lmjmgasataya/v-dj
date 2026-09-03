@@ -60,6 +60,7 @@ export default async function VictoryGroupReportPage({
     .where(
       and(
         isNull(victoryGroups.deletedAt),
+        eq(victoryGroups.type, "victory_group"),
         genderList.length ? inArray(victoryGroupLeaders.gender, genderList) : undefined,
         serviceList.length ? inArray(victoryGroupLeaders.serviceAttending, serviceList) : undefined,
         dayList.length ? inArray(victoryGroups.day, dayList as (typeof dayOfWeekEnum.enumValues)[number][]) : undefined,

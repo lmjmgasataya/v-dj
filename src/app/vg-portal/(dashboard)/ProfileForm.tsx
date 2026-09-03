@@ -55,6 +55,10 @@ export function ProfileForm({
 
   function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (groups.length === 0) {
+      alert("Please add at least one Victory Group or Leadership Group before continuing.");
+      return;
+    }
     const fd = new FormData(formRef.current!);
     const data: Record<string, string | string[]> = {};
     for (const key of new Set(fd.keys())) {
@@ -255,7 +259,7 @@ export function ProfileForm({
           </Section>
         </form>
 
-        <MyVictoryGroups groups={groups} internsByGroup={internsByGroup} />
+        <MyVictoryGroups groups={groups} internsByGroup={internsByGroup} isLeadershipGroupLeader={isLGL} />
 
         <div className="flex justify-end">
           <button

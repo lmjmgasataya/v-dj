@@ -14,7 +14,7 @@ export async function getVgLeaderRows(): Promise<VgLeaderRow[]> {
     db
       .select({ vgLeaderId: victoryGroups.vgLeaderId })
       .from(victoryGroups)
-      .where(and(isNull(victoryGroups.deletedAt), eq(victoryGroups.isActive, true))),
+      .where(and(isNull(victoryGroups.deletedAt), eq(victoryGroups.isActive, true), eq(victoryGroups.type, "victory_group"))),
     db
       .select({ id: users.id, vgLeaderId: users.vgLeaderId, pinHash: users.pinHash })
       .from(users)

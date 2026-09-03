@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { victoryGroupLeaders, victoryGroups, interns, leadershipGroupMembers } from "@/db/schema";
+import { victoryGroupLeaders, victoryGroups, interns, leadershipGroupMembers, type VictoryGroup } from "@/db/schema";
 import { eq, isNull, and, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -205,31 +205,65 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="bg-indigo-50 border-b border-indigo-100 px-6 py-3">
-          <h3 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">Victory Groups</h3>
-        </div>
-        <div className="p-4 flex flex-col gap-3">
-          {groups.length === 0 ? (
-            <p className="text-sm text-gray-400">No victory groups yet.</p>
-          ) : (
-            groups.map((g, index) => {
-              const groupInterns = internsByGroup[g.id] ?? [];
-              const internNames = groupInterns.map((i) => `${i.lastName}, ${i.firstName}`).join("; ");
-              return (
-                <div key={g.id} className="px-4 py-3 rounded-lg border border-gray-200">
-                  <p className="text-sm font-semibold text-gray-900">Victory Group {index + 1}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {g.place} · {DAY_ABBR[g.day]} · {g.time} ·{" "}
-                    {g.frequency === "Others" ? (g.otherFrequency ?? "Others") : g.frequency}
-                    {g.lifeStage?.length ? ` · ${g.lifeStage.join(", ")}` : ""}
-                    {internNames ? ` · Interns: ${internNames}` : ""}
-                  </p>
-                </div>
-              );
-            })
-          )}
-        </div>
+      <GroupListSection
+        title="Victory Groups"
+        emptyLabel="No victory groups yet."
+        rowLabel="Victory Group"
+        groups={groups.filter((g) => g.type !== "leadership_group")}
+        internsByGroup={internsByGroup}
+      />
+
+      {leader.isLeadershipGroupLeader && (
+        <GroupListSection
+          title="Leadership Groups"
+          emptyLabel="No leadership groups yet."
+          rowLabel="Leadership Group"
+          groups={groups.filter((g) => g.type === "leadership_group")}
+          internsByGroup={internsByGroup}
+        />
+      )}
+    </div>
+  );
+}
+
+function GroupListSection({
+  title,
+  emptyLabel,
+  rowLabel,
+  groups,
+  internsByGroup,
+}: {
+  title: string;
+  emptyLabel: string;
+  rowLabel: string;
+  groups: VictoryGroup[];
+  internsByGroup: Record<number, { lastName: string; firstName: string }[]>;
+}) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-indigo-50 border-b border-indigo-100 px-6 py-3">
+        <h3 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">{title}</h3>
+      </div>
+      <div className="p-4 flex flex-col gap-3">
+        {groups.length === 0 ? (
+          <p className="text-sm text-gray-400">{emptyLabel}</p>
+        ) : (
+          groups.map((g, index) => {
+            const groupInterns = internsByGroup[g.id] ?? [];
+            const internNames = groupInterns.map((i) => `${i.lastName}, ${i.firstName}`).join("; ");
+            return (
+              <div key={g.id} className="px-4 py-3 rounded-lg border border-gray-200">
+                <p className="text-sm font-semibold text-gray-900">{rowLabel} {index + 1}</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {g.place} · {DAY_ABBR[g.day]} · {g.time} ·{" "}
+                  {g.frequency === "Others" ? (g.otherFrequency ?? "Others") : g.frequency}
+                  {g.lifeStage?.length ? ` · ${g.lifeStage.join(", ")}` : ""}
+                  {internNames ? ` · Interns: ${internNames}` : ""}
+                </p>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );

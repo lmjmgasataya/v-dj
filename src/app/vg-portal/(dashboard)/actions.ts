@@ -9,6 +9,7 @@ import {
   type vgFrequencyEnum,
   type lifestageEnum,
   type startedLeadingVgEnum,
+  type groupTypeEnum,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -24,6 +25,11 @@ import { toastRedirect } from "@/lib/toast";
 type Day = (typeof dayOfWeekEnum.enumValues)[number];
 type Frequency = (typeof vgFrequencyEnum.enumValues)[number];
 type LifeStage = (typeof lifestageEnum.enumValues)[number];
+type GroupType = (typeof groupTypeEnum.enumValues)[number];
+
+function parseGroupType(formData: FormData): GroupType {
+  return formData.get("type") === "leadership_group" ? "leadership_group" : "victory_group";
+}
 
 async function requireVgLeader() {
   const session = await getSession();
@@ -54,6 +60,7 @@ export async function addOwnVictoryGroup(formData: FormData) {
       time: formData.get("time") as string,
       ...parseFrequency(formData),
       ...parseLifeStage(formData),
+      type: parseGroupType(formData),
       isActive: true,
     })
     .returning({ id: victoryGroups.id });
@@ -73,6 +80,7 @@ export async function updateOwnVictoryGroup(id: number, formData: FormData) {
       time: formData.get("time") as string,
       ...parseFrequency(formData),
       ...parseLifeStage(formData),
+      type: parseGroupType(formData),
     })
     .where(and(eq(victoryGroups.id, id), eq(victoryGroups.vgLeaderId, session.vgLeaderId)));
   await replaceGroupInterns(id, formData);

@@ -85,7 +85,12 @@ export default async function EditVGLeaderPage({ params }: { params: Promise<{ i
       </div>
       <div className="flex flex-col gap-6">
         <EditForm leader={leader} leadershipGroupMembers={lglMemberRows} />
-        <VictoryGroupsSection groups={groups} internsByGroup={internsByGroup} vgLeaderId={leaderId} />
+        <VictoryGroupsSection
+          groups={groups}
+          internsByGroup={internsByGroup}
+          vgLeaderId={leaderId}
+          isLeadershipGroupLeader={leader.isLeadershipGroupLeader}
+        />
       </div>
     </div>
   );

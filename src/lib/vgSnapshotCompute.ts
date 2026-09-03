@@ -51,7 +51,7 @@ export async function computeVgSnapshotCounts(): Promise<
         time: victoryGroups.time,
       })
       .from(victoryGroups)
-      .where(and(eq(victoryGroups.isActive, true), isNull(victoryGroups.deletedAt))),
+      .where(and(eq(victoryGroups.isActive, true), isNull(victoryGroups.deletedAt), eq(victoryGroups.type, "victory_group"))),
     db
       .select({ victoryGroupId: interns.victoryGroupId, lastName: interns.lastName, firstName: interns.firstName })
       .from(interns),

@@ -54,6 +54,8 @@ export const registeredModeEnum = pgEnum("registered_mode", [
 
 export const startedLeadingVgEnum = pgEnum("started_leading_vg", ["before_this_year", "this_year"]);
 
+export const groupTypeEnum = pgEnum("group_type", ["victory_group", "leadership_group"]);
+
 export const victoryGroupLeaders = pgTable("victory_group_leaders", {
   id: serial("id").primaryKey(),
   lastName: text("last_name").notNull(),
@@ -100,6 +102,7 @@ export const victoryGroups = pgTable("victory_groups", {
   lifeStage: lifestageEnum("life_stage").array(),
   isActive: boolean("is_active").default(true).notNull(),
   remarks: text("remarks"),
+  type: groupTypeEnum("type").default("victory_group").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
 });

@@ -253,7 +253,7 @@ function GroupListSection({
             const internNames = groupInterns.map((i) => `${i.lastName}, ${i.firstName}`).join("; ");
             return (
               <div key={g.id} className="px-4 py-3 rounded-lg border border-gray-200">
-                <p className="text-sm font-semibold text-gray-900">{rowLabel} {index + 1}</p>
+                <p className="text-sm font-semibold text-gray-900">{g.name || `${rowLabel} ${index + 1}`}</p>
                 <p className="text-xs text-gray-500 mt-0.5">
                   {g.place} · {DAY_ABBR[g.day]} · {g.time} ·{" "}
                   {g.frequency === "Others" ? (g.otherFrequency ?? "Others") : g.frequency}

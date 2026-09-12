@@ -94,6 +94,7 @@ export const victoryGroups = pgTable("victory_groups", {
   vgLeaderId: integer("vg_leader_id")
     .references(() => victoryGroupLeaders.id)
     .notNull(),
+  name: text("name"),
   place: text("place").notNull(),
   day: dayOfWeekEnum("day").notNull(),
   time: text("time").notNull(),

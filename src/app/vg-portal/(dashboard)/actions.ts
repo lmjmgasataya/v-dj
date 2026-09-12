@@ -55,6 +55,7 @@ export async function addOwnVictoryGroup(formData: FormData) {
     .insert(victoryGroups)
     .values({
       vgLeaderId: session.vgLeaderId,
+      name: (formData.get("name") as string) || null,
       place: formData.get("place") as string,
       day: formData.get("day") as Day,
       time: formData.get("time") as string,
@@ -75,6 +76,7 @@ export async function updateOwnVictoryGroup(id: number, formData: FormData) {
   await db
     .update(victoryGroups)
     .set({
+      name: (formData.get("name") as string) || null,
       place: formData.get("place") as string,
       day: formData.get("day") as Day,
       time: formData.get("time") as string,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { updateOwnProfile } from "./actions";
 import { Field, Section, CheckboxOption, RadioOption, inputCls, selectCls, SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
 import { OwnVgLeaderField } from "@/components/OwnVgLeaderField";
@@ -52,7 +52,48 @@ export function ProfileForm({
   const [step, setStep] = useState<"form" | "review">("form");
   const [captured, setCaptured] = useState<Record<string, string | string[]>>({});
   const [vgGroupsDirty, setVgGroupsDirty] = useState(false);
+  const [canReview, setCanReview] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+
+  function recomputeCanReview() {
+    const form = formRef.current;
+    if (!form) return;
+
+    if (vgGroupsDirty || !form.checkValidity()) {
+      setCanReview(false);
+      return;
+    }
+
+    const fd = new FormData(form);
+
+    if (isLGL) {
+      const hasMember = Array.from(fd.keys()).some(
+        (k) => /^lgl_\d+_lastName$/.test(k) && ((fd.get(k) as string) || "").trim()
+      );
+      if (!hasMember) {
+        setCanReview(false);
+        return;
+      }
+    }
+
+    if (fd.getAll("discipleshipJourneyCompleted").length === 0) {
+      setCanReview(false);
+      return;
+    }
+
+    if (groups.length === 0) {
+      setCanReview(false);
+      return;
+    }
+
+    setCanReview(true);
+  }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    recomputeCanReview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLGL, groups, vgGroupsDirty]);
 
   function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -135,7 +176,14 @@ export function ProfileForm({
 
       {/* ---- FORM (always mounted; hidden while reviewing so values are preserved) ---- */}
       <div className={`flex flex-col gap-6 ${step === "review" ? "hidden" : ""}`}>
-        <form ref={formRef} id="profile-form" onSubmit={handleFormSubmit} className="flex flex-col gap-6">
+        <form
+          ref={formRef}
+          id="profile-form"
+          onSubmit={handleFormSubmit}
+          onChange={recomputeCanReview}
+          onInput={recomputeCanReview}
+          className="flex flex-col gap-6"
+        >
           <Section title="My Information" description="Your last name is on file with an admin — contact one to change it.">
             <Field label="Last Name">
               <p className="text-sm text-gray-700 py-2">{leader.lastName}</p>
@@ -294,7 +342,8 @@ export function ProfileForm({
           <button
             type="submit"
             form="profile-form"
-            className="bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition"
+            disabled={!canReview}
+            className="bg-[#00428E] hover:bg-[#003578] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition"
           >
             Review Changes
           </button>

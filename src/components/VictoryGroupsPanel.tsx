@@ -9,7 +9,12 @@ type InternRow = { lastName: string; firstName: string };
 type GroupType = "victory_group" | "leadership_group";
 type Variant = "portal" | "admin";
 
-const PLACE_OPTIONS = ["Victory Iloilo Center", "Others"];
+const PLACE_OPTIONS = [
+  "Victory Iloilo - Mandurriao location",
+  "Victory Iloilo - Lapaz location",
+  "Victory Iloilo - Pavia location",
+  "Others",
+];
 
 const DAYS: (typeof dayOfWeekEnum.enumValues)[number][] = [
   "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
@@ -69,10 +74,14 @@ function GroupForm({
   const [pending, startTransition] = useTransition();
   const [frequency, setFrequency] = useState(defaultValues?.frequency ?? "");
   const [placeChoice, setPlaceChoice] = useState(
-    !defaultValues?.place || defaultValues.place === "Victory Iloilo Center" ? "Victory Iloilo Center" : "Others"
+    !defaultValues?.place
+      ? PLACE_OPTIONS[0]
+      : PLACE_OPTIONS.includes(defaultValues.place)
+        ? defaultValues.place
+        : "Others"
   );
   const [otherPlace, setOtherPlace] = useState(
-    defaultValues?.place && defaultValues.place !== "Victory Iloilo Center" ? defaultValues.place : ""
+    defaultValues?.place && !PLACE_OPTIONS.includes(defaultValues.place) ? defaultValues.place : ""
   );
   const [lifeStages, setLifeStages] = useState<string[]>(defaultValues?.lifeStage ?? []);
   const [internRows, setInternRows] = useState<InternRow[]>(defaultInterns ?? []);
@@ -109,6 +118,15 @@ function GroupForm({
   return (
     <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 p-4 bg-indigo-50 rounded-lg border border-indigo-100">
       <input type="hidden" name="type" value={groupType} />
+      <div className="sm:col-span-2">
+        <label className="block text-xs font-medium text-gray-700 mb-1">Name</label>
+        <input
+          name="name"
+          defaultValue={defaultValues?.name ?? ""}
+          placeholder="e.g. Group 1 (optional, defaults to numbering)"
+          className={fieldCls}
+        />
+      </div>
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">Place <span className="text-red-500">*</span></label>
         <select
@@ -118,9 +136,7 @@ function GroupForm({
         >
           {PLACE_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
-        {placeChoice === "Victory Iloilo Center" ? (
-          <input type="hidden" name="place" value="Victory Iloilo Center" />
-        ) : (
+        {placeChoice === "Others" ? (
           <input
             name="place"
             required
@@ -129,6 +145,8 @@ function GroupForm({
             placeholder="Specify place"
             className={`${fieldCls} mt-2`}
           />
+        ) : (
+          <input type="hidden" name="place" value={placeChoice} />
         )}
       </div>
       <div>
@@ -382,7 +400,7 @@ export function VictoryGroupsPanel({
             key={g.id}
             group={g}
             interns={internsByGroup[g.id] ?? []}
-            label={`${rowLabel} ${index + 1}`}
+            label={g.name || `${rowLabel} ${index + 1}`}
             variant={variant}
             readOnly={readOnly}
             editing={editingId === g.id}

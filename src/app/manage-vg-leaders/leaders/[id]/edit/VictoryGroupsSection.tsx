@@ -28,6 +28,7 @@ export function VictoryGroupsSection({
         groupType="victory_group"
         title="Victory Groups"
         variant="admin"
+        required
         onAdd={(formData) => addVictoryGroup(vgLeaderId, formData)}
         onUpdate={(id, formData) => updateVictoryGroup(id, vgLeaderId, formData)}
         onDelete={(id) => deleteVictoryGroup(id, vgLeaderId)}

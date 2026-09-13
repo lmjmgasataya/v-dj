@@ -4,7 +4,6 @@ import { eq, isNull, and, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { EditForm } from "./EditForm";
 import { DeleteButton } from "./DeleteButton";
-import { VictoryGroupsSection } from "./VictoryGroupsSection";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getProfileFreshness, FRESHNESS_BANNER_CLASS, FRESHNESS_MESSAGE } from "@/lib/vgLeaderStatus";
 
@@ -74,15 +73,12 @@ export default async function EditVGLeaderPage({ params }: { params: Promise<{ i
           />
         </div>
       </div>
-      <div className="flex flex-col gap-6">
-        <EditForm leader={leader} leadershipGroupMembers={lglMemberRows} />
-        <VictoryGroupsSection
-          groups={groups}
-          internsByGroup={internsByGroup}
-          vgLeaderId={leaderId}
-          isLeadershipGroupLeader={leader.isLeadershipGroupLeader}
-        />
-      </div>
+      <EditForm
+        leader={leader}
+        leadershipGroupMembers={lglMemberRows}
+        groups={groups}
+        internsByGroup={internsByGroup}
+      />
     </div>
   );
 }

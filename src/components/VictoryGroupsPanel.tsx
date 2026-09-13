@@ -351,6 +351,7 @@ export function VictoryGroupsPanel({
   rowLabel = "Victory Group",
   variant,
   readOnly = false,
+  required = false,
   onDirtyChange,
   onAdd,
   onUpdate,
@@ -366,6 +367,7 @@ export function VictoryGroupsPanel({
   rowLabel?: string;
   variant: Variant;
   readOnly?: boolean;
+  required?: boolean;
   onDirtyChange?: (dirty: boolean) => void;
   onAdd: (formData: FormData) => Promise<void>;
   onUpdate: (id: number, formData: FormData) => Promise<void>;
@@ -381,7 +383,9 @@ export function VictoryGroupsPanel({
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="bg-indigo-50 border-b border-indigo-100 px-6 py-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">{title}</h2>
+        <h2 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">
+          {title} {required && <span className="text-red-500 normal-case">*</span>}
+        </h2>
         {!readOnly && !adding && (
           <button
             onClick={() => setAdding(true)}

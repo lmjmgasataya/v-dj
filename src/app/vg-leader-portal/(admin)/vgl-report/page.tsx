@@ -1,10 +1,14 @@
+import Link from "next/link";
 import { db } from "@/db";
-import { victoryGroupLeaders, victoryGroups, users } from "@/db/schema";
+import { victoryGroupLeaders, victoryGroups, users, interns, leadershipGroupMembers } from "@/db/schema";
 import { and, eq, isNull, isNotNull } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
 import { HorizontalBarChart, AgeChart } from "../Charts";
 import { computeProfileProgress } from "@/lib/profileCompleteness";
 import { getLiveQuarter, getProfileUpdateQuarters } from "@/lib/vgQuarters";
+
+const lglLeaders = alias(victoryGroupLeaders, "lgl_leaders");
 
 const NOT_SET_SERVICE = "Not Set";
 
@@ -31,7 +35,7 @@ function ageBucket(age: number | null): string | null {
 }
 
 export default async function VgLeaderReportPage() {
-  const [allLeaders, claimedAccounts, activeGroups] = await Promise.all([
+  const [allLeaders, claimedAccounts, activeGroups, lglMemberRows, internRows] = await Promise.all([
     db.select().from(victoryGroupLeaders).where(isNull(victoryGroupLeaders.deletedAt)),
     db
       .select({ vgLeaderId: users.vgLeaderId })
@@ -41,6 +45,33 @@ export default async function VgLeaderReportPage() {
       .select({ vgLeaderId: victoryGroups.vgLeaderId })
       .from(victoryGroups)
       .where(and(isNull(victoryGroups.deletedAt), eq(victoryGroups.isActive, true))),
+    db
+      .select({
+        memberId: victoryGroupLeaders.id,
+        memberLastName: victoryGroupLeaders.lastName,
+        memberFirstName: victoryGroupLeaders.firstName,
+        leaderId: leadershipGroupMembers.leaderId,
+        leaderLastName: lglLeaders.lastName,
+        leaderFirstName: lglLeaders.firstName,
+      })
+      .from(leadershipGroupMembers)
+      .innerJoin(victoryGroupLeaders, eq(leadershipGroupMembers.memberVgLeaderId, victoryGroupLeaders.id))
+      .innerJoin(lglLeaders, eq(leadershipGroupMembers.leaderId, lglLeaders.id))
+      .where(and(isNull(victoryGroupLeaders.deletedAt), isNull(lglLeaders.deletedAt))),
+    db
+      .select({
+        lastName: interns.lastName,
+        firstName: interns.firstName,
+        victoryGroupId: interns.victoryGroupId,
+        vgLeaderLastName: victoryGroupLeaders.lastName,
+        vgLeaderFirstName: victoryGroupLeaders.firstName,
+        vgLeaderId: victoryGroups.vgLeaderId,
+        vgPlace: victoryGroups.place,
+      })
+      .from(interns)
+      .innerJoin(victoryGroups, eq(interns.victoryGroupId, victoryGroups.id))
+      .innerJoin(victoryGroupLeaders, eq(victoryGroups.vgLeaderId, victoryGroupLeaders.id))
+      .where(and(isNull(interns.deletedAt), isNull(victoryGroups.deletedAt), isNull(victoryGroupLeaders.deletedAt))),
   ]);
 
   const claimedIds = new Set(claimedAccounts.map((a) => a.vgLeaderId));
@@ -124,9 +155,107 @@ export default async function VgLeaderReportPage() {
     count: leadership113Counts.get(label) ?? 0,
   }));
 
+  // A VG leader should only be claimed as a member by one Leadership Group Leader.
+  const byMember = new Map<number, { name: string; leaders: { id: number; name: string }[] }>();
+  for (const r of lglMemberRows) {
+    const entry = byMember.get(r.memberId) ?? { name: `${r.memberLastName}, ${r.memberFirstName}`, leaders: [] };
+    if (!entry.leaders.some((l) => l.id === r.leaderId)) {
+      entry.leaders.push({ id: r.leaderId, name: `${r.leaderLastName}, ${r.leaderFirstName}` });
+    }
+    byMember.set(r.memberId, entry);
+  }
+  const duplicateLglMembers = Array.from(byMember.entries())
+    .filter(([, v]) => v.leaders.length > 1)
+    .map(([id, v]) => ({ id, ...v }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  // An intern should only be listed under one Victory Group.
+  const byIntern = new Map<string, { name: string; groups: { victoryGroupId: number; vgLeaderId: number; vgLeaderName: string; place: string }[] }>();
+  for (const r of internRows) {
+    const key = `${r.lastName.trim().toLowerCase()}|${r.firstName.trim().toLowerCase()}`;
+    const entry = byIntern.get(key) ?? { name: `${r.lastName}, ${r.firstName}`, groups: [] };
+    if (!entry.groups.some((g) => g.victoryGroupId === r.victoryGroupId)) {
+      entry.groups.push({
+        victoryGroupId: r.victoryGroupId,
+        vgLeaderId: r.vgLeaderId,
+        vgLeaderName: `${r.vgLeaderLastName}, ${r.vgLeaderFirstName}`,
+        place: r.vgPlace,
+      });
+    }
+    byIntern.set(key, entry);
+  }
+  const duplicateInterns = Array.from(byIntern.values())
+    .filter((v) => v.groups.length > 1)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const hasDuplicates = duplicateLglMembers.length > 0 || duplicateInterns.length > 0;
+
   return (
     <div className="flex flex-col gap-6">
       <p className="text-sm text-gray-500 -mt-2">{total} VG leader{total !== 1 ? "s" : ""} with a claimed portal account</p>
+
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-800">Duplicates</h3>
+          <p className="text-xs text-gray-400 mt-0.5">
+            A VG leader should only be led by one Leadership Group Leader, and an intern should only belong to one Victory Group.
+          </p>
+        </div>
+        {hasDuplicates ? (
+          <div className="divide-y divide-gray-100">
+            {duplicateLglMembers.length > 0 && (
+              <div className="px-6 py-4">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  VG Leaders led by more than one Leadership Group Leader ({duplicateLglMembers.length})
+                </p>
+                <ul className="flex flex-col gap-2">
+                  {duplicateLglMembers.map((m) => (
+                    <li key={m.id} className="text-sm">
+                      <Link href={`/vg-leader-portal/leaders/${m.id}`} className="font-medium text-indigo-600 hover:text-indigo-800 underline">
+                        {m.name}
+                      </Link>
+                      <span className="text-gray-500"> — led by </span>
+                      {m.leaders.map((l, i) => (
+                        <span key={l.id}>
+                          {i > 0 && ", "}
+                          <Link href={`/vg-leader-portal/leaders/${l.id}`} className="text-gray-700 hover:text-indigo-800 underline">
+                            {l.name}
+                          </Link>
+                        </span>
+                      ))}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {duplicateInterns.length > 0 && (
+              <div className="px-6 py-4">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Interns listed under more than one Victory Group ({duplicateInterns.length})
+                </p>
+                <ul className="flex flex-col gap-2">
+                  {duplicateInterns.map((it) => (
+                    <li key={`${it.name}`} className="text-sm">
+                      <span className="font-medium text-gray-900">{it.name}</span>
+                      <span className="text-gray-500"> — under </span>
+                      {it.groups.map((g, i) => (
+                        <span key={g.victoryGroupId}>
+                          {i > 0 && ", "}
+                          <Link href={`/vg-leader-portal/leaders/${g.vgLeaderId}/edit`} className="text-gray-700 hover:text-indigo-800 underline">
+                            {g.vgLeaderName} ({g.place})
+                          </Link>
+                        </span>
+                      ))}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="px-6 py-4 text-sm text-gray-500">No duplicates found.</p>
+        )}
+      </div>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">

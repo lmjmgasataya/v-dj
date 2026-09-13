@@ -125,7 +125,7 @@ export function VgLeadersTable({ rows, enableMerge }: { rows: VgLeaderRow[]; ena
                   )}
                   <td className="px-4 py-2.5">
                     <Link
-                      href={`/manage-vg-leaders/leaders/${l.id}`}
+                      href={`/vg-leader-portal/leaders/${l.id}`}
                       className="font-medium text-gray-800 hover:text-indigo-700 hover:underline"
                     >
                       {toTitleCase(l.lastName)}, {toTitleCase(l.firstName)}
@@ -182,7 +182,7 @@ export function VgLeadersTable({ rows, enableMerge }: { rows: VgLeaderRow[]; ena
                         </form>
                       )}
                       <Link
-                        href={`/manage-vg-leaders/leaders/${l.id}/edit`}
+                        href={`/vg-leader-portal/leaders/${l.id}/edit`}
                         className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline"
                       >
                         Edit

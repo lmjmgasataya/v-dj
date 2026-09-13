@@ -19,7 +19,8 @@ export async function resetVgLeaderPin(userId: number) {
     .update(users)
     .set({ pinHash: null })
     .where(and(eq(users.id, userId), eq(users.role, "vg_leader")));
-  revalidatePath("/manage-vg-leaders");
+  revalidatePath("/vg-leader-portal/leaders");
+  revalidatePath("/vg-leader-portal/disciplers");
   await toastRedirectBack(
     "PIN cleared. The leader will be asked to set a new one next time they access the portal — their profile is unaffected."
   );

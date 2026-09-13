@@ -71,8 +71,7 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
           items={[
             { label: "Home", href: "/" },
             { label: "VG Leader Portal", href: "/vg-leader-portal" },
-            { label: "Manage VG Leaders", href: "/manage-vg-leaders" },
-            { label: "VG Leaders", href: "/manage-vg-leaders/leaders" },
+            { label: "VG Leaders", href: "/vg-leader-portal/leaders" },
             { label: `${leader.lastName}, ${leader.firstName}` },
           ]}
         />
@@ -103,7 +102,7 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
             <p className="text-xs text-gray-400 mt-1">Created {fmtDate(leader.createdAt)}</p>
           </div>
           <Link
-            href={`/manage-vg-leaders/leaders/${leader.id}/edit`}
+            href={`/vg-leader-portal/leaders/${leader.id}/edit`}
             className="bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition shrink-0"
           >
             Edit
@@ -130,7 +129,7 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
             <dd className="text-sm text-gray-900">
               {leader.ownVgLeaderId ? (
                 <Link
-                  href={`/manage-vg-leaders/leaders/${leader.ownVgLeaderId}`}
+                  href={`/vg-leader-portal/leaders/${leader.ownVgLeaderId}`}
                   className="text-indigo-600 hover:text-indigo-800 underline"
                 >
                   {leader.ownVgLeaderName || "—"}
@@ -169,7 +168,7 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
                   <ul className="flex flex-col gap-1">
                     {lglMembers.map((m) => (
                       <li key={m.id}>
-                        <Link href={`/manage-vg-leaders/leaders/${m.id}`} className="text-indigo-600 hover:text-indigo-800 underline">
+                        <Link href={`/vg-leader-portal/leaders/${m.id}`} className="text-indigo-600 hover:text-indigo-800 underline">
                           {m.lastName}, {m.firstName}
                         </Link>
                       </li>

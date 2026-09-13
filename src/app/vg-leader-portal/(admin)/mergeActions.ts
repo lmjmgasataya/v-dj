@@ -182,6 +182,7 @@ export async function mergeVgLeaders(keepId: number, dropId: number): Promise<{ 
     return { error: e instanceof Error ? e.message : "Couldn't merge these records." };
   }
 
-  revalidatePath("/manage-vg-leaders");
+  revalidatePath("/vg-leader-portal/leaders");
+  revalidatePath("/vg-leader-portal/disciplers");
   await toastRedirectBack("Records merged.");
 }

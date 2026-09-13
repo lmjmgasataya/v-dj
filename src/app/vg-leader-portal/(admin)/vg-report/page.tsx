@@ -126,7 +126,7 @@ export default async function VictoryGroupReportPage({
     if (frequency) params.set("frequency", frequency);
     if (p > 1) params.set("page", String(p));
     const qs = params.toString();
-    return `/manage-vg-leaders/vg-report${qs ? `?${qs}` : ""}`;
+    return `/vg-leader-portal/vg-report${qs ? `?${qs}` : ""}`;
   }
 
   return (

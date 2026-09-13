@@ -55,7 +55,7 @@ export function VgReportFilters({
     if (vals.lifestage.length) params.set("lifestage", vals.lifestage.join(","));
     if (vals.frequency.length) params.set("frequency", vals.frequency.join(","));
     const qs = params.toString();
-    return `/manage-vg-leaders/vg-report${qs ? `?${qs}` : ""}`;
+    return `/vg-leader-portal/vg-report${qs ? `?${qs}` : ""}`;
   }
 
   const hasFilters =
@@ -73,7 +73,7 @@ export function VgReportFilters({
 
       {hasFilters && (
         <Link
-          href="/manage-vg-leaders/vg-report"
+          href="/vg-leader-portal/vg-report"
           className="bg-white border border-gray-300 text-gray-600 text-sm font-semibold px-4 py-2 rounded-lg hover:bg-gray-50 transition"
         >
           Clear

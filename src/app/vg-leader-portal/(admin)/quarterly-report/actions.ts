@@ -64,7 +64,7 @@ export async function createVgReportSnapshot(formData: FormData) {
     .values({ label, asOfDate, data })
     .onConflictDoUpdate({ target: vgReportSnapshots.label, set: { asOfDate, data } });
 
-  revalidatePath("/manage-vg-leaders/quarterly-report");
+  revalidatePath("/vg-leader-portal/quarterly-report");
 }
 
 export async function updateVgReportSnapshot(id: number, formData: FormData) {
@@ -84,13 +84,13 @@ export async function updateVgReportSnapshot(id: number, formData: FormData) {
 
   await db.update(vgReportSnapshots).set({ label, asOfDate, data }).where(eq(vgReportSnapshots.id, id));
 
-  revalidatePath("/manage-vg-leaders/quarterly-report");
+  revalidatePath("/vg-leader-portal/quarterly-report");
 }
 
 export async function deleteVgReportSnapshot(id: number) {
   await requireDeveloper();
   await db.delete(vgReportSnapshots).where(eq(vgReportSnapshots.id, id));
-  revalidatePath("/manage-vg-leaders/quarterly-report");
+  revalidatePath("/vg-leader-portal/quarterly-report");
 }
 
 export async function addConvergenceAttendance(formData: FormData) {
@@ -100,13 +100,13 @@ export async function addConvergenceAttendance(formData: FormData) {
     eventDate: formData.get("eventDate") as string,
     attendees: Number(formData.get("attendees") || 0),
   });
-  revalidatePath("/manage-vg-leaders/quarterly-report");
+  revalidatePath("/vg-leader-portal/quarterly-report");
 }
 
 export async function deleteConvergenceAttendance(id: number) {
   await requireDeveloper();
   await db.delete(vgConvergenceAttendance).where(eq(vgConvergenceAttendance.id, id));
-  revalidatePath("/manage-vg-leaders/quarterly-report");
+  revalidatePath("/vg-leader-portal/quarterly-report");
 }
 
 export async function addLeadership113Batch(formData: FormData) {
@@ -116,11 +116,11 @@ export async function addLeadership113Batch(formData: FormData) {
     actual: Number(formData.get("actual") || 0),
     goal: Number(formData.get("goal") || 0),
   });
-  revalidatePath("/manage-vg-leaders/quarterly-report");
+  revalidatePath("/vg-leader-portal/quarterly-report");
 }
 
 export async function deleteLeadership113Batch(id: number) {
   await requireDeveloper();
   await db.delete(leadership113Batches).where(eq(leadership113Batches.id, id));
-  revalidatePath("/manage-vg-leaders/quarterly-report");
+  revalidatePath("/vg-leader-portal/quarterly-report");
 }

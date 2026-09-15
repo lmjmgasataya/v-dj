@@ -5,6 +5,7 @@ import { createVgLeader, deleteVgLeader } from "./actions";
 import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
 import { ParticipantsCell, type ParticipantsCellEntry } from "@/components/ParticipantsCell";
 import { toTitleCase } from "@/lib/text";
+import { MobileNumberInput } from "@/components/MobileNumberInput";
 
 const input = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400";
 
@@ -138,7 +139,7 @@ export default async function VgLeadersPage() {
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">Mobile Number</label>
-              <input name="mobileNumber" required type="tel" className={input} />
+              <MobileNumberInput required className={input} />
             </div>
             <div className="col-span-2">
               <label className="block text-xs text-gray-500 mb-1">Facebook / Messenger Name</label>

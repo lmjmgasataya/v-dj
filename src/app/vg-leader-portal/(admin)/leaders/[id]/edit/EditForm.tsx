@@ -5,6 +5,7 @@ import Link from "next/link";
 import { updateVGLeader } from "./actions";
 import { Field, Section, CheckboxOption, RadioOption, inputCls, selectCls, SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
 import { OwnVgLeaderField } from "@/components/OwnVgLeaderField";
+import { MobileNumberInput } from "@/components/MobileNumberInput";
 import { LeadershipGroupMembersField, type MemberRowValue } from "@/components/LeadershipGroupMembersField";
 import { VictoryGroupsSection } from "./VictoryGroupsSection";
 import type { VictoryGroupLeader, VictoryGroup } from "@/db/schema";
@@ -201,7 +202,7 @@ export function EditForm({
             <input name="nickname" defaultValue={leader.nickname ?? ""} className={inputCls} />
           </Field>
           <Field label="Mobile Number" required>
-            <input name="mobileNumber" required defaultValue={leader.mobileNumber ?? ""} className={inputCls} />
+            <MobileNumberInput required defaultValue={leader.mobileNumber ?? ""} className={inputCls} />
           </Field>
           <Field label="Age" required>
             <input name="age" type="number" required min={1} max={120} defaultValue={leader.age ?? ""} className={inputCls} />

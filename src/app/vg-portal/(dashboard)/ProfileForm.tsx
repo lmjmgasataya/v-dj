@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { updateOwnProfile } from "./actions";
 import { Field, Section, CheckboxOption, RadioOption, inputCls, selectCls, SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
 import { OwnVgLeaderField } from "@/components/OwnVgLeaderField";
+import { MobileNumberInput } from "@/components/MobileNumberInput";
 import { LeadershipGroupMembersField, type MemberRowValue } from "@/components/LeadershipGroupMembersField";
 import { MyVictoryGroups } from "./MyVictoryGroups";
 import type { VictoryGroupLeader, VictoryGroup } from "@/db/schema";
@@ -195,7 +196,7 @@ export function ProfileForm({
               <input name="nickname" required defaultValue={leader.nickname ?? ""} className={inputCls} />
             </Field>
             <Field label="Mobile Number" required>
-              <input name="mobileNumber" required defaultValue={leader.mobileNumber ?? ""} className={inputCls} />
+              <MobileNumberInput required defaultValue={leader.mobileNumber ?? ""} className={inputCls} />
             </Field>
             <Field label="Age" required>
               <input name="age" type="number" required min={1} max={120} defaultValue={leader.age ?? ""} className={inputCls} />

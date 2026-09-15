@@ -10,6 +10,13 @@ import { ConvergenceSection } from "./ConvergenceSection";
 import { Leadership113Section } from "./Leadership113Section";
 import { ComparisonPicker } from "./ComparisonPicker";
 import { DrillDownValue } from "./DrillDownValue";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+
+const QUARTERLY_REPORT_BREADCRUMB = [
+  { label: "Home", href: "/" },
+  { label: "VG Leader Portal", href: "/vg-leader-portal" },
+  { label: "Quarterly Report" },
+];
 
 function detailItems(detail: VgBucketDetail | undefined, key: keyof VgSnapshotData["totals"]): string[] | null {
   if (!detail) return null;
@@ -244,6 +251,7 @@ export default async function QuarterlyReportPage({
     const { counts, detail } = await computeLeadPastorLiveCounts(rawServiceValues(session.timeService));
     return (
       <div className="flex flex-col gap-6">
+        <Breadcrumbs items={QUARTERLY_REPORT_BREADCRUMB} />
         <div className="bg-green-50 border border-green-200 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-2">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -281,6 +289,7 @@ export default async function QuarterlyReportPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <Breadcrumbs items={QUARTERLY_REPORT_BREADCRUMB} />
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-gray-800">Quarterly Discipleship Report</p>

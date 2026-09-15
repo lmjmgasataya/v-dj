@@ -8,6 +8,7 @@ import { HorizontalBarChart, AgeChart } from "../Charts";
 import { computeProfileProgress } from "@/lib/profileCompleteness";
 import { getLiveQuarter, getProfileUpdateQuarters } from "@/lib/vgQuarters";
 import { getSession } from "@/lib/auth";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { rawServiceValues } from "@/lib/timeService";
 
 const lglLeaders = alias(victoryGroupLeaders, "lgl_leaders");
@@ -207,6 +208,7 @@ export default async function VgLeaderReportPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "VG Leader Portal", href: "/vg-leader-portal" }, { label: "VG Leaders Report" }]} />
       <p className="text-sm text-gray-500 -mt-2">{total} VG leader{total !== 1 ? "s" : ""} with a claimed portal account</p>
 
       {/* Cross-service duplicate detection would leak other services' leader/intern

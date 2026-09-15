@@ -21,6 +21,7 @@ import { resolveOwnVgLeader } from "@/lib/ownVgLeader";
 import { replaceGroupInterns } from "@/lib/interns";
 import { resolveLeadershipGroupMembers, replaceLeadershipGroupMembers } from "@/lib/leadershipGroupMembers";
 import { toastRedirect } from "@/lib/toast";
+import { MOBILE_NUMBER_REGEX } from "@/lib/phone";
 
 type Day = (typeof dayOfWeekEnum.enumValues)[number];
 type Frequency = (typeof vgFrequencyEnum.enumValues)[number];
@@ -104,6 +105,10 @@ export async function deleteOwnVictoryGroup(id: number) {
 
 export async function updateOwnProfile(formData: FormData) {
   const session = await requireVgLeader();
+  const mobileNumber = formData.get("mobileNumber") as string;
+  if (!MOBILE_NUMBER_REGEX.test(mobileNumber)) {
+    throw new Error("Invalid mobile number format.");
+  }
   const ownVgLeader = await resolveOwnVgLeader(formData, session.vgLeaderId);
   const isLeadershipGroupLeader = formData.get("isLeadershipGroupLeader") === "true";
   const memberIds = isLeadershipGroupLeader
@@ -116,7 +121,7 @@ export async function updateOwnProfile(formData: FormData) {
       firstName: toTitleCase(formData.get("firstName") as string),
       middleInitial: toTitleCase((formData.get("middleInitial") as string) || "") || null,
       nickname: (formData.get("nickname") as string) || null,
-      mobileNumber: formData.get("mobileNumber") as string,
+      mobileNumber,
       age: formData.get("age") ? Number(formData.get("age")) : null,
       gender: (formData.get("gender") as string) || null,
       lifestage: (formData.get("lifestage") as LifeStage) || null,

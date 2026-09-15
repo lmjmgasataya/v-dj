@@ -6,6 +6,7 @@ import { currentYearPH, checkInStatusForDate } from "@/lib/date";
 import { toTitleCase } from "@/lib/text";
 import { ORIENTATION_ALLOWED_CLASSES } from "@/lib/constants";
 import { assignTableNumber } from "@/lib/tables";
+import { MOBILE_NUMBER_REGEX } from "@/lib/phone";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
 import { and, count, eq, gte, ilike, inArray, isNull, lt, notInArray, or } from "drizzle-orm";
@@ -522,6 +523,11 @@ export async function searchParticipants(sessionId: number, q: string, isVictory
 }
 
 export async function addWalkIn(classSessionId: number, formData: FormData) {
+  const mobileNumber = (formData.get("mobileNumber") as string) || "";
+  if (mobileNumber && !MOBILE_NUMBER_REGEX.test(mobileNumber)) {
+    throw new Error("Invalid mobile number format.");
+  }
+
   const vgLeaderLastName = formData.get("vgLeaderLastName") as string;
   const vgLeaderFirstName = formData.get("vgLeaderFirstName") as string;
 
@@ -537,7 +543,7 @@ export async function addWalkIn(classSessionId: number, formData: FormData) {
       lastName: toTitleCase(formData.get("lastName") as string),
       firstName: toTitleCase(formData.get("firstName") as string),
       middleInitial: toTitleCase((formData.get("middleInitial") as string) || "") || null,
-      mobileNumber: (formData.get("mobileNumber") as string) || null,
+      mobileNumber: mobileNumber || null,
       lifestage: ((formData.get("lifestage") as string) || null) as Lifestage | null,
       age: Number(formData.get("age")),
       gender: formData.get("gender") as string,

@@ -6,6 +6,7 @@ import { HorizontalBarChart } from "../Charts";
 import { VgReportFilters } from "./VgReportFilters";
 import { getSession } from "@/lib/auth";
 import { rawServiceValues } from "@/lib/timeService";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 const PAGE_SIZE = 20;
 
@@ -29,16 +30,36 @@ const TIME_ORDER = Array.from({ length: 18 }, (_, i) => {
   return `${display}:00 ${ampm}`;
 });
 
+type SortKey = "leader" | "place" | "day" | "time" | "frequency" | "lifeStage" | "intern";
+type SortDir = "asc" | "desc";
+
+const SORT_COLUMNS: { key: SortKey; label: string }[] = [
+  { key: "leader", label: "Leader" },
+  { key: "place", label: "Place" },
+  { key: "day", label: "Day" },
+  { key: "time", label: "Time" },
+  { key: "frequency", label: "Frequency" },
+  { key: "lifeStage", label: "Life Stage" },
+  { key: "intern", label: "Intern" },
+];
+
+function sortIcon(col: SortKey, currentSort: SortKey, currentDir: SortDir) {
+  if (currentSort !== col) return " ↕";
+  return currentDir === "asc" ? " ↑" : " ↓";
+}
+
 export default async function VictoryGroupReportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ gender?: string; service?: string; day?: string; time?: string; lifestage?: string; frequency?: string; page?: string }>;
+  searchParams: Promise<{ gender?: string; service?: string; day?: string; time?: string; lifestage?: string; frequency?: string; page?: string; sort?: string; dir?: string }>;
 }) {
   const authSession = await getSession();
   const isLeadPastor = authSession?.role === "lead_pastor";
 
-  const { gender = "", service = "", day = "", time = "", lifestage = "", frequency = "", page: pageParam } = await searchParams;
+  const { gender = "", service = "", day = "", time = "", lifestage = "", frequency = "", page: pageParam, sort: sortParam, dir: dirParam } = await searchParams;
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
+  const sortKey: SortKey = SORT_COLUMNS.some((c) => c.key === sortParam) ? (sortParam as SortKey) : "day";
+  const sortDir: SortDir = dirParam === "desc" ? "desc" : "asc";
 
   const genderList = gender ? gender.split(",") : [];
   const serviceList = isLeadPastor ? rawServiceValues(authSession?.timeService) : service ? service.split(",") : [];
@@ -73,8 +94,7 @@ export default async function VictoryGroupReportPage({
         lifestageList.length ? or(...lifestageList.map((ls) => sql`${ls} = ANY(${victoryGroups.lifeStage})`)) : undefined,
         frequencyList.length ? inArray(victoryGroups.frequency, frequencyList as (typeof vgFrequencyEnum.enumValues)[number][]) : undefined,
       )
-    )
-    .orderBy(victoryGroups.day, victoryGroups.time);
+    );
 
   const total = groups.length;
 
@@ -108,18 +128,41 @@ export default async function VictoryGroupReportPage({
     (r) => r.count > 0
   );
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const pageGroups = groups.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-  const pageGroupIds = pageGroups.map((g) => g.id);
-  const internRows = pageGroupIds.length
-    ? await db.select().from(interns).where(and(inArray(interns.victoryGroupId, pageGroupIds), isNull(interns.deletedAt)))
+  const allGroupIds = groups.map((g) => g.id);
+  const internRows = allGroupIds.length
+    ? await db.select().from(interns).where(and(inArray(interns.victoryGroupId, allGroupIds), isNull(interns.deletedAt)))
     : [];
   const internsByGroup: Record<number, string> = {};
   for (const i of internRows) {
     const name = `${i.lastName}, ${i.firstName}`;
     internsByGroup[i.victoryGroupId] = internsByGroup[i.victoryGroupId] ? `${internsByGroup[i.victoryGroupId]}; ${name}` : name;
   }
+
+  const dayIndex = new Map(DAY_ORDER.map((d, i) => [d, i]));
+  const timeIndex = new Map(TIME_ORDER.map((t, i) => [t, i]));
+  const frequencyIndex = new Map(FREQUENCY_ORDER.map((f, i) => [f, i]));
+
+  function sortValue(g: (typeof groups)[number], key: SortKey): string | number {
+    switch (key) {
+      case "leader": return `${g.leaderLastName}, ${g.leaderFirstName}`.toLowerCase();
+      case "place": return g.place.toLowerCase();
+      case "day": return dayIndex.get(g.day) ?? DAY_ORDER.length;
+      case "time": return timeIndex.get(g.time) ?? TIME_ORDER.length;
+      case "frequency": return frequencyIndex.get(g.frequency) ?? FREQUENCY_ORDER.length;
+      case "lifeStage": return (g.lifeStage?.join(", ") ?? "").toLowerCase();
+      case "intern": return (internsByGroup[g.id] ?? "").toLowerCase();
+    }
+  }
+
+  const sortedGroups = [...groups].sort((a, b) => {
+    const av = sortValue(a, sortKey);
+    const bv = sortValue(b, sortKey);
+    const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pageGroups = sortedGroups.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   function pageHref(p: number) {
     const params = new URLSearchParams();
@@ -129,13 +172,30 @@ export default async function VictoryGroupReportPage({
     if (time) params.set("time", time);
     if (lifestage) params.set("lifestage", lifestage);
     if (frequency) params.set("frequency", frequency);
+    if (sortKey !== "day") params.set("sort", sortKey);
+    if (sortDir !== "asc") params.set("dir", sortDir);
     if (p > 1) params.set("page", String(p));
     const qs = params.toString();
     return `/vg-leader-portal/vg-report${qs ? `?${qs}` : ""}`;
   }
 
+  function sortHref(col: SortKey) {
+    const params = new URLSearchParams();
+    if (gender) params.set("gender", gender);
+    if (service) params.set("service", service);
+    if (day) params.set("day", day);
+    if (time) params.set("time", time);
+    if (lifestage) params.set("lifestage", lifestage);
+    if (frequency) params.set("frequency", frequency);
+    const nextDir: SortDir = sortKey === col && sortDir === "asc" ? "desc" : "asc";
+    params.set("sort", col);
+    params.set("dir", nextDir);
+    return `/vg-leader-portal/vg-report?${params.toString()}`;
+  }
+
   return (
     <div className="flex flex-col gap-6">
+      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "VG Leader Portal", href: "/vg-leader-portal" }, { label: "Victory Group Report" }]} />
       <VgReportFilters gender={genderList} service={serviceList} day={dayList} time={timeList} lifestage={lifestageList} frequency={frequencyList} hideServiceFilter={isLeadPastor} />
       <p className="text-sm text-gray-500 -mt-2">{total} active victory group{total !== 1 ? "s" : ""}</p>
 
@@ -151,13 +211,16 @@ export default async function VictoryGroupReportPage({
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
                   <tr>
-                    <th className="px-4 py-2 text-left font-medium">Leader</th>
-                    <th className="px-4 py-2 text-left font-medium">Place</th>
-                    <th className="px-4 py-2 text-left font-medium">Day</th>
-                    <th className="px-4 py-2 text-left font-medium">Time</th>
-                    <th className="px-4 py-2 text-left font-medium">Frequency</th>
-                    <th className="px-4 py-2 text-left font-medium">Life Stage</th>
-                    <th className="px-4 py-2 text-left font-medium">Intern</th>
+                    {SORT_COLUMNS.map((col) => (
+                      <th key={col.key} className="px-4 py-2 text-left font-medium">
+                        <Link href={sortHref(col.key)} className="flex items-center gap-0.5 hover:text-gray-800 select-none">
+                          {col.label}
+                          <span className={sortKey === col.key ? "text-gray-700" : "text-gray-300"}>
+                            {sortIcon(col.key, sortKey, sortDir)}
+                          </span>
+                        </Link>
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">

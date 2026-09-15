@@ -75,6 +75,7 @@ export async function getVgLeaderRows(): Promise<VgLeaderRow[]> {
       firstName: l.firstName,
       nickname: l.nickname,
       mobileNumber: l.mobileNumber,
+      serviceAttending: l.serviceAttending,
       duplicateMobile: !!mobileKey && (mobileCounts.get(mobileKey) ?? 0) > 1,
       duplicateName: (nameCounts.get(nameKey) ?? 0) > 1,
       claimed: !!account?.pinHash,

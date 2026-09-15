@@ -6,6 +6,7 @@ import { toTitleCase } from "@/lib/text";
 import { ParticipantsCell, type ParticipantsCellEntry } from "@/components/ParticipantsCell";
 import { resetVgLeaderPin } from "./actions";
 import { MergeVgLeadersModal } from "./MergeVgLeadersModal";
+import { TIME_SERVICES, rawServiceValues, type LeadPastorTimeService } from "@/lib/timeService";
 
 export interface VgLeaderRow {
   id: number;
@@ -13,6 +14,7 @@ export interface VgLeaderRow {
   firstName: string;
   nickname: string | null;
   mobileNumber: string | null;
+  serviceAttending: string | null;
   duplicateMobile: boolean;
   duplicateName: boolean;
   claimed: boolean;
@@ -26,10 +28,42 @@ const selectCls =
   "rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent";
 
 type ProfileFilter = "all" | "complete" | "incomplete";
+type SortKey = "name" | "mobile" | "service" | "portal" | "profile" | "groups" | "participants";
+type SortDir = "asc" | "desc";
+
+const SORT_COLUMNS: { key: SortKey; label: string }[] = [
+  { key: "name", label: "Name" },
+  { key: "mobile", label: "Mobile" },
+  { key: "service", label: "Service" },
+  { key: "portal", label: "Portal Account" },
+  { key: "profile", label: "Profile" },
+  { key: "groups", label: "Active Groups" },
+  { key: "participants", label: "Participants" },
+];
+
+function sortValue(l: VgLeaderRow, key: SortKey): string | number {
+  switch (key) {
+    case "name": return `${l.lastName}, ${l.firstName}`.toLowerCase();
+    case "mobile": return l.mobileNumber?.toLowerCase() ?? "";
+    case "service": return l.serviceAttending?.toLowerCase() ?? "";
+    case "portal": return l.claimed ? 1 : 0;
+    case "profile": return l.profileCompleted ? 1 : 0;
+    case "groups": return l.activeGroups;
+    case "participants": return l.participants.length;
+  }
+}
+
+function sortIcon(col: SortKey, currentSort: SortKey, currentDir: SortDir) {
+  if (currentSort !== col) return " ↕";
+  return currentDir === "asc" ? " ↑" : " ↓";
+}
 
 export function VgLeadersTable({ rows, enableMerge }: { rows: VgLeaderRow[]; enableMerge?: boolean }) {
   const [q, setQ] = useState("");
   const [profileFilter, setProfileFilter] = useState<ProfileFilter>("all");
+  const [serviceFilter, setServiceFilter] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [selected, setSelected] = useState<number[]>([]);
   const [merging, setMerging] = useState(false);
 
@@ -41,7 +75,17 @@ export function VgLeadersTable({ rows, enableMerge }: { rows: VgLeaderRow[]; ena
     });
   }
 
+  function toggleSort(col: SortKey) {
+    if (sortKey === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(col);
+      setSortDir("asc");
+    }
+  }
+
   const query = q.trim().toLowerCase();
+  const serviceRawValues = serviceFilter ? rawServiceValues(serviceFilter as LeadPastorTimeService) : null;
   const filtered = rows.filter((l) => {
     if (query) {
       const haystack = `${l.lastName} ${l.firstName} ${l.nickname ?? ""} ${l.mobileNumber ?? ""}`.toLowerCase();
@@ -49,7 +93,15 @@ export function VgLeadersTable({ rows, enableMerge }: { rows: VgLeaderRow[]; ena
     }
     if (profileFilter === "complete" && !l.profileCompleted) return false;
     if (profileFilter === "incomplete" && l.profileCompleted) return false;
+    if (serviceRawValues && !(l.serviceAttending && serviceRawValues.includes(l.serviceAttending))) return false;
     return true;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    const av = sortValue(a, sortKey);
+    const bv = sortValue(b, sortKey);
+    const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+    return sortDir === "asc" ? cmp : -cmp;
   });
 
   return (
@@ -69,6 +121,16 @@ export function VgLeadersTable({ rows, enableMerge }: { rows: VgLeaderRow[]; ena
           <option value="all">All Profiles</option>
           <option value="complete">Profile Complete</option>
           <option value="incomplete">Profile Incomplete</option>
+        </select>
+        <select
+          value={serviceFilter}
+          onChange={(e) => setServiceFilter(e.target.value)}
+          className={selectCls}
+        >
+          <option value="">All Time Services</option>
+          {TIME_SERVICES.map((ts) => (
+            <option key={ts} value={ts}>{ts}</option>
+          ))}
         </select>
         {enableMerge && selected.length === 2 && (
           <button
@@ -92,7 +154,7 @@ export function VgLeadersTable({ rows, enableMerge }: { rows: VgLeaderRow[]; ena
         />
       )}
 
-      {filtered.length === 0 ? (
+      {sorted.length === 0 ? (
         <p className="px-6 py-8 text-sm text-gray-400 text-center">
           {rows.length === 0 ? "None yet." : "No entries match the current filters."}
         </p>
@@ -102,17 +164,25 @@ export function VgLeadersTable({ rows, enableMerge }: { rows: VgLeaderRow[]; ena
             <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
               <tr>
                 {enableMerge && <th className="px-4 py-2 w-8" />}
-                <th className="px-4 py-2 text-left font-medium">Name</th>
-                <th className="px-4 py-2 text-left font-medium">Mobile</th>
-                <th className="px-4 py-2 text-left font-medium">Portal Account</th>
-                <th className="px-4 py-2 text-left font-medium">Profile</th>
-                <th className="px-4 py-2 text-left font-medium">Active Groups</th>
-                <th className="px-4 py-2 text-left font-medium">Participants</th>
+                {SORT_COLUMNS.map((col) => (
+                  <th key={col.key} className="px-4 py-2 text-left font-medium">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort(col.key)}
+                      className="flex items-center gap-0.5 hover:text-gray-800 select-none"
+                    >
+                      {col.label}
+                      <span className={sortKey === col.key ? "text-gray-700" : "text-gray-300"}>
+                        {sortIcon(col.key, sortKey, sortDir)}
+                      </span>
+                    </button>
+                  </th>
+                ))}
                 <th className="px-4 py-2" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((l) => (
+              {sorted.map((l) => (
                 <tr key={l.id} className="hover:bg-gray-50">
                   {enableMerge && (
                     <td className="px-4 py-2.5">
@@ -147,6 +217,7 @@ export function VgLeadersTable({ rows, enableMerge }: { rows: VgLeaderRow[]; ena
                       </span>
                     )}
                   </td>
+                  <td className="px-4 py-2.5 text-gray-500">{l.serviceAttending ?? "—"}</td>
                   <td className="px-4 py-2.5">
                     <span
                       className={`text-xs font-medium px-2 py-0.5 rounded-full ${

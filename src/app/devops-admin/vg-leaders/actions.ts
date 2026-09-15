@@ -8,6 +8,7 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { toTitleCase } from "@/lib/text";
 import { toastRedirectBack } from "@/lib/toast";
+import { MOBILE_NUMBER_REGEX } from "@/lib/phone";
 
 async function requireDeveloper() {
   const session = await getSession();
@@ -16,11 +17,16 @@ async function requireDeveloper() {
 
 export async function createVgLeader(formData: FormData) {
   await requireDeveloper();
+  const mobileNumber = formData.get("mobileNumber") as string;
+  if (!MOBILE_NUMBER_REGEX.test(mobileNumber)) {
+    await toastRedirectBack("Invalid mobile number format.", "error");
+    return;
+  }
   await db.insert(victoryGroupLeaders).values({
     lastName: toTitleCase(formData.get("lastName") as string),
     firstName: toTitleCase(formData.get("firstName") as string),
     middleInitial: toTitleCase((formData.get("middleInitial") as string) || "") || null,
-    mobileNumber: formData.get("mobileNumber") as string,
+    mobileNumber,
     facebookMessengerName: (formData.get("facebookMessengerName") as string) || null,
     registeredMode: "participant_registration",
   }).onConflictDoNothing();

@@ -7,10 +7,15 @@ import { toastRedirect } from "@/lib/toast";
 import { toTitleCase } from "@/lib/text";
 import { resolveOwnVgLeader } from "@/lib/ownVgLeader";
 import { resolveLeadershipGroupMembers, replaceLeadershipGroupMembers } from "@/lib/leadershipGroupMembers";
+import { MOBILE_NUMBER_REGEX } from "@/lib/phone";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
 
 export async function updateVGLeader(id: number, formData: FormData) {
+  const mobileNumber = formData.get("mobileNumber") as string;
+  if (!MOBILE_NUMBER_REGEX.test(mobileNumber)) {
+    throw new Error("Invalid mobile number format.");
+  }
   const ownVgLeader = await resolveOwnVgLeader(formData, id);
   const isLeadershipGroupLeader = formData.get("isLeadershipGroupLeader") === "true";
   const memberIds = isLeadershipGroupLeader ? await resolveLeadershipGroupMembers(formData, id) : [];
@@ -22,7 +27,7 @@ export async function updateVGLeader(id: number, formData: FormData) {
       firstName: toTitleCase(formData.get("firstName") as string),
       middleInitial: toTitleCase((formData.get("middleInitial") as string) || "") || null,
       nickname: (formData.get("nickname") as string) || null,
-      mobileNumber: formData.get("mobileNumber") as string,
+      mobileNumber,
       age: Number(formData.get("age")),
       gender: formData.get("gender") as string,
       lifestage: (formData.get("lifestage") as Lifestage) || null,

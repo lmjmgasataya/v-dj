@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { addWalkIn } from "./actions";
 import { Field, inputCls, selectCls, SERVICE_OPTIONS } from "@/components/form";
 import { DatePickerField } from "@/components/DatePickerField";
+import { MobileNumberInput } from "@/components/MobileNumberInput";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 
@@ -25,8 +26,11 @@ export function WalkInForm({ sessionId, newDatePicker, offlineCheckin = false }:
       let result;
       try {
         result = await addWalkIn(sessionId, formData);
-      } catch {
-        toast.show("Walk-in registration failed — check your connection and try again.", "error");
+      } catch (err) {
+        const message = err instanceof Error && err.message.includes("mobile number")
+          ? err.message
+          : "Walk-in registration failed — check your connection and try again.";
+        toast.show(message, "error");
         return;
       }
       setFormKey((k) => k + 1);
@@ -63,7 +67,7 @@ export function WalkInForm({ sessionId, newDatePicker, offlineCheckin = false }:
           <input name="middleInitial" maxLength={3} className={inputCls} />
         </Field>
         <Field label="Mobile Number">
-          <input name="mobileNumber" type="tel" className={inputCls} />
+          <MobileNumberInput className={inputCls} />
         </Field>
         <Field label="Lifestage" required>
           <select name="lifestage" required className={selectCls}>

@@ -1,10 +1,11 @@
 import { db } from "@/db";
 import { participants } from "@/db/schema";
-import { isNull, and, gte, lt, asc, desc, sql } from "drizzle-orm";
+import { isNull, and, gte, inArray, lt, asc, desc, sql } from "drizzle-orm";
 import * as XLSX from "xlsx";
 import { todayPH } from "@/lib/date";
 import { FEE_CATEGORIES } from "@/components/form";
 import { getSession } from "@/lib/auth";
+import { rawServiceValues } from "@/lib/timeService";
 
 type SortKey = "ar" | "lastName" | "firstName" | "amount";
 type SortDir = "asc" | "desc";
@@ -12,6 +13,8 @@ type SortDir = "asc" | "desc";
 export async function GET(request: Request) {
   const session = await getSession();
   if (!session) return new Response("Unauthorized", { status: 401 });
+  const lockedServiceRawValues =
+    session.role === "lead_pastor" ? rawServiceValues(session.timeService) : undefined;
 
   const { searchParams } = new URL(request.url);
   const date = searchParams.get("date") || todayPH();
@@ -52,6 +55,7 @@ export async function GET(request: Request) {
         isNull(participants.deletedAt),
         gte(participants.createdAt, startUtc),
         lt(participants.createdAt, endUtc),
+        lockedServiceRawValues ? inArray(participants.serviceAttending, lockedServiceRawValues) : undefined
       )
     )
     .orderBy(orderExpr);

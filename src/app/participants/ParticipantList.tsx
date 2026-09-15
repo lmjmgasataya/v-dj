@@ -44,6 +44,7 @@ export async function ParticipantList({
   victoryWeekend,
   page,
   isDeveloper,
+  lockedServiceRawValues,
 }: {
   q: string;
   lifestage: string;
@@ -55,6 +56,7 @@ export async function ParticipantList({
   victoryWeekend: string;
   page: number;
   isDeveloper: boolean;
+  lockedServiceRawValues?: string[];
 }) {
   const offset = (page - 1) * PAGE_SIZE;
 
@@ -79,7 +81,9 @@ export async function ParticipantList({
     lifestage ? eq(participants.lifestage, lifestage as "Student (JHS/SHS)" | "Student (College)" | "Single" | "Married" | "Single Parent" | "Widow/Widower" | "Senior") : undefined,
     fee ? eq(participants.registrationFee, fee) : undefined,
     gender ? eq(participants.gender, gender) : undefined,
-    service ? eq(participants.serviceAttending, service) : undefined,
+    lockedServiceRawValues
+      ? inArray(participants.serviceAttending, lockedServiceRawValues)
+      : service ? eq(participants.serviceAttending, service) : undefined,
     previousChurch.trim() ? ilike(participants.previousChurch, `%${previousChurch}%`) : undefined,
     waterBaptism === "yes" ? eq(participants.willUndergoWaterBaptism, true) : waterBaptism === "no" ? eq(participants.willUndergoWaterBaptism, false) : undefined,
     victoryWeekend === "done"

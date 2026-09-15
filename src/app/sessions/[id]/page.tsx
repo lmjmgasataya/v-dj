@@ -8,6 +8,7 @@ import { AttendeeList } from "./AttendeeList";
 import { getSession } from "@/lib/auth";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { currentYearPH } from "@/lib/date";
+import { rawServiceValues } from "@/lib/timeService";
 
 const disciplerLeaders = alias(victoryGroupLeaders, "discipler_leaders");
 
@@ -19,7 +20,11 @@ export default async function SessionDetailPage({
   const { id } = await params;
   const sessionId = parseInt(id, 10);
 
-  const [[session], attendees, authSession] = await Promise.all([
+  const authSession = await getSession();
+  const isLeadPastor = authSession?.role === "lead_pastor";
+  const lockedServiceRawValues = isLeadPastor ? rawServiceValues(authSession?.timeService) : undefined;
+
+  const [[session], attendees] = await Promise.all([
     db
       .select()
       .from(classSessions)
@@ -63,10 +68,13 @@ export default async function SessionDetailPage({
       .innerJoin(participants, eq(checkIns.participantId, participants.id))
       .leftJoin(disciplerLeaders, eq(participants.disciplerId, disciplerLeaders.id))
       .leftJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
-      .where(eq(checkIns.classSessionId, sessionId))
+      .where(
+        and(
+          eq(checkIns.classSessionId, sessionId),
+          lockedServiceRawValues ? inArray(participants.serviceAttending, lockedServiceRawValues) : undefined
+        )
+      )
       .orderBy(checkIns.checkedInAt),
-
-    getSession(),
   ]);
 
   if (!session) notFound();

@@ -1,11 +1,12 @@
 import { db } from "@/db";
 import { events, eventRegistrations, victoryGroupLeaders } from "@/db/schema";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { SERVICE_OPTIONS } from "@/components/form";
 import { EventPicker } from "./EventPicker";
+import { rawServiceValues } from "@/lib/timeService";
 
 const NOT_SET_BUCKET = "Not Set";
 
@@ -24,6 +25,8 @@ export default async function RegistrationReportPage({
 }) {
   const session = await getSession();
   if (!session || (session.role !== "developer" && session.role !== "lead_pastor")) redirect("/");
+  const lockedServiceRawValues =
+    session.role === "lead_pastor" ? rawServiceValues(session.timeService) : undefined;
 
   const { event: eventParam } = await searchParams;
 
@@ -50,7 +53,13 @@ export default async function RegistrationReportPage({
     db
       .select({ id: victoryGroupLeaders.id, lastName: victoryGroupLeaders.lastName, firstName: victoryGroupLeaders.firstName, serviceAttending: victoryGroupLeaders.serviceAttending })
       .from(victoryGroupLeaders)
-      .where(and(isNull(victoryGroupLeaders.deletedAt), eq(victoryGroupLeaders.isActive, true)))
+      .where(
+        and(
+          isNull(victoryGroupLeaders.deletedAt),
+          eq(victoryGroupLeaders.isActive, true),
+          lockedServiceRawValues ? inArray(victoryGroupLeaders.serviceAttending, lockedServiceRawValues) : undefined
+        )
+      )
       .orderBy(victoryGroupLeaders.lastName),
     db
       .select({ vgLeaderId: eventRegistrations.vgLeaderId, willAttend: eventRegistrations.willAttend })

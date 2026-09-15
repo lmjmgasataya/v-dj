@@ -1,12 +1,13 @@
 import { db } from "@/db";
-import { classSessions, checkIns, batches } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { classSessions, checkIns, participants, batches } from "@/db/schema";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { todayPH } from "@/lib/date";
 import { BatchSelector } from "./BatchSelector";
 import { SessionsNav } from "./SessionsNav";
+import { rawServiceValues } from "@/lib/timeService";
 
 export default async function SessionsPage({
   searchParams,
@@ -18,6 +19,17 @@ export default async function SessionsPage({
 
   const session = await getSession();
   const isDeveloper = session?.role === "developer";
+  const isLeadPastor = session?.role === "lead_pastor";
+
+  // For a lead_pastor, resolve their time service to the exact participant ids in it up
+  // front, so the join below can be scoped without changing left-join semantics (sessions
+  // with zero matching check-ins still need to show up with a count of 0, not disappear).
+  let lockedParticipantIds: number[] | undefined;
+  if (isLeadPastor) {
+    const rawValues = rawServiceValues(session?.timeService);
+    const rows = await db.select({ id: participants.id }).from(participants).where(inArray(participants.serviceAttending, rawValues));
+    lockedParticipantIds = rows.map((r) => r.id);
+  }
 
   const [allBatches, sessions] = await Promise.all([
     db.select({ id: batches.id, name: batches.name }).from(batches).orderBy(batches.classStartDate),
@@ -32,7 +44,13 @@ export default async function SessionsPage({
         absentCount: sql<number>`count(${checkIns.id}) filter (where ${checkIns.status} = 'Absent')::int`,
       })
       .from(classSessions)
-      .leftJoin(checkIns, eq(checkIns.classSessionId, classSessions.id))
+      .leftJoin(
+        checkIns,
+        and(
+          eq(checkIns.classSessionId, classSessions.id),
+          lockedParticipantIds ? inArray(checkIns.participantId, lockedParticipantIds) : undefined
+        )
+      )
       .where(batchId ? eq(classSessions.batchId, batchId) : undefined)
       .groupBy(classSessions.id)
       .orderBy(classSessions.sessionDate, classSessions.id),

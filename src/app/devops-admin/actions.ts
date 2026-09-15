@@ -8,6 +8,13 @@ import { getSession, type Role } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { toastRedirectBack } from "@/lib/toast";
+import { TIME_SERVICES, type LeadPastorTimeService } from "@/lib/timeService";
+
+function parseTimeService(role: Role, formData: FormData): LeadPastorTimeService | null {
+  if (role !== "lead_pastor") return null;
+  const value = formData.get("timeService") as string;
+  return (TIME_SERVICES as readonly string[]).includes(value) ? (value as LeadPastorTimeService) : null;
+}
 
 async function requireDeveloper() {
   const session = await getSession();
@@ -49,7 +56,11 @@ export async function changeRole(formData: FormData) {
   await requireDeveloper();
   const userId = Number(formData.get("userId"));
   const role = formData.get("role") as Role;
-  await db.update(users).set({ role }).where(eq(users.id, userId));
+  const timeService = parseTimeService(role, formData);
+  if (role === "lead_pastor" && !timeService) {
+    await toastRedirectBack("lead_pastor requires a time service.", "error");
+  }
+  await db.update(users).set({ role, timeService }).where(eq(users.id, userId));
   revalidatePath("/devops-admin");
   await toastRedirectBack("Role updated.");
 }
@@ -123,8 +134,12 @@ export async function createUser(formData: FormData) {
   const password = formData.get("password") as string;
   const role = formData.get("role") as Role;
   if (!username || !name || !password || password.length < 6) return;
+  const timeService = parseTimeService(role, formData);
+  if (role === "lead_pastor" && !timeService) {
+    await toastRedirectBack("lead_pastor requires a time service.", "error");
+  }
   const hash = await bcrypt.hash(password, 10);
-  await db.insert(users).values({ username, name, passwordHash: hash, role }).onConflictDoNothing();
+  await db.insert(users).values({ username, name, passwordHash: hash, role, timeService }).onConflictDoNothing();
   revalidatePath("/devops-admin");
   await toastRedirectBack("User created.");
 }

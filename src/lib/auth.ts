@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import type { LeadPastorTimeService } from "./timeService";
 
 const COOKIE = "dj_session";
 
@@ -17,6 +18,7 @@ export interface SessionPayload {
   name: string;
   role: Role;
   vgLeaderId?: number;
+  timeService?: LeadPastorTimeService;
 }
 
 export async function signSession(payload: SessionPayload) {

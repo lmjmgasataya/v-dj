@@ -4,6 +4,8 @@ import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import Link from "next/link";
 import { HorizontalBarChart } from "../Charts";
 import { VgReportFilters } from "./VgReportFilters";
+import { getSession } from "@/lib/auth";
+import { rawServiceValues } from "@/lib/timeService";
 
 const PAGE_SIZE = 20;
 
@@ -32,11 +34,14 @@ export default async function VictoryGroupReportPage({
 }: {
   searchParams: Promise<{ gender?: string; service?: string; day?: string; time?: string; lifestage?: string; frequency?: string; page?: string }>;
 }) {
+  const authSession = await getSession();
+  const isLeadPastor = authSession?.role === "lead_pastor";
+
   const { gender = "", service = "", day = "", time = "", lifestage = "", frequency = "", page: pageParam } = await searchParams;
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
 
   const genderList = gender ? gender.split(",") : [];
-  const serviceList = service ? service.split(",") : [];
+  const serviceList = isLeadPastor ? rawServiceValues(authSession?.timeService) : service ? service.split(",") : [];
   const dayList = day ? day.split(",") : [];
   const timeList = time ? time.split(",") : [];
   const lifestageList = lifestage ? lifestage.split(",") : [];
@@ -62,7 +67,7 @@ export default async function VictoryGroupReportPage({
         isNull(victoryGroups.deletedAt),
         eq(victoryGroups.type, "victory_group"),
         genderList.length ? inArray(victoryGroupLeaders.gender, genderList) : undefined,
-        serviceList.length ? inArray(victoryGroupLeaders.serviceAttending, serviceList) : undefined,
+        isLeadPastor || serviceList.length ? inArray(victoryGroupLeaders.serviceAttending, serviceList) : undefined,
         dayList.length ? inArray(victoryGroups.day, dayList as (typeof dayOfWeekEnum.enumValues)[number][]) : undefined,
         timeList.length ? inArray(victoryGroups.time, timeList) : undefined,
         lifestageList.length ? or(...lifestageList.map((ls) => sql`${ls} = ANY(${victoryGroups.lifeStage})`)) : undefined,
@@ -131,7 +136,7 @@ export default async function VictoryGroupReportPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <VgReportFilters gender={genderList} service={serviceList} day={dayList} time={timeList} lifestage={lifestageList} frequency={frequencyList} />
+      <VgReportFilters gender={genderList} service={serviceList} day={dayList} time={timeList} lifestage={lifestageList} frequency={frequencyList} hideServiceFilter={isLeadPastor} />
       <p className="text-sm text-gray-500 -mt-2">{total} active victory group{total !== 1 ? "s" : ""}</p>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">

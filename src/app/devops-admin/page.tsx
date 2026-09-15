@@ -1,11 +1,12 @@
 import { db } from "@/db";
 import { featureFlags, smsApiKeys, users } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { sql } from "drizzle-orm";
+import { ne, sql } from "drizzle-orm";
 import { toggleFlag, createFlag, deleteFlag, changeRole, resetPassword, deleteUser, createUser, createSmsApiKey, updateSmsApiKey, deleteSmsApiKey, setSmsApiKeyDefault } from "./actions";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 import { SmsTester } from "./SmsTester";
 import { PasswordInput } from "@/components/PasswordInput";
+import { RoleServiceSelect } from "./RoleServiceSelect";
 // session is read here (not in layout) because we need session.userId to hide delete-self button
 
 const FLAG_LABELS: Record<string, string> = {
@@ -49,7 +50,7 @@ export default async function DevopsAdminPage() {
   const [{ dbSize, tables }, flags, allUsers, allSmsApiKeys] = await Promise.all([
     getDbStats(),
     db.select().from(featureFlags).orderBy(featureFlags.key),
-    db.select({ id: users.id, username: users.username, name: users.name, role: users.role, createdAt: users.createdAt }).from(users).orderBy(users.createdAt),
+    db.select({ id: users.id, username: users.username, name: users.name, role: users.role, timeService: users.timeService, createdAt: users.createdAt }).from(users).where(ne(users.role, "vg_leader")).orderBy(users.createdAt),
     db.select().from(smsApiKeys).orderBy(smsApiKeys.createdAt),
   ]);
 
@@ -158,6 +159,11 @@ export default async function DevopsAdminPage() {
                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${user.role === "developer" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>
                     {user.role}
                   </span>
+                  {user.role === "lead_pastor" && (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                      {user.timeService ?? "No service assigned"}
+                    </span>
+                  )}
                   <span className="text-xs text-gray-400">
                     {user.createdAt.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila" })}
                   </span>
@@ -168,12 +174,7 @@ export default async function DevopsAdminPage() {
                 {/* Change role */}
                 <form action={changeRole} className="flex items-center gap-1.5">
                   <input type="hidden" name="userId" value={user.id} />
-                  <select name="role" defaultValue={user.role} className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
-                    <option value="admin_volunteer">admin_volunteer</option>
-                    <option value="developer">developer</option>
-                    <option value="vg_leader">vg_leader</option>
-                    <option value="lead_pastor">lead_pastor</option>
-                  </select>
+                  <RoleServiceSelect defaultRole={user.role} defaultTimeService={user.timeService} compact />
                   <button type="submit" className="text-xs px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
                     Save role
                   </button>
@@ -229,11 +230,16 @@ export default async function DevopsAdminPage() {
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">Role</label>
-              <select name="role" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white">
-                <option value="admin_volunteer">admin_volunteer</option>
-                <option value="developer">developer</option>
-                <option value="lead_pastor">lead_pastor</option>
-              </select>
+              <div className="flex gap-2">
+                <RoleServiceSelect
+                  roles={[
+                    { value: "admin_volunteer", label: "admin_volunteer" },
+                    { value: "developer", label: "developer" },
+                    { value: "lead_pastor", label: "lead_pastor" },
+                  ]}
+                  defaultRole="admin_volunteer"
+                />
+              </div>
             </div>
             <div className="col-span-2">
               <button type="submit" className="px-4 py-2 bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold rounded-lg transition">

@@ -6,6 +6,7 @@ import { NavigationProgress } from "@/components/NavigationProgress";
 import { ToastProvider } from "@/components/toast/ToastProvider";
 import { FlashToastBridge } from "@/components/toast/FlashToastBridge";
 import { SiteHeader } from "@/components/SiteHeader";
+import { TimeServiceBanner } from "@/components/TimeServiceBanner";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"] });
@@ -27,7 +28,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </Suspense>
           <NavigationProgress />
           <SiteHeader session={session ? { name: session.name, role: session.role } : null} />
-          <main className="max-w-5xl mx-auto px-4 py-8">{children}</main>
+          <main className="max-w-5xl mx-auto px-4 py-8">
+            {session?.role === "lead_pastor" && <TimeServiceBanner timeService={session.timeService} />}
+            {children}
+          </main>
         </ToastProvider>
       </body>
     </html>

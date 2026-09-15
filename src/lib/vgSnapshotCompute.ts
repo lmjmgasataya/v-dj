@@ -152,3 +152,96 @@ export async function computeVgSnapshotCounts(): Promise<
 
   return { byService, totals, vglByGender, genderTotals, detailsByService, totalsDetail };
 }
+
+/**
+ * Same live counts as computeVgSnapshotCounts, but bucketed by a lead_pastor's 5-way
+ * time-service split (rawServiceValues from @/lib/timeService) instead of the merged
+ * 9AM+11AM SERVICE_BUCKETS used for VG-capacity planning — and scoped to just their bucket,
+ * since a lead_pastor's view is locked to one service.
+ */
+export async function computeLeadPastorLiveCounts(
+  rawServiceValuesForBucket: string[]
+): Promise<{ counts: VgBucketCounts; detail: VgBucketDetail; genderCounts: { male: number; female: number } }> {
+  const inBucket = (service: string | null) => !!service && rawServiceValuesForBucket.includes(service);
+
+  const [leaders, groups, internRows] = await Promise.all([
+    db
+      .select({
+        id: victoryGroupLeaders.id,
+        lastName: victoryGroupLeaders.lastName,
+        firstName: victoryGroupLeaders.firstName,
+        gender: victoryGroupLeaders.gender,
+        serviceAttending: victoryGroupLeaders.serviceAttending,
+        isLeadershipGroupLeader: victoryGroupLeaders.isLeadershipGroupLeader,
+        isActive: victoryGroupLeaders.isActive,
+        updatedAt: victoryGroupLeaders.updatedAt,
+      })
+      .from(victoryGroupLeaders)
+      .where(isNull(victoryGroupLeaders.deletedAt)),
+    db
+      .select({
+        id: victoryGroups.id,
+        vgLeaderId: victoryGroups.vgLeaderId,
+        place: victoryGroups.place,
+        day: victoryGroups.day,
+        time: victoryGroups.time,
+      })
+      .from(victoryGroups)
+      .where(and(eq(victoryGroups.isActive, true), isNull(victoryGroups.deletedAt), eq(victoryGroups.type, "victory_group"))),
+    db
+      .select({ victoryGroupId: interns.victoryGroupId, lastName: interns.lastName, firstName: interns.firstName })
+      .from(interns)
+      .where(isNull(interns.deletedAt)),
+  ]);
+
+  const leaderById = new Map(leaders.map((l) => [l.id, l]));
+  const leaderName = (id: number) => {
+    const l = leaderById.get(id);
+    return l ? `${l.lastName}, ${l.firstName}` : `#${id}`;
+  };
+
+  const internsByGroup = new Map<number, { lastName: string; firstName: string }[]>();
+  for (const i of internRows) {
+    const list = internsByGroup.get(i.victoryGroupId) ?? [];
+    list.push({ lastName: i.lastName, firstName: i.firstName });
+    internsByGroup.set(i.victoryGroupId, list);
+  }
+
+  const counts = emptyBucketCounts();
+  const detail = emptyBucketDetail();
+  const genderCounts = { male: 0, female: 0 };
+
+  for (const g of groups) {
+    const leader = leaderById.get(g.vgLeaderId);
+    if (!inBucket(leader?.serviceAttending ?? null)) continue;
+
+    counts.victoryGroups += 1;
+    detail.victoryGroups.push({ id: g.id, label: `${leaderName(g.vgLeaderId)} — ${g.day} ${g.time} @ ${g.place}` });
+
+    const groupInterns = internsByGroup.get(g.id) ?? [];
+    for (const i of groupInterns) {
+      counts.interns += 1;
+      detail.interns.push(`${i.lastName}, ${i.firstName}`);
+    }
+  }
+
+  for (const leader of leaders) {
+    if (!leader.isActive) continue;
+    if (!isQuarterlyActive(leader.updatedAt)) continue;
+    if (!inBucket(leader.serviceAttending)) continue;
+
+    counts.vgLeaders += 1;
+    detail.vgLeaders.push({ id: leader.id, name: leaderName(leader.id) });
+    if (leader.gender === "Male") genderCounts.male += 1;
+    if (leader.gender === "Female") genderCounts.female += 1;
+  }
+
+  for (const leader of leaders) {
+    if (!leader.isLeadershipGroupLeader) continue;
+    if (!inBucket(leader.serviceAttending)) continue;
+    counts.leadershipGroups += 1;
+    detail.leadershipGroups.push({ id: leader.id, name: leaderName(leader.id) });
+  }
+
+  return { counts, detail, genderCounts };
+}

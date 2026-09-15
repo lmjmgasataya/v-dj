@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { db } from "@/db";
 import { victoryGroupLeaders, victoryGroups, users, interns, leadershipGroupMembers } from "@/db/schema";
-import { and, eq, isNull, isNotNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
 import { HorizontalBarChart, AgeChart } from "../Charts";
 import { computeProfileProgress } from "@/lib/profileCompleteness";
 import { getLiveQuarter, getProfileUpdateQuarters } from "@/lib/vgQuarters";
+import { getSession } from "@/lib/auth";
+import { rawServiceValues } from "@/lib/timeService";
 
 const lglLeaders = alias(victoryGroupLeaders, "lgl_leaders");
 
@@ -35,8 +37,20 @@ function ageBucket(age: number | null): string | null {
 }
 
 export default async function VgLeaderReportPage() {
+  const authSession = await getSession();
+  const lockedServiceRawValues =
+    authSession?.role === "lead_pastor" ? rawServiceValues(authSession?.timeService) : undefined;
+
   const [allLeaders, claimedAccounts, activeGroups, lglMemberRows, internRows] = await Promise.all([
-    db.select().from(victoryGroupLeaders).where(isNull(victoryGroupLeaders.deletedAt)),
+    db
+      .select()
+      .from(victoryGroupLeaders)
+      .where(
+        and(
+          isNull(victoryGroupLeaders.deletedAt),
+          lockedServiceRawValues ? inArray(victoryGroupLeaders.serviceAttending, lockedServiceRawValues) : undefined
+        )
+      ),
     db
       .select({ vgLeaderId: users.vgLeaderId })
       .from(users)
@@ -189,11 +203,15 @@ export default async function VgLeaderReportPage() {
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const hasDuplicates = duplicateLglMembers.length > 0 || duplicateInterns.length > 0;
+  const isLeadPastor = authSession?.role === "lead_pastor";
 
   return (
     <div className="flex flex-col gap-6">
       <p className="text-sm text-gray-500 -mt-2">{total} VG leader{total !== 1 ? "s" : ""} with a claimed portal account</p>
 
+      {/* Cross-service duplicate detection would leak other services' leader/intern
+          names to a locked-down lead_pastor, so it's a developer-only view here. */}
+      {!isLeadPastor && (
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
           <h3 className="font-semibold text-gray-800">Duplicates</h3>
@@ -256,6 +274,7 @@ export default async function VgLeaderReportPage() {
           <p className="px-6 py-4 text-sm text-gray-500">No duplicates found.</p>
         )}
       </div>
+      )}
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">

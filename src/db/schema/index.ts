@@ -14,6 +14,7 @@ import {
   jsonb,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
+import { TIME_SERVICES } from "@/lib/timeService";
 
 export const lifestageEnum = pgEnum("lifestage", [
   "Student (JHS/SHS)",
@@ -266,6 +267,8 @@ export const internEventRegistrations = pgTable(
 
 export const roleEnum = pgEnum("user_role", ["admin_volunteer", "developer", "vg_leader", "lead_pastor"]);
 
+export const timeServiceEnum = pgEnum("time_service", TIME_SERVICES);
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").unique(),
@@ -273,6 +276,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   role: roleEnum("role").notNull().default("admin_volunteer"),
   vgLeaderId: integer("vg_leader_id").references(() => victoryGroupLeaders.id),
+  timeService: timeServiceEnum("time_service"),
   pinHash: text("pin_hash"),
   mustChangePassword: boolean("must_change_password").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

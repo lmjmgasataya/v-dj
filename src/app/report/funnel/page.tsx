@@ -1,11 +1,12 @@
 import { db } from "@/db";
 import { participants, classSessions, checkIns, batches } from "@/db/schema";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { FunnelChart } from "./FunnelChart";
 import { BatchPicker } from "@/components/BatchPicker";
+import { rawServiceValues } from "@/lib/timeService";
 
 export default async function FunnelReportPage({
   searchParams,
@@ -14,6 +15,8 @@ export default async function FunnelReportPage({
 }) {
   const authSession = await getSession();
   if (!authSession) redirect("/");
+  const lockedServiceRawValues =
+    authSession.role === "lead_pastor" ? rawServiceValues(authSession.timeService) : undefined;
 
   const { batch: batchParam } = await searchParams;
 
@@ -36,7 +39,8 @@ export default async function FunnelReportPage({
     const qualifiedParticipant = and(
       isNull(participants.deletedAt),
       eq(participants.isWalkIn, false),
-      eq(participants.batchId, selectedBatchId)
+      eq(participants.batchId, selectedBatchId),
+      lockedServiceRawValues ? inArray(participants.serviceAttending, lockedServiceRawValues) : undefined
     );
 
     const [sessionRows, pRows] = await Promise.all([

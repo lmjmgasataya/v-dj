@@ -26,6 +26,7 @@ export function ParticipantFilters({
   previousChurch,
   waterBaptism,
   victoryWeekend,
+  hideServiceFilter,
 }: {
   q: string;
   lifestage: string;
@@ -35,6 +36,7 @@ export function ParticipantFilters({
   previousChurch: string;
   waterBaptism: string;
   victoryWeekend: string;
+  hideServiceFilter?: boolean;
 }) {
   const router = useRouter();
 
@@ -125,16 +127,18 @@ export function ParticipantFilters({
           <option value="Female">Female</option>
         </select>
 
-        <select
-          defaultValue={service}
-          onChange={(e) => router.push(buildUrl({ service: e.target.value }))}
-          className={selectCls}
-        >
-          <option value="">All Services</option>
-          {SERVICE_OPTIONS.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
+        {!hideServiceFilter && (
+          <select
+            defaultValue={service}
+            onChange={(e) => router.push(buildUrl({ service: e.target.value }))}
+            className={selectCls}
+          >
+            <option value="">All Services</option>
+            {SERVICE_OPTIONS.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        )}
 
         <select
           defaultValue={waterBaptism}

@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { participants } from "@/db/schema";
-import { isNull, and, gte, lt, asc, desc, sql } from "drizzle-orm";
+import { isNull, and, gte, inArray, lt, asc, desc, sql } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -8,6 +8,7 @@ import { todayPH } from "@/lib/date";
 import { FEE_CATEGORIES } from "@/components/form";
 import { DatePicker } from "./DatePicker";
 import { toTitleCase } from "@/lib/text";
+import { rawServiceValues } from "@/lib/timeService";
 
 type SortKey = "ar" | "lastName" | "firstName" | "amount";
 type SortDir = "asc" | "desc";
@@ -40,6 +41,8 @@ export default async function RemittancePage({
 }) {
   const session = await getSession();
   if (!session) redirect("/");
+  const lockedServiceRawValues =
+    session.role === "lead_pastor" ? rawServiceValues(session.timeService) : undefined;
 
   const { date: dateParam, sort: sortParam, dir: dirParam } = await searchParams;
   const date = dateParam || todayPH();
@@ -78,6 +81,7 @@ export default async function RemittancePage({
         isNull(participants.deletedAt),
         gte(participants.createdAt, startUtc),
         lt(participants.createdAt, endUtc),
+        lockedServiceRawValues ? inArray(participants.serviceAttending, lockedServiceRawValues) : undefined
       )
     )
     .orderBy(orderExpr);

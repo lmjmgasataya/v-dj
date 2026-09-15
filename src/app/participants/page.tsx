@@ -4,6 +4,7 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";
 import { ParticipantList, ParticipantListSkeleton } from "./ParticipantList";
 import { ParticipantFilters } from "./ParticipantFilters";
+import { rawServiceValues } from "@/lib/timeService";
 
 export default async function ParticipantsPage({
   searchParams,
@@ -13,6 +14,7 @@ export default async function ParticipantsPage({
   const [{ q = "", page: pageParam, lifestage = "", fee = "", gender = "", service = "", previousChurch = "", waterBaptism = "", victoryWeekend = "" }, session] = await Promise.all([searchParams, getSession()]);
   const isDeveloper = session?.role === "developer";
   const isLeadPastor = session?.role === "lead_pastor";
+  const lockedServiceRawValues = isLeadPastor ? rawServiceValues(session?.timeService) : undefined;
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
 
   return (
@@ -53,10 +55,11 @@ export default async function ParticipantsPage({
         previousChurch={previousChurch}
         waterBaptism={waterBaptism}
         victoryWeekend={victoryWeekend}
+        hideServiceFilter={isLeadPastor}
       />
 
       <Suspense key={`${q}-${lifestage}-${fee}-${gender}-${service}-${previousChurch}-${waterBaptism}-${victoryWeekend}-${page}`} fallback={<ParticipantListSkeleton />}>
-        <ParticipantList q={q} lifestage={lifestage} fee={fee} gender={gender} service={service} previousChurch={previousChurch} waterBaptism={waterBaptism} victoryWeekend={victoryWeekend} page={page} isDeveloper={isDeveloper} />
+        <ParticipantList q={q} lifestage={lifestage} fee={fee} gender={gender} service={service} previousChurch={previousChurch} waterBaptism={waterBaptism} victoryWeekend={victoryWeekend} page={page} isDeveloper={isDeveloper} lockedServiceRawValues={lockedServiceRawValues} />
       </Suspense>
     </div>
   );

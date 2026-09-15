@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { participants, batches } from "@/db/schema";
-import { and, count, eq, isNull, sql } from "drizzle-orm";
+import { and, count, eq, inArray, isNull, sql } from "drizzle-orm";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -10,6 +10,7 @@ import { VictoryWeekendChart } from "./VictoryWeekendChart";
 import { BatchPicker } from "@/components/BatchPicker";
 import { SERVICE_OPTIONS } from "@/components/form";
 import { ServiceDatePicker } from "./ServiceDatePicker";
+import { rawServiceValues } from "@/lib/timeService";
 
 const FEE_AMOUNTS: Record<string, number> = { A: 1200, B: 900, C: 900, D: 700 };
 
@@ -20,6 +21,8 @@ export default async function RegistrationsReportPage({
 }) {
   const authSession = await getSession();
   if (!authSession) redirect("/");
+  const lockedServiceRawValues =
+    authSession.role === "lead_pastor" ? rawServiceValues(authSession.timeService) : undefined;
 
   const { batch: batchParam, service_date: serviceDateParam } = await searchParams;
 
@@ -45,7 +48,8 @@ export default async function RegistrationsReportPage({
             and(
               isNull(participants.deletedAt),
               eq(participants.isWalkIn, false),
-              eq(participants.batchId, selectedBatchId)
+              eq(participants.batchId, selectedBatchId),
+              lockedServiceRawValues ? inArray(participants.serviceAttending, lockedServiceRawValues) : undefined
             )
           )
           .groupBy(
@@ -100,7 +104,8 @@ export default async function RegistrationsReportPage({
               eq(participants.batchId, selectedBatchId),
               selectedServiceDate
                 ? sql`DATE(${participants.createdAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') = ${selectedServiceDate}`
-                : undefined
+                : undefined,
+              lockedServiceRawValues ? inArray(participants.serviceAttending, lockedServiceRawValues) : undefined
             )
           )
           .groupBy(sql`COALESCE(${participants.worshipServiceRegistered}, 'Not specified')`)
@@ -125,7 +130,8 @@ export default async function RegistrationsReportPage({
             and(
               isNull(participants.deletedAt),
               eq(participants.isWalkIn, false),
-              eq(participants.batchId, selectedBatchId)
+              eq(participants.batchId, selectedBatchId),
+              lockedServiceRawValues ? inArray(participants.serviceAttending, lockedServiceRawValues) : undefined
             )
           )
           .groupBy(

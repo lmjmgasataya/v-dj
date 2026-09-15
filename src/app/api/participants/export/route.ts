@@ -4,10 +4,15 @@ import { isNull, desc, eq, inArray, and, getTableColumns } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import * as XLSX from "xlsx";
 import { todayPH } from "@/lib/date";
+import { getSession } from "@/lib/auth";
+import { rawServiceValues } from "@/lib/timeService";
 
 const disciplerLeaders = alias(victoryGroupLeaders, "discipler_leaders");
 
 export async function GET() {
+  const session = await getSession();
+  const isLeadPastor = session?.role === "lead_pastor";
+
   const [rows, sessions, victorySessions] = await Promise.all([
     db
       .select({
@@ -22,7 +27,12 @@ export async function GET() {
       .from(participants)
       .leftJoin(disciplerLeaders, eq(participants.disciplerId, disciplerLeaders.id))
       .leftJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
-      .where(isNull(participants.deletedAt))
+      .where(
+        and(
+          isNull(participants.deletedAt),
+          isLeadPastor ? inArray(participants.serviceAttending, rawServiceValues(session?.timeService)) : undefined
+        )
+      )
       .orderBy(desc(participants.id)),
 
     db

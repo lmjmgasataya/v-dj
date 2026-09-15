@@ -8,6 +8,7 @@ import { Suspense } from "react";
 import { AttendanceSearch } from "./AttendanceSearch";
 import { AttendanceTable, TableSkeleton } from "./AttendanceTable";
 import { BatchPicker } from "@/components/BatchPicker";
+import { rawServiceValues } from "@/lib/timeService";
 
 export default async function ReportPage({
   searchParams,
@@ -16,6 +17,8 @@ export default async function ReportPage({
 }) {
   const authSession = await getSession();
   if (!authSession) redirect("/");
+  const isLeadPastor = authSession.role === "lead_pastor";
+  const lockedServiceRawValues = isLeadPastor ? rawServiceValues(authSession.timeService) : undefined;
 
   const { batch: batchParam, q = "" } = await searchParams;
   const query = q.trim();
@@ -55,11 +58,11 @@ export default async function ReportPage({
 
       {sessions.length === 0 ? (
         <p className="text-sm text-gray-400">No sessions for this batch.</p>
-      ) : !query ? (
+      ) : !query && !isLeadPastor ? (
         <p className="text-sm text-gray-400">Type a name above to search participants.</p>
       ) : (
         <Suspense key={`${selectedBatchId}-${query}`} fallback={<TableSkeleton sessions={sessions} />}>
-          <AttendanceTable batchId={selectedBatchId!} query={query} sessions={sessions} />
+          <AttendanceTable batchId={selectedBatchId!} query={query} sessions={sessions} lockedServiceRawValues={lockedServiceRawValues} />
         </Suspense>
       )}
     </div>

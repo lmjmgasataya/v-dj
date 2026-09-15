@@ -8,6 +8,7 @@ import { LifestageChart, ServiceChart, AgeChart, GenderChart, ChurchChart } from
 import { BatchPicker } from "@/components/BatchPicker";
 import { ClassPicker } from "./ClassPicker";
 import { SERVICE_OPTIONS, FEE_CATEGORIES } from "@/components/form";
+import { rawServiceValues } from "@/lib/timeService";
 
 const LIFESTAGE_ORDER = [
   "Student (JHS/SHS)",
@@ -32,6 +33,8 @@ export default async function DemographicsPage({
 }) {
   const authSession = await getSession();
   if (!authSession) redirect("/");
+  const lockedServiceRawValues =
+    authSession.role === "lead_pastor" ? rawServiceValues(authSession.timeService) : undefined;
 
   const { batch: batchParam, class: classParam } = await searchParams;
 
@@ -72,7 +75,8 @@ export default async function DemographicsPage({
               isNull(participants.deletedAt),
               eq(participants.isWalkIn, false),
               eq(participants.batchId, selectedBatchId),
-              inArray(participants.registrationFee, selectedClasses)
+              inArray(participants.registrationFee, selectedClasses),
+              lockedServiceRawValues ? inArray(participants.serviceAttending, lockedServiceRawValues) : undefined
             )
           )
       : [];

@@ -39,6 +39,7 @@ export async function login(_: unknown, formData: FormData) {
     name: user.name,
     role: user.role as Role,
     vgLeaderId: user.vgLeaderId ?? undefined,
+    timeService: user.timeService ?? undefined,
   });
   await setSessionCookie(token);
 

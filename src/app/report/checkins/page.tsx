@@ -11,6 +11,7 @@ import { CheckInsResults } from "./CheckInsResults";
 import { CheckInsResultsSkeleton } from "./CheckInsResultsSkeleton";
 import { BatchPicker } from "@/components/BatchPicker";
 import { CHECKIN_WINDOW_OPTIONS, DEFAULT_CHECKIN_WINDOW_MINUTES } from "@/lib/constants";
+import { rawServiceValues } from "@/lib/timeService";
 
 export default async function CheckInsReportPage({
   searchParams,
@@ -19,6 +20,8 @@ export default async function CheckInsReportPage({
 }) {
   const authSession = await getSession();
   if (!authSession) redirect("/");
+  const lockedServiceRawValues =
+    authSession.role === "lead_pastor" ? rawServiceValues(authSession.timeService) : undefined;
 
   const { batch: batchParam, session: sessionParam, window: windowParam } = await searchParams;
   const selectedId = sessionParam ? parseInt(sessionParam, 10) : null;
@@ -85,7 +88,7 @@ export default async function CheckInsReportPage({
 
       {selectedSession ? (
         <Suspense key={`${selectedSession.id}-${windowMinutes}`} fallback={<CheckInsResultsSkeleton />}>
-          <CheckInsResults sessionId={selectedSession.id} windowMinutes={windowMinutes} />
+          <CheckInsResults sessionId={selectedSession.id} windowMinutes={windowMinutes} lockedServiceRawValues={lockedServiceRawValues} />
         </Suspense>
       ) : (
         <div className="flex items-center justify-center h-40 rounded-xl border border-dashed border-gray-200 bg-white text-sm text-gray-400">

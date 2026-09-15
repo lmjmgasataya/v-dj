@@ -4,12 +4,13 @@ import { db } from "@/db";
 import {
   victoryGroupLeaders,
   interns,
+  victoryGroups,
   eventCheckIns,
   eventRegistrations,
   internEventRegistrations,
   type eventAudienceEnum,
 } from "@/db/schema";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 type Audience = (typeof eventAudienceEnum.enumValues)[number];
@@ -33,7 +34,7 @@ export interface EventCheckInRow {
   checkedInAt: Date;
 }
 
-async function listRegisteredVgLeaders(eventId: number): Promise<EventSearchResult[]> {
+async function listRegisteredVgLeaders(eventId: number, serviceRawValues?: string[]): Promise<EventSearchResult[]> {
   const rows = await db
     .select({
       id: victoryGroupLeaders.id,
@@ -53,7 +54,8 @@ async function listRegisteredVgLeaders(eventId: number): Promise<EventSearchResu
       and(
         eq(eventRegistrations.eventId, eventId),
         eq(eventRegistrations.willAttend, true),
-        isNull(victoryGroupLeaders.deletedAt)
+        isNull(victoryGroupLeaders.deletedAt),
+        serviceRawValues ? inArray(victoryGroupLeaders.serviceAttending, serviceRawValues) : undefined
       )
     )
     .orderBy(victoryGroupLeaders.lastName);
@@ -71,7 +73,7 @@ async function listRegisteredVgLeaders(eventId: number): Promise<EventSearchResu
   }));
 }
 
-async function listRegisteredInterns(eventId: number): Promise<EventSearchResult[]> {
+async function listRegisteredInterns(eventId: number, serviceRawValues?: string[]): Promise<EventSearchResult[]> {
   const rows = await db
     .select({
       id: interns.id,
@@ -84,7 +86,15 @@ async function listRegisteredInterns(eventId: number): Promise<EventSearchResult
     .from(internEventRegistrations)
     .innerJoin(interns, eq(internEventRegistrations.internId, interns.id))
     .leftJoin(eventCheckIns, and(eq(eventCheckIns.internId, interns.id), eq(eventCheckIns.eventId, eventId)))
-    .where(and(eq(internEventRegistrations.eventId, eventId), eq(internEventRegistrations.willAttend, true)))
+    .innerJoin(victoryGroups, eq(interns.victoryGroupId, victoryGroups.id))
+    .innerJoin(victoryGroupLeaders, eq(victoryGroups.vgLeaderId, victoryGroupLeaders.id))
+    .where(
+      and(
+        eq(internEventRegistrations.eventId, eventId),
+        eq(internEventRegistrations.willAttend, true),
+        serviceRawValues ? inArray(victoryGroupLeaders.serviceAttending, serviceRawValues) : undefined
+      )
+    )
     .orderBy(interns.lastName);
 
   return rows.map((r) => ({
@@ -100,10 +110,14 @@ async function listRegisteredInterns(eventId: number): Promise<EventSearchResult
   }));
 }
 
-export async function listEventRegisteredAttendees(eventId: number, audience: Audience[]): Promise<EventSearchResult[]> {
+export async function listEventRegisteredAttendees(
+  eventId: number,
+  audience: Audience[],
+  serviceRawValues?: string[]
+): Promise<EventSearchResult[]> {
   const [vgl, internResults] = await Promise.all([
-    audience.includes("vg_leader") ? listRegisteredVgLeaders(eventId) : Promise.resolve([]),
-    audience.includes("intern") ? listRegisteredInterns(eventId) : Promise.resolve([]),
+    audience.includes("vg_leader") ? listRegisteredVgLeaders(eventId, serviceRawValues) : Promise.resolve([]),
+    audience.includes("intern") ? listRegisteredInterns(eventId, serviceRawValues) : Promise.resolve([]),
   ]);
 
   return [...vgl, ...internResults].sort((a, b) => a.attendeeName.localeCompare(b.attendeeName));

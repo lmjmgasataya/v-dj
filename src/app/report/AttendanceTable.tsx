@@ -83,10 +83,12 @@ export async function AttendanceTable({
   batchId,
   query,
   sessions,
+  lockedServiceRawValues,
 }: {
   batchId: number;
   query: string;
   sessions: ClassSession[];
+  lockedServiceRawValues?: string[];
 }) {
   const [registrants, allCheckIns] = await Promise.all([
     db
@@ -104,10 +106,13 @@ export async function AttendanceTable({
           isNull(participants.deletedAt),
           eq(participants.isWalkIn, false),
           eq(participants.batchId, batchId),
-          or(
-            ilike(participants.lastName, `%${query}%`),
-            ilike(participants.firstName, `%${query}%`)
-          )
+          query
+            ? or(
+                ilike(participants.lastName, `%${query}%`),
+                ilike(participants.firstName, `%${query}%`)
+              )
+            : undefined,
+          lockedServiceRawValues ? inArray(participants.serviceAttending, lockedServiceRawValues) : undefined
         )
       )
       .orderBy(participants.lastName, participants.firstName),
@@ -121,7 +126,11 @@ export async function AttendanceTable({
   const statusByKey = new Map(allCheckIns.map((c) => [`${c.participantId}-${c.classSessionId}`, c.status]));
 
   if (registrants.length === 0) {
-    return <p className="text-sm text-gray-400">No participants found for &ldquo;{query}&rdquo;.</p>;
+    return (
+      <p className="text-sm text-gray-400">
+        {query ? <>No participants found for &ldquo;{query}&rdquo;.</> : "No participants found."}
+      </p>
+    );
   }
 
   return (

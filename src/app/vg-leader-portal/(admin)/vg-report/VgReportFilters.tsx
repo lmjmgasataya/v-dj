@@ -35,6 +35,7 @@ export function VgReportFilters({
   time,
   lifestage,
   frequency,
+  hideServiceFilter,
 }: {
   gender: string[];
   service: string[];
@@ -42,6 +43,7 @@ export function VgReportFilters({
   time: string[];
   lifestage: string[];
   frequency: string[];
+  hideServiceFilter?: boolean;
 }) {
   const router = useRouter();
 
@@ -65,7 +67,9 @@ export function VgReportFilters({
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 flex flex-wrap items-center gap-2">
       <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide mr-1">Filters</span>
       <MultiSelectFilter label="Gender" options={GENDERS} selected={gender} onChange={(v) => router.push(buildUrl({ gender: v }))} />
-      <MultiSelectFilter label="Service" options={SERVICE_OPTIONS} selected={service} onChange={(v) => router.push(buildUrl({ service: v }))} />
+      {!hideServiceFilter && (
+        <MultiSelectFilter label="Service" options={SERVICE_OPTIONS} selected={service} onChange={(v) => router.push(buildUrl({ service: v }))} />
+      )}
       <MultiSelectFilter label="Day" options={DAYS} selected={day} onChange={(v) => router.push(buildUrl({ day: v }))} />
       <MultiSelectFilter label="Time" options={HOURS} selected={time} onChange={(v) => router.push(buildUrl({ time: v }))} />
       <MultiSelectFilter label="Frequency" options={FREQUENCIES} selected={frequency} onChange={(v) => router.push(buildUrl({ frequency: v }))} />

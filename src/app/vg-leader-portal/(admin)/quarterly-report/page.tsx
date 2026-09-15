@@ -2,8 +2,9 @@ import { db } from "@/db";
 import { vgReportSnapshots, vgConvergenceAttendance, leadership113Batches } from "@/db/schema";
 import { desc, asc } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
-import { SERVICE_BUCKETS, type VgSnapshotData, type VgServiceBucket, type VgBucketDetail } from "@/lib/vgSnapshot";
-import { computeVgSnapshotCounts } from "@/lib/vgSnapshotCompute";
+import { SERVICE_BUCKETS, type VgSnapshotData, type VgServiceBucket, type VgBucketCounts, type VgBucketDetail } from "@/lib/vgSnapshot";
+import { computeVgSnapshotCounts, computeLeadPastorLiveCounts } from "@/lib/vgSnapshotCompute";
+import { rawServiceValues } from "@/lib/timeService";
 import { SnapshotForm, SnapshotListItem } from "./SnapshotForm";
 import { ConvergenceSection } from "./ConvergenceSection";
 import { Leadership113Section } from "./Leadership113Section";
@@ -199,18 +200,67 @@ function PerBucketTable({
   );
 }
 
+function LeadPastorMetricsTable({ counts, detail }: { counts: VgBucketCounts; detail: VgBucketDetail }) {
+  const rows: { label: string; value: number; items: string[] }[] = [
+    { label: "VG Leaders", value: counts.vgLeaders, items: detail.vgLeaders.map((r) => r.name) },
+    { label: "Victory Groups", value: counts.victoryGroups, items: detail.victoryGroups.map((r) => r.label) },
+    { label: "Interns", value: counts.interns, items: detail.interns },
+    { label: "Leadership Group Leaders", value: counts.leadershipGroups, items: detail.leadershipGroups.map((r) => r.name) },
+  ];
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-100">
+        <h3 className="font-semibold text-gray-800">Number of Leaders</h3>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <tbody className="divide-y divide-gray-100">
+            {rows.map((row) => (
+              <tr key={row.label} className="hover:bg-gray-50">
+                <td className="px-4 py-2.5 text-gray-700">{row.label}</td>
+                <td className="px-4 py-2.5 text-gray-900">
+                  <DrillDownValue value={row.value} items={row.items} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default async function QuarterlyReportPage({
   searchParams,
 }: {
   searchParams: Promise<{ a?: string; b?: string }>;
 }) {
-  const [{ a: aParam, b: bParam }, snapshots, convergenceEntries, batches, liveCounts, session] = await Promise.all([
+  const session = await getSession();
+
+  // A lead_pastor's view is locked to their own time service. Saved-snapshot history can't
+  // be re-split into the 5-way service buckets (it only ever recorded the merged 9AM+11AM
+  // VG-capacity bucket), so they see Live Now only, scoped to their bucket.
+  if (session?.role === "lead_pastor") {
+    const { counts, detail } = await computeLeadPastorLiveCounts(rawServiceValues(session.timeService));
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <p className="text-sm font-semibold text-green-800">Live Now — {session.timeService ?? "No service assigned"}</p>
+          </div>
+          <LeadPastorMetricsTable counts={counts} detail={detail} />
+        </div>
+      </div>
+    );
+  }
+
+  const [{ a: aParam, b: bParam }, snapshots, convergenceEntries, batches, liveCounts] = await Promise.all([
     searchParams,
     db.select().from(vgReportSnapshots).orderBy(desc(vgReportSnapshots.asOfDate)),
     db.select().from(vgConvergenceAttendance).orderBy(asc(vgConvergenceAttendance.eventDate)),
     db.select().from(leadership113Batches).orderBy(asc(leadership113Batches.id)),
     computeVgSnapshotCounts(),
-    getSession(),
   ]);
 
   const canEdit = session?.role === "developer";

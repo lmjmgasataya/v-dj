@@ -1,12 +1,13 @@
 import { db } from "@/db";
 import { participants, batches } from "@/db/schema";
-import { and, count, eq, isNull } from "drizzle-orm";
+import { and, count, eq, inArray, isNull } from "drizzle-orm";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { FEE_CATEGORIES } from "@/components/form";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ClassCategoryChart } from "./ClassCategoryChart";
 import { BatchPicker } from "@/components/BatchPicker";
+import { rawServiceValues } from "@/lib/timeService";
 
 export default async function ClassCategoryReportPage({
   searchParams,
@@ -15,6 +16,8 @@ export default async function ClassCategoryReportPage({
 }) {
   const authSession = await getSession();
   if (!authSession) redirect("/");
+  const lockedServiceRawValues =
+    authSession.role === "lead_pastor" ? rawServiceValues(authSession.timeService) : undefined;
 
   const { batch: batchParam } = await searchParams;
 
@@ -36,7 +39,8 @@ export default async function ClassCategoryReportPage({
             and(
               isNull(participants.deletedAt),
               eq(participants.isWalkIn, false),
-              eq(participants.batchId, selectedBatchId)
+              eq(participants.batchId, selectedBatchId),
+              lockedServiceRawValues ? inArray(participants.serviceAttending, lockedServiceRawValues) : undefined
             )
           )
           .groupBy(participants.registrationFee)

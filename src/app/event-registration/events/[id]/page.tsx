@@ -8,6 +8,7 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { listEventRegisteredAttendees } from "../../check-in/actions";
 import { RemoveInternButton } from "./RemoveInternButton";
 import { isRegistrationClosed } from "@/lib/date";
+import { rawServiceValues } from "@/lib/timeService";
 
 const AUDIENCE_LABEL: Record<string, string> = {
   vg_leader: "VG Leaders",
@@ -34,7 +35,9 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
   if (!event) notFound();
 
-  const attendees = await listEventRegisteredAttendees(eventId, event.audience);
+  const lockedServiceRawValues =
+    session?.role === "lead_pastor" ? rawServiceValues(session?.timeService) : undefined;
+  const attendees = await listEventRegisteredAttendees(eventId, event.audience, lockedServiceRawValues);
   const checkedInCount = attendees.filter((a) => a.checkInId).length;
 
   const isDeveloper = session?.role === "developer";

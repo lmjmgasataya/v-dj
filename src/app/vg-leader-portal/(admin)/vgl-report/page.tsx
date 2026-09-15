@@ -94,7 +94,7 @@ export default async function VgLeaderReportPage() {
 
   const total = leaders.length;
 
-  // Quarterly update status (Q1-Q3 checkpoints only) — "done" means the leader
+  // Quarterly update status (Q1-Q4 checkpoints) — "done" means the leader
   // confirmed/completed their profile within the live quarter.
   const hasActiveGroupIds = new Set(activeGroups.map((g) => g.vgLeaderId));
   const liveQuarter = getLiveQuarter();
@@ -288,7 +288,7 @@ export default async function VgLeaderReportPage() {
               {quarterlyTotals.done} done · {quarterlyTotals.notDone} not done · {quarterlyTotals.total} total
             </p>
           ) : (
-            <p className="text-xs text-gray-400 mt-0.5">No live quarterly checkpoint right now (Q1–Q3 only).</p>
+            <p className="text-xs text-gray-400 mt-0.5">No live quarterly checkpoint right now.</p>
           )}
         </div>
         {liveQuarter && (

@@ -14,18 +14,19 @@ const QUARTER_DEFS = [
   { key: "q1", label: "Q1", startMonth: 1, endMonth: 3 },
   { key: "q2", label: "Q2", startMonth: 4, endMonth: 6 },
   { key: "q3", label: "Q3", startMonth: 7, endMonth: 9 },
+  { key: "q4", label: "Q4", startMonth: 10, endMonth: 12 },
 ];
 
 /**
- * VG leaders are expected to confirm/update their profile once per quarter (only
- * Jan-Mar / Apr-Jun / Jul-Sep count — there's no Q4 checkpoint, matching the
- * "3x/year" cadence). Each quarter's card status:
+ * VG leaders are expected to confirm/update their profile once per quarter
+ * (Jan-Mar / Apr-Jun / Jul-Sep / Oct-Dec — a "4x/year" cadence). Each quarter's
+ * card status:
  * - already ended -> "updated" (the window is closed, no point re-litigating it)
  * - not yet started -> "not_updated" (grayed, nothing to do yet)
  * - the live quarter -> derived from whether `updatedAt` falls within it and
  *   whether the profile is 100% complete; only this one is ever clickable.
  */
-/** The current live quarter checkpoint (Q1-Q3 only), or null when outside any checkpoint window (Q4). */
+/** The current live quarter checkpoint. Every month now falls in one of Q1-Q4, so this is never null in practice — the null case is kept only as a defensive fallback. */
 export function getLiveQuarter(): { key: string; label: string } | null {
   const year = currentYearPH();
   const month = currentMonthPH();

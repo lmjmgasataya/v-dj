@@ -30,6 +30,7 @@ const QUARTER_MONTHS: Record<string, string> = {
   q1: "Jan–Mar",
   q2: "Apr–Jun",
   q3: "Jul–Sep",
+  q4: "Oct–Dec",
 };
 
 export default async function VgPortalDashboardPage() {

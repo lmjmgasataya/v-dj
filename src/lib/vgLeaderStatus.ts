@@ -32,8 +32,8 @@ const QUARTERLY_ACTIVE_DAYS = 90;
 
 /**
  * Used only for quarterly-report tagging: a VG leader is expected to update their
- * profile ~3x/year, so no update in the last quarter counts as inactive. Distinct
- * from the manual `isActive` toggle and the `getProfileFreshness` UI badge above.
+ * profile once per quarter, so no update in the last quarter counts as inactive.
+ * Distinct from the manual `isActive` toggle and the `getProfileFreshness` UI badge above.
  */
 export function isQuarterlyActive(updatedAt: Date, now: Date = new Date()): boolean {
   const days = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24);

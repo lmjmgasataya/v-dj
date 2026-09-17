@@ -51,7 +51,6 @@ export function MyVictoryGroups({
           groupType="leadership_group"
           title="My Leadership Groups"
           addButtonLabel="+ Add Leadership Group"
-          saveLabel="Add Leadership Group"
           emptyLabel="No leadership groups yet."
           rowLabel="Leadership Group"
           variant="portal"

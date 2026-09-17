@@ -40,7 +40,6 @@ export function VictoryGroupsSection({
           groupType="leadership_group"
           title="Leadership Groups"
           addButtonLabel="+ Add Leadership Group"
-          saveLabel="Add Leadership Group"
           emptyLabel="No leadership groups yet."
           rowLabel="Leadership Group"
           variant="admin"

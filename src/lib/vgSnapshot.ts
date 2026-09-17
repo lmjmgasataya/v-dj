@@ -43,6 +43,15 @@ export type VgSnapshotData = {
   // snapshots (no underlying leader/group records to list) — always optional.
   detailsByService?: Record<VgServiceBucket, VgBucketDetail>;
   totalsDetail?: VgBucketDetail;
+  // Freezes, at snapshot-save time, which claimed VG leaders had (not) updated their
+  // profile for the then-live quarter. Omitted on snapshots saved before this existed
+  // and on manually-entered snapshots — there's no historical record for past quarters.
+  quarterlyUpdateStatus?: {
+    quarterKey: string;
+    quarterLabel: string;
+    done: VgLeaderRef[];
+    notDone: VgLeaderRef[];
+  };
 };
 
 export function emptyBucketDetail(): VgBucketDetail {

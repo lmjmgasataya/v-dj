@@ -2,7 +2,7 @@ import { db } from "@/db";
 import { vgReportSnapshots, vgConvergenceAttendance, leadership113Batches } from "@/db/schema";
 import { desc, asc } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
-import { SERVICE_BUCKETS, type VgSnapshotData, type VgServiceBucket, type VgBucketCounts, type VgBucketDetail } from "@/lib/vgSnapshot";
+import { SERVICE_BUCKETS, type VgSnapshotData, type VgServiceBucket, type VgBucketCounts, type VgBucketDetail, type VgLeaderRef, type VgGroupRef } from "@/lib/vgSnapshot";
 import { computeVgSnapshotCounts, computeLeadPastorLiveCounts } from "@/lib/vgSnapshotCompute";
 import { rawServiceValues } from "@/lib/timeService";
 import { SnapshotForm, SnapshotListItem } from "./SnapshotForm";
@@ -10,6 +10,7 @@ import { ConvergenceSection } from "./ConvergenceSection";
 import { Leadership113Section } from "./Leadership113Section";
 import { ComparisonPicker } from "./ComparisonPicker";
 import { DrillDownValue } from "./DrillDownValue";
+import { DeltaDrillDownValue } from "./DeltaDrillDownValue";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 const QUARTERLY_REPORT_BREADCRUMB = [
@@ -26,13 +27,41 @@ function detailItems(detail: VgBucketDetail | undefined, key: keyof VgSnapshotDa
   return detail.interns;
 }
 
-function ChangeCell({ diff }: { diff: number }) {
-  if (diff === 0) return <span className="text-gray-400">–</span>;
-  return (
-    <span className={diff > 0 ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>
-      {diff > 0 ? `+${diff}` : diff}
-    </span>
-  );
+function refLabel(r: VgLeaderRef | VgGroupRef): string {
+  return "name" in r ? r.name : r.label;
+}
+
+// Diffs the frozen leader/group ids between two snapshots' detail so the +/- Change
+// column can show who was actually added or removed, not just the net number.
+// Returns null when either side lacks detail (manual entry or an edited snapshot).
+function diffDetail(
+  latestDetail: VgBucketDetail | undefined,
+  prevDetail: VgBucketDetail | undefined,
+  key: keyof VgSnapshotData["totals"]
+): { added: string[]; removed: string[] } | null {
+  if (!latestDetail || !prevDetail) return null;
+
+  if (key === "interns") {
+    const prevSet = new Set(prevDetail.interns);
+    const latestSet = new Set(latestDetail.interns);
+    return {
+      added: latestDetail.interns.filter((n) => !prevSet.has(n)),
+      removed: prevDetail.interns.filter((n) => !latestSet.has(n)),
+    };
+  }
+
+  const latestRefs: (VgLeaderRef | VgGroupRef)[] =
+    key === "victoryGroups" ? latestDetail.victoryGroups : key === "leadershipGroups" ? latestDetail.leadershipGroups : latestDetail.vgLeaders;
+  const prevRefs: (VgLeaderRef | VgGroupRef)[] =
+    key === "victoryGroups" ? prevDetail.victoryGroups : key === "leadershipGroups" ? prevDetail.leadershipGroups : prevDetail.vgLeaders;
+
+  const prevIds = new Set(prevRefs.map((r) => r.id));
+  const latestIds = new Set(latestRefs.map((r) => r.id));
+
+  return {
+    added: latestRefs.filter((r) => !prevIds.has(r.id)).map(refLabel),
+    removed: prevRefs.filter((r) => !latestIds.has(r.id)).map(refLabel),
+  };
 }
 
 function RowsTable({
@@ -42,7 +71,16 @@ function RowsTable({
   previous,
 }: {
   title: string;
-  rows: { label: string; value: number; prev: number | null; bold?: boolean; detail?: string[] | null; prevDetail?: string[] | null }[];
+  rows: {
+    label: string;
+    value: number;
+    prev: number | null;
+    bold?: boolean;
+    detail?: string[] | null;
+    prevDetail?: string[] | null;
+    added?: string[] | null;
+    removed?: string[] | null;
+  }[];
   latest: { label: string; data: VgSnapshotData };
   previous: { label: string; data: VgSnapshotData } | null;
 }) {
@@ -75,7 +113,7 @@ function RowsTable({
                 )}
                 {previous && (
                   <td className="px-4 py-2.5">
-                    <ChangeCell diff={row.value - (row.prev ?? 0)} />
+                    <DeltaDrillDownValue diff={row.value - (row.prev ?? 0)} added={row.added ?? null} removed={row.removed ?? null} />
                   </td>
                 )}
               </tr>
@@ -101,13 +139,18 @@ function MetricsTotalsTable({
   latest: { label: string; data: VgSnapshotData };
   previous: { label: string; data: VgSnapshotData } | null;
 }) {
-  const rows = METRIC_LABELS.map((m) => ({
-    label: m.label,
-    value: latest.data.totals[m.key],
-    prev: previous ? previous.data.totals[m.key] : null,
-    detail: detailItems(latest.data.totalsDetail, m.key),
-    prevDetail: previous ? detailItems(previous.data.totalsDetail, m.key) : null,
-  }));
+  const rows = METRIC_LABELS.map((m) => {
+    const change = previous ? diffDetail(latest.data.totalsDetail, previous.data.totalsDetail, m.key) : null;
+    return {
+      label: m.label,
+      value: latest.data.totals[m.key],
+      prev: previous ? previous.data.totals[m.key] : null,
+      detail: detailItems(latest.data.totalsDetail, m.key),
+      prevDetail: previous ? detailItems(previous.data.totalsDetail, m.key) : null,
+      added: change?.added ?? null,
+      removed: change?.removed ?? null,
+    };
+  });
 
   return <RowsTable title="Number of Leaders" rows={rows} latest={latest} previous={previous} />;
 }
@@ -124,13 +167,18 @@ function CountsTable({
   previous: { label: string; data: VgSnapshotData } | null;
 }) {
   const rows = [
-    ...SERVICE_BUCKETS.map((bucket) => ({
-      label: bucket,
-      value: latest.data.byService[bucket][metric],
-      prev: previous ? previous.data.byService[bucket][metric] : null,
-      detail: detailItems(latest.data.detailsByService?.[bucket], metric),
-      prevDetail: previous ? detailItems(previous.data.detailsByService?.[bucket], metric) : null,
-    })),
+    ...SERVICE_BUCKETS.map((bucket) => {
+      const change = previous ? diffDetail(latest.data.detailsByService?.[bucket], previous.data.detailsByService?.[bucket], metric) : null;
+      return {
+        label: bucket,
+        value: latest.data.byService[bucket][metric],
+        prev: previous ? previous.data.byService[bucket][metric] : null,
+        detail: detailItems(latest.data.detailsByService?.[bucket], metric),
+        prevDetail: previous ? detailItems(previous.data.detailsByService?.[bucket], metric) : null,
+        added: change?.added ?? null,
+        removed: change?.removed ?? null,
+      };
+    }),
     {
       label: "TOTAL",
       value: latest.data.totals[metric],
@@ -138,6 +186,8 @@ function CountsTable({
       bold: true,
       detail: detailItems(latest.data.totalsDetail, metric),
       prevDetail: previous ? detailItems(previous.data.totalsDetail, metric) : null,
+      added: previous ? (diffDetail(latest.data.totalsDetail, previous.data.totalsDetail, metric)?.added ?? null) : null,
+      removed: previous ? (diffDetail(latest.data.totalsDetail, previous.data.totalsDetail, metric)?.removed ?? null) : null,
     },
   ];
 
@@ -181,6 +231,7 @@ function PerBucketTable({
               const prev = previous ? previous.data.byService[bucket][m.key] : null;
               const detail = detailItems(latest.data.detailsByService?.[bucket], m.key);
               const prevDetail = previous ? detailItems(previous.data.detailsByService?.[bucket], m.key) : null;
+              const change = previous ? diffDetail(latest.data.detailsByService?.[bucket], previous.data.detailsByService?.[bucket], m.key) : null;
               return (
                 <tr key={m.key}>
                   <td className="px-4 py-2.5 text-gray-200">{m.label}</td>
@@ -194,7 +245,7 @@ function PerBucketTable({
                   )}
                   {previous && (
                     <td className="px-4 py-2.5">
-                      <ChangeCell diff={value - (prev ?? 0)} />
+                      <DeltaDrillDownValue diff={value - (prev ?? 0)} added={change?.added ?? null} removed={change?.removed ?? null} />
                     </td>
                   )}
                 </tr>
@@ -339,6 +390,43 @@ export default async function QuarterlyReportPage({
       ) : (
         <>
           <MetricsTotalsTable latest={latest} previous={previous} />
+
+          {latest.data.quarterlyUpdateStatus ? (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100">
+                <h3 className="font-semibold text-gray-800">
+                  Profile Update Status — {latest.data.quarterlyUpdateStatus.quarterLabel}
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Frozen when {latest.label} was saved — which claimed VG leaders had (not) updated their profile that quarter.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 divide-x divide-gray-100">
+                <div className="px-6 py-4">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Updated</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    <DrillDownValue
+                      value={latest.data.quarterlyUpdateStatus.done.length}
+                      items={latest.data.quarterlyUpdateStatus.done.map((l) => l.name)}
+                    />
+                  </p>
+                </div>
+                <div className="px-6 py-4">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Not Updated</p>
+                  <p className="text-2xl font-bold text-red-600">
+                    <DrillDownValue
+                      value={latest.data.quarterlyUpdateStatus.notDone.length}
+                      items={latest.data.quarterlyUpdateStatus.notDone.map((l) => l.name)}
+                    />
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400 px-1">
+              Profile update status wasn&apos;t recorded for {latest.label} — save a new snapshot to start tracking who updates each quarter.
+            </p>
+          )}
 
           <CountsTable title="Number of VG Leaders" metric="vgLeaders" latest={latest} previous={previous} />
           <CountsTable title="Number of Victory Groups" metric="victoryGroups" latest={latest} previous={previous} />

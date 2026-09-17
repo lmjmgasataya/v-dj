@@ -1,7 +1,9 @@
 import { db } from "@/db";
-import { victoryGroupLeaders, victoryGroups, interns } from "@/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { victoryGroupLeaders, victoryGroups, interns, users } from "@/db/schema";
+import { and, eq, isNull, isNotNull } from "drizzle-orm";
 import { isQuarterlyActive } from "@/lib/vgLeaderStatus";
+import { getLiveQuarter, getProfileUpdateQuarters } from "@/lib/vgQuarters";
+import { computeProfileProgress } from "@/lib/profileCompleteness";
 import {
   SERVICE_BUCKETS,
   serviceToBucket,
@@ -11,6 +13,7 @@ import {
   type VgBucketCounts,
   type VgBucketDetail,
   type VgSnapshotData,
+  type VgLeaderRef,
 } from "@/lib/vgSnapshot";
 
 export function isInternSet(intern: string | null): boolean {
@@ -26,9 +29,12 @@ export function isInternSet(intern: string | null): boolean {
  * (`isActive`) and have updated their profile within the last quarter (`isQuarterlyActive`).
  */
 export async function computeVgSnapshotCounts(): Promise<
-  Pick<VgSnapshotData, "byService" | "totals" | "vglByGender" | "genderTotals" | "detailsByService" | "totalsDetail">
+  Pick<
+    VgSnapshotData,
+    "byService" | "totals" | "vglByGender" | "genderTotals" | "detailsByService" | "totalsDetail" | "quarterlyUpdateStatus"
+  >
 > {
-  const [leaders, groups, internRows] = await Promise.all([
+  const [leaders, groups, internRows, claimedAccounts, activeGroupsAnyType] = await Promise.all([
     db
       .select({
         id: victoryGroupLeaders.id,
@@ -39,6 +45,13 @@ export async function computeVgSnapshotCounts(): Promise<
         isLeadershipGroupLeader: victoryGroupLeaders.isLeadershipGroupLeader,
         isActive: victoryGroupLeaders.isActive,
         updatedAt: victoryGroupLeaders.updatedAt,
+        nickname: victoryGroupLeaders.nickname,
+        mobileNumber: victoryGroupLeaders.mobileNumber,
+        age: victoryGroupLeaders.age,
+        lifestage: victoryGroupLeaders.lifestage,
+        facebookMessengerName: victoryGroupLeaders.facebookMessengerName,
+        ownVgLeaderName: victoryGroupLeaders.ownVgLeaderName,
+        startedLeadingVg: victoryGroupLeaders.startedLeadingVg,
       })
       .from(victoryGroupLeaders)
       .where(isNull(victoryGroupLeaders.deletedAt)),
@@ -56,6 +69,14 @@ export async function computeVgSnapshotCounts(): Promise<
       .select({ victoryGroupId: interns.victoryGroupId, lastName: interns.lastName, firstName: interns.firstName })
       .from(interns)
       .where(isNull(interns.deletedAt)),
+    db
+      .select({ vgLeaderId: users.vgLeaderId })
+      .from(users)
+      .where(and(eq(users.role, "vg_leader"), isNotNull(users.pinHash))),
+    db
+      .select({ vgLeaderId: victoryGroups.vgLeaderId })
+      .from(victoryGroups)
+      .where(and(isNull(victoryGroups.deletedAt), eq(victoryGroups.isActive, true))),
   ]);
 
   const leaderById = new Map(leaders.map((l) => [l.id, l]));
@@ -150,7 +171,29 @@ export async function computeVgSnapshotCounts(): Promise<
     totalsDetail.leadershipGroups.push(...detailsByService[bucket].leadershipGroups);
   }
 
-  return { byService, totals, vglByGender, genderTotals, detailsByService, totalsDetail };
+  // Profile update status for the currently-live quarter, frozen at snapshot-save
+  // time — scoped to claimed portal accounts, since only they can log in and update.
+  const claimedIds = new Set(claimedAccounts.map((a) => a.vgLeaderId));
+  const activeGroupIds = new Set(activeGroupsAnyType.map((g) => g.vgLeaderId));
+  const liveQuarter = getLiveQuarter();
+  let quarterlyUpdateStatus: VgSnapshotData["quarterlyUpdateStatus"];
+  if (liveQuarter) {
+    const done: VgLeaderRef[] = [];
+    const notDone: VgLeaderRef[] = [];
+    for (const l of leaders) {
+      if (!claimedIds.has(l.id)) continue;
+      const percent = computeProfileProgress(l, activeGroupIds.has(l.id)).percent;
+      const liveEntry = getProfileUpdateQuarters(l.updatedAt, percent).find((q) => q.clickable);
+      const ref: VgLeaderRef = { id: l.id, name: leaderName(l.id) };
+      if (liveEntry?.status === "updated") done.push(ref);
+      else notDone.push(ref);
+    }
+    done.sort((a, b) => a.name.localeCompare(b.name));
+    notDone.sort((a, b) => a.name.localeCompare(b.name));
+    quarterlyUpdateStatus = { quarterKey: liveQuarter.key, quarterLabel: liveQuarter.label, done, notDone };
+  }
+
+  return { byService, totals, vglByGender, genderTotals, detailsByService, totalsDetail, quarterlyUpdateStatus };
 }
 
 /**

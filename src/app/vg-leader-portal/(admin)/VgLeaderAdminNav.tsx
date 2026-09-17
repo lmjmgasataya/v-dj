@@ -10,6 +10,7 @@ const SECTIONS = [
   { href: "/vg-leader-portal/vgl-report", label: "VG Leaders Report", description: "Demographics and stats for claimed VG leaders.", tab: false },
   { href: "/vg-leader-portal/vg-report", label: "Victory Group Report", description: "Victory Group schedules and membership breakdown.", tab: false },
   { href: "/vg-leader-portal/quarterly-report", label: "Quarterly Report", description: "Quarterly snapshots and convergence attendance.", tab: false },
+  { href: "/vg-leader-portal/discipleship-journey-report", label: "Discipleship Journey Report", description: "Discipleship Journey steps completed per VG leader.", tab: false },
 ];
 
 const TABS = SECTIONS.filter((s) => s.tab);

@@ -54,6 +54,14 @@ export default async function VgLeaderPortalPage() {
               <span className="text-lg font-semibold text-gray-900 text-center">Quarterly Report</span>
               <span className="text-sm text-gray-500 text-center">Quarterly snapshots and convergence attendance</span>
             </Link>
+            <Link
+              href="/vg-leader-portal/discipleship-journey-report"
+              className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
+            >
+              <span className="text-4xl">✅</span>
+              <span className="text-lg font-semibold text-gray-900 text-center">Discipleship Journey Report</span>
+              <span className="text-sm text-gray-500 text-center">Journey steps completed per VG leader</span>
+            </Link>
           </>
         )}
       </div>

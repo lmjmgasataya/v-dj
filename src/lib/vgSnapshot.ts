@@ -52,6 +52,10 @@ export type VgSnapshotData = {
     done: VgLeaderRef[];
     notDone: VgLeaderRef[];
   };
+  // Set only by the unattended quarter-end cron job. Editing overrides numbers by hand and
+  // drops detail (see updateVgReportSnapshot), which would destroy the frozen historical
+  // record the cron exists to produce — so cron-made snapshots can't be edited, only deleted.
+  source?: "cron";
 };
 
 export function emptyBucketDetail(): VgBucketDetail {

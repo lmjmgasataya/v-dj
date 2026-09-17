@@ -5,6 +5,7 @@ import { createVgReportSnapshot, updateVgReportSnapshot, deleteVgReportSnapshot 
 import { inputCls } from "@/components/form";
 import { SERVICE_BUCKETS, type VgSnapshotData, type VgBucketCounts } from "@/lib/vgSnapshot";
 import type { VgReportSnapshot } from "@/db/schema";
+import { useToast } from "@/components/toast/ToastProvider";
 
 const MANUAL_FIELDS: { key: string; label: string }[] = [
   { key: "vgLeaders", label: "VG Leaders" },
@@ -62,12 +63,14 @@ export function SnapshotForm() {
   const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"auto" | "manual">("auto");
+  const toast = useToast();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
       await createVgReportSnapshot(formData);
+      toast.show("Snapshot saved.", "success");
       setOpen(false);
     });
   }
@@ -164,12 +167,14 @@ export function SnapshotForm() {
 function SnapshotEditForm({ snapshot, onDone }: { snapshot: VgReportSnapshot; onDone: () => void }) {
   const [pending, startTransition] = useTransition();
   const data = snapshot.data as VgSnapshotData;
+  const toast = useToast();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
       await updateVgReportSnapshot(snapshot.id, formData);
+      toast.show("Snapshot updated.", "success");
       onDone();
     });
   }
@@ -228,10 +233,15 @@ function SnapshotEditForm({ snapshot, onDone }: { snapshot: VgReportSnapshot; on
 export function SnapshotListItem({ snapshot, canEdit }: { snapshot: VgReportSnapshot; canEdit: boolean }) {
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
+  const isCron = (snapshot.data as VgSnapshotData).source === "cron";
+  const toast = useToast();
 
   function handleDelete() {
     if (!confirm(`Delete snapshot "${snapshot.label}"?`)) return;
-    startTransition(() => deleteVgReportSnapshot(snapshot.id));
+    startTransition(async () => {
+      await deleteVgReportSnapshot(snapshot.id);
+      toast.show("Snapshot deleted.", "success");
+    });
   }
 
   if (editing) {
@@ -241,17 +251,24 @@ export function SnapshotListItem({ snapshot, canEdit }: { snapshot: VgReportSnap
   return (
     <div className="flex items-center justify-between px-4 py-2.5 rounded-lg border border-gray-200 bg-white">
       <div>
-        <p className="text-sm font-medium text-gray-900">{snapshot.label}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-medium text-gray-900">{snapshot.label}</p>
+          {isCron && (
+            <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600">Auto</span>
+          )}
+        </div>
         <p className="text-xs text-gray-500">As of {snapshot.asOfDate}</p>
       </div>
       {canEdit && (
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setEditing(true)}
-            className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline"
-          >
-            Edit
-          </button>
+          {!isCron && (
+            <button
+              onClick={() => setEditing(true)}
+              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline"
+            >
+              Edit
+            </button>
+          )}
           <button
             onClick={handleDelete}
             disabled={pending}

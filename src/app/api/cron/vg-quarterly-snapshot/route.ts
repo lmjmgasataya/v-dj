@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
     const data: VgSnapshotData = {
       ...computed,
       goals: previousGoals ?? { vgLeaders: 0, leadershipGroups: 0 },
+      source: "cron",
     };
     const asOfDate = todayPH();
 

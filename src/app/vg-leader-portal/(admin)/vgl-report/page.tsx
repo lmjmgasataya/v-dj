@@ -10,6 +10,9 @@ import { getLiveQuarter, getProfileUpdateQuarters } from "@/lib/vgQuarters";
 import { getSession } from "@/lib/auth";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { rawServiceValues } from "@/lib/timeService";
+import { QuarterlyStatusTable } from "./QuarterlyStatusTable";
+import { QuarterlyRosterTable } from "./QuarterlyRosterTable";
+import { NewLeadersTable } from "./NewLeadersTable";
 
 const lglLeaders = alias(victoryGroupLeaders, "lgl_leaders");
 
@@ -146,12 +149,6 @@ export default async function VgLeaderReportPage() {
     (acc, r) => ({ total: acc.total + r.total, done: acc.done + r.done, notDone: acc.notDone + r.notDone }),
     { total: 0, done: 0, notDone: 0 }
   );
-  const sortedQuarterlyRoster = [...quarterlyRoster].sort((a, b) => {
-    if (a.service !== b.service) return serviceOrderWithNotSet.indexOf(a.service) - serviceOrderWithNotSet.indexOf(b.service);
-    if (a.done !== b.done) return a.done ? 1 : -1;
-    return a.name.localeCompare(b.name);
-  });
-
   const ageCounts = new Map<string, number>();
   const genderCounts = new Map<string, number>();
   const lifestageCounts = new Map<string, number>();
@@ -428,66 +425,14 @@ export default async function VgLeaderReportPage() {
         {liveQuarter && (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
-                  <tr>
-                    <th className="px-4 py-2 text-left font-medium">Service</th>
-                    <th className="px-4 py-2 text-right font-medium">Total</th>
-                    <th className="px-4 py-2 text-right font-medium">Done</th>
-                    <th className="px-4 py-2 text-right font-medium">Not Done</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {quarterlyStatusData.map((r) => (
-                    <tr key={r.service} className="hover:bg-gray-50">
-                      <td className="px-4 py-2.5 font-medium text-gray-800">{r.service}</td>
-                      <td className="px-4 py-2.5 text-right text-gray-500">{r.total}</td>
-                      <td className="px-4 py-2.5 text-right text-gray-500">{r.done}</td>
-                      <td className="px-4 py-2.5 text-right text-gray-500">{r.notDone}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t border-gray-200 font-semibold">
-                    <td className="px-4 py-2.5 text-gray-800">Total</td>
-                    <td className="px-4 py-2.5 text-right text-gray-800">{quarterlyTotals.total}</td>
-                    <td className="px-4 py-2.5 text-right text-gray-800">{quarterlyTotals.done}</td>
-                    <td className="px-4 py-2.5 text-right text-gray-800">{quarterlyTotals.notDone}</td>
-                  </tr>
-                </tfoot>
-              </table>
+              <QuarterlyStatusTable data={quarterlyStatusData} totals={quarterlyTotals} />
             </div>
             <details className="border-t border-gray-100">
               <summary className="px-6 py-3 text-sm font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer select-none">
                 View by leader
               </summary>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
-                    <tr>
-                      <th className="px-4 py-2 text-left font-medium">Name</th>
-                      <th className="px-4 py-2 text-left font-medium">Service</th>
-                      <th className="px-4 py-2 text-left font-medium">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {sortedQuarterlyRoster.map((r) => (
-                      <tr key={r.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-2.5 font-medium text-gray-800">{r.name}</td>
-                        <td className="px-4 py-2.5 text-gray-500">{r.service}</td>
-                        <td className="px-4 py-2.5">
-                          <span
-                            className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                              r.done ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
-                            }`}
-                          >
-                            {r.done ? "Done" : "Not Done"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <QuarterlyRosterTable rows={quarterlyRoster} />
               </div>
             </details>
           </>
@@ -501,28 +446,7 @@ export default async function VgLeaderReportPage() {
         </div>
         {newLeaders.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
-                <tr>
-                  <th className="px-4 py-2 text-left font-medium">Name</th>
-                  <th className="px-4 py-2 text-left font-medium">Service</th>
-                  <th className="px-4 py-2 text-left font-medium">Portal Account</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {newLeaders.map((l) => (
-                  <tr key={l.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2.5 font-medium text-gray-800">
-                      <Link href={`/vg-leader-portal/leaders/${l.id}`} className="text-indigo-600 hover:text-indigo-800 underline">
-                        {l.name}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-2.5 text-gray-500">{l.service}</td>
-                    <td className="px-4 py-2.5 text-gray-500">{l.claimed ? "Claimed" : "Not claimed"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <NewLeadersTable rows={newLeaders} />
           </div>
         ) : (
           <p className="px-6 py-4 text-sm text-gray-500">No new VG leaders this year yet.</p>

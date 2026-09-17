@@ -295,7 +295,7 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
                 <option value="Female">Female</option>
               </select>
             </Field>
-            <Field label="Service Attending" required>
+            <Field label="Service Serving/Volunteering" required>
               <select name="serviceAttending" required className={selectCls}>
                 <option value="">-- Select --</option>
                 {SERVICE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -448,7 +448,7 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
             )}
             <ReviewRow label="Age" value={captured.age} />
             <ReviewRow label="Gender" value={captured.gender} />
-            <ReviewRow label="Service Attending" value={captured.serviceAttending} />
+            <ReviewRow label="Service Serving/Volunteering" value={captured.serviceAttending} />
             {!rShowVgLeader && (
               <ReviewRow
                 label="Completed One2One"

@@ -91,7 +91,7 @@ export function EditForm({
           <ReviewRow label="Age" value={captured.age as string} />
           <ReviewRow label="Gender" value={captured.gender as string} />
           <ReviewRow label="Lifestage" value={captured.lifestage as string} />
-          <ReviewRow label="Service Attending" value={captured.serviceAttending as string} />
+          <ReviewRow label="Service Serving/Volunteering" value={captured.serviceAttending as string} />
           <ReviewRow label="Facebook / Messenger Name" value={captured.facebookMessengerName as string} span />
           <ReviewRow
             label="Name of their Victory Group Leader"
@@ -221,7 +221,7 @@ export function EditForm({
               ))}
             </select>
           </Field>
-          <Field label="Service Attending" required>
+          <Field label="Service Serving/Volunteering" required>
             <select name="serviceAttending" defaultValue={leader.serviceAttending ?? ""} className={selectCls}>
               <option value="">— Select —</option>
               {SERVICE_OPTIONS.map((s) => (

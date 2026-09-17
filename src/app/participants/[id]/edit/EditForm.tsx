@@ -163,7 +163,7 @@ export function EditForm({
             <option value="Female">Female</option>
           </select>
         </Field>
-        <Field label="Service Attending" required>
+        <Field label="Service Serving/Volunteering" required>
           <select name="serviceAttending" required defaultValue={participant.serviceAttending} className={selectCls}>
             <option value="">-- Select --</option>
             {SERVICE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}

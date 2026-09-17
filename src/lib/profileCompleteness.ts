@@ -16,7 +16,7 @@ const PROFILE_FIELDS: { key: keyof LeaderProfileFields; label: string }[] = [
   { key: "age", label: "Age" },
   { key: "gender", label: "Gender" },
   { key: "lifestage", label: "Lifestage" },
-  { key: "serviceAttending", label: "Service Attending" },
+  { key: "serviceAttending", label: "Service Serving/Volunteering" },
   { key: "facebookMessengerName", label: "Facebook / Messenger Name" },
   { key: "ownVgLeaderName", label: "Name of your Victory Group Leader" },
   { key: "startedLeadingVg", label: "When did you start leading a Victory Group?" },

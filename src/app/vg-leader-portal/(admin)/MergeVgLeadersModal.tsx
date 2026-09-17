@@ -10,7 +10,7 @@ const FIELD_LABELS: [keyof VgLeaderMergeCandidate, string][] = [
   ["age", "Age"],
   ["gender", "Gender"],
   ["lifestage", "Lifestage"],
-  ["serviceAttending", "Service Attending"],
+  ["serviceAttending", "Service Serving/Volunteering"],
   ["facebookMessengerName", "Facebook / Messenger"],
   ["discipleshipJourneyCompleted", "Discipleship Journey"],
   ["graduateOfLeadership113", "Graduate of L113"],

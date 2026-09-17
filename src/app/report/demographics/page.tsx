@@ -146,7 +146,7 @@ export default async function DemographicsPage({
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
-        <p className="text-sm font-semibold text-gray-700 mb-1">Service Attending</p>
+        <p className="text-sm font-semibold text-gray-700 mb-1">Service Serving/Volunteering</p>
         <p className="text-xs text-gray-400 mb-4">Which service time participants are enrolled in</p>
         <ServiceChart data={serviceData} />
       </div>

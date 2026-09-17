@@ -91,7 +91,7 @@ export function WalkInForm({ sessionId, newDatePicker, offlineCheckin = false }:
             <option value="Female">Female</option>
           </select>
         </Field>
-        <Field label="Service Attending" required>
+        <Field label="Service Serving/Volunteering" required>
           <select name="serviceAttending" required className={selectCls}>
             <option value="">-- Select --</option>
             {SERVICE_OPTIONS.map((s) => (

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db } from "@/db";
-import { victoryGroupLeaders, victoryGroups, users, interns, leadershipGroupMembers } from "@/db/schema";
+import { victoryGroupLeaders, victoryGroups, users, interns, leadershipGroupMembers, participants } from "@/db/schema";
 import { and, eq, inArray, isNull, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
@@ -42,7 +42,7 @@ export default async function VgLeaderReportPage() {
   const lockedServiceRawValues =
     authSession?.role === "lead_pastor" ? rawServiceValues(authSession?.timeService) : undefined;
 
-  const [allLeaders, claimedAccounts, activeGroups, lglMemberRows, internRows] = await Promise.all([
+  const [allLeaders, claimedAccounts, activeGroups, lglMemberRows, internRows, participantIdentifiedRows] = await Promise.all([
     db
       .select()
       .from(victoryGroupLeaders)
@@ -87,6 +87,26 @@ export default async function VgLeaderReportPage() {
       .innerJoin(victoryGroups, eq(interns.victoryGroupId, victoryGroups.id))
       .innerJoin(victoryGroupLeaders, eq(victoryGroups.vgLeaderId, victoryGroupLeaders.id))
       .where(and(isNull(interns.deletedAt), isNull(victoryGroups.deletedAt), isNull(victoryGroupLeaders.deletedAt))),
+    db
+      .select({
+        vgLeaderId: participants.vgLeaderId,
+        participantId: participants.id,
+        participantLastName: participants.lastName,
+        participantFirstName: participants.firstName,
+        leaderLastName: victoryGroupLeaders.lastName,
+        leaderFirstName: victoryGroupLeaders.firstName,
+      })
+      .from(participants)
+      .innerJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
+      .where(
+        and(
+          isNull(participants.deletedAt),
+          isNotNull(participants.vgLeaderId),
+          isNull(victoryGroupLeaders.deletedAt),
+          eq(victoryGroupLeaders.registeredMode, "participant_registration"),
+          eq(victoryGroupLeaders.profileCompleted, false)
+        )
+      ),
   ]);
 
   const claimedIds = new Set(claimedAccounts.map((a) => a.vgLeaderId));
@@ -206,6 +226,48 @@ export default async function VgLeaderReportPage() {
   const hasDuplicates = duplicateLglMembers.length > 0 || duplicateInterns.length > 0;
   const isLeadPastor = authSession?.role === "lead_pastor";
 
+  // An intern who has since become a VG leader in their own right shouldn't
+  // still be reported as an intern by their old VG leader.
+  const leaderByName = new Map<string, { id: number; name: string }[]>();
+  for (const l of allLeaders) {
+    const key = `${l.lastName.trim().toLowerCase()}|${l.firstName.trim().toLowerCase()}`;
+    const arr = leaderByName.get(key) ?? [];
+    arr.push({ id: l.id, name: `${l.lastName}, ${l.firstName}` });
+    leaderByName.set(key, arr);
+  }
+  const internsAlreadyVgl = Array.from(byIntern.entries())
+    .map(([key, v]) => ({ name: v.name, groups: v.groups, matches: leaderByName.get(key) ?? [] }))
+    .filter((v) => v.matches.length > 0)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  // A VG leader created from a participant naming them (rather than the leader
+  // registering themselves) should eventually complete their own profile.
+  const byIdentifiedLeader = new Map<number, { name: string; participants: { id: number; name: string }[] }>();
+  for (const r of participantIdentifiedRows) {
+    const entry = byIdentifiedLeader.get(r.vgLeaderId!) ?? {
+      name: `${r.leaderLastName}, ${r.leaderFirstName}`,
+      participants: [],
+    };
+    entry.participants.push({ id: r.participantId, name: `${r.participantLastName}, ${r.participantFirstName}` });
+    byIdentifiedLeader.set(r.vgLeaderId!, entry);
+  }
+  const identifiedNotUpdated = Array.from(byIdentifiedLeader.entries())
+    .map(([id, v]) => ({ id, ...v }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const hasExceptions = internsAlreadyVgl.length > 0 || identifiedNotUpdated.length > 0;
+
+  // Recognize VG leaders who started leading this year.
+  const newLeaders = allLeaders
+    .filter((l) => l.startedLeadingVg === "this_year")
+    .map((l) => ({
+      id: l.id,
+      name: `${l.lastName}, ${l.firstName}`,
+      service: l.serviceAttending || NOT_SET_SERVICE,
+      claimed: claimedIds.has(l.id),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
   return (
     <div className="flex flex-col gap-6">
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "VG Leader Portal", href: "/vg-leader-portal" }, { label: "VG Leaders Report" }]} />
@@ -214,6 +276,7 @@ export default async function VgLeaderReportPage() {
       {/* Cross-service duplicate detection would leak other services' leader/intern
           names to a locked-down lead_pastor, so it's a developer-only view here. */}
       {!isLeadPastor && (
+      <>
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
           <h3 className="font-semibold text-gray-800">Duplicates</h3>
@@ -276,6 +339,77 @@ export default async function VgLeaderReportPage() {
           <p className="px-6 py-4 text-sm text-gray-500">No duplicates found.</p>
         )}
       </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-800">Exceptions</h3>
+          <p className="text-xs text-gray-400 mt-0.5">
+            Data mismatches worth cleaning up between Discipleship Journey and VG Leader records.
+          </p>
+        </div>
+        {hasExceptions ? (
+          <div className="divide-y divide-gray-100">
+            {internsAlreadyVgl.length > 0 && (
+              <div className="px-6 py-4">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Already a VG Leader but still reported as an Intern ({internsAlreadyVgl.length})
+                </p>
+                <ul className="flex flex-col gap-2">
+                  {internsAlreadyVgl.map((it) => (
+                    <li key={it.name} className="text-sm">
+                      <span className="font-medium text-gray-900">{it.name}</span>
+                      <span className="text-gray-500"> — now registered as </span>
+                      {it.matches.map((m, i) => (
+                        <span key={m.id}>
+                          {i > 0 && ", "}
+                          <Link href={`/vg-leader-portal/leaders/${m.id}`} className="text-indigo-600 hover:text-indigo-800 underline">
+                            {m.name}
+                          </Link>
+                        </span>
+                      ))}
+                      <span className="text-gray-500"> — still listed as intern under </span>
+                      {it.groups.map((g, i) => (
+                        <span key={g.victoryGroupId}>
+                          {i > 0 && ", "}
+                          <Link href={`/vg-leader-portal/leaders/${g.vgLeaderId}/edit`} className="text-gray-700 hover:text-indigo-800 underline">
+                            {g.vgLeaderName} ({g.place})
+                          </Link>
+                        </span>
+                      ))}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {identifiedNotUpdated.length > 0 && (
+              <div className="px-6 py-4">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Identified as VG Leader by a participant, no updated Discipleship Data ({identifiedNotUpdated.length})
+                </p>
+                <ul className="flex flex-col gap-2">
+                  {identifiedNotUpdated.map((l) => (
+                    <li key={l.id} className="text-sm">
+                      <Link href={`/vg-leader-portal/leaders/${l.id}/edit`} className="font-medium text-indigo-600 hover:text-indigo-800 underline">
+                        {l.name}
+                      </Link>
+                      <span className="text-gray-500"> — identified by </span>
+                      {l.participants.map((p, i) => (
+                        <span key={p.id}>
+                          {i > 0 && ", "}
+                          {p.name}
+                        </span>
+                      ))}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="px-6 py-4 text-sm text-gray-500">No exceptions found.</p>
+        )}
+      </div>
+      </>
       )}
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -360,6 +494,41 @@ export default async function VgLeaderReportPage() {
         )}
       </div>
 
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-800">Started Leading This Year ({newLeaders.length})</h3>
+          <p className="text-xs text-gray-400 mt-0.5">New VG leaders to recognize.</p>
+        </div>
+        {newLeaders.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                <tr>
+                  <th className="px-4 py-2 text-left font-medium">Name</th>
+                  <th className="px-4 py-2 text-left font-medium">Service</th>
+                  <th className="px-4 py-2 text-left font-medium">Portal Account</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {newLeaders.map((l) => (
+                  <tr key={l.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2.5 font-medium text-gray-800">
+                      <Link href={`/vg-leader-portal/leaders/${l.id}`} className="text-indigo-600 hover:text-indigo-800 underline">
+                        {l.name}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-2.5 text-gray-500">{l.service}</td>
+                    <td className="px-4 py-2.5 text-gray-500">{l.claimed ? "Claimed" : "Not claimed"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="px-6 py-4 text-sm text-gray-500">No new VG leaders this year yet.</p>
+        )}
+      </div>
+
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
         <p className="text-sm font-semibold text-gray-700 mb-1">Discipleship Journey</p>
         <p className="text-xs text-gray-400 mb-4">How many VG leaders have completed each step</p>
@@ -390,7 +559,7 @@ export default async function VgLeaderReportPage() {
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
-        <p className="text-sm font-semibold text-gray-700 mb-1">Service Attending</p>
+        <p className="text-sm font-semibold text-gray-700 mb-1">Service Serving/Volunteering</p>
         <HorizontalBarChart data={serviceData} color="#8b5cf6" />
       </div>
     </div>

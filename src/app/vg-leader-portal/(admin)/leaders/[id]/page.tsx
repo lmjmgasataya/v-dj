@@ -120,7 +120,7 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
           <Row label="Age" value={leader.age != null ? String(leader.age) : null} />
           <Row label="Gender" value={leader.gender} />
           <Row label="Lifestage" value={leader.lifestage} />
-          <Row label="Service Attending" value={leader.serviceAttending} />
+          <Row label="Service Serving/Volunteering" value={leader.serviceAttending} />
           <Row label="Facebook / Messenger Name" value={leader.facebookMessengerName} />
           <div>
             <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">

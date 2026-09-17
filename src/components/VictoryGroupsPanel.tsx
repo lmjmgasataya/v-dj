@@ -345,7 +345,7 @@ export function VictoryGroupsPanel({
   internsByGroup,
   groupType,
   title,
-  addButtonLabel = "+ Add Group",
+  addButtonLabel = groupType === "leadership_group" ? "+ Add Leadership Group" : "+ Add Victory Group",
   saveLabel = groupType === "leadership_group" ? "Save Leadership Group" : "Save Victory Group",
   emptyLabel = "No groups yet.",
   rowLabel = "Victory Group",

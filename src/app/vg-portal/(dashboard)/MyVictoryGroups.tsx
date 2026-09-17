@@ -50,7 +50,6 @@ export function MyVictoryGroups({
           internsByGroup={internsByGroup}
           groupType="leadership_group"
           title="My Leadership Groups"
-          addButtonLabel="+ Add Leadership Group"
           emptyLabel="No leadership groups yet."
           rowLabel="Leadership Group"
           variant="portal"

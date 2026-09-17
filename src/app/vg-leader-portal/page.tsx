@@ -60,7 +60,7 @@ export default async function VgLeaderPortalPage() {
             >
               <span className="text-4xl">✅</span>
               <span className="text-lg font-semibold text-gray-900 text-center">Discipleship Journey Report</span>
-              <span className="text-sm text-gray-500 text-center">Journey steps completed per VG leader</span>
+              <span className="text-sm text-gray-500 text-center">Journey steps completed per claimed VG leader</span>
             </Link>
           </>
         )}

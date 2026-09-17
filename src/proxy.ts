@@ -21,7 +21,18 @@ const DEVELOPER_ONLY = [
   /^\/event-registration\/sms-reminder/,
 ];
 
-const PUBLIC_PATHS = [/^\/login/, /^\/vg-portal\/claim/, /^\/vg-portal\/login/, /^\/vg-portal\/events/, /^\/api\/interns/];
+// Cron-triggered routes carry no session cookie — they authenticate themselves via a
+// CRON_SECRET bearer header, so they must bypass the cookie gate below entirely or Vercel
+// Cron's request gets redirected to /login before the route handler ever runs.
+const PUBLIC_PATHS = [
+  /^\/login/,
+  /^\/vg-portal\/claim/,
+  /^\/vg-portal\/login/,
+  /^\/vg-portal\/events/,
+  /^\/api\/interns/,
+  /^\/api\/keep-alive/,
+  /^\/api\/cron\//,
+];
 
 const VG_LEADER_ALLOWED = [/^\/vg-portal/, /^\/api\/vg-leaders/];
 

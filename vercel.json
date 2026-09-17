@@ -4,6 +4,22 @@
     {
       "path": "/api/keep-alive",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/vg-quarterly-snapshot",
+      "schedule": "0 23 30 3 *"
+    },
+    {
+      "path": "/api/cron/vg-quarterly-snapshot",
+      "schedule": "0 23 29 6 *"
+    },
+    {
+      "path": "/api/cron/vg-quarterly-snapshot",
+      "schedule": "0 23 29 9 *"
+    },
+    {
+      "path": "/api/cron/vg-quarterly-snapshot",
+      "schedule": "0 23 30 12 *"
     }
   ]
 }

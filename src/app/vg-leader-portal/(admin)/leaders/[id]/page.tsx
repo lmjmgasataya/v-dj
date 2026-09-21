@@ -81,6 +81,11 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
               {leader.lastName}, {leader.firstName}
             </h2>
             <div className="flex items-center gap-2 mt-1">
+              {leader.deletedAt && (
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                  Deleted {fmtDate(leader.deletedAt)}
+                </span>
+              )}
               <span
                 className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                   leader.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"

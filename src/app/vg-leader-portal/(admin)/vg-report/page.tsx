@@ -1,9 +1,9 @@
 import { db } from "@/db";
 import { victoryGroups, victoryGroupLeaders, interns, dayOfWeekEnum, vgFrequencyEnum } from "@/db/schema";
 import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
-import Link from "next/link";
 import { HorizontalBarChart } from "../Charts";
 import { VgReportFilters } from "./VgReportFilters";
+import { TransitionLink } from "./TransitionLink";
 import { getSession } from "@/lib/auth";
 import { rawServiceValues } from "@/lib/timeService";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -196,112 +196,113 @@ export default async function VictoryGroupReportPage({
   return (
     <div className="flex flex-col gap-6">
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "VG Leader Portal", href: "/vg-leader-portal" }, { label: "Victory Group Report" }]} />
-      <VgReportFilters gender={genderList} service={serviceList} day={dayList} time={timeList} lifestage={lifestageList} frequency={frequencyList} hideServiceFilter={isLeadPastor} />
-      <p className="text-sm text-gray-500 -mt-2">{total} active victory group{total !== 1 ? "s" : ""}</p>
+      <VgReportFilters gender={genderList} service={serviceList} day={dayList} time={timeList} lifestage={lifestageList} frequency={frequencyList} hideServiceFilter={isLeadPastor}>
+        <p className="text-sm text-gray-500 -mt-2">{total} active victory group{total !== 1 ? "s" : ""}</p>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h3 className="font-semibold text-gray-800">All Victory Groups</h3>
-        </div>
-        {groups.length === 0 ? (
-          <p className="px-6 py-8 text-sm text-gray-400 text-center">No victory groups yet.</p>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
-                  <tr>
-                    {SORT_COLUMNS.map((col) => (
-                      <th key={col.key} className="px-4 py-2 text-left font-medium">
-                        <Link href={sortHref(col.key)} className="flex items-center gap-0.5 hover:text-gray-800 select-none">
-                          {col.label}
-                          <span className={sortKey === col.key ? "text-gray-700" : "text-gray-300"}>
-                            {sortIcon(col.key, sortKey, sortDir)}
-                          </span>
-                        </Link>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {pageGroups.map((g) => (
-                    <tr key={g.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2.5 text-gray-700">{g.leaderLastName}, {g.leaderFirstName}</td>
-                      <td className="px-4 py-2.5 text-gray-700">{g.place}</td>
-                      <td className="px-4 py-2.5 text-gray-500">{g.day}</td>
-                      <td className="px-4 py-2.5 text-gray-500">{g.time}</td>
-                      <td className="px-4 py-2.5 text-gray-500">
-                        {g.frequency === "Others" ? (g.otherFrequency ?? "Others") : g.frequency}
-                      </td>
-                      <td className="px-4 py-2.5 text-gray-500">{g.lifeStage?.length ? g.lifeStage.join(", ") : "—"}</td>
-                      <td className="px-4 py-2.5 text-gray-500">{internsByGroup[g.id] ?? "—"}</td>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-800">All Victory Groups</h3>
+          </div>
+          {groups.length === 0 ? (
+            <p className="px-6 py-8 text-sm text-gray-400 text-center">No victory groups yet.</p>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                    <tr>
+                      {SORT_COLUMNS.map((col) => (
+                        <th key={col.key} className="px-4 py-2 text-left font-medium">
+                          <TransitionLink href={sortHref(col.key)} className="flex items-center gap-0.5 hover:text-gray-800 select-none">
+                            {col.label}
+                            <span className={sortKey === col.key ? "text-gray-700" : "text-gray-300"}>
+                              {sortIcon(col.key, sortKey, sortDir)}
+                            </span>
+                          </TransitionLink>
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between text-sm px-6 py-4 border-t border-gray-100">
-                <span className="text-gray-500">
-                  Page {page} of {totalPages}
-                </span>
-                <div className="flex gap-2">
-                  {page > 1 ? (
-                    <Link
-                      href={pageHref(page - 1)}
-                      className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition"
-                    >
-                      ← Previous
-                    </Link>
-                  ) : (
-                    <span className="px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-300 font-medium cursor-not-allowed">
-                      ← Previous
-                    </span>
-                  )}
-                  {page < totalPages ? (
-                    <Link
-                      href={pageHref(page + 1)}
-                      className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition"
-                    >
-                      Next →
-                    </Link>
-                  ) : (
-                    <span className="px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-300 font-medium cursor-not-allowed">
-                      Next →
-                    </span>
-                  )}
-                </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {pageGroups.map((g) => (
+                      <tr key={g.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2.5 text-gray-700">{g.leaderLastName}, {g.leaderFirstName}</td>
+                        <td className="px-4 py-2.5 text-gray-700">{g.place}</td>
+                        <td className="px-4 py-2.5 text-gray-500">{g.day}</td>
+                        <td className="px-4 py-2.5 text-gray-500">{g.time}</td>
+                        <td className="px-4 py-2.5 text-gray-500">
+                          {g.frequency === "Others" ? (g.otherFrequency ?? "Others") : g.frequency}
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-500">{g.lifeStage?.length ? g.lifeStage.join(", ") : "—"}</td>
+                        <td className="px-4 py-2.5 text-gray-500">{internsByGroup[g.id] ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            )}
-          </>
-        )}
-      </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
-        <p className="text-sm font-semibold text-gray-700 mb-1">Day of Week</p>
-        <HorizontalBarChart data={dayData} color="#6366f1" tooltipLabel="Groups" />
-      </div>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between text-sm px-6 py-4 border-t border-gray-100">
+                  <span className="text-gray-500">
+                    Page {page} of {totalPages}
+                  </span>
+                  <div className="flex gap-2">
+                    {page > 1 ? (
+                      <TransitionLink
+                        href={pageHref(page - 1)}
+                        className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition"
+                      >
+                        ← Previous
+                      </TransitionLink>
+                    ) : (
+                      <span className="px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-300 font-medium cursor-not-allowed">
+                        ← Previous
+                      </span>
+                    )}
+                    {page < totalPages ? (
+                      <TransitionLink
+                        href={pageHref(page + 1)}
+                        className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition"
+                      >
+                        Next →
+                      </TransitionLink>
+                    ) : (
+                      <span className="px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-300 font-medium cursor-not-allowed">
+                        Next →
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
-        <p className="text-sm font-semibold text-gray-700 mb-1">Time</p>
-        <HorizontalBarChart data={timeData} color="#0ea5e9" tooltipLabel="Groups" />
-      </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
+          <p className="text-sm font-semibold text-gray-700 mb-1">Day of Week</p>
+          <HorizontalBarChart data={dayData} color="#6366f1" tooltipLabel="Groups" />
+        </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
-        <p className="text-sm font-semibold text-gray-700 mb-1">Place</p>
-        <HorizontalBarChart data={placeData} color="#f59e0b" tooltipLabel="Groups" />
-      </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
+          <p className="text-sm font-semibold text-gray-700 mb-1">Time</p>
+          <HorizontalBarChart data={timeData} color="#0ea5e9" tooltipLabel="Groups" />
+        </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
-        <p className="text-sm font-semibold text-gray-700 mb-1">Frequency</p>
-        <HorizontalBarChart data={frequencyData} color="#8b5cf6" tooltipLabel="Groups" />
-      </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
+          <p className="text-sm font-semibold text-gray-700 mb-1">Place</p>
+          <HorizontalBarChart data={placeData} color="#f59e0b" tooltipLabel="Groups" />
+        </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
-        <p className="text-sm font-semibold text-gray-700 mb-1">Life Stage</p>
-        <HorizontalBarChart data={lifeStageData} color="#818cf8" tooltipLabel="Groups" />
-      </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
+          <p className="text-sm font-semibold text-gray-700 mb-1">Frequency</p>
+          <HorizontalBarChart data={frequencyData} color="#8b5cf6" tooltipLabel="Groups" />
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
+          <p className="text-sm font-semibold text-gray-700 mb-1">Life Stage</p>
+          <HorizontalBarChart data={lifeStageData} color="#818cf8" tooltipLabel="Groups" />
+        </div>
+      </VgReportFilters>
     </div>
   );
 }

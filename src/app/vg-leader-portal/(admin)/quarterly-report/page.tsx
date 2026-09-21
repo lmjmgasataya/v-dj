@@ -341,170 +341,152 @@ export default async function QuarterlyReportPage({
   return (
     <div className="flex flex-col gap-6">
       <Breadcrumbs items={QUARTERLY_REPORT_BREADCRUMB} />
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-gray-800">Quarterly Discipleship Report</p>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Each snapshot captures a point-in-time count. Save one at the end of every quarter to get quarter-over-quarter comparisons below.
+      <ComparisonPicker
+        snapshots={snapshots.map((s) => ({ id: s.id, label: s.label }))}
+        aId={latestRow?.id ?? null}
+        bId={previousRow?.id ?? null}
+        exportHref={latest ? `/api/report/quarterly-pdf?a=${latestRow!.id}${previousRow ? `&b=${previousRow.id}` : ""}` : undefined}
+        between={
+          <>
+            {canEdit && (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-4">
+                <SnapshotForm />
+              </div>
+            )}
+
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <p className="text-sm font-semibold text-green-800">Live Now</p>
+              </div>
+              <MetricsTotalsTable latest={live} previous={null} />
+            </div>
+          </>
+        }
+      >
+        {!latest ? (
+          <p className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-8 text-sm text-gray-400 text-center">
+            No snapshots yet. Create one above to start tracking quarter-over-quarter numbers.
           </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {snapshots.length > 0 && (
-            <ComparisonPicker
-              snapshots={snapshots.map((s) => ({ id: s.id, label: s.label }))}
-              aId={latestRow!.id}
-              bId={previousRow?.id ?? null}
-            />
-          )}
-          {latest && (
-            <a
-              href={`/api/report/quarterly-pdf?a=${latestRow!.id}${previousRow ? `&b=${previousRow.id}` : ""}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs font-semibold text-white bg-[#00428E] hover:bg-[#003578] px-3 py-1.5 rounded-lg transition"
-            >
-              Export PDF
-            </a>
-          )}
-        </div>
-      </div>
+        ) : (
+          <>
+            <MetricsTotalsTable latest={latest} previous={previous} />
 
-      {canEdit && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-4">
-          <SnapshotForm />
-        </div>
-      )}
+            {latest.data.quarterlyUpdateStatus ? (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100">
+                  <h3 className="font-semibold text-gray-800">
+                    Profile Update Status — {latest.data.quarterlyUpdateStatus.quarterLabel}
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Frozen when {latest.label} was saved — which claimed VG leaders had (not) updated their profile that quarter.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 divide-x divide-gray-100">
+                  <div className="px-6 py-4">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Updated</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      <DrillDownValue
+                        value={latest.data.quarterlyUpdateStatus.done.length}
+                        items={latest.data.quarterlyUpdateStatus.done.map((l) => l.name)}
+                      />
+                    </p>
+                  </div>
+                  <div className="px-6 py-4">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Not Updated</p>
+                    <p className="text-2xl font-bold text-red-600">
+                      <DrillDownValue
+                        value={latest.data.quarterlyUpdateStatus.notDone.length}
+                        items={latest.data.quarterlyUpdateStatus.notDone.map((l) => l.name)}
+                      />
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 px-1">
+                Profile update status wasn&apos;t recorded for {latest.label} — save a new snapshot to start tracking who updates each quarter.
+              </p>
+            )}
 
-      <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-          <p className="text-sm font-semibold text-green-800">Live Now</p>
-        </div>
-        <MetricsTotalsTable latest={live} previous={null} />
-      </div>
+            <CountsTable title="Number of VG Leaders" metric="vgLeaders" latest={latest} previous={previous} />
+            <CountsTable title="Number of Victory Groups" metric="victoryGroups" latest={latest} previous={previous} />
+            <CountsTable title="Number of Interns" metric="interns" latest={latest} previous={previous} />
+            <CountsTable title="Number of Leadership Group Leaders" metric="leadershipGroups" latest={latest} previous={previous} />
 
-      {!latest ? (
-        <p className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-8 text-sm text-gray-400 text-center">
-          No snapshots yet. Create one above to start tracking quarter-over-quarter numbers.
-        </p>
-      ) : (
-        <>
-          <MetricsTotalsTable latest={latest} previous={previous} />
-
-          {latest.data.quarterlyUpdateStatus ? (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-100">
-                <h3 className="font-semibold text-gray-800">
-                  Profile Update Status — {latest.data.quarterlyUpdateStatus.quarterLabel}
-                </h3>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Frozen when {latest.label} was saved — which claimed VG leaders had (not) updated their profile that quarter.
-                </p>
+                <h3 className="font-semibold text-gray-800">{latest.label} VGL (per gender)</h3>
               </div>
-              <div className="grid grid-cols-2 divide-x divide-gray-100">
-                <div className="px-6 py-4">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Updated</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    <DrillDownValue
-                      value={latest.data.quarterlyUpdateStatus.done.length}
-                      items={latest.data.quarterlyUpdateStatus.done.map((l) => l.name)}
-                    />
-                  </p>
-                </div>
-                <div className="px-6 py-4">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Not Updated</p>
-                  <p className="text-2xl font-bold text-red-600">
-                    <DrillDownValue
-                      value={latest.data.quarterlyUpdateStatus.notDone.length}
-                      items={latest.data.quarterlyUpdateStatus.notDone.map((l) => l.name)}
-                    />
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-gray-400 px-1">
-              Profile update status wasn&apos;t recorded for {latest.label} — save a new snapshot to start tracking who updates each quarter.
-            </p>
-          )}
-
-          <CountsTable title="Number of VG Leaders" metric="vgLeaders" latest={latest} previous={previous} />
-          <CountsTable title="Number of Victory Groups" metric="victoryGroups" latest={latest} previous={previous} />
-          <CountsTable title="Number of Interns" metric="interns" latest={latest} previous={previous} />
-          <CountsTable title="Number of Leadership Group Leaders" metric="leadershipGroups" latest={latest} previous={previous} />
-
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h3 className="font-semibold text-gray-800">{latest.label} VGL (per gender)</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
-                  <tr>
-                    <th className="px-4 py-2 text-left font-medium" />
-                    <th className="px-4 py-2 text-left font-medium">Male</th>
-                    <th className="px-4 py-2 text-left font-medium">Female</th>
-                    <th className="px-4 py-2 text-left font-medium">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {SERVICE_BUCKETS.map((bucket) => (
-                    <tr key={bucket} className="hover:bg-gray-50">
-                      <td className="px-4 py-2.5 text-gray-700">{bucket}</td>
-                      <td className="px-4 py-2.5 text-gray-500">{latest.data.vglByGender[bucket].male}</td>
-                      <td className="px-4 py-2.5 text-gray-500">{latest.data.vglByGender[bucket].female}</td>
-                      <td className="px-4 py-2.5 text-gray-900 font-semibold">{latest.data.byService[bucket].vgLeaders}</td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                    <tr>
+                      <th className="px-4 py-2 text-left font-medium" />
+                      <th className="px-4 py-2 text-left font-medium">Male</th>
+                      <th className="px-4 py-2 text-left font-medium">Female</th>
+                      <th className="px-4 py-2 text-left font-medium">Total</th>
                     </tr>
-                  ))}
-                  <tr className="bg-gray-50 font-semibold">
-                    <td className="px-4 py-2.5 text-gray-700">TOTAL</td>
-                    <td className="px-4 py-2.5">{latest.data.genderTotals.male}</td>
-                    <td className="px-4 py-2.5">{latest.data.genderTotals.female}</td>
-                    <td className="px-4 py-2.5">{latest.data.totals.vgLeaders}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">{latest.label} Goals</p>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-gray-500">VG Leaders</p>
-                <p className="text-lg font-bold text-gray-900">
-                  {latest.data.totals.vgLeaders} <span className="text-gray-400 text-sm font-normal">/ {latest.data.goals.vgLeaders}</span>
-                </p>
-                <p className="text-xs text-red-500">
-                  {latest.data.totals.vgLeaders - latest.data.goals.vgLeaders < 0
-                    ? `${latest.data.totals.vgLeaders - latest.data.goals.vgLeaders}`
-                    : `+${latest.data.totals.vgLeaders - latest.data.goals.vgLeaders}`}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-500">Leadership Group Leaders</p>
-                <p className="text-lg font-bold text-gray-900">
-                  {latest.data.totals.leadershipGroups} <span className="text-gray-400 text-sm font-normal">/ {latest.data.goals.leadershipGroups}</span>
-                </p>
-                <p className="text-xs text-red-500">
-                  {latest.data.totals.leadershipGroups - latest.data.goals.leadershipGroups < 0
-                    ? `${latest.data.totals.leadershipGroups - latest.data.goals.leadershipGroups}`
-                    : `+${latest.data.totals.leadershipGroups - latest.data.goals.leadershipGroups}`}
-                </p>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {SERVICE_BUCKETS.map((bucket) => (
+                      <tr key={bucket} className="hover:bg-gray-50">
+                        <td className="px-4 py-2.5 text-gray-700">{bucket}</td>
+                        <td className="px-4 py-2.5 text-gray-500">{latest.data.vglByGender[bucket].male}</td>
+                        <td className="px-4 py-2.5 text-gray-500">{latest.data.vglByGender[bucket].female}</td>
+                        <td className="px-4 py-2.5 text-gray-900 font-semibold">{latest.data.byService[bucket].vgLeaders}</td>
+                      </tr>
+                    ))}
+                    <tr className="bg-gray-50 font-semibold">
+                      <td className="px-4 py-2.5 text-gray-700">TOTAL</td>
+                      <td className="px-4 py-2.5">{latest.data.genderTotals.male}</td>
+                      <td className="px-4 py-2.5">{latest.data.genderTotals.female}</td>
+                      <td className="px-4 py-2.5">{latest.data.totals.vgLeaders}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
-          </div>
 
-          <div>
-            <p className="text-sm font-semibold text-gray-700 mb-2">Data per Service Time</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {SERVICE_BUCKETS.map((bucket) => (
-                <PerBucketTable key={bucket} bucket={bucket} latest={latest} previous={previous} />
-              ))}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">{latest.label} Goals</p>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-gray-500">VG Leaders</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    {latest.data.totals.vgLeaders} <span className="text-gray-400 text-sm font-normal">/ {latest.data.goals.vgLeaders}</span>
+                  </p>
+                  <p className="text-xs text-red-500">
+                    {latest.data.totals.vgLeaders - latest.data.goals.vgLeaders < 0
+                      ? `${latest.data.totals.vgLeaders - latest.data.goals.vgLeaders}`
+                      : `+${latest.data.totals.vgLeaders - latest.data.goals.vgLeaders}`}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Leadership Group Leaders</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    {latest.data.totals.leadershipGroups} <span className="text-gray-400 text-sm font-normal">/ {latest.data.goals.leadershipGroups}</span>
+                  </p>
+                  <p className="text-xs text-red-500">
+                    {latest.data.totals.leadershipGroups - latest.data.goals.leadershipGroups < 0
+                      ? `${latest.data.totals.leadershipGroups - latest.data.goals.leadershipGroups}`
+                      : `+${latest.data.totals.leadershipGroups - latest.data.goals.leadershipGroups}`}
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
-        </>
-      )}
+
+            <div>
+              <p className="text-sm font-semibold text-gray-700 mb-2">Data per Service Time</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {SERVICE_BUCKETS.map((bucket) => (
+                  <PerBucketTable key={bucket} bucket={bucket} latest={latest} previous={previous} />
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </ComparisonPicker>
 
       <ConvergenceSection entries={convergenceEntries} canEdit={canEdit} />
       <Leadership113Section batches={batches} canEdit={canEdit} />

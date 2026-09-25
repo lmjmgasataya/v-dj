@@ -243,7 +243,19 @@ export function VgLeadersTable({ rows, enableMerge }: { rows: VgLeaderRow[]; ena
                   <td className="px-4 py-2.5 text-right">
                     <div className="flex items-center justify-end gap-3">
                       {l.claimed && l.accountId != null && (
-                        <form action={resetVgLeaderPin.bind(null, l.accountId)}>
+                        <form
+                          action={resetVgLeaderPin.bind(null, l.accountId)}
+                          onSubmit={(e) => {
+                            const name = `${toTitleCase(l.firstName)} ${toTitleCase(l.lastName)}`;
+                            if (
+                              !confirm(
+                                `Reset the PIN for ${name}?\n\nTheir current PIN will stop working and they'll be asked to set a new one next time they open the portal. Their profile is not affected.`
+                              )
+                            ) {
+                              e.preventDefault();
+                            }
+                          }}
+                        >
                           <button
                             type="submit"
                             className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition"

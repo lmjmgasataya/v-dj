@@ -289,11 +289,6 @@ export default async function VictoryGroupReportPage({
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
-          <p className="text-sm font-semibold text-gray-700 mb-1">Place</p>
-          <HorizontalBarChart data={placeData} color="#f59e0b" tooltipLabel="Groups" />
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
           <p className="text-sm font-semibold text-gray-700 mb-1">Frequency</p>
           <HorizontalBarChart data={frequencyData} color="#8b5cf6" tooltipLabel="Groups" />
         </div>
@@ -301,6 +296,11 @@ export default async function VictoryGroupReportPage({
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
           <p className="text-sm font-semibold text-gray-700 mb-1">Life Stage</p>
           <HorizontalBarChart data={lifeStageData} color="#818cf8" tooltipLabel="Groups" />
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
+          <p className="text-sm font-semibold text-gray-700 mb-1">Place</p>
+          <HorizontalBarChart data={placeData} color="#f59e0b" tooltipLabel="Groups" />
         </div>
       </VgReportFilters>
     </div>

@@ -34,7 +34,13 @@ const AGE_BUCKETS = ["13–20", "21–30", "31–40", "41–50", "51–60", "60+
 function IssueSection({ title, rows, detailLabel }: { title: string; rows: IssueRow[]; detailLabel: string }) {
   return (
     <div>
-      <p className="px-6 pt-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">{title}</p>
+      <div className="flex items-center gap-2 px-6 py-3 bg-amber-50 border-y border-amber-100">
+        <span className="text-amber-700" aria-hidden>⚠</span>
+        <p className="text-sm font-semibold text-amber-800">{title}</p>
+        <span className="ml-auto rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+          {rows.length}
+        </span>
+      </div>
       <div className="overflow-x-auto">
         <IssueTable rows={rows} detailLabel={detailLabel} />
       </div>
@@ -371,14 +377,14 @@ export default async function VgLeaderReportPage() {
           <div className="divide-y divide-gray-100">
             {duplicateLglMembers.length > 0 && (
               <IssueSection
-                title={`VG Leaders led by more than one Leadership Group Leader (${duplicateLglMembers.length})`}
+                title="VG Leaders led by more than one Leadership Group Leader"
                 rows={duplicateLglMembers}
                 detailLabel="Led By"
               />
             )}
             {duplicateInterns.length > 0 && (
               <IssueSection
-                title={`Interns listed under more than one Victory Group (${duplicateInterns.length})`}
+                title="Interns listed under more than one Victory Group"
                 rows={duplicateInterns}
                 detailLabel="Listed Under"
               />
@@ -400,14 +406,14 @@ export default async function VgLeaderReportPage() {
           <div className="divide-y divide-gray-100">
             {internsAlreadyVgl.length > 0 && (
               <IssueSection
-                title={`Already a VG Leader but still reported as an Intern (${internsAlreadyVgl.length})`}
+                title="Already a VG Leader but still reported as an Intern"
                 rows={internsAlreadyVgl}
                 detailLabel="Still Intern Under"
               />
             )}
             {identifiedNotUpdated.length > 0 && (
               <IssueSection
-                title={`Identified as VG Leader by a participant, no updated Discipleship Data (${identifiedNotUpdated.length})`}
+                title="Identified as VG Leader by a participant, no updated Discipleship Data"
                 rows={identifiedNotUpdated}
                 detailLabel="Identified By"
               />

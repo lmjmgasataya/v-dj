@@ -123,7 +123,9 @@ export default async function AttendancePerBatchPage({
       ) : rows.length === 0 ? (
         <p className="text-sm text-gray-400">No participants found.</p>
       ) : (
-        <BatchAttendanceTable key={selectedBatchId} sessions={sessions} rows={rows} serviceOptions={serviceOptions} />
+        <BatchAttendanceTable key={selectedBatchId} sessions={sessions} rows={rows} serviceOptions={serviceOptions}
+          batchName={selectedBatch?.name ?? "batch"}
+        />
       )}
     </div>
   );

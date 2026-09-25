@@ -166,11 +166,14 @@ export function BatchAttendanceTable({
   sessions,
   rows,
   serviceOptions,
+  batchName,
 }: {
   sessions: BatchSession[];
   rows: BatchAttendanceRow[];
   serviceOptions: string[];
+  batchName: string;
 }) {
+  const [exporting, setExporting] = useState(false);
   const [service, setService] = useState("");
   const [excluded, setExcluded] = useState<Set<number>>(new Set());
   const [completion, setCompletion] = useState<Completion>("all");
@@ -201,6 +204,34 @@ export function BatchAttendanceTable({
     if (q && !c.row.name.toLowerCase().includes(q)) return false;
     return true;
   });
+
+  // Exports exactly what's on screen: current filters, visible session columns only.
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const XLSX = await import("xlsx");
+      const data = filtered.map(({ row, attended, applicable, complete }) => {
+        const record: Record<string, string> = { Participant: row.name, Service: row.service };
+        for (const s of visibleSessions) {
+          const status = row.statuses[s.id];
+          record[sessionLabel(s)] = status ?? (row.skipsVictoryDay && s.isVictoryDay ? "Victory Day done" : "");
+        }
+        record.Total = `${attended}/${applicable}`;
+        record["Attended All"] = complete ? "Yes" : "No";
+        return record;
+      });
+      const sheet = XLSX.utils.json_to_sheet(data, {
+        header: ["Participant", "Service", ...visibleSessions.map(sessionLabel), "Total", "Attended All"],
+      });
+      const book = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(book, sheet, "Attendance");
+      const parts = [batchName, service, completion !== "all" ? completion : ""].filter(Boolean);
+      const fileName = `attendance_${parts.join("_")}`.replace(/[^\w-]+/g, "_");
+      XLSX.writeFile(book, `${fileName}.xlsx`);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -245,6 +276,14 @@ export function BatchAttendanceTable({
           ))}
         </div>
         <ExcludeSessionsFilter sessions={sessions} excluded={excluded} onChange={setExcluded} />
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={exporting || filtered.length === 0 || visibleSessions.length === 0}
+          className="sm:ml-auto rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {exporting ? "Exporting…" : `Export (${filtered.length})`}
+        </button>
       </div>
 
       <p className="text-sm text-gray-500">

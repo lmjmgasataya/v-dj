@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/db";
 import { victoryGroupLeaders, victoryGroups, users, interns, leadershipGroupMembers, participants } from "@/db/schema";
-import { and, eq, inArray, isNull, isNotNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, isNotNull, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
 import { HorizontalBarChart, AgeChart } from "../Charts";
@@ -63,7 +63,7 @@ export default async function VgLeaderReportPage() {
   const lockedServiceRawValues =
     authSession?.role === "lead_pastor" ? rawServiceValues(authSession?.timeService) : undefined;
 
-  const [allLeaders, claimedAccounts, activeGroups, lglMemberRows, internRows, participantIdentifiedRows] = await Promise.all([
+  const [allLeaders, vgLeaderAccounts, activeGroups, lglMemberRows, internRows, participantIdentifiedRows] = await Promise.all([
     db
       .select()
       .from(victoryGroupLeaders)
@@ -74,9 +74,9 @@ export default async function VgLeaderReportPage() {
         )
       ),
     db
-      .select({ vgLeaderId: users.vgLeaderId })
+      .select({ vgLeaderId: users.vgLeaderId, hasPin: sql<boolean>`${users.pinHash} is not null` })
       .from(users)
-      .where(and(eq(users.role, "vg_leader"), isNotNull(users.pinHash))),
+      .where(eq(users.role, "vg_leader")),
     db
       .select({ vgLeaderId: victoryGroups.vgLeaderId })
       .from(victoryGroups)
@@ -133,7 +133,9 @@ export default async function VgLeaderReportPage() {
       ),
   ]);
 
-  const claimedIds = new Set(claimedAccounts.map((a) => a.vgLeaderId));
+  const claimedIds = new Set(vgLeaderAccounts.filter((a) => a.hasPin).map((a) => a.vgLeaderId));
+  // An account row with no PIN only happens after a reset (claiming always sets one).
+  const pinResetIds = new Set(vgLeaderAccounts.filter((a) => !a.hasPin).map((a) => a.vgLeaderId));
   const leaders = allLeaders.filter((l) => claimedIds.has(l.id));
 
   const total = leaders.length;
@@ -344,7 +346,23 @@ export default async function VgLeaderReportPage() {
     };
   });
 
-  const hasExceptions = internsAlreadyVgl.length > 0 || identifiedNotUpdated.length > 0;
+  // A leader whose profile is complete should also be able to get into the portal.
+  const completedWithoutPin: IssueRow[] = allLeaders
+    .filter((l) => l.profileCompleted && !claimedIds.has(l.id))
+    .map((l) => {
+      const reason = pinResetIds.has(l.id) ? "PIN reset, new PIN not set yet" : "Never claimed";
+      return {
+        key: String(l.id),
+        name: `${l.lastName}, ${l.firstName}`,
+        nameHref: `/vg-leader-portal/leaders/${l.id}`,
+        ...serviceInfo([l.serviceAttending]),
+        detailSort: reason,
+        detail: reason,
+      };
+    });
+
+  const hasExceptions =
+    internsAlreadyVgl.length > 0 || identifiedNotUpdated.length > 0 || completedWithoutPin.length > 0;
 
   // Recognize VG leaders who started leading this year.
   const newLeaders = allLeaders
@@ -416,6 +434,13 @@ export default async function VgLeaderReportPage() {
                 title="Identified as VG Leader by a participant, no updated Discipleship Data"
                 rows={identifiedNotUpdated}
                 detailLabel="Identified By"
+              />
+            )}
+            {completedWithoutPin.length > 0 && (
+              <IssueSection
+                title="Profile completed but not claimed, or PIN reset and not set again"
+                rows={completedWithoutPin}
+                detailLabel="Reason"
               />
             )}
           </div>

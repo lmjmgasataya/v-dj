@@ -13,6 +13,7 @@ import { rawServiceValues } from "@/lib/timeService";
 import { QuarterlyStatusTable } from "./QuarterlyStatusTable";
 import { QuarterlyRosterTable } from "./QuarterlyRosterTable";
 import { NewLeadersTable } from "./NewLeadersTable";
+import { IssueTable, type IssueRow } from "./IssueTable";
 
 const lglLeaders = alias(victoryGroupLeaders, "lgl_leaders");
 
@@ -29,6 +30,17 @@ const LIFESTAGE_ORDER = [
 ];
 
 const AGE_BUCKETS = ["13–20", "21–30", "31–40", "41–50", "51–60", "60+"];
+
+function IssueSection({ title, rows, detailLabel }: { title: string; rows: IssueRow[]; detailLabel: string }) {
+  return (
+    <div>
+      <p className="px-6 pt-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">{title}</p>
+      <div className="overflow-x-auto">
+        <IssueTable rows={rows} detailLabel={detailLabel} />
+      </div>
+    </div>
+  );
+}
 
 function ageBucket(age: number | null): string | null {
   if (age == null) return null;
@@ -68,6 +80,7 @@ export default async function VgLeaderReportPage() {
         memberId: victoryGroupLeaders.id,
         memberLastName: victoryGroupLeaders.lastName,
         memberFirstName: victoryGroupLeaders.firstName,
+        memberService: victoryGroupLeaders.serviceAttending,
         leaderId: leadershipGroupMembers.leaderId,
         leaderLastName: lglLeaders.lastName,
         leaderFirstName: lglLeaders.firstName,
@@ -83,6 +96,7 @@ export default async function VgLeaderReportPage() {
         victoryGroupId: interns.victoryGroupId,
         vgLeaderLastName: victoryGroupLeaders.lastName,
         vgLeaderFirstName: victoryGroupLeaders.firstName,
+        vgLeaderService: victoryGroupLeaders.serviceAttending,
         vgLeaderId: victoryGroups.vgLeaderId,
         vgPlace: victoryGroups.place,
       })
@@ -98,6 +112,7 @@ export default async function VgLeaderReportPage() {
         participantFirstName: participants.firstName,
         leaderLastName: victoryGroupLeaders.lastName,
         leaderFirstName: victoryGroupLeaders.firstName,
+        leaderService: victoryGroupLeaders.serviceAttending,
       })
       .from(participants)
       .innerJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
@@ -187,22 +202,67 @@ export default async function VgLeaderReportPage() {
     count: leadership113Counts.get(label) ?? 0,
   }));
 
+  // Service label + sort rank for the Duplicates/Exceptions tables. A row can
+  // span several services (e.g. an intern under leaders from different services).
+  function serviceInfo(values: (string | null)[]): { service: string; serviceRank: number } {
+    const distinct = Array.from(new Set(values.map((v) => v || NOT_SET_SERVICE)));
+    const rank = (s: string) => {
+      const i = serviceOrderWithNotSet.indexOf(s);
+      return i === -1 ? serviceOrderWithNotSet.length : i;
+    };
+    distinct.sort((a, b) => rank(a) - rank(b));
+    return { service: distinct.join(", "), serviceRank: rank(distinct[0]) };
+  }
+
+  const groupLinks = (groups: { victoryGroupId: number; vgLeaderId: number; vgLeaderName: string; place: string }[]) =>
+    groups.map((g, i) => (
+      <span key={g.victoryGroupId}>
+        {i > 0 && ", "}
+        <Link href={`/vg-leader-portal/leaders/${g.vgLeaderId}/edit`} className="text-gray-700 hover:text-indigo-800 underline">
+          {g.vgLeaderName} ({g.place})
+        </Link>
+      </span>
+    ));
+
   // A VG leader should only be claimed as a member by one Leadership Group Leader.
-  const byMember = new Map<number, { name: string; leaders: { id: number; name: string }[] }>();
+  const byMember = new Map<number, { name: string; service: string | null; leaders: { id: number; name: string }[] }>();
   for (const r of lglMemberRows) {
-    const entry = byMember.get(r.memberId) ?? { name: `${r.memberLastName}, ${r.memberFirstName}`, leaders: [] };
+    const entry = byMember.get(r.memberId) ?? {
+      name: `${r.memberLastName}, ${r.memberFirstName}`,
+      service: r.memberService,
+      leaders: [],
+    };
     if (!entry.leaders.some((l) => l.id === r.leaderId)) {
       entry.leaders.push({ id: r.leaderId, name: `${r.leaderLastName}, ${r.leaderFirstName}` });
     }
     byMember.set(r.memberId, entry);
   }
-  const duplicateLglMembers = Array.from(byMember.entries())
+  const duplicateLglMembers: IssueRow[] = Array.from(byMember.entries())
     .filter(([, v]) => v.leaders.length > 1)
-    .map(([id, v]) => ({ id, ...v }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .map(([id, v]) => ({
+      key: String(id),
+      name: v.name,
+      nameHref: `/vg-leader-portal/leaders/${id}`,
+      ...serviceInfo([v.service]),
+      detailSort: v.leaders.map((l) => l.name).join("; "),
+      detail: v.leaders.map((l, i) => (
+        <span key={l.id}>
+          {i > 0 && ", "}
+          <Link href={`/vg-leader-portal/leaders/${l.id}`} className="text-gray-700 hover:text-indigo-800 underline">
+            {l.name}
+          </Link>
+        </span>
+      )),
+    }));
 
   // An intern should only be listed under one Victory Group.
-  const byIntern = new Map<string, { name: string; groups: { victoryGroupId: number; vgLeaderId: number; vgLeaderName: string; place: string }[] }>();
+  const byIntern = new Map<
+    string,
+    {
+      name: string;
+      groups: { victoryGroupId: number; vgLeaderId: number; vgLeaderName: string; vgLeaderService: string | null; place: string }[];
+    }
+  >();
   for (const r of internRows) {
     const key = `${r.lastName.trim().toLowerCase()}|${r.firstName.trim().toLowerCase()}`;
     const entry = byIntern.get(key) ?? { name: `${r.lastName}, ${r.firstName}`, groups: [] };
@@ -211,46 +271,72 @@ export default async function VgLeaderReportPage() {
         victoryGroupId: r.victoryGroupId,
         vgLeaderId: r.vgLeaderId,
         vgLeaderName: `${r.vgLeaderLastName}, ${r.vgLeaderFirstName}`,
+        vgLeaderService: r.vgLeaderService,
         place: r.vgPlace,
       });
     }
     byIntern.set(key, entry);
   }
-  const duplicateInterns = Array.from(byIntern.values())
-    .filter((v) => v.groups.length > 1)
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const duplicateInterns: IssueRow[] = Array.from(byIntern.entries())
+    .filter(([, v]) => v.groups.length > 1)
+    .map(([key, v]) => ({
+      key,
+      name: v.name,
+      ...serviceInfo(v.groups.map((g) => g.vgLeaderService)),
+      detailSort: v.groups.map((g) => g.vgLeaderName).join("; "),
+      detail: groupLinks(v.groups),
+    }));
 
   const hasDuplicates = duplicateLglMembers.length > 0 || duplicateInterns.length > 0;
   const isLeadPastor = authSession?.role === "lead_pastor";
 
   // An intern who has since become a VG leader in their own right shouldn't
   // still be reported as an intern by their old VG leader.
-  const leaderByName = new Map<string, { id: number; name: string }[]>();
+  const leaderByName = new Map<string, { id: number; name: string; service: string | null }[]>();
   for (const l of allLeaders) {
     const key = `${l.lastName.trim().toLowerCase()}|${l.firstName.trim().toLowerCase()}`;
     const arr = leaderByName.get(key) ?? [];
-    arr.push({ id: l.id, name: `${l.lastName}, ${l.firstName}` });
+    arr.push({ id: l.id, name: `${l.lastName}, ${l.firstName}`, service: l.serviceAttending });
     leaderByName.set(key, arr);
   }
-  const internsAlreadyVgl = Array.from(byIntern.entries())
-    .map(([key, v]) => ({ name: v.name, groups: v.groups, matches: leaderByName.get(key) ?? [] }))
+  const internsAlreadyVgl: IssueRow[] = Array.from(byIntern.entries())
+    .map(([key, v]) => ({ key, ...v, matches: leaderByName.get(key) ?? [] }))
     .filter((v) => v.matches.length > 0)
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .map((v) => ({
+      key: v.key,
+      name: v.name,
+      nameHref: `/vg-leader-portal/leaders/${v.matches[0].id}`,
+      ...serviceInfo(v.matches.map((m) => m.service)),
+      detailSort: v.groups.map((g) => g.vgLeaderName).join("; "),
+      detail: groupLinks(v.groups),
+    }));
 
   // A VG leader created from a participant naming them (rather than the leader
   // registering themselves) should eventually complete their own profile.
-  const byIdentifiedLeader = new Map<number, { name: string; participants: { id: number; name: string }[] }>();
+  const byIdentifiedLeader = new Map<
+    number,
+    { name: string; service: string | null; participants: { id: number; name: string }[] }
+  >();
   for (const r of participantIdentifiedRows) {
     const entry = byIdentifiedLeader.get(r.vgLeaderId!) ?? {
       name: `${r.leaderLastName}, ${r.leaderFirstName}`,
+      service: r.leaderService,
       participants: [],
     };
     entry.participants.push({ id: r.participantId, name: `${r.participantLastName}, ${r.participantFirstName}` });
     byIdentifiedLeader.set(r.vgLeaderId!, entry);
   }
-  const identifiedNotUpdated = Array.from(byIdentifiedLeader.entries())
-    .map(([id, v]) => ({ id, ...v }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const identifiedNotUpdated: IssueRow[] = Array.from(byIdentifiedLeader.entries()).map(([id, v]) => {
+    const names = v.participants.map((p) => p.name).join(", ");
+    return {
+      key: String(id),
+      name: v.name,
+      nameHref: `/vg-leader-portal/leaders/${id}/edit`,
+      ...serviceInfo([v.service]),
+      detailSort: names,
+      detail: names,
+    };
+  });
 
   const hasExceptions = internsAlreadyVgl.length > 0 || identifiedNotUpdated.length > 0;
 
@@ -284,52 +370,18 @@ export default async function VgLeaderReportPage() {
         {hasDuplicates ? (
           <div className="divide-y divide-gray-100">
             {duplicateLglMembers.length > 0 && (
-              <div className="px-6 py-4">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                  VG Leaders led by more than one Leadership Group Leader ({duplicateLglMembers.length})
-                </p>
-                <ul className="flex flex-col gap-2">
-                  {duplicateLglMembers.map((m) => (
-                    <li key={m.id} className="text-sm">
-                      <Link href={`/vg-leader-portal/leaders/${m.id}`} className="font-medium text-indigo-600 hover:text-indigo-800 underline">
-                        {m.name}
-                      </Link>
-                      <span className="text-gray-500"> — led by </span>
-                      {m.leaders.map((l, i) => (
-                        <span key={l.id}>
-                          {i > 0 && ", "}
-                          <Link href={`/vg-leader-portal/leaders/${l.id}`} className="text-gray-700 hover:text-indigo-800 underline">
-                            {l.name}
-                          </Link>
-                        </span>
-                      ))}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <IssueSection
+                title={`VG Leaders led by more than one Leadership Group Leader (${duplicateLglMembers.length})`}
+                rows={duplicateLglMembers}
+                detailLabel="Led By"
+              />
             )}
             {duplicateInterns.length > 0 && (
-              <div className="px-6 py-4">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                  Interns listed under more than one Victory Group ({duplicateInterns.length})
-                </p>
-                <ul className="flex flex-col gap-2">
-                  {duplicateInterns.map((it) => (
-                    <li key={`${it.name}`} className="text-sm">
-                      <span className="font-medium text-gray-900">{it.name}</span>
-                      <span className="text-gray-500"> — under </span>
-                      {it.groups.map((g, i) => (
-                        <span key={g.victoryGroupId}>
-                          {i > 0 && ", "}
-                          <Link href={`/vg-leader-portal/leaders/${g.vgLeaderId}/edit`} className="text-gray-700 hover:text-indigo-800 underline">
-                            {g.vgLeaderName} ({g.place})
-                          </Link>
-                        </span>
-                      ))}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <IssueSection
+                title={`Interns listed under more than one Victory Group (${duplicateInterns.length})`}
+                rows={duplicateInterns}
+                detailLabel="Listed Under"
+              />
             )}
           </div>
         ) : (
@@ -347,59 +399,18 @@ export default async function VgLeaderReportPage() {
         {hasExceptions ? (
           <div className="divide-y divide-gray-100">
             {internsAlreadyVgl.length > 0 && (
-              <div className="px-6 py-4">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                  Already a VG Leader but still reported as an Intern ({internsAlreadyVgl.length})
-                </p>
-                <ul className="flex flex-col gap-2">
-                  {internsAlreadyVgl.map((it) => (
-                    <li key={it.name} className="text-sm">
-                      <span className="font-medium text-gray-900">{it.name}</span>
-                      <span className="text-gray-500"> — now registered as </span>
-                      {it.matches.map((m, i) => (
-                        <span key={m.id}>
-                          {i > 0 && ", "}
-                          <Link href={`/vg-leader-portal/leaders/${m.id}`} className="text-indigo-600 hover:text-indigo-800 underline">
-                            {m.name}
-                          </Link>
-                        </span>
-                      ))}
-                      <span className="text-gray-500"> — still listed as intern under </span>
-                      {it.groups.map((g, i) => (
-                        <span key={g.victoryGroupId}>
-                          {i > 0 && ", "}
-                          <Link href={`/vg-leader-portal/leaders/${g.vgLeaderId}/edit`} className="text-gray-700 hover:text-indigo-800 underline">
-                            {g.vgLeaderName} ({g.place})
-                          </Link>
-                        </span>
-                      ))}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <IssueSection
+                title={`Already a VG Leader but still reported as an Intern (${internsAlreadyVgl.length})`}
+                rows={internsAlreadyVgl}
+                detailLabel="Still Intern Under"
+              />
             )}
             {identifiedNotUpdated.length > 0 && (
-              <div className="px-6 py-4">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                  Identified as VG Leader by a participant, no updated Discipleship Data ({identifiedNotUpdated.length})
-                </p>
-                <ul className="flex flex-col gap-2">
-                  {identifiedNotUpdated.map((l) => (
-                    <li key={l.id} className="text-sm">
-                      <Link href={`/vg-leader-portal/leaders/${l.id}/edit`} className="font-medium text-indigo-600 hover:text-indigo-800 underline">
-                        {l.name}
-                      </Link>
-                      <span className="text-gray-500"> — identified by </span>
-                      {l.participants.map((p, i) => (
-                        <span key={p.id}>
-                          {i > 0 && ", "}
-                          {p.name}
-                        </span>
-                      ))}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <IssueSection
+                title={`Identified as VG Leader by a participant, no updated Discipleship Data (${identifiedNotUpdated.length})`}
+                rows={identifiedNotUpdated}
+                detailLabel="Identified By"
+              />
             )}
           </div>
         ) : (

@@ -6,10 +6,11 @@ import Link from "next/link";
 export interface DiscipleshipJourneyRow {
   id: number;
   name: string;
+  leadership113: boolean | null;
   steps: Record<string, boolean>;
 }
 
-type SortKey = "name" | `step:${string}`;
+type SortKey = "name" | "leadership113" | `step:${string}`;
 type SortDir = "asc" | "desc";
 
 function sortIcon(col: SortKey, currentSort: SortKey, currentDir: SortDir) {
@@ -38,6 +39,7 @@ export function DiscipleshipJourneyTable({
 
   function sortValue(r: DiscipleshipJourneyRow, key: SortKey): string | number {
     if (key === "name") return r.name.toLowerCase();
+    if (key === "leadership113") return r.leadership113 == null ? 0 : r.leadership113 ? 2 : 1;
     const step = key.slice("step:".length);
     return r.steps[step] ? 1 : 0;
   }
@@ -82,6 +84,18 @@ export function DiscipleshipJourneyTable({
               </th>
             );
           })}
+          <th className="px-4 py-2 text-center font-medium">
+            <button
+              type="button"
+              onClick={() => toggleSort("leadership113")}
+              className="flex items-center justify-center gap-0.5 hover:text-gray-800 select-none mx-auto"
+            >
+              L113 Graduate
+              <span className={sortKey === "leadership113" ? "text-gray-700" : "text-gray-300"}>
+                {sortIcon("leadership113", sortKey, sortDir)}
+              </span>
+            </button>
+          </th>
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">
@@ -101,6 +115,15 @@ export function DiscipleshipJourneyTable({
                 )}
               </td>
             ))}
+            <td className="px-4 py-2.5 text-center">
+              {r.leadership113 == null ? (
+                <span className="text-gray-300">Not set</span>
+              ) : r.leadership113 ? (
+                <span className="text-green-600 font-semibold">Yes</span>
+              ) : (
+                <span className="text-amber-600">No</span>
+              )}
+            </td>
           </tr>
         ))}
       </tbody>

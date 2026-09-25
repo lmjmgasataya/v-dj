@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const allLinks = [
   { href: "/report", label: "Attendance", icon: "✅", adminOnly: false },
+  { href: "/report/attendance-per-batch", label: "Attendance Per Journey", icon: "📋", adminOnly: false },
   { href: "/report/registrations", label: "Registrations", icon: "📈", adminOnly: true },
   { href: "/report/checkins", label: "Check-in Times", icon: "🕐", adminOnly: true },
   { href: "/report/class-category", label: "Class Category", icon: "💰", adminOnly: true },

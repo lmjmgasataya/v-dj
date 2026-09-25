@@ -37,6 +37,7 @@ export default async function DiscipleshipJourneyReportPage() {
       return {
         id: l.id,
         name: `${l.lastName}, ${l.firstName}`,
+        leadership113: l.graduateOfLeadership113,
         steps: Object.fromEntries(DISCIPLESHIP_JOURNEY_STEPS.map((step) => [step, completed.has(step)])) as Record<
           (typeof DISCIPLESHIP_JOURNEY_STEPS)[number],
           boolean
@@ -59,7 +60,7 @@ export default async function DiscipleshipJourneyReportPage() {
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
           <h3 className="font-semibold text-gray-800">Discipleship Journey Steps Completed</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Which Discipleship Journey steps each claimed VG leader has completed.</p>
+          <p className="text-xs text-gray-400 mt-0.5">Which Discipleship Journey steps each claimed VG leader has completed, and whether they graduated from Leadership 113.</p>
         </div>
         {rows.length > 0 ? (
           <div className="overflow-x-auto">

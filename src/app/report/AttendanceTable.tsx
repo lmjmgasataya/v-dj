@@ -3,13 +3,8 @@ import { checkIns, participants } from "@/db/schema";
 import { toTitleCase } from "@/lib/text";
 import { and, eq, ilike, inArray, isNull, or } from "drizzle-orm";
 import type { ClassSession } from "@/db/schema";
+import { abbrev, shortSessionDate } from "./sessionLabel";
 
-export function abbrev(name: string): string {
-  return name
-    .replace("Spiritual Foundations", "SF")
-    .replace("Making Disciples", "MD")
-    .replace(" - Victory Day", "");
-}
 
 function SessionHeader({ sessions }: { sessions: ClassSession[] }) {
   return (
@@ -29,11 +24,7 @@ function SessionHeader({ sessions }: { sessions: ClassSession[] }) {
                 {abbrev(s.name)}
               </span>
               <span className="text-[10px] text-gray-400 whitespace-nowrap">
-                {new Date(s.sessionDate + "T00:00:00").toLocaleDateString("en-PH", {
-                  month: "short",
-                  day: "numeric",
-                  timeZone: "Asia/Manila",
-                })}
+                {shortSessionDate(s.sessionDate)}
               </span>
               {s.isVictoryDay && (
                 <span className="text-[9px] font-semibold text-indigo-400 uppercase tracking-wide">VD</span>

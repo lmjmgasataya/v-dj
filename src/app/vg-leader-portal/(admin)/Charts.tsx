@@ -14,6 +14,8 @@ import {
 interface Row {
   label: string;
   count: number;
+  // Other spellings merged into this bar, with their own counts; listed in the tooltip.
+  variants?: { label: string; count: number }[];
 }
 
 function Empty() {
@@ -43,6 +45,21 @@ export function HorizontalBarChart({
           cursor={{ fill: "#eef2ff" }}
           contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb", fontSize: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
           formatter={(v) => [v, tooltipLabel]}
+          labelFormatter={(label, payload) => {
+            const variants = (payload?.[0]?.payload as Row | undefined)?.variants;
+            if (!variants || variants.length < 2) return label;
+            // Recharts wraps the label in a <p>, so only inline elements are valid here.
+            return (
+              <>
+                <span className="block font-semibold">{label}</span>
+                {variants.map((v) => (
+                  <span key={v.label} className="block text-gray-500">
+                    {v.label}: {v.count}
+                  </span>
+                ))}
+              </>
+            );
+          }}
         />
         <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={28}>
           {data.map((d, i) => (

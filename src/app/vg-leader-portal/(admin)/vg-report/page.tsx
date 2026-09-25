@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { victoryGroups, victoryGroupLeaders, interns, dayOfWeekEnum, vgFrequencyEnum } from "@/db/schema";
 import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { groupPlaces } from "@/lib/placeGrouping";
 import { HorizontalBarChart } from "../Charts";
 import { VgReportFilters } from "./VgReportFilters";
 import { TransitionLink } from "./TransitionLink";
@@ -121,9 +122,7 @@ export default async function VictoryGroupReportPage({
   const lifeStageData = LIFESTAGE_ORDER.map((label) => ({ label, count: lifeStageCounts.get(label) ?? 0 })).filter(
     (r) => r.count > 0
   );
-  const placeData = Array.from(placeCounts.entries())
-    .map(([label, count]) => ({ label, count }))
-    .sort((a, b) => b.count - a.count);
+  const placeData = groupPlaces(placeCounts);
   const timeData = TIME_ORDER.map((label) => ({ label, count: timeCounts.get(label) ?? 0 })).filter(
     (r) => r.count > 0
   );

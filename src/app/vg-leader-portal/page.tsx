@@ -2,6 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";
+import { db } from "@/db";
+import { featureFlags } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { ACCEPT_PREVIOUS_QUARTER_FLAG } from "@/lib/vgQuarters";
+import { PortalSettingsButton } from "./PortalSettingsButton";
 
 export default async function VgLeaderPortalPage() {
   const session = await getSession();
@@ -9,12 +14,24 @@ export default async function VgLeaderPortalPage() {
   const isDeveloper = session.role === "developer";
   const canViewReports = isDeveloper || session.role === "lead_pastor";
 
+  const [acceptPreviousFlag] = isDeveloper
+    ? await db
+        .select({ enabled: featureFlags.enabled })
+        .from(featureFlags)
+        .where(eq(featureFlags.key, ACCEPT_PREVIOUS_QUARTER_FLAG))
+        .limit(1)
+    : [];
+  const acceptPreviousQuarter = acceptPreviousFlag?.enabled ?? false;
+
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "VG Leader Portal" }]} />
-        <h2 className="text-2xl font-bold text-gray-900">VG Leader Portal</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Manage Victory Group leaders and their portal accounts.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "VG Leader Portal" }]} />
+          <h2 className="text-2xl font-bold text-gray-900">VG Leader Portal</h2>
+          <p className="text-sm text-gray-500 mt-0.5">Manage Victory Group leaders and their portal accounts.</p>
+        </div>
+        {isDeveloper && <PortalSettingsButton acceptPreviousQuarter={acceptPreviousQuarter} />}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

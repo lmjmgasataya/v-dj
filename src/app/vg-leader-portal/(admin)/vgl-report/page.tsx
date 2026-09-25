@@ -151,7 +151,7 @@ export default async function VgLeaderReportPage() {
     for (const l of leaders) {
       const service = l.serviceAttending || NOT_SET_SERVICE;
       const percent = computeProfileProgress(l, hasActiveGroupIds.has(l.id)).percent;
-      const liveEntry = getProfileUpdateQuarters(l.updatedAt, percent).find((q) => q.clickable);
+      const liveEntry = getProfileUpdateQuarters(l.updatedAt, percent).find((q) => q.live);
       const done = liveEntry?.status === "updated";
 
       const bucket = quarterlyStatusCounts.get(service) ?? { total: 0, done: 0, notDone: 0 };

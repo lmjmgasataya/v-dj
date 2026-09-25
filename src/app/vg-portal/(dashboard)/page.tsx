@@ -1,11 +1,11 @@
 import { db } from "@/db";
-import { victoryGroupLeaders, victoryGroups, events, eventRegistrations } from "@/db/schema";
+import { victoryGroupLeaders, victoryGroups, events, eventRegistrations, featureFlags } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeProfileProgress } from "@/lib/profileCompleteness";
-import { getProfileUpdateQuarters, type QuarterCardStatus } from "@/lib/vgQuarters";
+import { ACCEPT_PREVIOUS_QUARTER_FLAG, getProfileUpdateQuarters, type QuarterCardStatus } from "@/lib/vgQuarters";
 import { isRegistrationClosed } from "@/lib/date";
 import { ProfileFreshnessBanner } from "./ProfileFreshnessBanner";
 
@@ -26,33 +26,33 @@ const QUARTER_STATUS_LABEL: Record<QuarterCardStatus, string> = {
   not_updated: "Not Updated",
 };
 
-const QUARTER_MONTHS: Record<string, string> = {
-  q1: "Jan–Mar",
-  q2: "Apr–Jun",
-  q3: "Jul–Sep",
-  q4: "Oct–Dec",
-};
-
 export default async function VgPortalDashboardPage() {
   const session = await getSession();
   if (!session || session.role !== "vg_leader" || !session.vgLeaderId) redirect("/");
 
   const vgLeaderId = session.vgLeaderId;
 
-  const [[leader], groups] = await Promise.all([
+  const [[leader], groups, [acceptPreviousFlag]] = await Promise.all([
     db.select().from(victoryGroupLeaders).where(eq(victoryGroupLeaders.id, vgLeaderId)).limit(1),
     db
       .select()
       .from(victoryGroups)
       .where(and(eq(victoryGroups.vgLeaderId, vgLeaderId), isNull(victoryGroups.deletedAt)))
       .orderBy(victoryGroups.createdAt),
+    db
+      .select({ enabled: featureFlags.enabled })
+      .from(featureFlags)
+      .where(eq(featureFlags.key, ACCEPT_PREVIOUS_QUARTER_FLAG))
+      .limit(1),
   ]);
 
   if (!leader) redirect("/login");
 
   const hasActiveGroup = groups.some((g) => g.isActive);
   const { percent } = computeProfileProgress(leader, hasActiveGroup);
-  const quarters = getProfileUpdateQuarters(leader.updatedAt, percent);
+  const quarters = getProfileUpdateQuarters(leader.updatedAt, percent, {
+    acceptPreviousQuarter: acceptPreviousFlag?.enabled ?? false,
+  });
 
   const upcomingEvents = await db
     .select({
@@ -166,7 +166,7 @@ export default async function VgPortalDashboardPage() {
               <>
                 <div className="flex items-baseline gap-2">
                   <span className="font-semibold text-gray-900 text-base">{q.label}</span>
-                  <span className="text-sm text-gray-400">({QUARTER_MONTHS[q.key]})</span>
+                  <span className="text-sm text-gray-400">({q.months})</span>
                 </div>
                 <span className={`text-sm font-medium w-fit px-2.5 py-1 rounded-full ${QUARTER_STATUS_BADGE[q.status]}`}>
                   {q.status === "incomplete" ? `${q.percent}% Complete` : QUARTER_STATUS_LABEL[q.status]}

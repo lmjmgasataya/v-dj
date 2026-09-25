@@ -183,7 +183,7 @@ export async function computeVgSnapshotCounts(): Promise<
     for (const l of leaders) {
       if (!claimedIds.has(l.id)) continue;
       const percent = computeProfileProgress(l, activeGroupIds.has(l.id)).percent;
-      const liveEntry = getProfileUpdateQuarters(l.updatedAt, percent).find((q) => q.clickable);
+      const liveEntry = getProfileUpdateQuarters(l.updatedAt, percent).find((q) => q.live);
       const ref: VgLeaderRef = { id: l.id, name: leaderName(l.id) };
       if (liveEntry?.status === "updated") done.push(ref);
       else notDone.push(ref);

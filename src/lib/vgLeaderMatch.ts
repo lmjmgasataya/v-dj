@@ -22,6 +22,34 @@ export function normalizeName(raw: string | null | undefined): string {
     .trim();
 }
 
+// Common abbreviations normalized before comparing first names ("Ma. Lorena" = "Maria Lorena").
+const FIRST_NAME_ALIASES: Record<string, string> = { ma: "maria" };
+
+function firstNameWords(firstName: string): string[] {
+  return normalizeName(firstName)
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => FIRST_NAME_ALIASES[w] ?? w);
+}
+
+/**
+ * Same person entered twice with a slightly different name: same last name, and the
+ * first names have the same words in any order ("John Mark" / "Mark John"), or one's
+ * words are all contained in the other's ("Kent" / "Kent Cedrix", "Rodolfo" / "Rodolfo Jr").
+ * Accents, dots, casing and spacing are ignored. Exact matches count as similar too.
+ */
+export function areSimilarNames(
+  a: { lastName: string; firstName: string },
+  b: { lastName: string; firstName: string },
+): boolean {
+  if (normalizeName(a.lastName) !== normalizeName(b.lastName)) return false;
+  const wa = new Set(firstNameWords(a.firstName));
+  const wb = new Set(firstNameWords(b.firstName));
+  if (wa.size === 0 || wb.size === 0) return false;
+  const [small, large] = wa.size <= wb.size ? [wa, wb] : [wb, wa];
+  return [...small].every((w) => large.has(w));
+}
+
 export type MatchMethod = "mobile" | "name" | "name_first_word";
 
 interface Matchable {

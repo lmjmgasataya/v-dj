@@ -1,6 +1,15 @@
+/**
+ * "JUAN DELA CRUZ" -> "Juan Dela Cruz", "dima-ala" -> "Dima-Ala", "o'brien" -> "O'Brien".
+ * A letter is capitalized at the start of each word and after a hyphen or apostrophe.
+ * Unicode-aware, so accented letters don't count as word breaks: "granpeñas" -> "Granpeñas",
+ * not "GranpeñAs" (which `\b\w` produced, since `\w` doesn't match "ñ").
+ */
 export function toTitleCase(s: string | null | undefined): string {
   if (!s) return "";
-  return s.trim().toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+  return s
+    .trim()
+    .toLowerCase()
+    .replace(/(^|[^\p{L}\p{M}])(\p{L})/gu, (_, before: string, letter: string) => before + letter.toUpperCase());
 }
 
 /**

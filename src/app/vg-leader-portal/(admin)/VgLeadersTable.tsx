@@ -17,6 +17,8 @@ export interface VgLeaderRow {
   serviceAttending: string | null;
   duplicateMobile: boolean;
   duplicateName: boolean;
+  /** Other leaders whose name is nearly the same (includes exact matches). */
+  similarNames: string[];
   claimed: boolean;
   accountId: number | null;
   profileCompleted: boolean;
@@ -199,10 +201,22 @@ export function VgLeadersTable({ rows, enableMerge }: { rows: VgLeaderRow[]; ena
                       className="font-medium text-gray-800 hover:text-indigo-700 hover:underline"
                     >
                       {toTitleCase(l.lastName)}, {toTitleCase(l.firstName)}
-                      {l.duplicateName && (
-                        <span className="ml-1.5 inline-flex items-center rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 align-middle">
+                      {l.duplicateName ? (
+                        <span
+                          title={`Same name as: ${l.similarNames.join("; ")}`}
+                          className="ml-1.5 inline-flex items-center rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 align-middle"
+                        >
                           Duplicate
                         </span>
+                      ) : (
+                        l.similarNames.length > 0 && (
+                          <span
+                            title={`Similar to: ${l.similarNames.join("; ")}`}
+                            className="ml-1.5 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 align-middle"
+                          >
+                            Possible duplicate
+                          </span>
+                        )
                       )}
                     </Link>
                     {l.nickname && <p className="text-xs text-gray-400">&quot;{l.nickname}&quot;</p>}

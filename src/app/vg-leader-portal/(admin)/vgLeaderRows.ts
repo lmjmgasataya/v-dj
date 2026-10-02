@@ -3,6 +3,8 @@ import { victoryGroupLeaders, victoryGroups, users, participants } from "@/db/sc
 import { and, asc, eq, isNull, inArray, or } from "drizzle-orm";
 import type { VgLeaderRow } from "./VgLeadersTable";
 import type { ParticipantsCellEntry } from "@/components/ParticipantsCell";
+import { areSimilarNames, normalizeName } from "@/lib/vgLeaderMatch";
+import { formatPersonName } from "@/lib/text";
 
 export async function getVgLeaderRows(): Promise<VgLeaderRow[]> {
   const [leaders, activeGroups, accounts] = await Promise.all([
@@ -65,6 +67,27 @@ export async function getVgLeaderRows(): Promise<VgLeaderRow[]> {
     nameCounts.set(key, (nameCounts.get(key) ?? 0) + 1);
   }
 
+  // Near-duplicate names ("John Mark" / "Mark John", "Kent" / "Kent Cedrix") among leaders
+  // sharing a last name — compared within each last-name group, so it stays cheap.
+  const byLastName = new Map<string, typeof leaders>();
+  for (const l of leaders) {
+    const key = normalizeName(l.lastName);
+    byLastName.set(key, [...(byLastName.get(key) ?? []), l]);
+  }
+  const similarNamesById = new Map<number, string[]>();
+  for (const group of byLastName.values()) {
+    for (const a of group) {
+      for (const b of group) {
+        if (a.id !== b.id && areSimilarNames(a, b)) {
+          similarNamesById.set(a.id, [
+            ...(similarNamesById.get(a.id) ?? []),
+            `${formatPersonName(b.lastName)}, ${formatPersonName(b.firstName)}`,
+          ]);
+        }
+      }
+    }
+  }
+
   return leaders.map((l) => {
     const account = accountByLeaderId.get(l.id);
     const mobileKey = l.mobileNumber?.trim();
@@ -78,6 +101,7 @@ export async function getVgLeaderRows(): Promise<VgLeaderRow[]> {
       serviceAttending: l.serviceAttending,
       duplicateMobile: !!mobileKey && (mobileCounts.get(mobileKey) ?? 0) > 1,
       duplicateName: (nameCounts.get(nameKey) ?? 0) > 1,
+      similarNames: similarNamesById.get(l.id) ?? [],
       claimed: !!account?.pinHash,
       accountId: account?.id ?? null,
       profileCompleted: l.profileCompleted,

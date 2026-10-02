@@ -16,7 +16,7 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { toTitleCase } from "@/lib/text";
-import { recomputeProfileCompleted } from "@/lib/vgLeaderProfile";
+import { recomputeProfileCompleted, touchVgLeaderUpdatedAt } from "@/lib/vgLeaderProfile";
 import { resolveOwnVgLeader } from "@/lib/ownVgLeader";
 import { replaceGroupInterns } from "@/lib/interns";
 import { resolveLeadershipGroupMembers, replaceLeadershipGroupMembers } from "@/lib/leadershipGroupMembers";
@@ -68,6 +68,7 @@ export async function addOwnVictoryGroup(formData: FormData) {
     })
     .returning({ id: victoryGroups.id });
   await replaceGroupInterns(group.id, formData);
+  await touchVgLeaderUpdatedAt(session.vgLeaderId);
   await recomputeProfileCompleted(session.vgLeaderId);
   revalidatePath("/vg-portal");
   revalidatePath("/vg-portal/profile");
@@ -88,6 +89,7 @@ export async function updateOwnVictoryGroup(id: number, formData: FormData) {
     })
     .where(and(eq(victoryGroups.id, id), eq(victoryGroups.vgLeaderId, session.vgLeaderId)));
   await replaceGroupInterns(id, formData);
+  await touchVgLeaderUpdatedAt(session.vgLeaderId);
   await recomputeProfileCompleted(session.vgLeaderId);
   revalidatePath("/vg-portal");
   revalidatePath("/vg-portal/profile");
@@ -99,6 +101,7 @@ export async function deleteOwnVictoryGroup(id: number) {
     .update(victoryGroups)
     .set({ deletedAt: new Date() })
     .where(and(eq(victoryGroups.id, id), eq(victoryGroups.vgLeaderId, session.vgLeaderId)));
+  await touchVgLeaderUpdatedAt(session.vgLeaderId);
   await recomputeProfileCompleted(session.vgLeaderId);
   revalidatePath("/vg-portal");
   revalidatePath("/vg-portal/profile");

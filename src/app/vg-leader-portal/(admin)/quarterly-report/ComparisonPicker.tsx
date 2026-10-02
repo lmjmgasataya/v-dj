@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { useTransition, type ReactNode } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 
 interface SnapshotOption {
   id: number;
@@ -73,8 +73,14 @@ export function ComparisonPicker({
   const router = useRouter();
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
+  // What was just picked, shown while the new comparison loads — otherwise the dropdowns
+  // snap back to the old values until the server responds, as if the click did nothing.
+  const [picked, setPicked] = useState<{ a: number | "live"; b: number | null } | null>(null);
+  const shownA = isPending && picked ? picked.a : aId;
+  const shownB = isPending && picked ? picked.b : bId;
 
   function navigate(nextA: number | "live", nextB: number | null) {
+    setPicked({ a: nextA, b: nextB });
     const params = new URLSearchParams();
     params.set("a", String(nextA));
     if (nextB != null) params.set("b", String(nextB));
@@ -95,9 +101,10 @@ export function ComparisonPicker({
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Compare</label>
               <select
-                value={aId ?? ""}
-                onChange={(e) => navigate(e.target.value === "live" ? "live" : Number(e.target.value), bId)}
-                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                value={shownA ?? ""}
+                disabled={isPending}
+                onChange={(e) => navigate(e.target.value === "live" ? "live" : Number(e.target.value), shownB)}
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-60"
               >
                 <option value="live">● Live Now</option>
                 {snapshots.map((s) => (
@@ -106,9 +113,10 @@ export function ComparisonPicker({
               </select>
               <span className="text-xs text-gray-400">vs</span>
               <select
-                value={bId ?? ""}
-                onChange={(e) => navigate(aId!, e.target.value ? Number(e.target.value) : null)}
-                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                value={shownB ?? ""}
+                disabled={isPending}
+                onChange={(e) => navigate(shownA!, e.target.value ? Number(e.target.value) : null)}
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-60"
               >
                 <option value="">(none)</option>
                 {snapshots.map((s) => (
@@ -116,7 +124,13 @@ export function ComparisonPicker({
                 ))}
               </select>
             </div>
-            {exportHref && (
+            {isPending && (
+              <span className="flex items-center gap-1.5 text-xs text-gray-500" role="status">
+                <span className="h-3.5 w-3.5 rounded-full border-2 border-gray-300 border-t-indigo-600 animate-spin" />
+                Loading…
+              </span>
+            )}
+            {exportHref && !isPending && (
               <a
                 href={exportHref}
                 target="_blank"
@@ -130,7 +144,10 @@ export function ComparisonPicker({
         )}
       </div>
 
-      {between}
+      {/* Dimmed while loading so the stale Live Now summary doesn't read as the new result. */}
+      <div className={`flex flex-col gap-6 transition-opacity ${isPending ? "opacity-40 pointer-events-none" : ""}`}>
+        {between}
+      </div>
 
       {isPending ? <ComparisonSkeleton /> : children}
     </>

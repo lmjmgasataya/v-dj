@@ -17,6 +17,7 @@ import { QuarterlyStatusTable } from "./QuarterlyStatusTable";
 import { QuarterlyRosterTable } from "./QuarterlyRosterTable";
 import { NewLeadersTable } from "./NewLeadersTable";
 import { IssueTable, type IssueRow } from "./IssueTable";
+import { ReportSideNav, type NavItem } from "./ReportSideNav";
 
 const lglLeaders = alias(victoryGroupLeaders, "lgl_leaders");
 
@@ -34,9 +35,9 @@ const LIFESTAGE_ORDER = [
 
 const AGE_BUCKETS = ["13–20", "21–30", "31–40", "41–50", "51–60", "60+"];
 
-function IssueSection({ title, rows, detailLabel }: { title: string; rows: IssueRow[]; detailLabel: string }) {
+function IssueSection({ id, title, rows, detailLabel }: { id: string; title: string; rows: IssueRow[]; detailLabel: string }) {
   return (
-    <div>
+    <div id={id} className="scroll-mt-20 lg:scroll-mt-6">
       <div className="flex items-center gap-2 px-6 py-3 bg-amber-50 border-y border-amber-100">
         <span className="text-amber-700" aria-hidden>⚠</span>
         <p className="text-sm font-semibold text-amber-800">{title}</p>
@@ -480,8 +481,76 @@ export default async function VgLeaderReportPage() {
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  // Section titles are shared by the headings and the side menu.
+  const T = {
+    dupLgl: "VG Leaders led by more than one Leadership Group Leader",
+    dupInterns: "Interns listed under more than one Victory Group",
+    internsAlreadyVgl: "Already a VG Leader but still reported as an Intern",
+    completedWithoutPin: "Profile completed but not claimed, or PIN reset and not set again",
+    byUpdatedLgl: `Identified as VG Leader by a Leadership Group Leader who completed the ${updateCycleLabel} update`,
+    byParticipant: "Identified as VG Leader by a Discipleship Journey participant",
+    claimedNotCompleted: "Claimed portal but profile not yet completed",
+    manualNotCompleted: (label: string) => `Answered the ${label} form, profile not yet completed in the portal`,
+    manualNotInDb: (label: string) => `Answered the ${label} form, not found in the VG leader database`,
+  };
+  const manualId = (label: string, kind: string) => `manual-${label.toLowerCase().replace(/\s+/g, "-")}-${kind}`;
+  const issue = (id: string, label: string, rows: IssueRow[]): NavItem[] =>
+    rows.length > 0 ? [{ id, label, count: rows.length }] : [];
+
+  const navItems: NavItem[] = [
+    ...(!isLeadPastor
+      ? [
+          {
+            id: "duplicates",
+            label: "Duplicates",
+            children: [
+              ...issue("dup-lgl-members", T.dupLgl, duplicateLglMembers),
+              ...issue("dup-interns", T.dupInterns, duplicateInterns),
+            ],
+          },
+          {
+            id: "exceptions",
+            label: "Exceptions",
+            children: [
+              ...issue("interns-already-vgl", T.internsAlreadyVgl, internsAlreadyVgl),
+              ...issue("completed-without-pin", T.completedWithoutPin, completedWithoutPin),
+            ],
+          },
+          {
+            id: "profile-not-completed",
+            label: "Profile Not Yet Completed",
+            children: [
+              ...issue("identified-by-lgl", T.byUpdatedLgl, identifiedByUpdatedLgl),
+              ...issue("identified-by-participant", T.byParticipant, identifiedNotUpdated),
+              ...issue("claimed-not-completed", T.claimedNotCompleted, startedNotCompleted),
+              ...manualSections.flatMap(([label, v]) => [
+                ...issue(manualId(label, "not-completed"), T.manualNotCompleted(label), v.notCompleted),
+                ...issue(manualId(label, "not-in-db"), T.manualNotInDb(label), v.notInDatabase),
+              ]),
+            ],
+          },
+        ]
+      : []),
+    { id: "quarterly-status", label: `Quarterly Update Status${liveQuarter ? ` — ${liveQuarter.label}` : ""}` },
+    { id: "new-leaders", label: "Started Leading This Year", count: newLeaders.length },
+    {
+      id: "charts",
+      label: "Charts",
+      children: [
+        { id: "chart-journey", label: "Discipleship Journey" },
+        { id: "chart-l113", label: "Graduate of Leadership 113" },
+        { id: "chart-age", label: "Age" },
+        { id: "chart-gender", label: "Gender" },
+        { id: "chart-lifestage", label: "Lifestage" },
+        { id: "chart-service", label: "Service Serving/Volunteering" },
+      ],
+    },
+  ];
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col lg:flex-row lg:gap-6 lg:items-start 2xl:block">
+    <ReportSideNav items={navItems} />
+    <div className="flex-1 flex flex-col gap-6 min-w-0">
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "VG Leader Portal", href: "/vg-leader-portal" }, { label: "VG Leaders Report" }]} />
       <p className="text-sm text-gray-500 -mt-2">{total} VG leader{total !== 1 ? "s" : ""} with a claimed portal account</p>
 
@@ -489,7 +558,7 @@ export default async function VgLeaderReportPage() {
           names to a locked-down lead_pastor, so it's a developer-only view here. */}
       {!isLeadPastor && (
       <>
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div id="duplicates" className="scroll-mt-20 lg:scroll-mt-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
           <h3 className="font-semibold text-gray-800">Duplicates</h3>
           <p className="text-xs text-gray-400 mt-0.5">
@@ -500,14 +569,16 @@ export default async function VgLeaderReportPage() {
           <div className="divide-y divide-gray-100">
             {duplicateLglMembers.length > 0 && (
               <IssueSection
-                title="VG Leaders led by more than one Leadership Group Leader"
+                id="dup-lgl-members"
+                title={T.dupLgl}
                 rows={duplicateLglMembers}
                 detailLabel="Led By"
               />
             )}
             {duplicateInterns.length > 0 && (
               <IssueSection
-                title="Interns listed under more than one Victory Group"
+                id="dup-interns"
+                title={T.dupInterns}
                 rows={duplicateInterns}
                 detailLabel="Listed Under"
               />
@@ -518,7 +589,7 @@ export default async function VgLeaderReportPage() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div id="exceptions" className="scroll-mt-20 lg:scroll-mt-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
           <h3 className="font-semibold text-gray-800">Exceptions</h3>
           <p className="text-xs text-gray-400 mt-0.5">
@@ -529,14 +600,16 @@ export default async function VgLeaderReportPage() {
           <div className="divide-y divide-gray-100">
             {internsAlreadyVgl.length > 0 && (
               <IssueSection
-                title="Already a VG Leader but still reported as an Intern"
+                id="interns-already-vgl"
+                title={T.internsAlreadyVgl}
                 rows={internsAlreadyVgl}
                 detailLabel="Still Intern Under"
               />
             )}
             {completedWithoutPin.length > 0 && (
               <IssueSection
-                title="Profile completed but not claimed, or PIN reset and not set again"
+                id="completed-without-pin"
+                title={T.completedWithoutPin}
                 rows={completedWithoutPin}
                 detailLabel="Reason"
               />
@@ -547,7 +620,7 @@ export default async function VgLeaderReportPage() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div id="profile-not-completed" className="scroll-mt-20 lg:scroll-mt-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
           <h3 className="font-semibold text-gray-800">Profile Not Yet Completed</h3>
           <p className="text-xs text-gray-400 mt-0.5">
@@ -558,21 +631,24 @@ export default async function VgLeaderReportPage() {
           <div className="divide-y divide-gray-100">
             {identifiedByUpdatedLgl.length > 0 && (
               <IssueSection
-                title={`Identified as VG Leader by a Leadership Group Leader who completed the ${updateCycleLabel} update`}
+                id="identified-by-lgl"
+                title={T.byUpdatedLgl}
                 rows={identifiedByUpdatedLgl}
                 detailLabel="Identified By"
               />
             )}
             {identifiedNotUpdated.length > 0 && (
               <IssueSection
-                title="Identified as VG Leader by a Discipleship Journey participant"
+                id="identified-by-participant"
+                title={T.byParticipant}
                 rows={identifiedNotUpdated}
                 detailLabel="Identified By"
               />
             )}
             {startedNotCompleted.length > 0 && (
               <IssueSection
-                title="Claimed portal but profile not yet completed"
+                id="claimed-not-completed"
+                title={T.claimedNotCompleted}
                 rows={startedNotCompleted}
                 detailLabel="Progress"
               />
@@ -581,14 +657,16 @@ export default async function VgLeaderReportPage() {
               <div key={label} className="divide-y divide-gray-100">
                 {v.notCompleted.length > 0 && (
                   <IssueSection
-                    title={`Answered the ${label} form, profile not yet completed in the portal`}
+                    id={manualId(label, "not-completed")}
+                    title={T.manualNotCompleted(label)}
                     rows={v.notCompleted}
                     detailLabel="Progress"
                   />
                 )}
                 {v.notInDatabase.length > 0 && (
                   <IssueSection
-                    title={`Answered the ${label} form, not found in the VG leader database`}
+                    id={manualId(label, "not-in-db")}
+                    title={T.manualNotInDb(label)}
                     rows={v.notInDatabase}
                     detailLabel="Mobile Number"
                   />
@@ -603,7 +681,7 @@ export default async function VgLeaderReportPage() {
       </>
       )}
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div id="quarterly-status" className="scroll-mt-20 lg:scroll-mt-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
           <h3 className="font-semibold text-gray-800">
             Quarterly Update Status{liveQuarter ? ` — ${liveQuarter.label}` : ""}
@@ -633,7 +711,7 @@ export default async function VgLeaderReportPage() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div id="new-leaders" className="scroll-mt-20 lg:scroll-mt-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
           <h3 className="font-semibold text-gray-800">Started Leading This Year ({newLeaders.length})</h3>
           <p className="text-xs text-gray-400 mt-0.5">New VG leaders to recognize.</p>
@@ -647,13 +725,14 @@ export default async function VgLeaderReportPage() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
+      <div id="charts" className="scroll-mt-20 lg:scroll-mt-6 flex flex-col gap-6">
+      <div id="chart-journey" className="scroll-mt-20 lg:scroll-mt-6 bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
         <p className="text-sm font-semibold text-gray-700 mb-1">Discipleship Journey</p>
         <p className="text-xs text-gray-400 mb-4">How many VG leaders have completed each step</p>
         <HorizontalBarChart data={journeyData} color="#4f46e5" />
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
+      <div id="chart-l113" className="scroll-mt-20 lg:scroll-mt-6 bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
         <p className="text-sm font-semibold text-gray-700 mb-1">Graduate of Leadership 113</p>
         <HorizontalBarChart
           data={leadership113Data}
@@ -661,25 +740,27 @@ export default async function VgLeaderReportPage() {
         />
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
+      <div id="chart-age" className="scroll-mt-20 lg:scroll-mt-6 bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
         <p className="text-sm font-semibold text-gray-700 mb-1">Age</p>
         <AgeChart data={ageData} />
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
+      <div id="chart-gender" className="scroll-mt-20 lg:scroll-mt-6 bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
         <p className="text-sm font-semibold text-gray-700 mb-1">Gender</p>
         <HorizontalBarChart data={genderData} colors={{ Male: "#6366f1", Female: "#ec4899" }} />
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
+      <div id="chart-lifestage" className="scroll-mt-20 lg:scroll-mt-6 bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
         <p className="text-sm font-semibold text-gray-700 mb-1">Lifestage</p>
         <HorizontalBarChart data={lifestageData} color="#818cf8" />
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
+      <div id="chart-service" className="scroll-mt-20 lg:scroll-mt-6 bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-5">
         <p className="text-sm font-semibold text-gray-700 mb-1">Service Serving/Volunteering</p>
         <HorizontalBarChart data={serviceData} color="#8b5cf6" />
       </div>
+      </div>
+    </div>
     </div>
   );
 }

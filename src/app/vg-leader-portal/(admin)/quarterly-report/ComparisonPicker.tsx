@@ -63,7 +63,8 @@ export function ComparisonPicker({
   children,
 }: {
   snapshots: SnapshotOption[];
-  aId: number | null;
+  /** "live" = Live Now on the left. */
+  aId: number | "live" | null;
   bId: number | null;
   exportHref?: string;
   between?: ReactNode;
@@ -73,7 +74,7 @@ export function ComparisonPicker({
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
 
-  function navigate(nextA: number, nextB: number | null) {
+  function navigate(nextA: number | "live", nextB: number | null) {
     const params = new URLSearchParams();
     params.set("a", String(nextA));
     if (nextB != null) params.set("b", String(nextB));
@@ -95,9 +96,10 @@ export function ComparisonPicker({
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Compare</label>
               <select
                 value={aId ?? ""}
-                onChange={(e) => navigate(Number(e.target.value), bId)}
+                onChange={(e) => navigate(e.target.value === "live" ? "live" : Number(e.target.value), bId)}
                 className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
               >
+                <option value="live">● Live Now</option>
                 {snapshots.map((s) => (
                   <option key={s.id} value={s.id}>{s.label}</option>
                 ))}

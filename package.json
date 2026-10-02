@@ -15,7 +15,8 @@
     "db:studio": "drizzle-kit studio",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx --env-file=.env.local src/db/seed.ts",
-    "db:import-responses": "tsx --env-file=.env.local src/db/import-quarter-responses.ts"
+    "db:import-responses": "tsx --env-file=.env.local src/db/import-quarter-responses.ts",
+    "db:snapshot-from-form": "tsx --env-file=.env.local src/db/snapshot-from-form.ts"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.8.1",

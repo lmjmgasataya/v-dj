@@ -233,7 +233,10 @@ function SnapshotEditForm({ snapshot, onDone }: { snapshot: VgReportSnapshot; on
 export function SnapshotListItem({ snapshot, canEdit }: { snapshot: VgReportSnapshot; canEdit: boolean }) {
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
-  const isCron = (snapshot.data as VgSnapshotData).source === "cron";
+  const source = (snapshot.data as VgSnapshotData).source;
+  const isCron = source === "cron";
+  // Cron- and form-built snapshots carry name lists that editing (manual numbers) would drop.
+  const isLocked = source === "cron" || source === "form";
   const toast = useToast();
 
   function handleDelete() {
@@ -256,12 +259,21 @@ export function SnapshotListItem({ snapshot, canEdit }: { snapshot: VgReportSnap
           {isCron && (
             <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600">Auto</span>
           )}
+          {source === "form" && (
+            <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">From form</span>
+          )}
         </div>
         <p className="text-xs text-gray-500">As of {snapshot.asOfDate}</p>
       </div>
       {canEdit && (
         <div className="flex items-center gap-3">
-          {!isCron && (
+          <a
+            href={`/vg-leader-portal/quarterly-report/${snapshot.id}/export`}
+            className="text-xs text-gray-600 hover:text-gray-900 font-medium underline"
+          >
+            Export Excel
+          </a>
+          {!isLocked && (
             <button
               onClick={() => setEditing(true)}
               className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline"

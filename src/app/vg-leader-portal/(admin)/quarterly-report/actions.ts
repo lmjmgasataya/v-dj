@@ -71,8 +71,9 @@ export async function updateVgReportSnapshot(id: number, formData: FormData) {
   await requireDeveloper();
 
   const [existing] = await db.select({ data: vgReportSnapshots.data }).from(vgReportSnapshots).where(eq(vgReportSnapshots.id, id));
-  if ((existing?.data as VgSnapshotData | undefined)?.source === "cron") {
-    throw new Error("Cron-generated snapshots can't be edited — delete it instead if it needs to be replaced.");
+  const source = (existing?.data as VgSnapshotData | undefined)?.source;
+  if (source === "cron" || source === "form") {
+    throw new Error("Auto- and form-generated snapshots can't be edited — delete it instead if it needs to be replaced.");
   }
 
   const label = (formData.get("label") as string).trim();

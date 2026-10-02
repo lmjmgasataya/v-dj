@@ -65,13 +65,13 @@ interface Matchable {
  * "Ma. Erlinda" vs "Erlinda" style drift only when that pairing is unambiguous).
  */
 export function createLeaderMatcher<T extends Matchable>(leaders: T[]) {
-  const byPhone = new Map<string, T>();
+  const byPhone = new Map<string, T[]>();
   const byName = new Map<string, T>();
   const byFirstWord = new Map<string, T[]>();
 
   for (const l of leaders) {
     const p = phoneKey(l.mobileNumber);
-    if (p && !byPhone.has(p)) byPhone.set(p, l);
+    if (p) byPhone.set(p, [...(byPhone.get(p) ?? []), l]);
     const last = normalizeName(l.lastName);
     const first = normalizeName(l.firstName);
     const nameKey = `${last}|${first}`;
@@ -82,9 +82,17 @@ export function createLeaderMatcher<T extends Matchable>(leaders: T[]) {
 
   return (r: { lastName: string; firstName: string; mobileNumber: string | null }): { leader: T; method: MatchMethod } | null => {
     const p = phoneKey(r.mobileNumber);
-    if (p && byPhone.has(p)) return { leader: byPhone.get(p)!, method: "mobile" };
     const last = normalizeName(r.lastName);
     const first = normalizeName(r.firstName);
+    const samePhone = p ? byPhone.get(p) : undefined;
+    if (samePhone) {
+      // Duplicate records can share a number — prefer the one whose name also matches.
+      const best =
+        samePhone.find((l) => normalizeName(l.lastName) === last && normalizeName(l.firstName) === first) ??
+        samePhone.find((l) => areSimilarNames(l, r)) ??
+        samePhone[0];
+      return { leader: best, method: "mobile" };
+    }
     const exact = byName.get(`${last}|${first}`);
     if (exact) return { leader: exact, method: "name" };
     const candidates = byFirstWord.get(`${last}|${first.split(" ")[0]}`) ?? [];

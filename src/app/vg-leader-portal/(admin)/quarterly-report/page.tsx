@@ -2,7 +2,16 @@ import { db } from "@/db";
 import { vgReportSnapshots, vgConvergenceAttendance, leadership113Batches } from "@/db/schema";
 import { desc, asc } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
-import { SERVICE_BUCKETS, type VgSnapshotData, type VgServiceBucket, type VgBucketCounts, type VgBucketDetail, type VgLeaderRef, type VgGroupRef } from "@/lib/vgSnapshot";
+import {
+  SERVICE_BUCKETS,
+  snapshotItems,
+  diffSnapshotItems,
+  type DrillItem,
+  type VgSnapshotData,
+  type VgServiceBucket,
+  type VgBucketCounts,
+  type VgBucketDetail,
+} from "@/lib/vgSnapshot";
 import { computeVgSnapshotCounts, computeLeadPastorLiveCounts } from "@/lib/vgSnapshotCompute";
 import { rawServiceValues } from "@/lib/timeService";
 import { SnapshotForm, SnapshotListItem } from "./SnapshotForm";
@@ -19,49 +28,17 @@ const QUARTERLY_REPORT_BREADCRUMB = [
   { label: "Quarterly Report" },
 ];
 
-function detailItems(detail: VgBucketDetail | undefined, key: keyof VgSnapshotData["totals"]): string[] | null {
-  if (!detail) return null;
-  if (key === "vgLeaders") return detail.vgLeaders.map((r) => r.name);
-  if (key === "leadershipGroups") return detail.leadershipGroups.map((r) => r.name);
-  if (key === "victoryGroups") return detail.victoryGroups.map((r) => r.label);
-  return detail.interns;
-}
+type Side = { label: string; data: VgSnapshotData };
+type Metric = keyof VgSnapshotData["totals"];
 
-function refLabel(r: VgLeaderRef | VgGroupRef): string {
-  return "name" in r ? r.name : r.label;
-}
-
-// Diffs the frozen leader/group ids between two snapshots' detail so the +/- Change
-// column can show who was actually added or removed, not just the net number.
-// Returns null when either side lacks detail (manual entry or an edited snapshot).
-function diffDetail(
-  latestDetail: VgBucketDetail | undefined,
-  prevDetail: VgBucketDetail | undefined,
-  key: keyof VgSnapshotData["totals"]
-): { added: string[]; removed: string[] } | null {
-  if (!latestDetail || !prevDetail) return null;
-
-  if (key === "interns") {
-    const prevSet = new Set(prevDetail.interns);
-    const latestSet = new Set(latestDetail.interns);
-    return {
-      added: latestDetail.interns.filter((n) => !prevSet.has(n)),
-      removed: prevDetail.interns.filter((n) => !latestSet.has(n)),
-    };
-  }
-
-  const latestRefs: (VgLeaderRef | VgGroupRef)[] =
-    key === "victoryGroups" ? latestDetail.victoryGroups : key === "leadershipGroups" ? latestDetail.leadershipGroups : latestDetail.vgLeaders;
-  const prevRefs: (VgLeaderRef | VgGroupRef)[] =
-    key === "victoryGroups" ? prevDetail.victoryGroups : key === "leadershipGroups" ? prevDetail.leadershipGroups : prevDetail.vgLeaders;
-
-  const prevIds = new Set(prevRefs.map((r) => r.id));
-  const latestIds = new Set(latestRefs.map((r) => r.id));
-
-  return {
-    added: latestRefs.filter((r) => !prevIds.has(r.id)).map(refLabel),
-    removed: prevRefs.filter((r) => !latestIds.has(r.id)).map(refLabel),
-  };
+// The names behind one number (with their service), what the compared side had, and who was
+// added/removed — for one service bucket, or all of them when `bucket` is null. Null name
+// lists (manually entered or edited snapshots) just show the number.
+function drill(latest: Side, previous: Side | null, bucket: VgServiceBucket | null, metric: Metric) {
+  const detail = snapshotItems(latest.data, bucket, metric);
+  const prevDetail = previous ? snapshotItems(previous.data, bucket, metric) : null;
+  const change = previous ? diffSnapshotItems(detail, prevDetail, metric) : null;
+  return { detail, prevDetail, added: change?.added ?? null, removed: change?.removed ?? null };
 }
 
 function RowsTable({
@@ -76,10 +53,10 @@ function RowsTable({
     value: number;
     prev: number | null;
     bold?: boolean;
-    detail?: string[] | null;
-    prevDetail?: string[] | null;
-    added?: string[] | null;
-    removed?: string[] | null;
+    detail?: DrillItem[] | null;
+    prevDetail?: DrillItem[] | null;
+    added?: DrillItem[] | null;
+    removed?: DrillItem[] | null;
   }[];
   latest: { label: string; data: VgSnapshotData };
   previous: { label: string; data: VgSnapshotData } | null;
@@ -139,18 +116,12 @@ function MetricsTotalsTable({
   latest: { label: string; data: VgSnapshotData };
   previous: { label: string; data: VgSnapshotData } | null;
 }) {
-  const rows = METRIC_LABELS.map((m) => {
-    const change = previous ? diffDetail(latest.data.totalsDetail, previous.data.totalsDetail, m.key) : null;
-    return {
-      label: m.label,
-      value: latest.data.totals[m.key],
-      prev: previous ? previous.data.totals[m.key] : null,
-      detail: detailItems(latest.data.totalsDetail, m.key),
-      prevDetail: previous ? detailItems(previous.data.totalsDetail, m.key) : null,
-      added: change?.added ?? null,
-      removed: change?.removed ?? null,
-    };
-  });
+  const rows = METRIC_LABELS.map((m) => ({
+    label: m.label,
+    value: latest.data.totals[m.key],
+    prev: previous ? previous.data.totals[m.key] : null,
+    ...drill(latest, previous, null, m.key),
+  }));
 
   return <RowsTable title="Number of Leaders" rows={rows} latest={latest} previous={previous} />;
 }
@@ -167,27 +138,18 @@ function CountsTable({
   previous: { label: string; data: VgSnapshotData } | null;
 }) {
   const rows = [
-    ...SERVICE_BUCKETS.map((bucket) => {
-      const change = previous ? diffDetail(latest.data.detailsByService?.[bucket], previous.data.detailsByService?.[bucket], metric) : null;
-      return {
-        label: bucket,
-        value: latest.data.byService[bucket][metric],
-        prev: previous ? previous.data.byService[bucket][metric] : null,
-        detail: detailItems(latest.data.detailsByService?.[bucket], metric),
-        prevDetail: previous ? detailItems(previous.data.detailsByService?.[bucket], metric) : null,
-        added: change?.added ?? null,
-        removed: change?.removed ?? null,
-      };
-    }),
+    ...SERVICE_BUCKETS.map((bucket) => ({
+      label: bucket,
+      value: latest.data.byService[bucket][metric],
+      prev: previous ? previous.data.byService[bucket][metric] : null,
+      ...drill(latest, previous, bucket, metric),
+    })),
     {
       label: "TOTAL",
       value: latest.data.totals[metric],
       prev: previous ? previous.data.totals[metric] : null,
       bold: true,
-      detail: detailItems(latest.data.totalsDetail, metric),
-      prevDetail: previous ? detailItems(previous.data.totalsDetail, metric) : null,
-      added: previous ? (diffDetail(latest.data.totalsDetail, previous.data.totalsDetail, metric)?.added ?? null) : null,
-      removed: previous ? (diffDetail(latest.data.totalsDetail, previous.data.totalsDetail, metric)?.removed ?? null) : null,
+      ...drill(latest, previous, null, metric),
     },
   ];
 
@@ -229,9 +191,7 @@ function PerBucketTable({
             {metrics.map((m) => {
               const value = latest.data.byService[bucket][m.key];
               const prev = previous ? previous.data.byService[bucket][m.key] : null;
-              const detail = detailItems(latest.data.detailsByService?.[bucket], m.key);
-              const prevDetail = previous ? detailItems(previous.data.detailsByService?.[bucket], m.key) : null;
-              const change = previous ? diffDetail(latest.data.detailsByService?.[bucket], previous.data.detailsByService?.[bucket], m.key) : null;
+              const { detail, prevDetail, added, removed } = drill(latest, previous, bucket, m.key);
               return (
                 <tr key={m.key}>
                   <td className="px-4 py-2.5 text-gray-200">{m.label}</td>
@@ -245,7 +205,7 @@ function PerBucketTable({
                   )}
                   {previous && (
                     <td className="px-4 py-2.5">
-                      <DeltaDrillDownValue diff={value - (prev ?? 0)} added={change?.added ?? null} removed={change?.removed ?? null} />
+                      <DeltaDrillDownValue diff={value - (prev ?? 0)} added={added} removed={removed} />
                     </td>
                   )}
                 </tr>
@@ -259,11 +219,13 @@ function PerBucketTable({
 }
 
 function LeadPastorMetricsTable({ counts, detail }: { counts: VgBucketCounts; detail: VgBucketDetail }) {
-  const rows: { label: string; value: number; items: string[] }[] = [
-    { label: "VG Leaders", value: counts.vgLeaders, items: detail.vgLeaders.map((r) => r.name) },
-    { label: "Victory Groups", value: counts.victoryGroups, items: detail.victoryGroups.map((r) => r.label) },
-    { label: "Interns", value: counts.interns, items: detail.interns },
-    { label: "Leadership Group Leaders", value: counts.leadershipGroups, items: detail.leadershipGroups.map((r) => r.name) },
+  // Locked to one service already, so no Service column (empty service hides it).
+  const item = (label: string): DrillItem => ({ label, service: "" });
+  const rows: { label: string; value: number; items: DrillItem[] }[] = [
+    { label: "VG Leaders", value: counts.vgLeaders, items: detail.vgLeaders.map((r) => item(r.name)) },
+    { label: "Victory Groups", value: counts.victoryGroups, items: detail.victoryGroups.map((r) => item(r.label)) },
+    { label: "Interns", value: counts.interns, items: detail.interns.map(item) },
+    { label: "Leadership Group Leaders", value: counts.leadershipGroups, items: detail.leadershipGroups.map((r) => item(r.name)) },
   ];
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -326,26 +288,42 @@ export default async function QuarterlyReportPage({
 
   const live = { label: "Live Now", data: { ...liveCounts, goals: { vgLeaders: 0, leadershipGroups: 0 } } };
 
-  const aId = aParam ? parseInt(aParam, 10) : null;
+  // ?a=live compares Live Now (left) against a saved snapshot (right).
+  const isLiveA = aParam === "live";
+  const aId = aParam && !isLiveA ? parseInt(aParam, 10) : null;
   const bId = bParam ? parseInt(bParam, 10) : null;
 
-  const latestRow = (aId != null ? snapshots.find((s) => s.id === aId) : null) ?? snapshots[0];
+  const latestRow = isLiveA ? null : ((aId != null ? snapshots.find((s) => s.id === aId) : null) ?? snapshots[0]);
   const latestIndex = latestRow ? snapshots.findIndex((s) => s.id === latestRow.id) : -1;
   const previousRow = bParam !== undefined
     ? (bId != null ? snapshots.find((s) => s.id === bId) ?? null : null)
-    : (snapshots[latestIndex + 1] ?? null);
+    : isLiveA
+      ? (snapshots[0] ?? null)
+      : (snapshots[latestIndex + 1] ?? null);
 
-  const latest = latestRow ? { label: latestRow.label, data: latestRow.data as VgSnapshotData } : null;
   const previous = previousRow ? { label: previousRow.label, data: previousRow.data as VgSnapshotData } : null;
+  // Live has no goals of its own — show the compared snapshot's, so the Goals card stays meaningful.
+  const latest = isLiveA
+    ? { label: live.label, data: { ...live.data, goals: previous?.data.goals ?? live.data.goals } }
+    : latestRow
+      ? { label: latestRow.label, data: latestRow.data as VgSnapshotData }
+      : null;
+  // Exact service per leader, for the Profile Update Status name lists.
+  const serviceById = new Map((latest?.data.leaderRows ?? []).map((r) => [r.id, r.service]));
+  const exportParams = new URLSearchParams();
+  if (latest) {
+    exportParams.set("a", isLiveA ? "live" : String(latestRow!.id));
+    if (previousRow) exportParams.set("b", String(previousRow.id));
+  }
 
   return (
     <div className="flex flex-col gap-6">
       <Breadcrumbs items={QUARTERLY_REPORT_BREADCRUMB} />
       <ComparisonPicker
         snapshots={snapshots.map((s) => ({ id: s.id, label: s.label }))}
-        aId={latestRow?.id ?? null}
+        aId={isLiveA ? "live" : (latestRow?.id ?? null)}
         bId={previousRow?.id ?? null}
-        exportHref={latest ? `/api/report/quarterly-pdf?a=${latestRow!.id}${previousRow ? `&b=${previousRow.id}` : ""}` : undefined}
+        exportHref={latest ? `/api/report/quarterly-pdf?${exportParams.toString()}` : undefined}
         between={
           <>
             {canEdit && (
@@ -354,13 +332,16 @@ export default async function QuarterlyReportPage({
               </div>
             )}
 
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <p className="text-sm font-semibold text-green-800">Live Now</p>
+            {/* Redundant when Live Now is already the left side of the comparison below. */}
+            {!isLiveA && (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <p className="text-sm font-semibold text-green-800">Live Now</p>
+                </div>
+                <MetricsTotalsTable latest={live} previous={null} />
               </div>
-              <MetricsTotalsTable latest={live} previous={null} />
-            </div>
+            )}
           </>
         }
       >
@@ -379,7 +360,9 @@ export default async function QuarterlyReportPage({
                     Profile Update Status — {latest.data.quarterlyUpdateStatus.quarterLabel}
                   </h3>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    Frozen when {latest.label} was saved — which claimed VG leaders had (not) updated their profile that quarter.
+                    {isLiveA
+                      ? "As of right now — which claimed VG leaders have (not) updated their profile this quarter."
+                      : `Frozen when ${latest.label} was saved — which claimed VG leaders had (not) updated their profile that quarter.`}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 divide-x divide-gray-100">
@@ -388,7 +371,7 @@ export default async function QuarterlyReportPage({
                     <p className="text-2xl font-bold text-green-600">
                       <DrillDownValue
                         value={latest.data.quarterlyUpdateStatus.done.length}
-                        items={latest.data.quarterlyUpdateStatus.done.map((l) => l.name)}
+                        items={latest.data.quarterlyUpdateStatus.done.map((l) => ({ label: l.name, service: serviceById.get(l.id) ?? "" }))}
                       />
                     </p>
                   </div>
@@ -397,7 +380,7 @@ export default async function QuarterlyReportPage({
                     <p className="text-2xl font-bold text-red-600">
                       <DrillDownValue
                         value={latest.data.quarterlyUpdateStatus.notDone.length}
-                        items={latest.data.quarterlyUpdateStatus.notDone.map((l) => l.name)}
+                        items={latest.data.quarterlyUpdateStatus.notDone.map((l) => ({ label: l.name, service: serviceById.get(l.id) ?? "" }))}
                       />
                     </p>
                   </div>

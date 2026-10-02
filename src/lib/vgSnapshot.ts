@@ -23,14 +23,55 @@ export type VgBucketCounts = {
   leadershipGroups: number;
 };
 
+import { areSimilarNames } from "@/lib/vgLeaderMatch";
+
+// Ids are victory_group_leaders / victory_groups ids. Snapshots built from an outside
+// source (see formSnapshot.ts) use negative ids for people/groups with no record here.
 export type VgLeaderRef = { id: number; name: string };
-export type VgGroupRef = { id: number; label: string };
+// `key` identifies the same group across snapshots when ids can't (a form-built snapshot
+// has no group ids): "<leader id>|<meeting day>". Absent on snapshots saved before it existed.
+export type VgGroupRef = { id: number; label: string; key?: string };
 
 export type VgBucketDetail = {
   vgLeaders: VgLeaderRef[];
   victoryGroups: VgGroupRef[];
   interns: string[];
   leadershipGroups: VgLeaderRef[];
+};
+
+/** One Victory Group as the quarterly-update form lists it, frozen in the snapshot. */
+export type SnapshotGroupRow = {
+  lifestage: string;
+  interns: string;
+  day: string;
+  time: string;
+  venue: string;
+};
+
+/**
+ * One leader's answers, frozen at snapshot time — the same information as a row of the
+ * quarterly-update form, so the snapshot can be exported in that layout. Values are
+ * display-ready strings; `timestamp` is set only for form-built snapshots.
+ */
+export type SnapshotLeaderRow = {
+  id: number;
+  timestamp?: string;
+  startedLeading: string;
+  lastName: string;
+  firstName: string;
+  nickname: string;
+  mobileNumber: string;
+  facebook: string;
+  gender: string;
+  age: string;
+  lifestage: string;
+  service: string;
+  discipleshipJourney: string;
+  leadership113: string;
+  ownVgLeader: string;
+  isLeadershipGroupLeader: boolean;
+  leadershipGroupMembers: string;
+  groups: SnapshotGroupRow[];
 };
 
 export type VgSnapshotData = {
@@ -52,11 +93,128 @@ export type VgSnapshotData = {
     done: VgLeaderRef[];
     notDone: VgLeaderRef[];
   };
+  // Per-leader answers for the Excel export (see SnapshotLeaderRow). Omitted on snapshots
+  // saved before it existed and on manually-entered ones.
+  leaderRows?: SnapshotLeaderRow[];
   // Set only by the unattended quarter-end cron job. Editing overrides numbers by hand and
   // drops detail (see updateVgReportSnapshot), which would destroy the frozen historical
   // record the cron exists to produce — so cron-made snapshots can't be edited, only deleted.
-  source?: "cron";
+  // "form": built from an outside quarterly-update export (e.g. the Q2 2026 Google Form) by
+  // src/db/snapshot-from-form.ts. Same reason as cron — editing would drop the name lists.
+  source?: "cron" | "form";
 };
+
+/** Matching key for a Victory Group across snapshots — see VgGroupRef.key. */
+export function victoryGroupKey(vgLeaderId: number, day: string): string {
+  return `${vgLeaderId}|${day.trim().toLowerCase()}`;
+}
+
+/**
+ * Matching key for an intern name across snapshots, ignoring word order, case, accents and
+ * punctuation — "Martizano, Chynni Ann" and "Chynni Ann Martizano" are the same person.
+ */
+export function internKey(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .sort()
+    .join(" ");
+}
+
+/** One name behind a quarterly-report number, with the service it counts under. */
+export type DrillItem = { label: string; service: string };
+
+/** A DrillItem plus what identifies it across snapshots (see snapshotItems). */
+export type MatchItem = DrillItem & { match: string | null; idMatch: string };
+
+/**
+ * The names behind one metric of a snapshot — for one service bucket, or all of them when
+ * `bucket` is null — each with a service: the leader's exact service (e.g. "11AM - Mandurriao")
+ * when the snapshot froze per-leader rows, else the bucket ("9AM & 11AM"). Interns aren't tied
+ * to a leader record, so they always get the bucket. Null when the snapshot has no name lists.
+ */
+export function snapshotItems(
+  data: VgSnapshotData,
+  bucket: VgServiceBucket | null,
+  key: keyof VgBucketCounts,
+): MatchItem[] | null {
+  if (!data.detailsByService) return null;
+  const exactService = new Map((data.leaderRows ?? []).map((r) => [r.id, r.service]));
+  const serviceOf = (leaderId: number | null, b: VgServiceBucket) =>
+    (leaderId != null ? exactService.get(leaderId) : undefined) || b;
+
+  const buckets = bucket ? [bucket] : SERVICE_BUCKETS;
+  return buckets.flatMap((b): MatchItem[] => {
+    const d = data.detailsByService![b];
+    if (key === "interns") {
+      return d.interns.map((n) => ({ label: n, service: b, match: internKey(n), idMatch: internKey(n) }));
+    }
+    if (key === "victoryGroups") {
+      return d.victoryGroups.map((g) => {
+        const leaderId = g.key ? Number(g.key.split("|")[0]) : null;
+        return { label: g.label, service: serviceOf(leaderId, b), match: g.key ?? null, idMatch: `id:${g.id}` };
+      });
+    }
+    const refs = key === "leadershipGroups" ? d.leadershipGroups : d.vgLeaders;
+    return refs.map((r) => ({ label: r.name, service: serviceOf(r.id, b), match: `id:${r.id}`, idMatch: `id:${r.id}` }));
+  });
+}
+
+/**
+ * Who was added / removed between two snapshots for one metric (items from snapshotItems).
+ * Leaders match by id; Victory Groups by `key` when both sides have one (else by id, for older
+ * snapshots); interns by internKey. Counted as multisets, so a name listed twice (an intern in
+ * two groups) only cancels out against two listings on the other side. Null when either side
+ * has no name lists.
+ */
+export function diffSnapshotItems(
+  latest: MatchItem[] | null,
+  prev: MatchItem[] | null,
+  key: keyof VgBucketCounts,
+): { added: DrillItem[]; removed: DrillItem[] } | null {
+  if (!latest || !prev) return null;
+  const useKeys = [...latest, ...prev].every((i) => i.match != null);
+  const matchOf = (i: MatchItem) => (useKeys ? i.match! : i.idMatch);
+
+  // Items on one side beyond how many times the same match appears on the other.
+  function unmatched(side: MatchItem[], other: MatchItem[]): DrillItem[] {
+    const remaining = new Map<string, number>();
+    for (const o of other) remaining.set(matchOf(o), (remaining.get(matchOf(o)) ?? 0) + 1);
+    const out: DrillItem[] = [];
+    for (const item of side) {
+      const n = remaining.get(matchOf(item)) ?? 0;
+      if (n > 0) remaining.set(matchOf(item), n - 1);
+      else out.push({ label: item.label, service: item.service });
+    }
+    return out;
+  }
+
+  let added = unmatched(latest, prev);
+  let removed = unmatched(prev, latest);
+
+  // The same person under two leader records (a duplicate not merged yet) would otherwise show
+  // as both added and removed — pair those off by near-identical name ("Last, First").
+  if (key === "vgLeaders" || key === "leadershipGroups") {
+    const asName = (label: string) => {
+      const [lastName, ...rest] = label.split(",");
+      return { lastName: lastName.trim(), firstName: rest.join(",").trim() };
+    };
+    const stillRemoved = [...removed];
+    added = added.filter((a) => {
+      const i = stillRemoved.findIndex((r) => areSimilarNames(asName(a.label), asName(r.label)));
+      if (i === -1) return true;
+      stillRemoved.splice(i, 1);
+      return false;
+    });
+    removed = stillRemoved;
+  }
+
+  return { added, removed };
+}
 
 export function emptyBucketDetail(): VgBucketDetail {
   return { vgLeaders: [], victoryGroups: [], interns: [], leadershipGroups: [] };

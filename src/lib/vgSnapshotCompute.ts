@@ -1,20 +1,24 @@
 import { db } from "@/db";
-import { victoryGroupLeaders, victoryGroups, interns, users } from "@/db/schema";
+import { victoryGroupLeaders, victoryGroups, interns, users, leadershipGroupMembers } from "@/db/schema";
 import { and, eq, isNull, isNotNull } from "drizzle-orm";
 import { isQuarterlyActive } from "@/lib/vgLeaderStatus";
 import { getLiveQuarter, getProfileUpdateQuarters } from "@/lib/vgQuarters";
 import { getQuarterOptions } from "@/lib/vgQuarterFlags";
 import { computeProfileProgress } from "@/lib/profileCompleteness";
+import { leadership113Label } from "@/lib/leadership113";
+import { currentYearPH } from "@/lib/date";
 import {
   SERVICE_BUCKETS,
   serviceToBucket,
   emptyBucketCounts,
   emptyBucketDetail,
+  victoryGroupKey,
   type VgServiceBucket,
   type VgBucketCounts,
   type VgBucketDetail,
   type VgSnapshotData,
   type VgLeaderRef,
+  type SnapshotLeaderRow,
 } from "@/lib/vgSnapshot";
 
 export function isInternSet(intern: string | null): boolean {
@@ -32,10 +36,17 @@ export function isInternSet(intern: string | null): boolean {
 export async function computeVgSnapshotCounts(): Promise<
   Pick<
     VgSnapshotData,
-    "byService" | "totals" | "vglByGender" | "genderTotals" | "detailsByService" | "totalsDetail" | "quarterlyUpdateStatus"
+    | "byService"
+    | "totals"
+    | "vglByGender"
+    | "genderTotals"
+    | "detailsByService"
+    | "totalsDetail"
+    | "quarterlyUpdateStatus"
+    | "leaderRows"
   >
 > {
-  const [leaders, groups, internRows, claimedAccounts, activeGroupsAnyType] = await Promise.all([
+  const [leaders, groups, internRows, claimedAccounts, activeGroupsAnyType, lglMemberRows] = await Promise.all([
     db
       .select({
         id: victoryGroupLeaders.id,
@@ -53,6 +64,8 @@ export async function computeVgSnapshotCounts(): Promise<
         facebookMessengerName: victoryGroupLeaders.facebookMessengerName,
         ownVgLeaderName: victoryGroupLeaders.ownVgLeaderName,
         startedLeadingVg: victoryGroupLeaders.startedLeadingVg,
+        discipleshipJourneyCompleted: victoryGroupLeaders.discipleshipJourneyCompleted,
+        graduateOfLeadership113: victoryGroupLeaders.graduateOfLeadership113,
       })
       .from(victoryGroupLeaders)
       .where(isNull(victoryGroupLeaders.deletedAt)),
@@ -63,6 +76,7 @@ export async function computeVgSnapshotCounts(): Promise<
         place: victoryGroups.place,
         day: victoryGroups.day,
         time: victoryGroups.time,
+        lifeStage: victoryGroups.lifeStage,
       })
       .from(victoryGroups)
       .where(and(eq(victoryGroups.isActive, true), isNull(victoryGroups.deletedAt), eq(victoryGroups.type, "victory_group"))),
@@ -78,6 +92,9 @@ export async function computeVgSnapshotCounts(): Promise<
       .select({ vgLeaderId: victoryGroups.vgLeaderId })
       .from(victoryGroups)
       .where(and(isNull(victoryGroups.deletedAt), eq(victoryGroups.isActive, true))),
+    db
+      .select({ leaderId: leadershipGroupMembers.leaderId, memberId: leadershipGroupMembers.memberVgLeaderId })
+      .from(leadershipGroupMembers),
   ]);
 
   const leaderById = new Map(leaders.map((l) => [l.id, l]));
@@ -116,6 +133,7 @@ export async function computeVgSnapshotCounts(): Promise<
     detailsByService[bucket].victoryGroups.push({
       id: g.id,
       label: `${leaderName(g.vgLeaderId)} — ${g.day} ${g.time} @ ${g.place}`,
+      key: victoryGroupKey(g.vgLeaderId, g.day),
     });
 
     const groupInterns = internsByGroup.get(g.id) ?? [];
@@ -195,7 +213,72 @@ export async function computeVgSnapshotCounts(): Promise<
     quarterlyUpdateStatus = { quarterKey: liveQuarter.key, quarterLabel: liveQuarter.label, done, notDone };
   }
 
-  return { byService, totals, vglByGender, genderTotals, detailsByService, totalsDetail, quarterlyUpdateStatus };
+  return {
+    byService,
+    totals,
+    vglByGender,
+    genderTotals,
+    detailsByService,
+    totalsDetail,
+    quarterlyUpdateStatus,
+    leaderRows: buildLeaderRows(),
+  };
+
+  // Everyone behind the counts — counted VG leaders, Leadership Group Leaders, and the
+  // leaders of counted Victory Groups — in the quarterly-update form's row shape.
+  function buildLeaderRows(): SnapshotLeaderRow[] {
+    const ids = new Set<number>([
+      ...totalsDetail.vgLeaders.map((r) => r.id),
+      ...totalsDetail.leadershipGroups.map((r) => r.id),
+    ]);
+    const countedGroupsByLeader = new Map<number, typeof groups>();
+    for (const g of groups) {
+      if (!serviceToBucket(leaderById.get(g.vgLeaderId)?.serviceAttending ?? null)) continue;
+      ids.add(g.vgLeaderId);
+      countedGroupsByLeader.set(g.vgLeaderId, [...(countedGroupsByLeader.get(g.vgLeaderId) ?? []), g]);
+    }
+    const membersByLgl = new Map<number, string[]>();
+    for (const m of lglMemberRows) {
+      const member = leaderById.get(m.memberId);
+      if (!member) continue;
+      membersByLgl.set(m.leaderId, [...(membersByLgl.get(m.leaderId) ?? []), `${member.firstName} ${member.lastName}`]);
+    }
+    const year = currentYearPH();
+    const startedLabel: Record<string, string> = {
+      before_this_year: `Before ${year}`,
+      this_year: `Started leading in ${year}`,
+    };
+
+    return Array.from(ids)
+      .map((id) => leaderById.get(id))
+      .filter((l): l is (typeof leaders)[number] => !!l)
+      .sort((a, b) => a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName))
+      .map((l) => ({
+        id: l.id,
+        startedLeading: l.startedLeadingVg ? (startedLabel[l.startedLeadingVg] ?? l.startedLeadingVg) : "",
+        lastName: l.lastName,
+        firstName: l.firstName,
+        nickname: l.nickname ?? "",
+        mobileNumber: l.mobileNumber ?? "",
+        facebook: l.facebookMessengerName ?? "",
+        gender: l.gender ?? "",
+        age: l.age != null ? String(l.age) : "",
+        lifestage: l.lifestage ?? "",
+        service: l.serviceAttending ?? "",
+        discipleshipJourney: (l.discipleshipJourneyCompleted ?? "").split(",").filter(Boolean).join(", "),
+        leadership113: leadership113Label(l.graduateOfLeadership113) ?? "",
+        ownVgLeader: l.ownVgLeaderName ?? "",
+        isLeadershipGroupLeader: l.isLeadershipGroupLeader,
+        leadershipGroupMembers: (membersByLgl.get(l.id) ?? []).join(", "),
+        groups: (countedGroupsByLeader.get(l.id) ?? []).map((g) => ({
+          lifestage: (g.lifeStage ?? []).join(", "),
+          interns: (internsByGroup.get(g.id) ?? []).map((i) => `${i.firstName} ${i.lastName}`).join(", "),
+          day: g.day,
+          time: g.time,
+          venue: g.place,
+        })),
+      }));
+  }
 }
 
 /**

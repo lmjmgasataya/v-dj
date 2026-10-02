@@ -13,28 +13,12 @@ import { readFileSync } from "fs";
 import { db } from ".";
 import { manualQuarterResponses } from "./schema";
 import { formatPersonName } from "@/lib/text";
-
-/** Form's "2 PM - MANDURRIAO" / "10 AM - LA PAZ" -> SERVICE_OPTIONS' "2PM - Mandurriao" / "10AM - Lapaz". */
-function normalizeService(raw: string): string | null {
-  const m = raw.trim().match(/^(\d{1,2})\s*(AM|PM)\s*-\s*(.+)$/i);
-  if (!m) return raw.trim() || null;
-  const location = m[3].replace(/\s+/g, "").toLowerCase();
-  return `${m[1]}${m[2].toUpperCase()} - ${location.charAt(0).toUpperCase()}${location.slice(1)}`;
-}
+import { normalizeFormService as normalizeService, parseFormTimestamp as parseTimestamp } from "@/lib/formSnapshot";
 
 function findColumn(header: string[], label: RegExp): number {
   const i = header.findIndex((h) => label.test(h.trim()));
   if (i === -1) throw new Error(`Column not found: ${label}`);
   return i;
-}
-
-/** Form timestamps are Manila local time, e.g. "4/6/2026 20:47:55". */
-function parseTimestamp(raw: string): Date | null {
-  const m = raw.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/);
-  if (!m) return null;
-  const [, mo, d, y, h, mi, s] = m;
-  const pad = (v: string) => v.padStart(2, "0");
-  return new Date(`${y}-${pad(mo)}-${pad(d)}T${pad(h)}:${mi}:${s}+08:00`);
 }
 
 async function main() {

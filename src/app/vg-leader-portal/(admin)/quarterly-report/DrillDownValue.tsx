@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { DrillDownTable } from "./DrillDownTable";
+import type { DrillItem } from "@/lib/vgSnapshot";
 
 export function DrillDownValue({
   value,
@@ -8,7 +10,7 @@ export function DrillDownValue({
   className,
 }: {
   value: number;
-  items: string[] | null | undefined;
+  items: DrillItem[] | null | undefined;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -30,11 +32,11 @@ export function DrillDownValue({
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30" onClick={() => setOpen(false)}>
           <div
-            className="bg-white rounded-xl shadow-lg max-w-sm w-full max-h-[70vh] flex flex-col"
+            className="bg-white rounded-xl shadow-lg max-w-2xl w-full max-h-[75vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between shrink-0">
-              <p className="text-sm font-semibold text-gray-800">{items.length} total</p>
+              <p className="text-sm font-semibold text-gray-800">Total: {items.length}</p>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
@@ -43,11 +45,9 @@ export function DrillDownValue({
                 ✕
               </button>
             </div>
-            <ul className="overflow-y-auto px-5 py-3 flex flex-col gap-1.5">
-              {items.map((item, i) => (
-                <li key={i} className="text-sm text-gray-700">{item}</li>
-              ))}
-            </ul>
+            <div className="overflow-y-auto">
+              <DrillDownTable items={items} emptyText="No one listed." />
+            </div>
           </div>
         </div>
       )}

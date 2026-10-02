@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
 import { getProfileFreshness, FRESHNESS_BADGE_CLASS } from "@/lib/vgLeaderStatus";
+import { leadership113Label } from "@/lib/leadership113";
 
 const DAY_ABBR: Record<string, string> = {
   Monday: "Mon", Tuesday: "Tue", Wednesday: "Wed", Thursday: "Thu",
@@ -204,7 +205,7 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
           </div>
           <Row
             label="Graduate of Leadership 113?"
-            value={leader.graduateOfLeadership113 == null ? null : leader.graduateOfLeadership113 ? "Yes" : "No"}
+            value={leadership113Label(leader.graduateOfLeadership113)}
           />
         </div>
       </div>

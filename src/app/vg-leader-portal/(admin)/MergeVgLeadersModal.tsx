@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { getVgLeaderMergeCandidates, mergeVgLeaders, type VgLeaderMergeCandidate } from "./mergeActions";
+import { leadership113Label } from "@/lib/leadership113";
 
 const FIELD_LABELS: [keyof VgLeaderMergeCandidate, string][] = [
   ["middleInitial", "Middle Initial"],
@@ -18,8 +19,9 @@ const FIELD_LABELS: [keyof VgLeaderMergeCandidate, string][] = [
   ["startedLeadingVg", "Started Leading VG"],
 ];
 
-function displayValue(v: unknown): string {
+function displayValue(v: unknown, key?: keyof VgLeaderMergeCandidate): string {
   if (v === null || v === undefined || v === "") return "—";
+  if (key === "graduateOfLeadership113") return leadership113Label(String(v)) ?? String(v);
   if (typeof v === "boolean") return v ? "Yes" : "No";
   return String(v);
 }
@@ -123,9 +125,9 @@ export function MergeVgLeadersModal({ idA, idB, onClose }: { idA: number; idB: n
                     return (
                       <tr key={key}>
                         <td className="px-3 py-2 text-gray-500">{label}</td>
-                        <td className="px-3 py-2 text-gray-700">{displayValue(keep[key])}</td>
-                        <td className="px-3 py-2 text-gray-400">{displayValue(drop[key])}</td>
-                        <td className="px-3 py-2 font-medium text-gray-900">{displayValue(merged)}</td>
+                        <td className="px-3 py-2 text-gray-700">{displayValue(keep[key], key)}</td>
+                        <td className="px-3 py-2 text-gray-400">{displayValue(drop[key], key)}</td>
+                        <td className="px-3 py-2 font-medium text-gray-900">{displayValue(merged, key)}</td>
                       </tr>
                     );
                   })}

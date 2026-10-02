@@ -22,6 +22,7 @@ import { replaceGroupInterns } from "@/lib/interns";
 import { resolveLeadershipGroupMembers, replaceLeadershipGroupMembers } from "@/lib/leadershipGroupMembers";
 import { toastRedirect } from "@/lib/toast";
 import { MOBILE_NUMBER_REGEX } from "@/lib/phone";
+import { parseLeadership113 } from "@/lib/leadership113";
 
 type Day = (typeof dayOfWeekEnum.enumValues)[number];
 type Frequency = (typeof vgFrequencyEnum.enumValues)[number];
@@ -128,10 +129,7 @@ export async function updateOwnProfile(formData: FormData) {
       serviceAttending: (formData.get("serviceAttending") as string) || null,
       facebookMessengerName: (formData.get("facebookMessengerName") as string) || null,
       discipleshipJourneyCompleted: formData.getAll("discipleshipJourneyCompleted").join(",") || null,
-      graduateOfLeadership113:
-        formData.get("graduateOfLeadership113")
-          ? formData.get("graduateOfLeadership113") === "true"
-          : null,
+      graduateOfLeadership113: parseLeadership113(formData.get("graduateOfLeadership113")),
       ...ownVgLeader,
       startedLeadingVg: (formData.get("startedLeadingVg") as (typeof startedLeadingVgEnum.enumValues)[number]) || null,
       isLeadershipGroupLeader,

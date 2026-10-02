@@ -1,11 +1,12 @@
 import { db } from "@/db";
-import { victoryGroupLeaders, victoryGroups, events, eventRegistrations, featureFlags } from "@/db/schema";
+import { victoryGroupLeaders, victoryGroups, events, eventRegistrations } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeProfileProgress } from "@/lib/profileCompleteness";
-import { ACCEPT_PREVIOUS_QUARTER_FLAG, getProfileUpdateQuarters, type QuarterCardStatus } from "@/lib/vgQuarters";
+import { getProfileUpdateQuarters, type QuarterCardStatus } from "@/lib/vgQuarters";
+import { getQuarterOptions } from "@/lib/vgQuarterFlags";
 import { isRegistrationClosed } from "@/lib/date";
 import { ProfileFreshnessBanner } from "./ProfileFreshnessBanner";
 
@@ -32,27 +33,21 @@ export default async function VgPortalDashboardPage() {
 
   const vgLeaderId = session.vgLeaderId;
 
-  const [[leader], groups, [acceptPreviousFlag]] = await Promise.all([
+  const [[leader], groups, quarterOptions] = await Promise.all([
     db.select().from(victoryGroupLeaders).where(eq(victoryGroupLeaders.id, vgLeaderId)).limit(1),
     db
       .select()
       .from(victoryGroups)
       .where(and(eq(victoryGroups.vgLeaderId, vgLeaderId), isNull(victoryGroups.deletedAt)))
       .orderBy(victoryGroups.createdAt),
-    db
-      .select({ enabled: featureFlags.enabled })
-      .from(featureFlags)
-      .where(eq(featureFlags.key, ACCEPT_PREVIOUS_QUARTER_FLAG))
-      .limit(1),
+    getQuarterOptions(),
   ]);
 
   if (!leader) redirect("/login");
 
   const hasActiveGroup = groups.some((g) => g.isActive);
   const { percent } = computeProfileProgress(leader, hasActiveGroup);
-  const quarters = getProfileUpdateQuarters(leader.updatedAt, percent, {
-    acceptPreviousQuarter: acceptPreviousFlag?.enabled ?? false,
-  });
+  const quarters = getProfileUpdateQuarters(leader.updatedAt, percent, quarterOptions);
 
   const upcomingEvents = await db
     .select({

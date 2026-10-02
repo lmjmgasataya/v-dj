@@ -8,6 +8,7 @@ import { toTitleCase } from "@/lib/text";
 import { resolveOwnVgLeader } from "@/lib/ownVgLeader";
 import { resolveLeadershipGroupMembers, replaceLeadershipGroupMembers } from "@/lib/leadershipGroupMembers";
 import { MOBILE_NUMBER_REGEX } from "@/lib/phone";
+import { parseLeadership113 } from "@/lib/leadership113";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
 
@@ -34,10 +35,7 @@ export async function updateVGLeader(id: number, formData: FormData) {
       serviceAttending: (formData.get("serviceAttending") as string) || null,
       facebookMessengerName: (formData.get("facebookMessengerName") as string) || null,
       discipleshipJourneyCompleted: formData.getAll("discipleshipJourneyCompleted").join(",") || null,
-      graduateOfLeadership113:
-        formData.get("graduateOfLeadership113") === ""
-          ? null
-          : formData.get("graduateOfLeadership113") === "true",
+      graduateOfLeadership113: parseLeadership113(formData.get("graduateOfLeadership113")),
       ...ownVgLeader,
       startedLeadingVg: (formData.get("startedLeadingVg") as (typeof startedLeadingVgEnum.enumValues)[number]) || null,
       isLeadershipGroupLeader,

@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { setAcceptPreviousQuarterFlag } from "./actions";
+import { setQuarterFlag } from "./actions";
 
-export function PortalSettingsButton({ acceptPreviousQuarter }: { acceptPreviousQuarter: boolean }) {
+export interface PortalSetting {
+  key: string;
+  title: string;
+  description: string;
+  enabled: boolean;
+}
+
+export function PortalSettingsButton({ settings }: { settings: PortalSetting[] }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -34,30 +41,29 @@ export function PortalSettingsButton({ acceptPreviousQuarter }: { acceptPrevious
             <p className="text-sm font-semibold text-gray-800">VG Leader Portal Settings</p>
           </div>
           <ul className="divide-y divide-gray-100">
-            <li className="flex items-center justify-between gap-3 px-4 py-3">
-              <div>
-                <p className="text-xs font-medium text-gray-800">Still accepting responses for previous quarter</p>
-                <p className="text-[11px] text-gray-500 mt-0.5">
-                  VG leaders can still open the quarter that just ended — e.g. Q3 during October. An update made now
-                  counts for both that quarter and the current one.
-                </p>
-              </div>
-              <form action={setAcceptPreviousQuarterFlag.bind(null, !acceptPreviousQuarter)}>
-                <button
-                  type="submit"
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-                    acceptPreviousQuarter ? "bg-[#00428E]" : "bg-gray-200"
-                  }`}
-                  aria-label={acceptPreviousQuarter ? "Disable" : "Enable"}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-200 ${
-                      acceptPreviousQuarter ? "translate-x-5" : "translate-x-0"
+            {settings.map((setting) => (
+              <li key={setting.key} className="flex items-center justify-between gap-3 px-4 py-3">
+                <div>
+                  <p className="text-xs font-medium text-gray-800">{setting.title}</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">{setting.description}</p>
+                </div>
+                <form action={setQuarterFlag.bind(null, setting.key, !setting.enabled)}>
+                  <button
+                    type="submit"
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+                      setting.enabled ? "bg-[#00428E]" : "bg-gray-200"
                     }`}
-                  />
-                </button>
-              </form>
-            </li>
+                    aria-label={`${setting.enabled ? "Disable" : "Enable"}: ${setting.title}`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-200 ${
+                        setting.enabled ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </form>
+              </li>
+            ))}
           </ul>
         </div>
       )}

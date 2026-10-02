@@ -6,7 +6,9 @@ import { alias } from "drizzle-orm/pg-core";
 import { SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
 import { HorizontalBarChart, AgeChart } from "../Charts";
 import { computeProfileProgress } from "@/lib/profileCompleteness";
-import { getLiveQuarter, getProfileUpdateQuarters } from "@/lib/vgQuarters";
+import { getLiveQuarter, getPreviousQuarter, getProfileUpdateQuarters } from "@/lib/vgQuarters";
+import { getQuarterOptions } from "@/lib/vgQuarterFlags";
+import { leadership113Label } from "@/lib/leadership113";
 import { getSession } from "@/lib/auth";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { rawServiceValues } from "@/lib/timeService";
@@ -63,7 +65,7 @@ export default async function VgLeaderReportPage() {
   const lockedServiceRawValues =
     authSession?.role === "lead_pastor" ? rawServiceValues(authSession?.timeService) : undefined;
 
-  const [allLeaders, vgLeaderAccounts, activeGroups, lglMemberRows, internRows, participantIdentifiedRows] = await Promise.all([
+  const [allLeaders, vgLeaderAccounts, activeGroups, lglMemberRows, internRows, participantIdentifiedRows, quarterOptions] = await Promise.all([
     db
       .select()
       .from(victoryGroupLeaders)
@@ -131,6 +133,7 @@ export default async function VgLeaderReportPage() {
           eq(victoryGroupLeaders.profileCompleted, false)
         )
       ),
+    getQuarterOptions(),
   ]);
 
   const claimedIds = new Set(vgLeaderAccounts.filter((a) => a.hasPin).map((a) => a.vgLeaderId));
@@ -151,7 +154,7 @@ export default async function VgLeaderReportPage() {
     for (const l of leaders) {
       const service = l.serviceAttending || NOT_SET_SERVICE;
       const percent = computeProfileProgress(l, hasActiveGroupIds.has(l.id)).percent;
-      const liveEntry = getProfileUpdateQuarters(l.updatedAt, percent).find((q) => q.live);
+      const liveEntry = getProfileUpdateQuarters(l.updatedAt, percent, quarterOptions).find((q) => q.live);
       const done = liveEntry?.status === "updated";
 
       const bucket = quarterlyStatusCounts.get(service) ?? { total: 0, done: 0, notDone: 0 };
@@ -190,7 +193,7 @@ export default async function VgLeaderReportPage() {
       journeyCounts.set(step, (journeyCounts.get(step) ?? 0) + 1);
     }
 
-    const key = l.graduateOfLeadership113 == null ? "Not set" : l.graduateOfLeadership113 ? "Yes" : "No";
+    const key = leadership113Label(l.graduateOfLeadership113) ?? "Not set";
     leadership113Counts.set(key, (leadership113Counts.get(key) ?? 0) + 1);
   }
 
@@ -205,7 +208,7 @@ export default async function VgLeaderReportPage() {
     (r) => r.count > 0
   );
   const journeyData = DISCIPLESHIP_JOURNEY_STEPS.map((label) => ({ label, count: journeyCounts.get(label) ?? 0 }));
-  const leadership113Data = ["Yes", "No", "Not set"].map((label) => ({
+  const leadership113Data = ["Yes", "Ongoing", "No", "Not set"].map((label) => ({
     label,
     count: leadership113Counts.get(label) ?? 0,
   }));
@@ -361,8 +364,68 @@ export default async function VgLeaderReportPage() {
       };
     });
 
-  const hasExceptions =
-    internsAlreadyVgl.length > 0 || identifiedNotUpdated.length > 0 || completedWithoutPin.length > 0;
+  const hasExceptions = internsAlreadyVgl.length > 0 || completedWithoutPin.length > 0;
+
+  // Leaders the Discipleship team should follow up on to finish their profile.
+  const leaderById = new Map(allLeaders.map((l) => [l.id, l]));
+  const progressOf = (l: (typeof allLeaders)[number]) => computeProfileProgress(l, hasActiveGroupIds.has(l.id));
+
+  // An LGL "completed the update" if they updated with a 100% profile any time since the
+  // previous quarter started — e.g. in Q3 or Q4 — regardless of the carry-over setting.
+  const updateCycleLabel = (() => {
+    const prev = getPreviousQuarter().label;
+    const live = liveQuarter?.label ?? "";
+    const [prevQ, prevYear] = prev.split(" ");
+    const [liveQ, liveYear] = live.split(" ");
+    return prevYear === liveYear ? `${prevQ}–${liveQ} ${liveYear}` : `${prev}–${live}`;
+  })();
+  const lglUpdatedThisCycle = (leaderId: number) => {
+    const lgl = leaderById.get(leaderId);
+    if (!lgl) return false;
+    const entry = getProfileUpdateQuarters(lgl.updatedAt, progressOf(lgl).percent, {
+      carryOverPreviousQuarter: true,
+    }).find((q) => q.live);
+    return entry?.status === "updated";
+  };
+  const identifiedByUpdatedLgl: IssueRow[] = Array.from(byMember.entries())
+    .filter(([id]) => leaderById.get(id)?.profileCompleted === false)
+    .map(([id, v]) => ({ id, ...v, leaders: v.leaders.filter((l) => lglUpdatedThisCycle(l.id)) }))
+    .filter((v) => v.leaders.length > 0)
+    .map((v) => ({
+      key: String(v.id),
+      name: v.name,
+      nameHref: `/vg-leader-portal/leaders/${v.id}`,
+      ...serviceInfo([v.service]),
+      detailSort: v.leaders.map((l) => l.name).join("; "),
+      detail: v.leaders.map((l, i) => (
+        <span key={l.id}>
+          {i > 0 && ", "}
+          <Link href={`/vg-leader-portal/leaders/${l.id}`} className="text-gray-700 hover:text-indigo-800 underline">
+            {l.name}
+          </Link>
+        </span>
+      )),
+    }));
+
+  // Has a portal account (claimed, or PIN since reset) but the profile still isn't complete.
+  const accountIds = new Set(vgLeaderAccounts.map((a) => a.vgLeaderId));
+  const startedNotCompleted: IssueRow[] = allLeaders
+    .filter((l) => accountIds.has(l.id) && !l.profileCompleted)
+    .map((l) => {
+      const { percent, missing } = progressOf(l);
+      const text = `${percent}% — missing: ${missing.join(", ")}`;
+      return {
+        key: String(l.id),
+        name: `${l.lastName}, ${l.firstName}`,
+        nameHref: `/vg-leader-portal/leaders/${l.id}`,
+        ...serviceInfo([l.serviceAttending]),
+        detailSort: String(percent).padStart(3, "0"),
+        detail: text,
+      };
+    });
+
+  const hasNotCompleted =
+    identifiedByUpdatedLgl.length > 0 || identifiedNotUpdated.length > 0 || startedNotCompleted.length > 0;
 
   // Recognize VG leaders who started leading this year.
   const newLeaders = allLeaders
@@ -429,13 +492,6 @@ export default async function VgLeaderReportPage() {
                 detailLabel="Still Intern Under"
               />
             )}
-            {identifiedNotUpdated.length > 0 && (
-              <IssueSection
-                title="Identified as VG Leader by a participant, no updated Discipleship Data"
-                rows={identifiedNotUpdated}
-                detailLabel="Identified By"
-              />
-            )}
             {completedWithoutPin.length > 0 && (
               <IssueSection
                 title="Profile completed but not claimed, or PIN reset and not set again"
@@ -446,6 +502,42 @@ export default async function VgLeaderReportPage() {
           </div>
         ) : (
           <p className="px-6 py-4 text-sm text-gray-500">No exceptions found.</p>
+        )}
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-800">Profile Not Yet Completed</h3>
+          <p className="text-xs text-gray-400 mt-0.5">
+            VG leaders to follow up so they finish their profile. A leader can appear in more than one list.
+          </p>
+        </div>
+        {hasNotCompleted ? (
+          <div className="divide-y divide-gray-100">
+            {identifiedByUpdatedLgl.length > 0 && (
+              <IssueSection
+                title={`Identified as VG Leader by a Leadership Group Leader who completed the ${updateCycleLabel} update`}
+                rows={identifiedByUpdatedLgl}
+                detailLabel="Identified By"
+              />
+            )}
+            {identifiedNotUpdated.length > 0 && (
+              <IssueSection
+                title="Identified as VG Leader by a Discipleship Journey participant"
+                rows={identifiedNotUpdated}
+                detailLabel="Identified By"
+              />
+            )}
+            {startedNotCompleted.length > 0 && (
+              <IssueSection
+                title="Started but not completed the profile update"
+                rows={startedNotCompleted}
+                detailLabel="Progress"
+              />
+            )}
+          </div>
+        ) : (
+          <p className="px-6 py-4 text-sm text-gray-500">Everyone identified has completed their profile.</p>
         )}
       </div>
       </>
@@ -505,7 +597,7 @@ export default async function VgLeaderReportPage() {
         <p className="text-sm font-semibold text-gray-700 mb-1">Graduate of Leadership 113</p>
         <HorizontalBarChart
           data={leadership113Data}
-          colors={{ Yes: "#10b981", No: "#f59e0b", "Not set": "#d1d5db" }}
+          colors={{ Yes: "#10b981", Ongoing: "#3b82f6", No: "#f59e0b", "Not set": "#d1d5db" }}
         />
       </div>
 

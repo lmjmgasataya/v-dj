@@ -2,11 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";
-import { db } from "@/db";
-import { featureFlags } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { ACCEPT_PREVIOUS_QUARTER_FLAG } from "@/lib/vgQuarters";
-import { PortalSettingsButton } from "./PortalSettingsButton";
+import { ACCEPT_PREVIOUS_QUARTER_FLAG, CARRY_OVER_PREVIOUS_QUARTER_FLAG } from "@/lib/vgQuarters";
+import { getQuarterOptions } from "@/lib/vgQuarterFlags";
+import { PortalSettingsButton, type PortalSetting } from "./PortalSettingsButton";
 
 export default async function VgLeaderPortalPage() {
   const session = await getSession();
@@ -14,14 +12,25 @@ export default async function VgLeaderPortalPage() {
   const isDeveloper = session.role === "developer";
   const canViewReports = isDeveloper || session.role === "lead_pastor";
 
-  const [acceptPreviousFlag] = isDeveloper
-    ? await db
-        .select({ enabled: featureFlags.enabled })
-        .from(featureFlags)
-        .where(eq(featureFlags.key, ACCEPT_PREVIOUS_QUARTER_FLAG))
-        .limit(1)
+  const quarterOptions = isDeveloper ? await getQuarterOptions() : null;
+  const settings: PortalSetting[] = quarterOptions
+    ? [
+        {
+          key: ACCEPT_PREVIOUS_QUARTER_FLAG,
+          title: "Still accepting responses for previous quarter",
+          description:
+            "VG leaders can still open the quarter that just ended — e.g. Q3 during October. An update made now counts for both that quarter and the current one.",
+          enabled: quarterOptions.acceptPreviousQuarter,
+        },
+        {
+          key: CARRY_OVER_PREVIOUS_QUARTER_FLAG,
+          title: "Carry over previous quarter's responses",
+          description:
+            "Leaders who updated during the previous quarter count as updated for the current one too — e.g. a Q3 update counts for Q4, so they don't need to update again.",
+          enabled: quarterOptions.carryOverPreviousQuarter,
+        },
+      ]
     : [];
-  const acceptPreviousQuarter = acceptPreviousFlag?.enabled ?? false;
 
   return (
     <div className="flex flex-col gap-6">
@@ -31,7 +40,7 @@ export default async function VgLeaderPortalPage() {
           <h2 className="text-2xl font-bold text-gray-900">VG Leader Portal</h2>
           <p className="text-sm text-gray-500 mt-0.5">Manage Victory Group leaders and their portal accounts.</p>
         </div>
-        {isDeveloper && <PortalSettingsButton acceptPreviousQuarter={acceptPreviousQuarter} />}
+        {isDeveloper && <PortalSettingsButton settings={settings} />}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

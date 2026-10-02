@@ -10,6 +10,7 @@ import { LeadershipGroupMembersField, type MemberRowValue } from "@/components/L
 import { VictoryGroupsSection } from "./VictoryGroupsSection";
 import type { VictoryGroupLeader, VictoryGroup } from "@/db/schema";
 import { lifestageEnum } from "@/db/schema";
+import { LEADERSHIP_113_LABEL, LEADERSHIP_113_STATUSES, leadership113Label } from "@/lib/leadership113";
 
 type InternRow = { lastName: string; firstName: string };
 
@@ -159,7 +160,7 @@ export function EditForm({
           </div>
           <ReviewRow
             label="Graduate of Leadership 113?"
-            value={captured.graduateOfLeadership113 === "" || captured.graduateOfLeadership113 == null ? null : captured.graduateOfLeadership113 === "true" ? "Yes" : "No"}
+            value={leadership113Label(captured.graduateOfLeadership113 as string | undefined)}
             span
           />
         </ReviewSection>
@@ -289,10 +290,13 @@ export function EditForm({
             ))}
           </div>
           <Field label="Graduate of Leadership 113?" className="sm:col-span-2" required>
-            <select name="graduateOfLeadership113" defaultValue={leader.graduateOfLeadership113 == null ? "" : String(leader.graduateOfLeadership113)} className={selectCls}>
+            <select name="graduateOfLeadership113" defaultValue={leader.graduateOfLeadership113 ?? ""} className={selectCls}>
               <option value="">— Select —</option>
-              <option value="true">Yes</option>
-              <option value="false">No</option>
+              {LEADERSHIP_113_STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {LEADERSHIP_113_LABEL[status]}
+                </option>
+              ))}
             </select>
           </Field>
         </Section>

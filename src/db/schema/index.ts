@@ -57,6 +57,8 @@ export const startedLeadingVgEnum = pgEnum("started_leading_vg", ["before_this_y
 
 export const groupTypeEnum = pgEnum("group_type", ["victory_group", "leadership_group"]);
 
+export const leadership113StatusEnum = pgEnum("leadership_113_status", ["yes", "no", "ongoing"]);
+
 export const victoryGroupLeaders = pgTable("victory_group_leaders", {
   id: serial("id").primaryKey(),
   lastName: text("last_name").notNull(),
@@ -70,7 +72,7 @@ export const victoryGroupLeaders = pgTable("victory_group_leaders", {
   serviceAttending: text("service_attending"),
   facebookMessengerName: text("facebook_messenger_name"),
   discipleshipJourneyCompleted: text("discipleship_journey_completed"),
-  graduateOfLeadership113: boolean("graduate_of_leadership_113"),
+  graduateOfLeadership113: leadership113StatusEnum("graduate_of_leadership_113"),
   ownVgLeaderName: text("own_vg_leader_name"),
   ownVgLeaderId: integer("own_vg_leader_id").references((): AnyPgColumn => victoryGroupLeaders.id),
   startedLeadingVg: startedLeadingVgEnum("started_leading_vg"),

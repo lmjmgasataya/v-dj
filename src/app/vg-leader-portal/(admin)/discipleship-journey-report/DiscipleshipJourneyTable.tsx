@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import type { Leadership113Status } from "@/lib/leadership113";
+
+const LEADERSHIP_113_SORT: Record<Leadership113Status, number> = { no: 1, ongoing: 2, yes: 3 };
 
 export interface DiscipleshipJourneyRow {
   id: number;
   name: string;
-  leadership113: boolean | null;
+  leadership113: Leadership113Status | null;
   steps: Record<string, boolean>;
 }
 
@@ -39,7 +42,7 @@ export function DiscipleshipJourneyTable({
 
   function sortValue(r: DiscipleshipJourneyRow, key: SortKey): string | number {
     if (key === "name") return r.name.toLowerCase();
-    if (key === "leadership113") return r.leadership113 == null ? 0 : r.leadership113 ? 2 : 1;
+    if (key === "leadership113") return r.leadership113 == null ? 0 : LEADERSHIP_113_SORT[r.leadership113];
     const step = key.slice("step:".length);
     return r.steps[step] ? 1 : 0;
   }
@@ -118,8 +121,10 @@ export function DiscipleshipJourneyTable({
             <td className="px-4 py-2.5 text-center">
               {r.leadership113 == null ? (
                 <span className="text-gray-300">Not set</span>
-              ) : r.leadership113 ? (
+              ) : r.leadership113 === "yes" ? (
                 <span className="text-green-600 font-semibold">Yes</span>
+              ) : r.leadership113 === "ongoing" ? (
+                <span className="text-blue-600">Ongoing</span>
               ) : (
                 <span className="text-amber-600">No</span>
               )}

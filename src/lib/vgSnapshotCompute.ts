@@ -3,6 +3,7 @@ import { victoryGroupLeaders, victoryGroups, interns, users } from "@/db/schema"
 import { and, eq, isNull, isNotNull } from "drizzle-orm";
 import { isQuarterlyActive } from "@/lib/vgLeaderStatus";
 import { getLiveQuarter, getProfileUpdateQuarters } from "@/lib/vgQuarters";
+import { getQuarterOptions } from "@/lib/vgQuarterFlags";
 import { computeProfileProgress } from "@/lib/profileCompleteness";
 import {
   SERVICE_BUCKETS,
@@ -178,12 +179,13 @@ export async function computeVgSnapshotCounts(): Promise<
   const liveQuarter = getLiveQuarter();
   let quarterlyUpdateStatus: VgSnapshotData["quarterlyUpdateStatus"];
   if (liveQuarter) {
+    const quarterOptions = await getQuarterOptions();
     const done: VgLeaderRef[] = [];
     const notDone: VgLeaderRef[] = [];
     for (const l of leaders) {
       if (!claimedIds.has(l.id)) continue;
       const percent = computeProfileProgress(l, activeGroupIds.has(l.id)).percent;
-      const liveEntry = getProfileUpdateQuarters(l.updatedAt, percent).find((q) => q.live);
+      const liveEntry = getProfileUpdateQuarters(l.updatedAt, percent, quarterOptions).find((q) => q.live);
       const ref: VgLeaderRef = { id: l.id, name: leaderName(l.id) };
       if (liveEntry?.status === "updated") done.push(ref);
       else notDone.push(ref);

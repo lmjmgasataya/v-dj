@@ -10,6 +10,7 @@ import { MyVictoryGroups } from "./MyVictoryGroups";
 import type { VictoryGroupLeader, VictoryGroup } from "@/db/schema";
 import { lifestageEnum } from "@/db/schema";
 import { computeProfileProgress } from "@/lib/profileCompleteness";
+import { LEADERSHIP_113_LABEL, LEADERSHIP_113_STATUSES, leadership113Label } from "@/lib/leadership113";
 
 function ReviewRow({ label, value, span }: { label: string; value?: string | null; span?: boolean }) {
   return (
@@ -313,20 +314,16 @@ export function ProfileForm({
                 Graduate of Leadership 113? <span className="text-red-500">*</span>
               </p>
               <div className="flex flex-col gap-2">
-                <RadioOption
-                  name="graduateOfLeadership113"
-                  value="true"
-                  label="Yes"
-                  required
-                  defaultChecked={leader.graduateOfLeadership113 === true}
-                />
-                <RadioOption
-                  name="graduateOfLeadership113"
-                  value="false"
-                  label="No"
-                  required
-                  defaultChecked={leader.graduateOfLeadership113 === false}
-                />
+                {LEADERSHIP_113_STATUSES.map((status) => (
+                  <RadioOption
+                    key={status}
+                    name="graduateOfLeadership113"
+                    value={status}
+                    label={LEADERSHIP_113_LABEL[status]}
+                    required
+                    defaultChecked={leader.graduateOfLeadership113 === status}
+                  />
+                ))}
               </div>
             </div>
           </Section>
@@ -434,7 +431,7 @@ export function ProfileForm({
             </div>
             <ReviewRow
               label="Graduate of Leadership 113?"
-              value={captured.graduateOfLeadership113 === "" || captured.graduateOfLeadership113 == null ? null : captured.graduateOfLeadership113 === "true" ? "Yes" : "No"}
+              value={leadership113Label(captured.graduateOfLeadership113 as string | undefined)}
               span
             />
           </ReviewSection>

@@ -58,15 +58,6 @@ export function getLiveQuarter(): { key: string; label: string } | null {
   return q ? { key: q.key, label: `${q.label} ${year}` } : null;
 }
 
-/** The quarter before the live one — last year's Q4 during Jan-Mar. */
-export function getPreviousQuarter(): { key: string; label: string } {
-  const year = currentYearPH();
-  const month = currentMonthPH();
-  const liveIndex = QUARTER_DEFS.findIndex((q) => month >= q.startMonth && month <= q.endMonth);
-  const q = QUARTER_DEFS[(liveIndex + 3) % 4];
-  return { key: q.key, label: `${q.label} ${liveIndex === 0 ? year - 1 : year}` };
-}
-
 export function getProfileUpdateQuarters(
   updatedAt: Date,
   profilePercent: number,

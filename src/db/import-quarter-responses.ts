@@ -12,16 +12,7 @@ import * as XLSX from "xlsx";
 import { readFileSync } from "fs";
 import { db } from ".";
 import { manualQuarterResponses } from "./schema";
-
-/** "AGILLES " -> "Agilles", "dela  cruz" -> "Dela Cruz"; word-based so "Granpeñas" isn't split at the ñ. */
-function titleCase(raw: string): string {
-  return raw
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join(" ");
-}
+import { formatPersonName } from "@/lib/text";
 
 /** Form's "2 PM - MANDURRIAO" / "10 AM - LA PAZ" -> SERVICE_OPTIONS' "2PM - Mandurriao" / "10AM - Lapaz". */
 function normalizeService(raw: string): string | null {
@@ -72,8 +63,8 @@ async function main() {
   const byName = new Map<string, typeof manualQuarterResponses.$inferInsert>();
   for (const r of body) {
     const respondedAt = parseTimestamp(String(r[col.timestamp] ?? ""));
-    const lastName = titleCase(String(r[col.lastName] ?? ""));
-    const firstName = titleCase(String(r[col.firstName] ?? ""));
+    const lastName = formatPersonName(String(r[col.lastName] ?? ""));
+    const firstName = formatPersonName(String(r[col.firstName] ?? ""));
     if (!respondedAt || !lastName || !firstName) continue;
     const mobileNumber = String(r[col.mobile] ?? "").trim() || null;
     const serviceAttending = normalizeService(String(r[col.service] ?? ""));

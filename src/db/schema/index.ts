@@ -356,6 +356,19 @@ export const smsLogs = pgTable("sms_logs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Respondents of a quarterly update collected outside the portal (e.g. the Q2 2026 Google Form).
+// Matched to victoryGroupLeaders by mobile number / name at report time, so no FK to keep in sync on merges.
+export const manualQuarterResponses = pgTable("manual_quarter_responses", {
+  id: serial("id").primaryKey(),
+  quarterLabel: text("quarter_label").notNull(),
+  lastName: text("last_name").notNull(),
+  firstName: text("first_name").notNull(),
+  mobileNumber: text("mobile_number"),
+  serviceAttending: text("service_attending"),
+  respondedAt: timestamp("responded_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [unique().on(t.quarterLabel, t.lastName, t.firstName)]);
+
 export type Participant = typeof participants.$inferSelect;
 export type ClassSession = typeof classSessions.$inferSelect;
 export type CheckIn = typeof checkIns.$inferSelect;

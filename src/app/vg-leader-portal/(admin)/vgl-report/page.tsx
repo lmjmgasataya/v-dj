@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db } from "@/db";
-import { victoryGroupLeaders, victoryGroups, users, interns, leadershipGroupMembers, participants } from "@/db/schema";
+import { victoryGroupLeaders, victoryGroups, users, interns, leadershipGroupMembers, participants, manualQuarterResponses } from "@/db/schema";
 import { and, eq, inArray, isNull, isNotNull, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
@@ -9,6 +9,7 @@ import { computeProfileProgress } from "@/lib/profileCompleteness";
 import { getLiveQuarter, getPreviousQuarter, getProfileUpdateQuarters } from "@/lib/vgQuarters";
 import { getQuarterOptions } from "@/lib/vgQuarterFlags";
 import { leadership113Label } from "@/lib/leadership113";
+import { createLeaderMatcher } from "@/lib/vgLeaderMatch";
 import { getSession } from "@/lib/auth";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { rawServiceValues } from "@/lib/timeService";
@@ -65,7 +66,7 @@ export default async function VgLeaderReportPage() {
   const lockedServiceRawValues =
     authSession?.role === "lead_pastor" ? rawServiceValues(authSession?.timeService) : undefined;
 
-  const [allLeaders, vgLeaderAccounts, activeGroups, lglMemberRows, internRows, participantIdentifiedRows, quarterOptions] = await Promise.all([
+  const [allLeaders, vgLeaderAccounts, activeGroups, lglMemberRows, internRows, participantIdentifiedRows, quarterOptions, manualResponses] = await Promise.all([
     db
       .select()
       .from(victoryGroupLeaders)
@@ -134,6 +135,10 @@ export default async function VgLeaderReportPage() {
         )
       ),
     getQuarterOptions(),
+    db
+      .select()
+      .from(manualQuarterResponses)
+      .orderBy(manualQuarterResponses.quarterLabel, manualQuarterResponses.lastName, manualQuarterResponses.firstName),
   ]);
 
   const claimedIds = new Set(vgLeaderAccounts.filter((a) => a.hasPin).map((a) => a.vgLeaderId));
@@ -424,8 +429,45 @@ export default async function VgLeaderReportPage() {
       };
     });
 
+  // Respondents of a quarterly update collected outside the portal (e.g. the Q2 2026
+  // Google Form), matched to leaders by mobile number, then name.
+  const matchLeader = createLeaderMatcher(allLeaders);
+  const accountStatus = (id: number) =>
+    claimedIds.has(id) ? "portal claimed" : pinResetIds.has(id) ? "PIN reset, not set again" : "no portal account";
+  const manualByQuarter = new Map<string, { notCompleted: IssueRow[]; notInDatabase: IssueRow[] }>();
+  for (const r of manualResponses) {
+    const bucket = manualByQuarter.get(r.quarterLabel) ?? { notCompleted: [], notInDatabase: [] };
+    manualByQuarter.set(r.quarterLabel, bucket);
+    const match = matchLeader(r);
+    if (!match) {
+      bucket.notInDatabase.push({
+        key: `manual-${r.id}`,
+        name: `${r.lastName}, ${r.firstName}`,
+        ...serviceInfo([r.serviceAttending]),
+        detailSort: r.mobileNumber ?? "",
+        detail: r.mobileNumber ?? "—",
+      });
+      continue;
+    }
+    const l = match.leader;
+    if (l.profileCompleted || bucket.notCompleted.some((row) => row.key === String(l.id))) continue;
+    const { percent } = progressOf(l);
+    bucket.notCompleted.push({
+      key: String(l.id),
+      name: `${l.lastName}, ${l.firstName}`,
+      nameHref: `/vg-leader-portal/leaders/${l.id}`,
+      ...serviceInfo([l.serviceAttending ?? r.serviceAttending]),
+      detailSort: String(percent).padStart(3, "0"),
+      detail: `${percent}% · ${accountStatus(l.id)}`,
+    });
+  }
+  const manualSections = Array.from(manualByQuarter.entries());
+
   const hasNotCompleted =
-    identifiedByUpdatedLgl.length > 0 || identifiedNotUpdated.length > 0 || startedNotCompleted.length > 0;
+    identifiedByUpdatedLgl.length > 0 ||
+    identifiedNotUpdated.length > 0 ||
+    startedNotCompleted.length > 0 ||
+    manualSections.some(([, v]) => v.notCompleted.length > 0 || v.notInDatabase.length > 0);
 
   // Recognize VG leaders who started leading this year.
   const newLeaders = allLeaders
@@ -530,11 +572,29 @@ export default async function VgLeaderReportPage() {
             )}
             {startedNotCompleted.length > 0 && (
               <IssueSection
-                title="Started but not completed the profile update"
+                title="Claimed portal but profile not yet completed"
                 rows={startedNotCompleted}
                 detailLabel="Progress"
               />
             )}
+            {manualSections.map(([label, v]) => (
+              <div key={label} className="divide-y divide-gray-100">
+                {v.notCompleted.length > 0 && (
+                  <IssueSection
+                    title={`Answered the ${label} form, profile not yet completed in the portal`}
+                    rows={v.notCompleted}
+                    detailLabel="Progress"
+                  />
+                )}
+                {v.notInDatabase.length > 0 && (
+                  <IssueSection
+                    title={`Answered the ${label} form, not found in the VG leader database`}
+                    rows={v.notInDatabase}
+                    detailLabel="Mobile Number"
+                  />
+                )}
+              </div>
+            ))}
           </div>
         ) : (
           <p className="px-6 py-4 text-sm text-gray-500">Everyone identified has completed their profile.</p>

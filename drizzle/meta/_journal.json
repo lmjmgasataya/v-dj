@@ -358,6 +358,20 @@
       "when": 1790914560069,
       "tag": "0050_leadership_113_ongoing",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1790916025942,
+      "tag": "0051_manual_quarter_responses",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1790916507814,
+      "tag": "0052_manual_quarter_responses_service",
+      "breakpoints": true
     }
   ]
 }

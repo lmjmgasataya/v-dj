@@ -1,0 +1,1 @@
+ALTER TABLE "manual_quarter_responses" ADD COLUMN "service_attending" text;

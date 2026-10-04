@@ -7,6 +7,7 @@ import { toTitleCase } from "@/lib/text";
 import { getRemainingConnections } from "./connections";
 import { HardDeleteButton } from "./HardDeleteButton";
 import { RemoveConnectionsButton } from "./RemoveConnectionsButton";
+import { RestoreButton } from "./RestoreButton";
 
 function fmtDateTime(d: Date) {
   return d.toLocaleDateString("en-PH", {
@@ -46,7 +47,7 @@ export default async function DeletedVgLeadersPage() {
           {withConnections > 0 && ` · ${withConnections} still with connections`}
         </p>
         <p className="text-xs text-gray-400 mt-1">
-          A record can only be deleted permanently once nothing references it anymore — remove its connections first.
+          Restore a record to undo its deletion. A record can only be deleted permanently once nothing references it anymore — remove its connections first.
         </p>
       </div>
 
@@ -103,6 +104,7 @@ export default async function DeletedVgLeadersPage() {
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2 shrink-0">
+                  <RestoreButton id={l.id} name={name} />
                   {connections.length > 0 && <RemoveConnectionsButton id={l.id} name={name} />}
                   <HardDeleteButton id={l.id} name={name} disabled={connections.length > 0} />
                 </div>

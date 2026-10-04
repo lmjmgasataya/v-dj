@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { interns, victoryGroups, victoryGroupLeaders } from "@/db/schema";
-import { and, or, ilike, isNull, eq } from "drizzle-orm";
+import { and, isNull, eq } from "drizzle-orm";
+import { nameContains } from "@/lib/nameSearch";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
       and(
         isNull(victoryGroups.deletedAt),
         isNull(interns.deletedAt),
-        or(ilike(interns.lastName, `%${q}%`), ilike(interns.firstName, `%${q}%`))
+        nameContains([interns.lastName, interns.firstName], q)
       )
     )
     .orderBy(interns.lastName)

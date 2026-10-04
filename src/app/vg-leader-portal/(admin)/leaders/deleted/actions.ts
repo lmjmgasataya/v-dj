@@ -34,6 +34,18 @@ async function isSoftDeleted(id: number) {
   return !!leader;
 }
 
+/** Undoes a soft delete — the leader shows up in the list and autocompletes again. */
+export async function restoreVgLeader(id: number): Promise<{ error: string } | undefined> {
+  await requireDeveloper();
+  if (!(await isSoftDeleted(id))) return { error: "This record isn't deleted." };
+
+  await db.update(victoryGroupLeaders).set({ deletedAt: null }).where(eq(victoryGroupLeaders.id, id));
+
+  revalidatePath("/vg-leader-portal/leaders");
+  revalidatePath("/vg-leader-portal/leaders/deleted");
+  toastRedirect("/vg-leader-portal/leaders/deleted", "VG leader restored.");
+}
+
 /**
  * Clears everything that still references a soft-deleted leader so it can be hard deleted.
  * Records that belong to someone else are unlinked, not deleted (participants, other VG

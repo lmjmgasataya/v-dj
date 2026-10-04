@@ -1,6 +1,8 @@
 import { db } from "@/db";
-import { victoryGroupLeaders, victoryGroups, interns, leadershipGroupMembers, type VictoryGroup } from "@/db/schema";
-import { eq, isNull, and, inArray } from "drizzle-orm";
+import { victoryGroupLeaders, victoryGroups, interns, leadershipGroupMembers, participants, users, type VictoryGroup } from "@/db/schema";
+import { eq, isNull, isNotNull, ne, and, inArray } from "drizzle-orm";
+import { areSimilarNames } from "@/lib/vgLeaderMatch";
+import { MoveConnectionsButton } from "./MoveConnectionsButton";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -65,6 +67,73 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
         .where(eq(leadershipGroupMembers.leaderId, leaderId))
     : [];
 
+  // Everyone who points at this leader record, for the "Connected to" note.
+  const participantCols = { id: participants.id, lastName: participants.lastName, firstName: participants.firstName };
+  const leaderCols = { id: victoryGroupLeaders.id, lastName: victoryGroupLeaders.lastName, firstName: victoryGroupLeaders.firstName };
+  const [vgParticipants, discipledParticipants, ledByLgls, vglsUnderThem] = await Promise.all([
+    db
+      .select(participantCols)
+      .from(participants)
+      .where(and(eq(participants.vgLeaderId, leaderId), isNull(participants.deletedAt)))
+      .orderBy(participants.lastName, participants.firstName),
+    db
+      .select(participantCols)
+      .from(participants)
+      .where(and(eq(participants.disciplerId, leaderId), isNull(participants.deletedAt)))
+      .orderBy(participants.lastName, participants.firstName),
+    db
+      .select(leaderCols)
+      .from(leadershipGroupMembers)
+      .innerJoin(victoryGroupLeaders, eq(leadershipGroupMembers.leaderId, victoryGroupLeaders.id))
+      .where(and(eq(leadershipGroupMembers.memberVgLeaderId, leaderId), isNull(victoryGroupLeaders.deletedAt))),
+    db
+      .select(leaderCols)
+      .from(victoryGroupLeaders)
+      .where(and(eq(victoryGroupLeaders.ownVgLeaderId, leaderId), isNull(victoryGroupLeaders.deletedAt)))
+      .orderBy(victoryGroupLeaders.lastName, victoryGroupLeaders.firstName),
+  ]);
+
+  const toLeaderLink = (l: { id: number; lastName: string; firstName: string }) => ({
+    id: l.id,
+    label: `${l.lastName}, ${l.firstName}`,
+    href: `/vg-leader-portal/leaders/${l.id}`,
+  });
+  const toParticipantLink = (p: { id: number; lastName: string; firstName: string }) => ({
+    id: p.id,
+    label: `${p.lastName}, ${p.firstName}`,
+    href: `/participants/${p.id}/edit`,
+  });
+  const connections = [
+    {
+      label: "Their VG Leader",
+      links: leader.ownVgLeaderId
+        ? [{ id: leader.ownVgLeaderId, label: leader.ownVgLeaderName || `#${leader.ownVgLeaderId}`, href: `/vg-leader-portal/leaders/${leader.ownVgLeaderId}` }]
+        : [],
+    },
+    { label: "Their Leadership Group Leader", links: ledByLgls.map(toLeaderLink) },
+    { label: "VG Leaders who named them as their VG Leader", links: vglsUnderThem.map(toLeaderLink) },
+    { label: "VG Leaders they lead (Leadership Group)", links: lglMembers.map(toLeaderLink) },
+    { label: "Participants (as VG Leader)", links: vgParticipants.map(toParticipantLink) },
+    { label: "Participants (as Discipler)", links: discipledParticipants.map(toParticipantLink) },
+  ].filter((c) => c.links.length > 0);
+
+  // Possible duplicates that are the "real" record (claimed + profile complete) — the
+  // connections above can be moved onto them.
+  const claimedCompleted = await db
+    .select({ id: victoryGroupLeaders.id, lastName: victoryGroupLeaders.lastName, firstName: victoryGroupLeaders.firstName })
+    .from(victoryGroupLeaders)
+    .innerJoin(users, eq(users.vgLeaderId, victoryGroupLeaders.id))
+    .where(
+      and(
+        isNull(victoryGroupLeaders.deletedAt),
+        eq(victoryGroupLeaders.profileCompleted, true),
+        isNotNull(users.pinHash),
+        ne(victoryGroupLeaders.id, leaderId),
+      ),
+    );
+  const moveTargets = leader.deletedAt ? [] : claimedCompleted.filter((l) => areSimilarNames(leader, l));
+  const hasMovableConnections = connections.some((c) => c.label !== "Their VG Leader");
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -113,6 +182,44 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
           >
             Edit
           </Link>
+        </div>
+        <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div className="min-w-0">
+          {connections.length === 0 ? (
+            <p>Not connected to any participant or VG leader.</p>
+          ) : (
+            <dl className="flex flex-col gap-1">
+              {connections.map((c) => (
+                <div key={c.label}>
+                  <dt className="inline font-medium text-gray-700">{c.label} ({c.links.length}): </dt>
+                  <dd className="inline">
+                    {c.links.map((l, i) => (
+                      <span key={l.id}>
+                        {i > 0 && "; "}
+                        <Link href={l.href} className="text-indigo-600 hover:text-indigo-800 hover:underline">
+                          {l.label}
+                        </Link>
+                      </span>
+                    ))}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          </div>
+          {hasMovableConnections && moveTargets.length > 0 && (
+            <div className="flex flex-col items-end gap-2 shrink-0">
+              {moveTargets.map((t) => (
+                <MoveConnectionsButton
+                  key={t.id}
+                  fromId={leader.id}
+                  fromName={`${leader.lastName}, ${leader.firstName}`}
+                  toId={t.id}
+                  toName={`${t.lastName}, ${t.firstName}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

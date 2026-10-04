@@ -15,6 +15,7 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { toastRedirectBack } from "@/lib/toast";
+import { areSimilarNames } from "@/lib/vgLeaderMatch";
 
 async function requireDeveloper() {
   const session = await getSession();
@@ -49,6 +50,96 @@ const MERGE_FIELDS = [
 
 function isBlank(v: unknown) {
   return v === null || v === undefined || v === "";
+}
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+// leadership_group_members: unique(leaderId, memberVgLeaderId) — repoint, but drop
+// instead of update wherever that would collide with a row the target record already has,
+// and drop anything that would become a self-membership after repointing.
+async function repointLeadershipGroupMembers(tx: Tx, fromId: number, toId: number) {
+  const asLeaderRows = await tx
+    .select()
+    .from(leadershipGroupMembers)
+    .where(eq(leadershipGroupMembers.leaderId, fromId));
+  for (const row of asLeaderRows) {
+    const newMemberId = row.memberVgLeaderId === fromId ? toId : row.memberVgLeaderId;
+    if (newMemberId === toId) {
+      await tx.delete(leadershipGroupMembers).where(eq(leadershipGroupMembers.id, row.id));
+      continue;
+    }
+    const [existing] = await tx
+      .select({ id: leadershipGroupMembers.id })
+      .from(leadershipGroupMembers)
+      .where(and(eq(leadershipGroupMembers.leaderId, toId), eq(leadershipGroupMembers.memberVgLeaderId, newMemberId)))
+      .limit(1);
+    if (existing) {
+      await tx.delete(leadershipGroupMembers).where(eq(leadershipGroupMembers.id, row.id));
+    } else {
+      await tx.update(leadershipGroupMembers).set({ leaderId: toId }).where(eq(leadershipGroupMembers.id, row.id));
+    }
+  }
+  const asMemberRows = await tx
+    .select()
+    .from(leadershipGroupMembers)
+    .where(eq(leadershipGroupMembers.memberVgLeaderId, fromId));
+  for (const row of asMemberRows) {
+    if (row.leaderId === toId) {
+      await tx.delete(leadershipGroupMembers).where(eq(leadershipGroupMembers.id, row.id));
+      continue;
+    }
+    const [existing] = await tx
+      .select({ id: leadershipGroupMembers.id })
+      .from(leadershipGroupMembers)
+      .where(and(eq(leadershipGroupMembers.leaderId, row.leaderId), eq(leadershipGroupMembers.memberVgLeaderId, toId)))
+      .limit(1);
+    if (existing) {
+      await tx.delete(leadershipGroupMembers).where(eq(leadershipGroupMembers.id, row.id));
+    } else {
+      await tx.update(leadershipGroupMembers).set({ memberVgLeaderId: toId }).where(eq(leadershipGroupMembers.id, row.id));
+    }
+  }
+}
+
+/**
+ * Moves everything that points at a likely-duplicate leader record (participants as VG
+ * leader/discipler, VG leaders who named it as their VG leader, leadership group links)
+ * over to the claimed, completed record with a similar name. Unlike a merge, the source
+ * record itself is left alone — not deleted, its fields and groups untouched.
+ */
+export async function moveVgLeaderConnections(fromId: number, toId: number): Promise<{ error: string } | undefined> {
+  await requireDeveloper();
+  if (fromId === toId) return { error: "Can't move connections to the same record." };
+
+  try {
+    await db.transaction(async (tx) => {
+      const [[from], [to], [toAccount]] = await Promise.all([
+        tx.select().from(victoryGroupLeaders).where(eq(victoryGroupLeaders.id, fromId)).limit(1),
+        tx.select().from(victoryGroupLeaders).where(eq(victoryGroupLeaders.id, toId)).limit(1),
+        tx.select({ pinHash: users.pinHash }).from(users).where(eq(users.vgLeaderId, toId)).limit(1),
+      ]);
+      if (!from || !to || to.deletedAt) throw new Error("One of the records no longer exists.");
+      if (!areSimilarNames(from, to)) throw new Error("The records' names aren't similar enough to be duplicates.");
+      if (!toAccount?.pinHash || !to.profileCompleted) {
+        throw new Error("Connections can only be moved to a record that's claimed and has a completed profile.");
+      }
+
+      await tx.update(participants).set({ disciplerId: toId }).where(eq(participants.disciplerId, fromId));
+      await tx.update(participants).set({ vgLeaderId: toId }).where(eq(participants.vgLeaderId, fromId));
+      // The target naming its own duplicate as its VG leader would become a self-reference.
+      await tx
+        .update(victoryGroupLeaders)
+        .set({ ownVgLeaderId: null, ownVgLeaderName: null })
+        .where(and(eq(victoryGroupLeaders.id, toId), eq(victoryGroupLeaders.ownVgLeaderId, fromId)));
+      await tx.update(victoryGroupLeaders).set({ ownVgLeaderId: toId }).where(eq(victoryGroupLeaders.ownVgLeaderId, fromId));
+      await repointLeadershipGroupMembers(tx, fromId, toId);
+    });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Couldn't move the connections." };
+  }
+
+  revalidatePath("/vg-leader-portal/leaders");
+  await toastRedirectBack("Connections moved.");
 }
 
 export async function mergeVgLeaders(keepId: number, dropId: number): Promise<{ error: string } | undefined> {
@@ -89,50 +180,7 @@ export async function mergeVgLeaders(keepId: number, dropId: number): Promise<{ 
     await tx.update(victoryGroups).set({ vgLeaderId: keepId }).where(eq(victoryGroups.vgLeaderId, dropId));
     await tx.update(victoryGroupLeaders).set({ ownVgLeaderId: keepId }).where(eq(victoryGroupLeaders.ownVgLeaderId, dropId));
 
-    // leadership_group_members: unique(leaderId, memberVgLeaderId) — repoint, but drop
-    // instead of update wherever that would collide with a row the kept record already has,
-    // and drop anything that would become a self-membership after repointing.
-    const asLeaderRows = await tx
-      .select()
-      .from(leadershipGroupMembers)
-      .where(eq(leadershipGroupMembers.leaderId, dropId));
-    for (const row of asLeaderRows) {
-      const newMemberId = row.memberVgLeaderId === dropId ? keepId : row.memberVgLeaderId;
-      if (newMemberId === keepId) {
-        await tx.delete(leadershipGroupMembers).where(eq(leadershipGroupMembers.id, row.id));
-        continue;
-      }
-      const [existing] = await tx
-        .select({ id: leadershipGroupMembers.id })
-        .from(leadershipGroupMembers)
-        .where(and(eq(leadershipGroupMembers.leaderId, keepId), eq(leadershipGroupMembers.memberVgLeaderId, newMemberId)))
-        .limit(1);
-      if (existing) {
-        await tx.delete(leadershipGroupMembers).where(eq(leadershipGroupMembers.id, row.id));
-      } else {
-        await tx.update(leadershipGroupMembers).set({ leaderId: keepId }).where(eq(leadershipGroupMembers.id, row.id));
-      }
-    }
-    const asMemberRows = await tx
-      .select()
-      .from(leadershipGroupMembers)
-      .where(eq(leadershipGroupMembers.memberVgLeaderId, dropId));
-    for (const row of asMemberRows) {
-      if (row.leaderId === keepId) {
-        await tx.delete(leadershipGroupMembers).where(eq(leadershipGroupMembers.id, row.id));
-        continue;
-      }
-      const [existing] = await tx
-        .select({ id: leadershipGroupMembers.id })
-        .from(leadershipGroupMembers)
-        .where(and(eq(leadershipGroupMembers.leaderId, row.leaderId), eq(leadershipGroupMembers.memberVgLeaderId, keepId)))
-        .limit(1);
-      if (existing) {
-        await tx.delete(leadershipGroupMembers).where(eq(leadershipGroupMembers.id, row.id));
-      } else {
-        await tx.update(leadershipGroupMembers).set({ memberVgLeaderId: keepId }).where(eq(leadershipGroupMembers.id, row.id));
-      }
-    }
+    await repointLeadershipGroupMembers(tx, dropId, keepId);
 
     // event_registrations: unique(eventId, vgLeaderId) — keep the kept record's registration
     // for a given event if it already has one; otherwise repoint the dropped record's.

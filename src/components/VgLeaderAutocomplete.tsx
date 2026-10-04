@@ -50,7 +50,7 @@ export function VgLeaderAutocomplete({ onSelect }: Props) {
         value={query}
         onChange={handleChange}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder="Type last name or first name..."
+        placeholder="Type last name, first name, or nickname..."
         className={inputCls}
         autoComplete="off"
       />
@@ -63,7 +63,7 @@ export function VgLeaderAutocomplete({ onSelect }: Props) {
               onMouseDown={() => handleSelect(v)}
               className="w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 transition border-b border-gray-100 last:border-0"
             >
-              <p className="font-medium text-gray-900">{v.lastName}, {v.firstName}</p>
+              <p className="font-medium text-gray-900">{v.lastName}, {v.firstName}{v.nickname ? ` (${v.nickname})` : ""}</p>
               <p className="text-xs text-gray-500 mt-0.5">
                 {v.mobileNumber}{v.facebookMessengerName ? ` · ${v.facebookMessengerName}` : ""}
               </p>

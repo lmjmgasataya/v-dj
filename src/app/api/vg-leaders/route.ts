@@ -18,7 +18,8 @@ export async function GET(request: Request) {
         isNull(victoryGroupLeaders.deletedAt),
         or(
           ilike(victoryGroupLeaders.lastName, `%${q}%`),
-          ilike(victoryGroupLeaders.firstName, `%${q}%`)
+          ilike(victoryGroupLeaders.firstName, `%${q}%`),
+          ilike(victoryGroupLeaders.nickname, `%${q}%`)
         ),
         Number.isFinite(excludeId) && excludeId > 0 ? ne(victoryGroupLeaders.id, excludeId) : undefined
       )

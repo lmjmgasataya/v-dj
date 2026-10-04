@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { victoryGroupLeaders } from "@/db/schema";
-import { or, ilike } from "drizzle-orm";
+import { nameContains } from "@/lib/nameSearch";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -19,10 +19,7 @@ export async function GET(request: Request) {
     })
     .from(victoryGroupLeaders)
     .where(
-      or(
-        ilike(victoryGroupLeaders.lastName, `%${q}%`),
-        ilike(victoryGroupLeaders.firstName, `%${q}%`)
-      )
+      nameContains([victoryGroupLeaders.lastName, victoryGroupLeaders.firstName], q)
     )
     .orderBy(victoryGroupLeaders.lastName)
     .limit(10);

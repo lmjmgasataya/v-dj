@@ -2,11 +2,12 @@
 
 import { db } from "@/db";
 import { victoryGroupLeaders, users, featureFlags } from "@/db/schema";
-import { and, eq, ilike, isNull } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { signSession, setSessionCookie } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { firstWord, toTitleCase } from "@/lib/text";
+import { toTitleCase } from "@/lib/text";
+import { normalizeName } from "@/lib/vgLeaderMatch";
 import { isValidPin } from "@/lib/pin";
 
 function safeCallback(callbackUrl: string | null): string {
@@ -23,6 +24,30 @@ async function isPortalEnabled() {
   return flag?.enabled ?? false;
 }
 
+/**
+ * Leaders whose name matches what was typed, ignoring case, accents ("Peñas" = "Penas") and
+ * dots ("Ma. Anna" = "Ma Anna"). A full first-name match wins; otherwise falls back to the
+ * first word of the first name ("Juan" finds "Juan Carlos").
+ */
+async function findLeaderMatches(firstName: string, lastName: string) {
+  const last = normalizeName(lastName);
+  const first = normalizeName(firstName);
+  if (!last || !first) return [];
+
+  // Normalized comparison can't be done with ilike (ñ vs n), so filter in JS.
+  const leaders = await db
+    .select()
+    .from(victoryGroupLeaders)
+    .where(isNull(victoryGroupLeaders.deletedAt));
+  const sameLast = leaders.filter((l) => normalizeName(l.lastName) === last);
+
+  const exact = sameLast.filter((l) => normalizeName(l.firstName) === first);
+  if (exact.length > 0) return exact;
+
+  const enteredFirstWord = first.split(" ")[0];
+  return sameLast.filter((l) => normalizeName(l.firstName).split(" ")[0] === enteredFirstWord);
+}
+
 export async function checkIdentity(_: unknown, formData: FormData) {
   const firstName = ((formData.get("firstName") as string) ?? "").trim();
   const lastName = ((formData.get("lastName") as string) ?? "").trim();
@@ -35,17 +60,7 @@ export async function checkIdentity(_: unknown, formData: FormData) {
     return { error: "This portal isn't available right now. Please contact an admin." };
   }
 
-  const candidates = await db
-    .select()
-    .from(victoryGroupLeaders)
-    .where(and(ilike(victoryGroupLeaders.lastName, lastName), isNull(victoryGroupLeaders.deletedAt)));
-
-  const enteredFirstWord = firstWord(firstName).toLowerCase();
-  const matches = candidates.filter(
-    (c) =>
-      c.lastName.trim().toLowerCase() === lastName.toLowerCase() &&
-      firstWord(c.firstName).toLowerCase() === enteredFirstWord
-  );
+  const matches = await findLeaderMatches(firstName, lastName);
 
   if (matches.length !== 1) {
     return { checked: true as const, matched: false as const, firstName, lastName };
@@ -138,6 +153,12 @@ export async function registerNewLeader(firstName: string, lastName: string, cal
 
   if (!(await isPortalEnabled())) {
     return { error: "This portal isn't available right now. Please contact an admin." };
+  }
+
+  // Don't create a duplicate when the name already identifies an existing leader
+  // (e.g. typed "Penas" for "Peñas") — they should log in to that account instead.
+  if ((await findLeaderMatches(firstName, lastName)).length === 1) {
+    return { error: "An account with this name already exists. Please go back and log in." };
   }
 
   const titleFirstName = toTitleCase(firstName);

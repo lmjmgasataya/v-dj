@@ -18,7 +18,7 @@ export interface VgLeaderRow {
   duplicateMobile: boolean;
   duplicateName: boolean;
   /** Other leaders whose name is nearly the same (includes exact matches). */
-  similarNames: string[];
+  similarNames: { id: number; name: string }[];
   claimed: boolean;
   accountId: number | null;
   profileCompleted: boolean;
@@ -202,24 +202,34 @@ export function VgLeadersTable({ rows, enableMerge }: { rows: VgLeaderRow[]; ena
                     >
                       {toTitleCase(l.lastName)}, {toTitleCase(l.firstName)}
                       {l.duplicateName ? (
-                        <span
-                          title={`Same name as: ${l.similarNames.join("; ")}`}
-                          className="ml-1.5 inline-flex items-center rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 align-middle"
-                        >
+                        <span className="ml-1.5 inline-flex items-center rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 align-middle">
                           Duplicate
                         </span>
                       ) : (
                         l.similarNames.length > 0 && (
-                          <span
-                            title={`Similar to: ${l.similarNames.join("; ")}`}
-                            className="ml-1.5 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 align-middle"
-                          >
+                          <span className="ml-1.5 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 align-middle">
                             Possible duplicate
                           </span>
                         )
                       )}
                     </Link>
                     {l.nickname && <p className="text-xs text-gray-400">&quot;{l.nickname}&quot;</p>}
+                    {l.similarNames.length > 0 && (
+                      <p className="text-xs text-gray-500">
+                        {l.duplicateName ? "Same name as: " : "Similar to: "}
+                        {l.similarNames.map((s, i) => (
+                          <span key={s.id}>
+                            {i > 0 && "; "}
+                            <Link
+                              href={`/vg-leader-portal/leaders/${s.id}`}
+                              className="text-indigo-600 hover:text-indigo-800 hover:underline"
+                            >
+                              {s.name} (#{s.id})
+                            </Link>
+                          </span>
+                        ))}
+                      </p>
+                    )}
                   </td>
                   <td className="px-4 py-2.5 font-mono text-xs">
                     <span className={l.duplicateMobile ? "text-red-600 font-semibold" : "text-gray-500"}>

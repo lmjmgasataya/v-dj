@@ -288,9 +288,10 @@ export default async function VgLeaderReportPage() {
   const isLeadPastor = authSession?.role === "lead_pastor";
 
   // An intern who has since become a VG leader in their own right shouldn't
-  // still be reported as an intern by their old VG leader.
+  // still be reported as an intern by their old VG leader. Only leaders with a
+  // claimed portal account count — an unclaimed record may just be a namesake.
   const leaderByName = new Map<string, { id: number; name: string; service: string | null }[]>();
-  for (const l of allLeaders) {
+  for (const l of leaders) {
     const key = `${l.lastName.trim().toLowerCase()}|${l.firstName.trim().toLowerCase()}`;
     const arr = leaderByName.get(key) ?? [];
     arr.push({ id: l.id, name: `${l.lastName}, ${l.firstName}`, service: l.serviceAttending });

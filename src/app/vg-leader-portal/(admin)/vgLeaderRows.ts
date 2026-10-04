@@ -74,14 +74,14 @@ export async function getVgLeaderRows(): Promise<VgLeaderRow[]> {
     const key = normalizeName(l.lastName);
     byLastName.set(key, [...(byLastName.get(key) ?? []), l]);
   }
-  const similarNamesById = new Map<number, string[]>();
+  const similarNamesById = new Map<number, { id: number; name: string }[]>();
   for (const group of byLastName.values()) {
     for (const a of group) {
       for (const b of group) {
         if (a.id !== b.id && areSimilarNames(a, b)) {
           similarNamesById.set(a.id, [
             ...(similarNamesById.get(a.id) ?? []),
-            `${formatPersonName(b.lastName)}, ${formatPersonName(b.firstName)}`,
+            { id: b.id, name: `${formatPersonName(b.lastName)}, ${formatPersonName(b.firstName)}` },
           ]);
         }
       }

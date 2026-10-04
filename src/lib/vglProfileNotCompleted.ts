@@ -47,14 +47,17 @@ const lglLeaders = alias(victoryGroupLeaders, "lgl_leaders");
  * - named as a member by a Leadership Group Leader who completed the update for the
  *   previous or live quarter (e.g. Q3–Q4), regardless of the carry-over setting
  * - named as their VG leader by a Discipleship Journey participant
- * - has a portal account (claimed, or PIN since reset) but the profile is incomplete
+ * - has a claimed portal account (PIN set — a reset PIN doesn't count) but the profile is incomplete
  * - answered a quarterly update collected outside the portal (manual_quarter_responses)
  *   and either their profile is incomplete or there's no leader record for them at all
  */
 export async function getProfileNotCompletedRows(): Promise<ProfileNotCompletedRow[]> {
   const [leaders, accounts, activeGroups, lglMemberRows, participantRows, manualResponses] = await Promise.all([
     db.select().from(victoryGroupLeaders).where(isNull(victoryGroupLeaders.deletedAt)),
-    db.select({ vgLeaderId: users.vgLeaderId }).from(users).where(eq(users.role, "vg_leader")),
+    db
+      .select({ vgLeaderId: users.vgLeaderId })
+      .from(users)
+      .where(and(eq(users.role, "vg_leader"), isNotNull(users.pinHash))),
     db
       .select({ vgLeaderId: victoryGroups.vgLeaderId })
       .from(victoryGroups)

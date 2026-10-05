@@ -90,6 +90,19 @@ export default async function VgLeaderPortalPage() {
             </Link>
           </>
         )}
+        {isDeveloper && (
+          <Link
+            href="/vg-leader-portal/graph"
+            className="relative flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
+          >
+            <span className="absolute top-3 right-3 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 ring-1 ring-amber-200">
+              Beta
+            </span>
+            <span className="text-4xl">🕸️</span>
+            <span className="text-lg font-semibold text-gray-900 text-center">Connections Graph</span>
+            <span className="text-sm text-gray-500 text-center">Zoomable map of VG leaders and who they&apos;re connected to</span>
+          </Link>
+        )}
       </div>
     </div>
   );

@@ -15,8 +15,8 @@ export const metadata: Metadata = {
 
 /**
  * The whole VG leader network as a zoomable graph: leaders, the participants and interns under
- * them, and every link between them. Developer-only and not linked from any nav — reached by
- * typing /vg-leader-portal/graph (also gated in src/proxy.ts).
+ * them, and every link between them. Developer-only (also gated in src/proxy.ts); linked from
+ * the VG Leader Portal hub as a Beta card.
  */
 export default async function ConnectionsGraphPage() {
   const session = await getSession();

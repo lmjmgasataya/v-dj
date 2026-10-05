@@ -2,16 +2,45 @@
 
 import { db } from "@/db";
 import { vgReportSnapshots, vgConvergenceAttendance, leadership113Batches } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { SERVICE_BUCKETS, emptyBucketCounts, type VgSnapshotData, type VgBucketCounts } from "@/lib/vgSnapshot";
 import { computeVgSnapshotCounts } from "@/lib/vgSnapshotCompute";
+import { allDrillLists, reportSnapshotData, type DrillLists, type Side } from "./drillData";
 
 async function requireDeveloper() {
   const session = await getSession();
   if (!session || session.role !== "developer") redirect("/");
+}
+
+/**
+ * The name lists behind every number of one comparison (`a` vs `b`), fetched when a number is
+ * first clicked instead of being sent with the page. `a` is a snapshot id or "live".
+ */
+export async function getDrillLists(a: number | "live", b: number | null): Promise<Record<string, DrillLists>> {
+  await requireDeveloper();
+  const ids = [...(a === "live" ? [] : [a]), ...(b != null ? [b] : [])];
+  const [rows, live] = await Promise.all([
+    ids.length > 0
+      ? db
+          .select({ id: vgReportSnapshots.id, label: vgReportSnapshots.label, data: reportSnapshotData() })
+          .from(vgReportSnapshots)
+          .where(inArray(vgReportSnapshots.id, ids))
+      : Promise.resolve([]),
+    a === "live" ? computeVgSnapshotCounts() : Promise.resolve(null),
+  ]);
+  const side = (id: number | null): Side | null => {
+    const row = rows.find((r) => r.id === id);
+    return row ? { label: row.label, data: row.data as VgSnapshotData } : null;
+  };
+
+  const latest: Side | null = live
+    ? { label: "Live Now", data: { ...live, goals: { vgLeaders: 0, leadershipGroups: 0 } } }
+    : side(a as number);
+  if (!latest) return {};
+  return allDrillLists(latest, side(b));
 }
 
 const MANUAL_FIELDS: (keyof VgBucketCounts)[] = ["vgLeaders", "victoryGroups", "interns", "leadershipGroups"];

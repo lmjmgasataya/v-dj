@@ -2,22 +2,29 @@
 
 import { useState } from "react";
 import { DrillDownTable } from "./DrillDownTable";
+import { DrillLoading, useDrillLists } from "./DrillSource";
 import type { DrillItem } from "@/lib/vgSnapshot";
 
+/**
+ * A number that opens the names behind it. Pass `items` directly, or `lazy` to fetch them from
+ * the surrounding DrillSource when the popup opens (pass `lazy` only when there are names).
+ */
 export function DrillDownValue({
   value,
   items,
+  lazy,
   className,
 }: {
   value: number;
-  items: DrillItem[] | null | undefined;
+  items?: DrillItem[] | null;
+  lazy?: { cellKey: string; side: "detail" | "prevDetail" } | null;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const { lists, error } = useDrillLists(lazy?.cellKey ?? "", open && !!lazy);
+  const shown = lazy ? (lists?.[lazy.side] ?? null) : items;
 
-  if (!items || items.length === 0) {
-    return <span className={className}>{value}</span>;
-  }
+  if (!lazy && !items?.length) return <span className={className}>{value}</span>;
 
   return (
     <>
@@ -36,7 +43,7 @@ export function DrillDownValue({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between shrink-0">
-              <p className="text-sm font-semibold text-gray-800">Total: {items.length}</p>
+              <p className="text-sm font-semibold text-gray-800">Total: {shown?.length ?? value}</p>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
@@ -46,7 +53,7 @@ export function DrillDownValue({
               </button>
             </div>
             <div className="overflow-y-auto">
-              <DrillDownTable items={items} emptyText="No one listed." />
+              {shown ? <DrillDownTable items={shown} emptyText="No one listed." /> : <DrillLoading error={error} />}
             </div>
           </div>
         </div>

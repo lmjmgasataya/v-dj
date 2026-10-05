@@ -165,7 +165,8 @@ export function snapshotItems(
 }
 
 /**
- * Who was added / removed between two snapshots for one metric (items from snapshotItems).
+ * Who was added / removed between two snapshots for one metric (items from snapshotItems),
+ * and who is in both (`kept`, as listed in the latest snapshot).
  * Leaders match by id; Victory Groups by `key` when both sides have one (else by id, for older
  * snapshots); interns by internKey. Counted as multisets, so a name listed twice (an intern in
  * two groups) only cancels out against two listings on the other side. Null when either side
@@ -175,26 +176,33 @@ export function diffSnapshotItems(
   latest: MatchItem[] | null,
   prev: MatchItem[] | null,
   key: keyof VgBucketCounts,
-): { added: DrillItem[]; removed: DrillItem[] } | null {
+): { added: DrillItem[]; removed: DrillItem[]; kept: DrillItem[] } | null {
   if (!latest || !prev) return null;
   const useKeys = [...latest, ...prev].every((i) => i.match != null);
   const matchOf = (i: MatchItem) => (useKeys ? i.match! : i.idMatch);
 
-  // Items on one side beyond how many times the same match appears on the other.
-  function unmatched(side: MatchItem[], other: MatchItem[]): DrillItem[] {
+  // Splits one side into items matched by an item on the other side (each one used at most
+  // once) and items beyond how many times the same match appears there.
+  function split(side: MatchItem[], other: MatchItem[]): { matched: DrillItem[]; unmatched: DrillItem[] } {
     const remaining = new Map<string, number>();
     for (const o of other) remaining.set(matchOf(o), (remaining.get(matchOf(o)) ?? 0) + 1);
-    const out: DrillItem[] = [];
+    const matched: DrillItem[] = [];
+    const unmatched: DrillItem[] = [];
     for (const item of side) {
       const n = remaining.get(matchOf(item)) ?? 0;
-      if (n > 0) remaining.set(matchOf(item), n - 1);
-      else out.push({ label: item.label, service: item.service });
+      const out = { label: item.label, service: item.service };
+      if (n > 0) {
+        remaining.set(matchOf(item), n - 1);
+        matched.push(out);
+      } else unmatched.push(out);
     }
-    return out;
+    return { matched, unmatched };
   }
 
-  let added = unmatched(latest, prev);
-  let removed = unmatched(prev, latest);
+  const latestSplit = split(latest, prev);
+  const kept = latestSplit.matched;
+  let added = latestSplit.unmatched;
+  let removed = split(prev, latest).unmatched;
 
   // The same person under two leader records (a duplicate not merged yet) would otherwise show
   // as both added and removed — pair those off by near-identical name ("Last, First").
@@ -208,12 +216,13 @@ export function diffSnapshotItems(
       const i = stillRemoved.findIndex((r) => areSimilarNames(asName(a.label), asName(r.label)));
       if (i === -1) return true;
       stillRemoved.splice(i, 1);
+      kept.push(a);
       return false;
     });
     removed = stillRemoved;
   }
 
-  return { added, removed };
+  return { added, removed, kept };
 }
 
 export function emptyBucketDetail(): VgBucketDetail {

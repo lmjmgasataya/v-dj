@@ -30,7 +30,8 @@ function ComparisonTable({ kept, added, removed }: { kept: DrillItem[]; added: D
 
   return (
     <table className="w-full text-sm table-fixed">
-      <thead className="sticky top-0 bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+      {/* z-10: keep the sticky header above the shaded Added/Removed cells as they scroll under it. */}
+      <thead className="sticky top-0 z-10 bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
         <tr>
           <th className="w-10 px-3 py-2 text-right font-medium">#</th>
           {columns.map((c) => (

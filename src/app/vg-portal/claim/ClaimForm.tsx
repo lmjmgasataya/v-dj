@@ -10,29 +10,51 @@ type Checked =
   | { matched: false; firstName: string; lastName: string };
 
 function Card({
-  eyebrow = "Victory Iloilo",
   title,
   description,
   banner,
   children,
 }: {
-  eyebrow?: string;
   title: string;
   description: string;
   banner?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-[60vh] flex items-center justify-center">
-      <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 shadow-sm p-8 flex flex-col gap-6">
-        {banner}
-        <div>
-          <p className="text-xs font-medium text-indigo-500 uppercase tracking-widest">{eyebrow}</p>
-          <h2 className="text-xl font-bold text-gray-900 mt-1">{title}</h2>
-          <p className="text-sm text-gray-500 mt-0.5">{description}</p>
+    <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
+      <div className="w-full max-w-sm overflow-hidden bg-white rounded-2xl border border-gray-200 shadow-sm">
+        {/* Colored header so this doesn't read as the main staff login. */}
+        <div className="bg-linear-to-br from-[#00428E] to-indigo-600 px-8 py-5 flex items-center gap-3 text-white">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/25">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6" aria-hidden>
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </span>
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium uppercase tracking-widest text-blue-100">Victory Iloilo</p>
+            <p className="text-lg font-bold leading-tight">VG Leader Portal</p>
+          </div>
+          <span className="ml-auto self-start whitespace-nowrap rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-medium text-blue-50">
+            For VG Leaders
+          </span>
         </div>
-        {children}
+
+        <div className="p-8 flex flex-col gap-6">
+          {banner}
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+            <p className="text-sm text-gray-500 mt-0.5">{description}</p>
+          </div>
+          {children}
+        </div>
       </div>
+
+      <a href="/login" className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2">
+        Not a VG leader? Go to the main login
+      </a>
     </div>
   );
 }
@@ -90,7 +112,7 @@ function NameStep({ onChecked, banner }: { onChecked: (v: Checked) => void; bann
   }, undefined);
 
   return (
-    <Card title="VG Leader Portal" description="Enter your name to access your account." banner={banner}>
+    <Card title="Hi, VG Leader!" description="Enter your first and last name to log in or set up your account — no username needed." banner={banner}>
       <form action={formAction} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">First Name <span className="text-red-500">*</span></label>

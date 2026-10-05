@@ -125,6 +125,28 @@ export function internKey(name: string): string {
     .join(" ");
 }
 
+// Lowercase words that belong to the last name when they come right before it ("Dela Cruz").
+const SURNAME_PARTICLES = new Set(["de", "del", "dela", "la", "las", "delos", "los", "san", "sta", "santa", "sto", "santo", "van", "von"]);
+const NAME_SUFFIX = /^(jr|sr|ii|iii|iv)\.?$/i;
+
+/**
+ * Display an intern name as "Last, First" so lists sort by last name. Form-built snapshots
+ * have free-text names ("Christine Anne De La Cruz"); the last word plus any surname particles
+ * before it is taken as the last name ("De La Cruz, Christine Anne"), and a trailing Jr/Sr/II
+ * stays with the first name. Names that already have a comma, or are one word, are unchanged.
+ */
+export function internLastNameFirst(name: string): string {
+  const trimmed = name.trim().replace(/\s+/g, " ");
+  if (trimmed.includes(",")) return trimmed;
+  const words = trimmed.split(" ");
+  const suffix = words.length > 2 && NAME_SUFFIX.test(words[words.length - 1]) ? words.pop()! : null;
+  if (words.length < 2) return trimmed;
+  let start = words.length - 1;
+  while (start > 1 && SURNAME_PARTICLES.has(words[start - 1].toLowerCase())) start--;
+  const first = [...words.slice(0, start), ...(suffix ? [suffix] : [])].join(" ");
+  return `${words.slice(start).join(" ")}, ${first}`;
+}
+
 /** One name behind a quarterly-report number, with the service it counts under. */
 export type DrillItem = { label: string; service: string };
 
@@ -151,7 +173,7 @@ export function snapshotItems(
   return buckets.flatMap((b): MatchItem[] => {
     const d = data.detailsByService![b];
     if (key === "interns") {
-      return d.interns.map((n) => ({ label: n, service: b, match: internKey(n), idMatch: internKey(n) }));
+      return d.interns.map((n) => ({ label: internLastNameFirst(n), service: b, match: internKey(n), idMatch: internKey(n) }));
     }
     if (key === "victoryGroups") {
       return d.victoryGroups.map((g) => {

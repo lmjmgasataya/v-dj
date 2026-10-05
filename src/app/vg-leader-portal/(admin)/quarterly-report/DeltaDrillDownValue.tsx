@@ -2,11 +2,52 @@
 
 import { useState } from "react";
 import { DrillDownTable } from "./DrillDownTable";
+import { RemarkTag } from "@/components/RemarkTag";
 import { DrillLoading, useDrillLists } from "./DrillSource";
 import type { DrillItem } from "@/lib/vgSnapshot";
 
 type Tab = "added" | "removed" | "all";
 type Status = "kept" | "added" | "removed";
+
+/**
+ * A name that shows why it was added/removed: the leader's report remarks as the same colored
+ * tags as the VG Leaders Report, else the plain fallback reason. Opens on hover or focus, and
+ * on tap for phones. Fixed-positioned so the popup's scroll area doesn't clip it.
+ */
+function NameWithReason({ label, reason, remarks }: { label: string; reason?: string; remarks?: string[] }) {
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  if (!reason && !remarks?.length) return <>{label}</>;
+
+  function show(e: React.SyntheticEvent<HTMLElement>) {
+    const r = e.currentTarget.getBoundingClientRect();
+    setPos({ top: r.bottom + 6, left: Math.max(8, Math.min(r.left, window.innerWidth - 296)) });
+  }
+
+  return (
+    <span
+      tabIndex={0}
+      onMouseEnter={show}
+      onMouseLeave={() => setPos(null)}
+      onFocus={show}
+      onBlur={() => setPos(null)}
+      onClick={(e) => (pos ? setPos(null) : show(e))}
+      className="cursor-help underline decoration-dotted decoration-current/40 underline-offset-2 outline-none"
+    >
+      {label}
+      <span aria-hidden className="ml-1 text-[11px] opacity-60">ⓘ</span>
+      <span className="sr-only"> — {remarks?.join("; ") ?? reason}</span>
+      {pos && (
+        <span
+          role="tooltip"
+          style={{ top: pos.top, left: pos.left }}
+          className="fixed z-60 flex w-max max-w-72 flex-wrap gap-1.5 rounded-lg border border-gray-200 bg-white p-2 text-xs font-normal text-gray-700 shadow-lg"
+        >
+          {remarks?.length ? remarks.map((r) => <RemarkTag key={r} remark={r} />) : reason}
+        </span>
+      )}
+    </span>
+  );
+}
 
 /**
  * Everyone from both snapshots in one A–Z list, one name per row, placed in the column
@@ -49,7 +90,7 @@ function ComparisonTable({ kept, added, removed }: { kept: DrillItem[]; added: D
               <td key={c.status} className={`px-3 py-2 break-words ${c.status === status ? c.cell : ""}`}>
                 {c.status === status && (
                   <>
-                    {item.label}
+                    <NameWithReason label={item.label} reason={item.reason} remarks={item.remarks} />
                     {item.service && <span className="block text-xs opacity-60">{item.service}</span>}
                   </>
                 )}

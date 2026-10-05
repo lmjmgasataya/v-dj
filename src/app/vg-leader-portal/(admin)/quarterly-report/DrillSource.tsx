@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { getDrillLists } from "./actions";
-import type { DrillLists } from "./drillData";
+import type { ShownDrillLists as DrillLists } from "./drillData";
 
 type Load = () => Promise<Record<string, DrillLists>>;
 

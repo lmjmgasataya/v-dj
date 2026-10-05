@@ -147,8 +147,12 @@ export function internLastNameFirst(name: string): string {
   return `${words.slice(start).join(" ")}, ${first}`;
 }
 
-/** One name behind a quarterly-report number, with the service it counts under. */
-export type DrillItem = { label: string; service: string };
+/**
+ * One name behind a quarterly-report number, with the service it counts under. On an added or
+ * removed item, `remarks` are the leader's "Profile Not Yet Completed" remarks (see vglRemarks)
+ * and `reason` is the fallback explanation when there are none.
+ */
+export type DrillItem = { label: string; service: string; reason?: string; remarks?: string[] };
 
 /** A DrillItem plus what identifies it across snapshots (see snapshotItems). */
 export type MatchItem = DrillItem & { match: string | null; idMatch: string };
@@ -198,25 +202,24 @@ export function diffSnapshotItems(
   latest: MatchItem[] | null,
   prev: MatchItem[] | null,
   key: keyof VgBucketCounts,
-): { added: DrillItem[]; removed: DrillItem[]; kept: DrillItem[] } | null {
+): { added: MatchItem[]; removed: MatchItem[]; kept: MatchItem[] } | null {
   if (!latest || !prev) return null;
   const useKeys = [...latest, ...prev].every((i) => i.match != null);
   const matchOf = (i: MatchItem) => (useKeys ? i.match! : i.idMatch);
 
   // Splits one side into items matched by an item on the other side (each one used at most
   // once) and items beyond how many times the same match appears there.
-  function split(side: MatchItem[], other: MatchItem[]): { matched: DrillItem[]; unmatched: DrillItem[] } {
+  function split(side: MatchItem[], other: MatchItem[]): { matched: MatchItem[]; unmatched: MatchItem[] } {
     const remaining = new Map<string, number>();
     for (const o of other) remaining.set(matchOf(o), (remaining.get(matchOf(o)) ?? 0) + 1);
-    const matched: DrillItem[] = [];
-    const unmatched: DrillItem[] = [];
+    const matched: MatchItem[] = [];
+    const unmatched: MatchItem[] = [];
     for (const item of side) {
       const n = remaining.get(matchOf(item)) ?? 0;
-      const out = { label: item.label, service: item.service };
       if (n > 0) {
         remaining.set(matchOf(item), n - 1);
-        matched.push(out);
-      } else unmatched.push(out);
+        matched.push(item);
+      } else unmatched.push(item);
     }
     return { matched, unmatched };
   }

@@ -5,6 +5,7 @@ import {
   snapshotItems,
   diffSnapshotItems,
   type DrillItem,
+  type MatchItem,
   type VgSnapshotData,
   type VgServiceBucket,
 } from "@/lib/vgSnapshot";
@@ -29,10 +30,14 @@ const METRICS: Metric[] = ["vgLeaders", "victoryGroups", "interns", "leadershipG
 export type DrillLists = {
   detail: DrillItem[] | null;
   prevDetail: DrillItem[] | null;
-  added: DrillItem[] | null;
-  removed: DrillItem[] | null;
-  kept: DrillItem[] | null;
+  // MatchItems so drillReasons can look up the record behind each change.
+  added: MatchItem[] | null;
+  removed: MatchItem[] | null;
+  kept: MatchItem[] | null;
 };
+
+/** DrillLists as sent to the popup: plain items (label, service, reason). */
+export type ShownDrillLists = { [K in keyof DrillLists]: DrillItem[] | null };
 
 /**
  * What a cell needs to render without its name lists, which are fetched on click instead:
@@ -44,6 +49,8 @@ export type DrillSummary = {
   hasPrevDetail: boolean;
   change: { added: number; removed: number; kept: number } | null;
 };
+
+export const DRILL_METRICS = METRICS;
 
 export function drillCellKey(bucket: VgServiceBucket | null, metric: Metric) {
   return `${bucket ?? "all"}|${metric}`;

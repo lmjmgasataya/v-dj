@@ -6,9 +6,10 @@ import { eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { SERVICE_BUCKETS, emptyBucketCounts, type VgSnapshotData, type VgBucketCounts } from "@/lib/vgSnapshot";
+import { SERVICE_BUCKETS, emptyBucketCounts, type DrillItem, type VgSnapshotData, type VgBucketCounts } from "@/lib/vgSnapshot";
 import { computeVgSnapshotCounts } from "@/lib/vgSnapshotCompute";
-import { allDrillLists, reportSnapshotData, type DrillLists, type Side } from "./drillData";
+import { allDrillLists, reportSnapshotData, type ShownDrillLists } from "./drillData";
+import { addDrillReasons, type ReasonSide } from "./drillReasons";
 
 async function requireDeveloper() {
   const session = await getSession();
@@ -19,28 +20,47 @@ async function requireDeveloper() {
  * The name lists behind every number of one comparison (`a` vs `b`), fetched when a number is
  * first clicked instead of being sent with the page. `a` is a snapshot id or "live".
  */
-export async function getDrillLists(a: number | "live", b: number | null): Promise<Record<string, DrillLists>> {
+export async function getDrillLists(a: number | "live", b: number | null): Promise<Record<string, ShownDrillLists>> {
   await requireDeveloper();
   const ids = [...(a === "live" ? [] : [a]), ...(b != null ? [b] : [])];
   const [rows, live] = await Promise.all([
     ids.length > 0
       ? db
-          .select({ id: vgReportSnapshots.id, label: vgReportSnapshots.label, data: reportSnapshotData() })
+          .select({
+            id: vgReportSnapshots.id,
+            label: vgReportSnapshots.label,
+            asOfDate: vgReportSnapshots.asOfDate,
+            data: reportSnapshotData(),
+          })
           .from(vgReportSnapshots)
           .where(inArray(vgReportSnapshots.id, ids))
       : Promise.resolve([]),
     a === "live" ? computeVgSnapshotCounts() : Promise.resolve(null),
   ]);
-  const side = (id: number | null): Side | null => {
+  const side = (id: number | null): ReasonSide | null => {
     const row = rows.find((r) => r.id === id);
-    return row ? { label: row.label, data: row.data as VgSnapshotData } : null;
+    if (!row) return null;
+    const data = row.data as VgSnapshotData;
+    // End of the as-of day in Manila, so records created that day count as "before".
+    return { label: row.label, data, isLive: false, asOfDate: new Date(`${row.asOfDate}T23:59:59+08:00`), source: data.source };
   };
 
-  const latest: Side | null = live
-    ? { label: "Live Now", data: { ...live, goals: { vgLeaders: 0, leadershipGroups: 0 } } }
+  const latest: ReasonSide | null = live
+    ? { label: "Live Now", data: { ...live, goals: { vgLeaders: 0, leadershipGroups: 0 } }, isLive: true, asOfDate: new Date() }
     : side(a as number);
   if (!latest) return {};
-  return allDrillLists(latest, side(b));
+  const previous = side(b);
+  const lists = allDrillLists(latest, previous);
+  await addDrillReasons(lists, latest, previous);
+
+  // Drop the matching keys — the popup only shows label, service and reason.
+  const shown = (items: DrillItem[] | null) => items?.map(({ label, service, reason, remarks }) => ({ label, service, reason, remarks })) ?? null;
+  return Object.fromEntries(
+    Object.entries(lists).map(([k, l]) => [
+      k,
+      { detail: shown(l.detail), prevDetail: shown(l.prevDetail), added: shown(l.added), removed: shown(l.removed), kept: shown(l.kept) },
+    ]),
+  );
 }
 
 const MANUAL_FIELDS: (keyof VgBucketCounts)[] = ["vgLeaders", "victoryGroups", "interns", "leadershipGroups"];

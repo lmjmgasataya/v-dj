@@ -194,7 +194,12 @@ function GroupForm({
       </div>
       {groupType === "victory_group" && (
         <div className="sm:col-span-2">
-          <label className="block text-xs font-medium text-gray-700 mb-1">Interns</label>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Interns
+            {internRows.length > 0 && (
+              <span className="ml-1 font-normal text-gray-400">— first and last name are both required</span>
+            )}
+          </label>
           <div className="flex flex-col gap-2">
             {internRows.map((row, i) => (
               <div key={i} className="flex items-center gap-2">
@@ -202,14 +207,16 @@ function GroupForm({
                   name={`intern_${i}_lastName`}
                   value={row.lastName}
                   onChange={(e) => updateInternRow(i, "lastName", e.target.value)}
-                  placeholder="Last Name"
+                  required
+                  placeholder="Last Name *"
                   className={fieldCls}
                 />
                 <input
                   name={`intern_${i}_firstName`}
                   value={row.firstName}
                   onChange={(e) => updateInternRow(i, "firstName", e.target.value)}
-                  placeholder="First Name"
+                  required
+                  placeholder="First Name *"
                   className={fieldCls}
                 />
                 <button

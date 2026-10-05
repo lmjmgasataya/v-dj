@@ -15,7 +15,7 @@ const DEVELOPER_ONLY = [
   /^\/api\/participants/,
   /^\/sessions\/new/,
   /^\/sessions\/\d+\/edit/,
-  /^\/vg-leader-portal\/(leaders|disciplers|interns|vgl-report|vg-report|quarterly-report|discipleship-journey-report)/,
+  /^\/vg-leader-portal\/(leaders|disciplers|interns|vgl-report|vg-report|quarterly-report|discipleship-journey-report|graph)/,
   /^\/event-registration\/events\/new/,
   /^\/event-registration\/events\/\d+\/edit/,
   /^\/event-registration\/sms-reminder/,

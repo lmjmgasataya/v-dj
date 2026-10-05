@@ -119,7 +119,9 @@ function GroupForm({
     <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 p-4 bg-indigo-50 rounded-lg border border-indigo-100">
       <input type="hidden" name="type" value={groupType} />
       <div className="sm:col-span-2">
-        <label className="block text-xs font-medium text-gray-700 mb-1">Name</label>
+        <label className="block text-xs font-medium text-gray-700 mb-1">
+          {groupType === "victory_group" ? "Victory Group Name" : "Leadership Group Name"}
+        </label>
         <input
           name="name"
           defaultValue={defaultValues?.name ?? ""}

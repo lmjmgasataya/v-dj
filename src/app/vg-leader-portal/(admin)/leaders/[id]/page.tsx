@@ -28,6 +28,81 @@ function Row({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
+type ConnectionLink = { id: number; label: string; href: string };
+type ConnectionBranch = { label: string; links: ConnectionLink[] };
+
+// Branches with more names than this start collapsed.
+const OPEN_BRANCH_MAX = 8;
+
+// Tree lines: each child list draws a vertical rule, each item a short elbow into it.
+const treeList = "ml-2 border-l border-gray-300 pl-4 flex flex-col gap-1";
+const treeItem = "relative before:absolute before:-left-4 before:top-2.5 before:w-3 before:border-t before:border-gray-300";
+
+function NodeLink({ link }: { link: ConnectionLink }) {
+  return (
+    <Link href={link.href} className="text-indigo-600 hover:text-indigo-800 hover:underline">
+      {link.label}
+    </Link>
+  );
+}
+
+/**
+ * Who this leader is connected to, as a tree: the people above them (their Leadership Group
+ * Leader and VG Leader), the leader themself, then one branch per kind of connection below.
+ */
+function ConnectionsTree({ name, above, below }: { name: string; above: ConnectionBranch[]; below: ConnectionBranch[] }) {
+  return (
+    <div className="flex flex-col gap-1 text-xs">
+      {above.length > 0 && (
+        <ul className="flex flex-col gap-1">
+          {above.map((p) => (
+            <li key={p.label} className="flex flex-wrap items-baseline gap-x-1.5">
+              <span className="text-gray-500">{p.label}:</span>
+              {p.links.map((l, i) => (
+                <span key={l.id}>
+                  {i > 0 && <span className="text-gray-400">, </span>}
+                  <NodeLink link={l} />
+                </span>
+              ))}
+            </li>
+          ))}
+        </ul>
+      )}
+      {above.length > 0 && <span aria-hidden className="ml-2 h-3 border-l border-gray-300" />}
+
+      <p>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-2.5 py-0.5 font-semibold text-white">
+          {name}
+        </span>
+      </p>
+
+      {below.length > 0 ? (
+        <ul className={`${treeList} mt-1`}>
+          {below.map((c) => (
+            <li key={c.label} className={treeItem}>
+              <details open={c.links.length <= OPEN_BRANCH_MAX} className="group">
+                <summary className="cursor-pointer select-none list-none font-medium text-gray-700 hover:text-gray-900">
+                  <span className="inline-block w-3 text-gray-400 transition group-open:rotate-90">›</span>
+                  {c.label} <span className="font-normal text-gray-400">({c.links.length})</span>
+                </summary>
+                <ul className={`${treeList} mt-1 mb-1`}>
+                  {c.links.map((l) => (
+                    <li key={l.id} className={treeItem}>
+                      <NodeLink link={l} />
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="ml-2 text-gray-400">No one below them.</p>
+      )}
+    </div>
+  );
+}
+
 export default async function VGLeaderProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const leaderId = parseInt(id, 10);
@@ -103,16 +178,20 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
     label: `${p.lastName}, ${p.firstName}`,
     href: `/participants/${p.id}/edit`,
   });
-  const connections = [
+  // Above them in the tree.
+  const parentConnections: ConnectionBranch[] = [
+    { label: "Their Leadership Group Leader", links: ledByLgls.map(toLeaderLink) },
     {
       label: "Their VG Leader",
       links: leader.ownVgLeaderId
         ? [{ id: leader.ownVgLeaderId, label: leader.ownVgLeaderName || `#${leader.ownVgLeaderId}`, href: `/vg-leader-portal/leaders/${leader.ownVgLeaderId}` }]
         : [],
     },
-    { label: "Their Leadership Group Leader", links: ledByLgls.map(toLeaderLink) },
-    { label: "VG Leaders who named them as their VG Leader", links: vglsUnderThem.map(toLeaderLink) },
+  ].filter((c) => c.links.length > 0);
+  // Below them — the ones that can be moved onto a duplicate record (MoveConnectionsButton).
+  const childConnections: ConnectionBranch[] = [
     { label: "VG Leaders they lead (Leadership Group)", links: lglMembers.map(toLeaderLink) },
+    { label: "VG Leaders who named them as their VG Leader", links: vglsUnderThem.map(toLeaderLink) },
     { label: "Participants (as VG Leader)", links: vgParticipants.map(toParticipantLink) },
     { label: "Participants (as Discipler)", links: discipledParticipants.map(toParticipantLink) },
   ].filter((c) => c.links.length > 0);
@@ -132,7 +211,7 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
       ),
     );
   const moveTargets = leader.deletedAt ? [] : claimedCompleted.filter((l) => areSimilarNames(leader, l));
-  const hasMovableConnections = connections.some((c) => c.label !== "Their VG Leader");
+  const hasMovableConnections = childConnections.length > 0 || ledByLgls.length > 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -185,26 +264,14 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
         </div>
         <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div className="min-w-0">
-          {connections.length === 0 ? (
+          {parentConnections.length === 0 && childConnections.length === 0 ? (
             <p>Not connected to any participant or VG leader.</p>
           ) : (
-            <dl className="flex flex-col gap-1">
-              {connections.map((c) => (
-                <div key={c.label}>
-                  <dt className="inline font-medium text-gray-700">{c.label} ({c.links.length}): </dt>
-                  <dd className="inline">
-                    {c.links.map((l, i) => (
-                      <span key={l.id}>
-                        {i > 0 && "; "}
-                        <Link href={l.href} className="text-indigo-600 hover:text-indigo-800 hover:underline">
-                          {l.label}
-                        </Link>
-                      </span>
-                    ))}
-                  </dd>
-                </div>
-              ))}
-            </dl>
+            <ConnectionsTree
+              name={`${leader.lastName}, ${leader.firstName}`}
+              above={parentConnections}
+              below={childConnections}
+            />
           )}
           </div>
           {hasMovableConnections && moveTargets.length > 0 && (

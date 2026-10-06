@@ -1,0 +1,1 @@
+ALTER TABLE "vg_report_snapshots" ADD COLUMN "is_delete_protected" boolean DEFAULT false NOT NULL;

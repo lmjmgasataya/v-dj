@@ -327,6 +327,8 @@ export const vgReportSnapshots = pgTable("vg_report_snapshots", {
   label: text("label").notNull(),
   asOfDate: date("as_of_date").notNull(),
   data: jsonb("data").notNull(),
+  // When on, the snapshot can't be deleted until it's turned off again.
+  isDeleteProtected: boolean("is_delete_protected").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [unique().on(t.label)]);
 

@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { createVgReportSnapshot, updateVgReportSnapshot, deleteVgReportSnapshot } from "./actions";
+import {
+  createVgReportSnapshot,
+  updateVgReportSnapshot,
+  deleteVgReportSnapshot,
+  setVgReportSnapshotDeleteProtection,
+} from "./actions";
 import { inputCls } from "@/components/form";
 import { SERVICE_BUCKETS, type VgSnapshotData, type VgBucketCounts } from "@/lib/vgSnapshot";
 import type { VgReportSnapshot } from "@/db/schema";
@@ -242,8 +247,18 @@ export function SnapshotListItem({ snapshot, canEdit }: { snapshot: VgReportSnap
   function handleDelete() {
     if (!confirm(`Delete snapshot "${snapshot.label}"?`)) return;
     startTransition(async () => {
-      await deleteVgReportSnapshot(snapshot.id);
-      toast.show("Snapshot deleted.", "success");
+      const result = await deleteVgReportSnapshot(snapshot.id);
+      if (result?.error) toast.show(result.error, "error");
+      else toast.show("Snapshot deleted.", "success");
+    });
+  }
+
+  function handleToggleProtection() {
+    const next = !snapshot.isDeleteProtected;
+    if (!next && !confirm(`Turn off delete protection for "${snapshot.label}"? It can then be deleted.`)) return;
+    startTransition(async () => {
+      await setVgReportSnapshotDeleteProtection(snapshot.id, next);
+      toast.show(next ? "Delete protection on." : "Delete protection off.", "success");
     });
   }
 
@@ -261,6 +276,9 @@ export function SnapshotListItem({ snapshot, canEdit }: { snapshot: VgReportSnap
           )}
           {source === "form" && (
             <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">From form</span>
+          )}
+          {snapshot.isDeleteProtected && (
+            <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">Protected</span>
           )}
         </div>
         <p className="text-xs text-gray-500">As of {snapshot.asOfDate}</p>
@@ -282,12 +300,21 @@ export function SnapshotListItem({ snapshot, canEdit }: { snapshot: VgReportSnap
             </button>
           )}
           <button
-            onClick={handleDelete}
+            onClick={handleToggleProtection}
             disabled={pending}
-            className="text-xs text-red-500 hover:text-red-700 underline disabled:opacity-50"
+            className="text-xs text-gray-600 hover:text-gray-900 font-medium underline disabled:opacity-50"
           >
-            {pending ? "Deleting..." : "Delete"}
+            {snapshot.isDeleteProtected ? "Unprotect" : "Protect"}
           </button>
+          {!snapshot.isDeleteProtected && (
+            <button
+              onClick={handleDelete}
+              disabled={pending}
+              className="text-xs text-red-500 hover:text-red-700 underline disabled:opacity-50"
+            >
+              {pending ? "Deleting..." : "Delete"}
+            </button>
+          )}
         </div>
       )}
     </div>

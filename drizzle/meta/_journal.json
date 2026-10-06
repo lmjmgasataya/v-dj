@@ -372,6 +372,13 @@
       "when": 1790916507814,
       "tag": "0052_manual_quarter_responses_service",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1791260793576,
+      "tag": "0053_snapshot_delete_protection",
+      "breakpoints": true
     }
   ]
 }

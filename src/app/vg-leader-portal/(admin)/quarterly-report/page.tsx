@@ -299,6 +299,7 @@ export default async function QuarterlyReportPage({
         id: vgReportSnapshots.id,
         label: vgReportSnapshots.label,
         asOfDate: vgReportSnapshots.asOfDate,
+        isDeleteProtected: vgReportSnapshots.isDeleteProtected,
         createdAt: vgReportSnapshots.createdAt,
         data: sql<unknown>`${vgReportSnapshots.data} - 'detailsByService' - 'totalsDetail' - 'leaderRows' - 'quarterlyUpdateStatus'`,
       })

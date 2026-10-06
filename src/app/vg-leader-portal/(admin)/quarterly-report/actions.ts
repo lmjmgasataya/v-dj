@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { vgReportSnapshots, vgConvergenceAttendance, leadership113Batches } from "@/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -142,9 +142,19 @@ export async function updateVgReportSnapshot(id: number, formData: FormData) {
   revalidatePath("/vg-leader-portal/quarterly-report");
 }
 
-export async function deleteVgReportSnapshot(id: number) {
+export async function deleteVgReportSnapshot(id: number): Promise<{ error: string } | undefined> {
   await requireDeveloper();
-  await db.delete(vgReportSnapshots).where(eq(vgReportSnapshots.id, id));
+  const deleted = await db
+    .delete(vgReportSnapshots)
+    .where(and(eq(vgReportSnapshots.id, id), eq(vgReportSnapshots.isDeleteProtected, false)))
+    .returning({ id: vgReportSnapshots.id });
+  revalidatePath("/vg-leader-portal/quarterly-report");
+  if (deleted.length === 0) return { error: "This snapshot is delete-protected — turn off protection first." };
+}
+
+export async function setVgReportSnapshotDeleteProtection(id: number, isDeleteProtected: boolean) {
+  await requireDeveloper();
+  await db.update(vgReportSnapshots).set({ isDeleteProtected }).where(eq(vgReportSnapshots.id, id));
   revalidatePath("/vg-leader-portal/quarterly-report");
 }
 

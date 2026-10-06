@@ -17,14 +17,14 @@ npm run lint         # ESLint
 # Database
 npm run db:generate  # Generate Drizzle migration files from schema changes
 npm run db:migrate   # Apply pending migrations (uses DATABASE_URL_UNPOOLED)
-npm run db:push      # Push schema directly without migration files (dev only)
+npm run db:push      # Push schema directly without migration files — don't use; use db:generate + db:migrate
 npm run db:studio    # Open Drizzle Studio GUI
 npm run db:seed      # Seed database (loads .env.local automatically)
 ```
 
 There are no tests configured in this project.
 
-The database is hosted on Supabase (not a local Docker Postgres) — `DATABASE_URL`/`DATABASE_URL_UNPOOLED` in `.env.local` point at it directly. Don't check for or start a local Docker Postgres container. To apply schema changes, run `npm run db:push` (it targets Supabase directly); don't assume `docker compose` is running.
+The database is hosted on Supabase (not a local Docker Postgres) — `DATABASE_URL`/`DATABASE_URL_UNPOOLED` in `.env.local` point at it directly. Don't check for or start a local Docker Postgres container. To apply schema changes, run `npm run db:generate` to create the migration file in `drizzle/`, review the SQL, then `npm run db:migrate` (it targets Supabase directly). Don't use `npm run db:push`. Don't assume `docker compose` is running.
 
 ### Database backup
 

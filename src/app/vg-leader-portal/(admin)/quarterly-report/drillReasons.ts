@@ -9,6 +9,7 @@ import {
   type VgServiceBucket,
 } from "@/lib/vgSnapshot";
 import { isQuarterlyActive } from "@/lib/vgLeaderStatus";
+import { computeProfileProgress } from "@/lib/profileCompleteness";
 import { normalizeName } from "@/lib/vgLeaderMatch";
 import { getProfileNotCompletedRows } from "@/lib/vglProfileNotCompleted";
 import { REMARK } from "@/lib/vglRemarks";
@@ -47,6 +48,14 @@ export async function addDrillReasons(lists: Record<string, DrillLists>, latest:
         updatedAt: victoryGroupLeaders.updatedAt,
         createdAt: victoryGroupLeaders.createdAt,
         deletedAt: victoryGroupLeaders.deletedAt,
+        nickname: victoryGroupLeaders.nickname,
+        mobileNumber: victoryGroupLeaders.mobileNumber,
+        age: victoryGroupLeaders.age,
+        gender: victoryGroupLeaders.gender,
+        lifestage: victoryGroupLeaders.lifestage,
+        facebookMessengerName: victoryGroupLeaders.facebookMessengerName,
+        ownVgLeaderName: victoryGroupLeaders.ownVgLeaderName,
+        startedLeadingVg: victoryGroupLeaders.startedLeadingVg,
       })
       .from(victoryGroupLeaders),
     db
@@ -90,7 +99,9 @@ export async function addDrillReasons(lists: Record<string, DrillLists>, latest:
   const leaders = new Map(leaderRows.map((l) => [l.id, l]));
   const groups = new Map(groupRows.map((g) => [g.id, g]));
   const groupsOfLeader = new Map<number, typeof groupRows>();
+  const groupsByLeaderAnyType = new Map<number, typeof groupRows>();
   for (const g of groupRows) {
+    groupsByLeaderAnyType.set(g.vgLeaderId, [...(groupsByLeaderAnyType.get(g.vgLeaderId) ?? []), g]);
     if (g.type !== "victory_group") continue;
     groupsOfLeader.set(g.vgLeaderId, [...(groupsOfLeader.get(g.vgLeaderId) ?? []), g]);
   }
@@ -125,6 +136,9 @@ export async function addDrillReasons(lists: Record<string, DrillLists>, latest:
     } else {
       if (!l.isActive) return `${today}Marked as not active`;
       if (!isQuarterlyActive(l.updatedAt)) return `${today}Profile not updated in the last 90 days (last update ${fmt(l.updatedAt)})`;
+      const hasActiveGroup = (groupsByLeaderAnyType.get(l.id) ?? []).some((g) => !g.deletedAt && g.isActive);
+      const { percent, missing } = computeProfileProgress(l, hasActiveGroup);
+      if (percent !== 100) return `${today}Profile incomplete (missing: ${missing.join(", ")})`;
     }
     return latest.isLive ? "Reason unknown" : `Counted again today (changed after ${latest.label})`;
   }

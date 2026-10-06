@@ -31,7 +31,8 @@ export function isInternSet(intern: string | null): boolean {
  * each count (for report drill-down). A VG leader is a Leadership Group Leader when they've
  * self-declared it (`isLeadershipGroupLeader`) — bucketed by their own service, not their members'.
  * A VG leader counts as active for this report when they're currently leading a Victory Group
- * (`isActive`) and have updated their profile within the last quarter (`isQuarterlyActive`).
+ * (`isActive`), have updated their profile within the last quarter (`isQuarterlyActive`), and
+ * their profile is 100% complete (`computeProfileProgress`).
  */
 export async function computeVgSnapshotCounts(): Promise<
   Pick<
@@ -143,8 +144,10 @@ export async function computeVgSnapshotCounts(): Promise<
     }
   }
 
-  // VG Leaders / gender — active means currently leading a Victory Group and having
-  // updated their profile within the last quarter.
+  const activeGroupIds = new Set(activeGroupsAnyType.map((g) => g.vgLeaderId));
+
+  // VG Leaders / gender — active means currently leading a Victory Group, having
+  // updated their profile within the last quarter, and a 100%-complete profile.
   const vglByGender: Record<VgServiceBucket, { male: number; female: number }> = {
     "9AM & 11AM": { male: 0, female: 0 },
     "2PM & 4PM": { male: 0, female: 0 },
@@ -155,6 +158,7 @@ export async function computeVgSnapshotCounts(): Promise<
   for (const leader of leaders) {
     if (!leader.isActive) continue;
     if (!isQuarterlyActive(leader.updatedAt)) continue;
+    if (computeProfileProgress(leader, activeGroupIds.has(leader.id)).percent !== 100) continue;
     const bucket = serviceToBucket(leader.serviceAttending);
     if (!bucket) continue;
 
@@ -193,7 +197,6 @@ export async function computeVgSnapshotCounts(): Promise<
   // Profile update status for the currently-live quarter, frozen at snapshot-save
   // time — scoped to claimed portal accounts, since only they can log in and update.
   const claimedIds = new Set(claimedAccounts.map((a) => a.vgLeaderId));
-  const activeGroupIds = new Set(activeGroupsAnyType.map((g) => g.vgLeaderId));
   const liveQuarter = getLiveQuarter();
   let quarterlyUpdateStatus: VgSnapshotData["quarterlyUpdateStatus"];
   if (liveQuarter) {
@@ -292,7 +295,7 @@ export async function computeLeadPastorLiveCounts(
 ): Promise<{ counts: VgBucketCounts; detail: VgBucketDetail; genderCounts: { male: number; female: number } }> {
   const inBucket = (service: string | null) => !!service && rawServiceValuesForBucket.includes(service);
 
-  const [leaders, groups, internRows] = await Promise.all([
+  const [leaders, groups, internRows, activeGroupsAnyType] = await Promise.all([
     db
       .select({
         id: victoryGroupLeaders.id,
@@ -303,6 +306,13 @@ export async function computeLeadPastorLiveCounts(
         isLeadershipGroupLeader: victoryGroupLeaders.isLeadershipGroupLeader,
         isActive: victoryGroupLeaders.isActive,
         updatedAt: victoryGroupLeaders.updatedAt,
+        nickname: victoryGroupLeaders.nickname,
+        mobileNumber: victoryGroupLeaders.mobileNumber,
+        age: victoryGroupLeaders.age,
+        lifestage: victoryGroupLeaders.lifestage,
+        facebookMessengerName: victoryGroupLeaders.facebookMessengerName,
+        ownVgLeaderName: victoryGroupLeaders.ownVgLeaderName,
+        startedLeadingVg: victoryGroupLeaders.startedLeadingVg,
       })
       .from(victoryGroupLeaders)
       .where(isNull(victoryGroupLeaders.deletedAt)),
@@ -320,6 +330,10 @@ export async function computeLeadPastorLiveCounts(
       .select({ victoryGroupId: interns.victoryGroupId, lastName: interns.lastName, firstName: interns.firstName })
       .from(interns)
       .where(isNull(interns.deletedAt)),
+    db
+      .select({ vgLeaderId: victoryGroups.vgLeaderId })
+      .from(victoryGroups)
+      .where(and(isNull(victoryGroups.deletedAt), eq(victoryGroups.isActive, true))),
   ]);
 
   const leaderById = new Map(leaders.map((l) => [l.id, l]));
@@ -334,6 +348,7 @@ export async function computeLeadPastorLiveCounts(
     list.push({ lastName: i.lastName, firstName: i.firstName });
     internsByGroup.set(i.victoryGroupId, list);
   }
+  const activeGroupIds = new Set(activeGroupsAnyType.map((g) => g.vgLeaderId));
 
   const counts = emptyBucketCounts();
   const detail = emptyBucketDetail();
@@ -356,6 +371,7 @@ export async function computeLeadPastorLiveCounts(
   for (const leader of leaders) {
     if (!leader.isActive) continue;
     if (!isQuarterlyActive(leader.updatedAt)) continue;
+    if (computeProfileProgress(leader, activeGroupIds.has(leader.id)).percent !== 100) continue;
     if (!inBucket(leader.serviceAttending)) continue;
 
     counts.vgLeaders += 1;

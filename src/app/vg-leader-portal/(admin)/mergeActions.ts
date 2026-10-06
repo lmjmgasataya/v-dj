@@ -16,6 +16,7 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { toastRedirectBack } from "@/lib/toast";
 import { areSimilarNames } from "@/lib/vgLeaderMatch";
+import { recomputeProfileCompleted } from "@/lib/vgLeaderProfile";
 
 async function requireDeveloper() {
   const session = await getSession();
@@ -137,6 +138,8 @@ export async function moveVgLeaderConnections(fromId: number, toId: number): Pro
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Couldn't move the connections." };
   }
+  // The target's own VG leader name may have been cleared above.
+  await recomputeProfileCompleted(toId);
 
   revalidatePath("/vg-leader-portal/leaders");
   await toastRedirectBack("Connections moved.");
@@ -168,7 +171,6 @@ export async function mergeVgLeaders(keepId: number, dropId: number): Promise<{ 
     }
     patch.isLeadershipGroupLeader = keep.isLeadershipGroupLeader || drop.isLeadershipGroupLeader;
     patch.isActive = keep.isActive || drop.isActive;
-    patch.profileCompleted = keep.profileCompleted || drop.profileCompleted;
     if (Object.keys(patch).length > 0) {
       patch.updatedAt = new Date();
       await tx.update(victoryGroupLeaders).set(patch).where(eq(victoryGroupLeaders.id, keepId));
@@ -229,6 +231,8 @@ export async function mergeVgLeaders(keepId: number, dropId: number): Promise<{ 
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Couldn't merge these records." };
   }
+  // The kept record's fields and groups changed — derive completeness from them, not the old flags.
+  await recomputeProfileCompleted(keepId);
 
   revalidatePath("/vg-leader-portal/leaders");
   revalidatePath("/vg-leader-portal/disciplers");

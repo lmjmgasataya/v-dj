@@ -5,6 +5,7 @@ import { victoryGroups, type dayOfWeekEnum, type vgFrequencyEnum, type lifestage
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { replaceGroupInterns } from "@/lib/interns";
+import { recomputeProfileCompleted } from "@/lib/vgLeaderProfile";
 
 type Day = (typeof dayOfWeekEnum.enumValues)[number];
 type Frequency = (typeof vgFrequencyEnum.enumValues)[number];
@@ -44,6 +45,7 @@ export async function addVictoryGroup(vgLeaderId: number, formData: FormData) {
     })
     .returning({ id: victoryGroups.id });
   await replaceGroupInterns(group.id, formData);
+  await recomputeProfileCompleted(vgLeaderId);
   revalidatePath(`/vg-leader-portal/leaders/${vgLeaderId}/edit`);
 }
 
@@ -69,5 +71,6 @@ export async function deleteVictoryGroup(id: number, vgLeaderId: number) {
     .update(victoryGroups)
     .set({ deletedAt: new Date() })
     .where(eq(victoryGroups.id, id));
+  await recomputeProfileCompleted(vgLeaderId);
   revalidatePath(`/vg-leader-portal/leaders/${vgLeaderId}/edit`);
 }

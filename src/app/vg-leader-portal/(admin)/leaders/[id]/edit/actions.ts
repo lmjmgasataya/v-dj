@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { toastRedirect } from "@/lib/toast";
 import { toTitleCase } from "@/lib/text";
 import { resolveOwnVgLeader } from "@/lib/ownVgLeader";
+import { recomputeProfileCompleted } from "@/lib/vgLeaderProfile";
 import { resolveLeadershipGroupMembers, replaceLeadershipGroupMembers } from "@/lib/leadershipGroupMembers";
 import { MOBILE_NUMBER_REGEX } from "@/lib/phone";
 import { parseLeadership113 } from "@/lib/leadership113";
@@ -44,6 +45,7 @@ export async function updateVGLeader(id: number, formData: FormData) {
     .where(eq(victoryGroupLeaders.id, id));
 
   await replaceLeadershipGroupMembers(id, memberIds);
+  await recomputeProfileCompleted(id);
 
   toastRedirect("/vg-leader-portal/leaders", "VG leader updated.");
 }

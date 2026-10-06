@@ -44,7 +44,7 @@ export default async function VgLeaderPortalPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {isDeveloper && (
+        {canViewReports && (
           <Link
             href="/vg-leader-portal/leaders"
             className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"

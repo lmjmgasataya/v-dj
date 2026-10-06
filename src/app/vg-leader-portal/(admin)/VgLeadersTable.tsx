@@ -60,7 +60,16 @@ function sortIcon(col: SortKey, currentSort: SortKey, currentDir: SortDir) {
   return currentDir === "asc" ? " ↑" : " ↓";
 }
 
-export function VgLeadersTable({ rows, enableMerge }: { rows: VgLeaderRow[]; enableMerge?: boolean }) {
+export function VgLeadersTable({
+  rows,
+  enableMerge,
+  canEdit,
+}: {
+  rows: VgLeaderRow[];
+  enableMerge?: boolean;
+  /** Off for lead_pastor: read-only list, no Reset PIN / Edit / Merge. */
+  canEdit: boolean;
+}) {
   const [q, setQ] = useState("");
   const [profileFilter, setProfileFilter] = useState<ProfileFilter>("all");
   const [serviceFilter, setServiceFilter] = useState("");
@@ -68,6 +77,7 @@ export function VgLeadersTable({ rows, enableMerge }: { rows: VgLeaderRow[]; ena
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [selected, setSelected] = useState<number[]>([]);
   const [merging, setMerging] = useState(false);
+  const showMerge = enableMerge && canEdit;
 
   function toggleSelected(id: number) {
     setSelected((prev) => {
@@ -134,7 +144,7 @@ export function VgLeadersTable({ rows, enableMerge }: { rows: VgLeaderRow[]; ena
             <option key={ts} value={ts}>{ts}</option>
           ))}
         </select>
-        {enableMerge && selected.length === 2 && (
+        {showMerge && selected.length === 2 && (
           <button
             type="button"
             onClick={() => setMerging(true)}
@@ -165,7 +175,7 @@ export function VgLeadersTable({ rows, enableMerge }: { rows: VgLeaderRow[]; ena
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
               <tr>
-                {enableMerge && <th className="px-4 py-2 w-8" />}
+                {showMerge && <th className="px-4 py-2 w-8" />}
                 {SORT_COLUMNS.map((col) => (
                   <th key={col.key} className="px-4 py-2 text-left font-medium">
                     <button
@@ -180,13 +190,13 @@ export function VgLeadersTable({ rows, enableMerge }: { rows: VgLeaderRow[]; ena
                     </button>
                   </th>
                 ))}
-                <th className="px-4 py-2" />
+                {canEdit && <th className="px-4 py-2" />}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {sorted.map((l) => (
                 <tr key={l.id} className="hover:bg-gray-50">
-                  {enableMerge && (
+                  {showMerge && (
                     <td className="px-4 py-2.5">
                       <input
                         type="checkbox"
@@ -262,8 +272,9 @@ export function VgLeadersTable({ rows, enableMerge }: { rows: VgLeaderRow[]; ena
                   </td>
                   <td className="px-4 py-2.5 text-gray-500">{l.activeGroups}</td>
                   <td className="px-4 py-2.5">
-                    <ParticipantsCell participants={l.participants} />
+                    <ParticipantsCell participants={l.participants} linkToEdit={canEdit} />
                   </td>
+                  {canEdit && (
                   <td className="px-4 py-2.5 text-right">
                     <div className="flex items-center justify-end gap-3">
                       {l.claimed && l.accountId != null && (
@@ -296,6 +307,7 @@ export function VgLeadersTable({ rows, enableMerge }: { rows: VgLeaderRow[]; ena
                       </Link>
                     </div>
                   </td>
+                  )}
                 </tr>
               ))}
             </tbody>

@@ -1,9 +1,11 @@
 import { getVgLeaderRows } from "../vgLeaderRows";
 import { VgLeadersTable } from "../VgLeadersTable";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { getSession } from "@/lib/auth";
 
 export default async function DisciplersListPage() {
-  const rows = await getVgLeaderRows();
+  const [rows, session] = await Promise.all([getVgLeaderRows(), getSession()]);
+  const isDeveloper = session?.role === "developer";
   const disciplers = rows.filter((l) => !l.claimed);
 
   return (
@@ -14,7 +16,7 @@ export default async function DisciplersListPage() {
           <h3 className="font-semibold text-gray-800">Disciplers</h3>
           <span className="text-xs text-gray-400">{disciplers.length}</span>
         </div>
-        <VgLeadersTable rows={disciplers} enableMerge />
+        <VgLeadersTable rows={disciplers} enableMerge canEdit={isDeveloper} />
       </div>
     </div>
   );

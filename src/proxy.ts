@@ -46,6 +46,11 @@ const LEAD_PASTOR_ALLOWED = [
   /^\/report(\/.*)?$/,
   /^\/api\/report/,
   /^\/vg-leader-portal$/,
+  // Read-only lists + leader profile (no edit / deleted pages); the pages hide the actions.
+  /^\/vg-leader-portal\/leaders$/,
+  /^\/vg-leader-portal\/leaders\/\d+$/,
+  /^\/vg-leader-portal\/disciplers$/,
+  /^\/vg-leader-portal\/interns$/,
   /^\/vg-leader-portal\/vgl-report/,
   /^\/vg-leader-portal\/vg-report/,
   /^\/vg-leader-portal\/quarterly-report/,

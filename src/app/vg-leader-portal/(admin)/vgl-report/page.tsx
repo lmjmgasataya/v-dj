@@ -68,7 +68,6 @@ export default async function VgLeaderReportPage() {
   const lockedServiceRawValues =
     authSession?.role === "lead_pastor" ? rawServiceValues(authSession?.timeService) : undefined;
 
-  const isDeveloper = authSession?.role === "developer";
 
   const [allLeaders, vgLeaderAccounts, activeGroups, lglMemberRows, internRows, quarterOptions, notCompletedRows] = await Promise.all([
     db
@@ -119,7 +118,8 @@ export default async function VgLeaderReportPage() {
       .where(and(isNull(interns.deletedAt), isNull(victoryGroups.deletedAt), isNull(victoryGroupLeaders.deletedAt))),
     getQuarterOptions(),
     // Cross-service follow-up list — only rendered (and only worth computing) for developers.
-    isDeveloper ? getProfileNotCompletedRows() : Promise.resolve([]),
+    // Not scoped to a lead_pastor's service — they see every leader still to follow up.
+    getProfileNotCompletedRows(),
   ]);
 
   const claimedIds = new Set(vgLeaderAccounts.filter((a) => a.hasPin).map((a) => a.vgLeaderId));
@@ -368,9 +368,9 @@ export default async function VgLeaderReportPage() {
               ...issue("completed-without-pin", T.completedWithoutPin, completedWithoutPin),
             ],
           },
-          { id: "profile-not-completed", label: "Profile Not Yet Completed", count: notCompletedRows.length },
         ]
       : []),
+    { id: "profile-not-completed", label: "Profile Not Yet Completed", count: notCompletedRows.length },
     { id: "quarterly-status", label: `Quarterly Update Status${liveQuarter ? ` — ${liveQuarter.label}` : ""}` },
     { id: "new-leaders", label: "Started Leading This Year", count: newLeaders.length },
     {
@@ -459,6 +459,8 @@ export default async function VgLeaderReportPage() {
           <p className="px-6 py-4 text-sm text-gray-500">No exceptions found.</p>
         )}
       </div>
+      </>
+      )}
 
       <div id="profile-not-completed" className="scroll-mt-20 lg:scroll-mt-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-100">
@@ -483,8 +485,6 @@ export default async function VgLeaderReportPage() {
           <p className="px-6 py-4 text-sm text-gray-500">Everyone identified has completed their profile.</p>
         )}
       </div>
-      </>
-      )}
 
       <div id="quarterly-status" className="scroll-mt-20 lg:scroll-mt-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">

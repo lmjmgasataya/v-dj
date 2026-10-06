@@ -2,9 +2,11 @@ import { getVgLeaderRows } from "../vgLeaderRows";
 import { VgLeadersTable } from "../VgLeadersTable";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import Link from "next/link";
+import { getSession } from "@/lib/auth";
 
 export default async function VgLeadersListPage() {
-  const rows = await getVgLeaderRows();
+  const [rows, session] = await Promise.all([getVgLeaderRows(), getSession()]);
+  const isDeveloper = session?.role === "developer";
   const vgLeaders = rows.filter((l) => l.claimed);
 
   return (
@@ -15,15 +17,17 @@ export default async function VgLeadersListPage() {
           <h3 className="font-semibold text-gray-800">VG Leaders</h3>
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-400">{vgLeaders.length}</span>
-            <Link
-              href="/vg-leader-portal/leaders/deleted"
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
-            >
-              Deleted VG Leaders
-            </Link>
+            {isDeveloper && (
+              <Link
+                href="/vg-leader-portal/leaders/deleted"
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+              >
+                Deleted VG Leaders
+              </Link>
+            )}
           </div>
         </div>
-        <VgLeadersTable rows={vgLeaders} />
+        <VgLeadersTable rows={vgLeaders} canEdit={isDeveloper} />
       </div>
     </div>
   );

@@ -14,6 +14,8 @@ export interface ParticipantsCellEntry {
 
 interface Props {
   participants: ParticipantsCellEntry[];
+  /** Link each name to its participant edit page (developer-only). Defaults to true. */
+  linkToEdit?: boolean;
 }
 
 const RELATION_LABEL: Record<ParticipantsCellEntry["relation"], string> = {
@@ -26,7 +28,7 @@ const RELATION_BADGE_CLASS: Record<ParticipantsCellEntry["relation"], string> = 
   vg_leader: "bg-blue-50 text-blue-700",
 };
 
-export function ParticipantsCell({ participants }: Props) {
+export function ParticipantsCell({ participants, linkToEdit = true }: Props) {
   const [open, setOpen] = useState(false);
   const [rect, setRect] = useState<{ top: number; left: number; width: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -73,19 +75,31 @@ export function ParticipantsCell({ participants }: Props) {
               style={{ position: "fixed", top: rect.top, left: rect.left, width: Math.max(rect.width, 256) }}
               className="z-50 mt-1 max-h-64 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg py-1"
             >
-              {participants.map((p) => (
-                <Link
-                  key={`${p.relation}-${p.id}`}
-                  href={`/participants/${p.id}/edit`}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center justify-between gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 hover:text-indigo-600"
-                >
-                  <span className="truncate">{toTitleCase(p.lastName)}, {toTitleCase(p.firstName)}</span>
-                  <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${RELATION_BADGE_CLASS[p.relation]}`}>
-                    {RELATION_LABEL[p.relation]}
-                  </span>
-                </Link>
-              ))}
+              {participants.map((p) => {
+                const content = (
+                  <>
+                    <span className="truncate">{toTitleCase(p.lastName)}, {toTitleCase(p.firstName)}</span>
+                    <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${RELATION_BADGE_CLASS[p.relation]}`}>
+                      {RELATION_LABEL[p.relation]}
+                    </span>
+                  </>
+                );
+                const rowCls = "flex items-center justify-between gap-2 px-3 py-1.5 text-xs text-gray-700";
+                return linkToEdit ? (
+                  <Link
+                    key={`${p.relation}-${p.id}`}
+                    href={`/participants/${p.id}/edit`}
+                    onClick={() => setOpen(false)}
+                    className={`${rowCls} hover:bg-gray-50 hover:text-indigo-600`}
+                  >
+                    {content}
+                  </Link>
+                ) : (
+                  <div key={`${p.relation}-${p.id}`} className={rowCls}>
+                    {content}
+                  </div>
+                );
+              })}
             </div>
           </>,
           document.body

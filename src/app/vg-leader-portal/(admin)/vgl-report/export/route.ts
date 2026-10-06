@@ -3,12 +3,13 @@ import { getSession } from "@/lib/auth";
 import { todayPH } from "@/lib/date";
 import { getProfileNotCompletedRows } from "@/lib/vglProfileNotCompleted";
 
-// "Profile Not Yet Completed" from the VG Leaders Report as an Excel file. Developer-only,
-// like the card itself: it lists leaders across every service. (The proxy lets lead_pastor
-// through to /vg-leader-portal/vgl-report*, so the role check here is what gates it.)
+// "Profile Not Yet Completed" from the VG Leaders Report as an Excel file. Open to developer
+// and lead_pastor, like the card itself — it lists leaders across every service.
 export async function GET() {
   const session = await getSession();
-  if (!session || session.role !== "developer") return new Response("Unauthorized", { status: 401 });
+  if (!session || (session.role !== "developer" && session.role !== "lead_pastor")) {
+    return new Response("Unauthorized", { status: 401 });
+  }
 
   const rows = await getProfileNotCompletedRows();
   const ws = XLSX.utils.aoa_to_sheet([

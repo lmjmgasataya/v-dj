@@ -9,6 +9,7 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
 import { getProfileFreshness, FRESHNESS_BADGE_CLASS } from "@/lib/vgLeaderStatus";
 import { leadership113Label } from "@/lib/leadership113";
+import { getSession } from "@/lib/auth";
 
 const DAY_ABBR: Record<string, string> = {
   Monday: "Mon", Tuesday: "Tue", Wednesday: "Wed", Thursday: "Thu",
@@ -28,7 +29,7 @@ function Row({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-type ConnectionLink = { id: number; label: string; href: string };
+type ConnectionLink = { id: number; label: string; href: string | null };
 type ConnectionBranch = { label: string; links: ConnectionLink[] };
 
 // Branches with more names than this start collapsed.
@@ -39,6 +40,7 @@ const treeList = "ml-2 border-l border-gray-300 pl-4 flex flex-col gap-1";
 const treeItem = "relative before:absolute before:-left-4 before:top-2.5 before:w-3 before:border-t before:border-gray-300";
 
 function NodeLink({ link }: { link: ConnectionLink }) {
+  if (!link.href) return <span className="text-gray-700">{link.label}</span>;
   return (
     <Link href={link.href} className="text-indigo-600 hover:text-indigo-800 hover:underline">
       {link.label}
@@ -106,6 +108,8 @@ function ConnectionsTree({ name, above, below }: { name: string; above: Connecti
 export default async function VGLeaderProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const leaderId = parseInt(id, 10);
+  // lead_pastor gets a read-only view.
+  const isDeveloper = (await getSession())?.role === "developer";
 
   const [[leader], groups] = await Promise.all([
     db.select().from(victoryGroupLeaders).where(eq(victoryGroupLeaders.id, leaderId)).limit(1),
@@ -176,7 +180,8 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
   const toParticipantLink = (p: { id: number; lastName: string; firstName: string }) => ({
     id: p.id,
     label: `${p.lastName}, ${p.firstName}`,
-    href: `/participants/${p.id}/edit`,
+    // Participant edit is developer-only — a lead_pastor sees the name without a link.
+    href: isDeveloper ? `/participants/${p.id}/edit` : null,
   });
   // Above them in the tree.
   const parentConnections: ConnectionBranch[] = [
@@ -255,12 +260,14 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
             </div>
             <p className="text-xs text-gray-400 mt-1">Created {fmtDate(leader.createdAt)}</p>
           </div>
-          <Link
-            href={`/vg-leader-portal/leaders/${leader.id}/edit`}
-            className="bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition shrink-0"
-          >
-            Edit
-          </Link>
+          {isDeveloper && (
+            <Link
+              href={`/vg-leader-portal/leaders/${leader.id}/edit`}
+              className="bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition shrink-0"
+            >
+              Edit
+            </Link>
+          )}
         </div>
         <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div className="min-w-0">
@@ -274,7 +281,7 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
             />
           )}
           </div>
-          {hasMovableConnections && moveTargets.length > 0 && (
+          {isDeveloper && hasMovableConnections && moveTargets.length > 0 && (
             <div className="flex flex-col items-end gap-2 shrink-0">
               {moveTargets.map((t) => (
                 <MoveConnectionsButton

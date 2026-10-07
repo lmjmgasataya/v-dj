@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { victoryGroupLeaders, victoryGroups, interns, leadershipGroupMembers, participants } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { formatPersonName } from "@/lib/text";
 import { NetworkGraph } from "./NetworkGraph";
 import type { GraphLink, GraphNode } from "./graphTypes";
 
@@ -22,7 +23,7 @@ export default async function ConnectionsGraphPage() {
   const session = await getSession();
   if (!session || session.role !== "developer") redirect("/");
 
-  const [leaders, lglRows, participantRows, internRows] = await Promise.all([
+  const [leaders, lglRows, participantRows, internRows, vgOwnerRows] = await Promise.all([
     db
       .select({
         id: victoryGroupLeaders.id,
@@ -51,16 +52,21 @@ export default async function ConnectionsGraphPage() {
       .from(interns)
       .innerJoin(victoryGroups, eq(interns.victoryGroupId, victoryGroups.id))
       .where(and(isNull(interns.deletedAt), isNull(victoryGroups.deletedAt))),
+    db.selectDistinct({ vgLeaderId: victoryGroups.vgLeaderId }).from(victoryGroups).where(isNull(victoryGroups.deletedAt)),
   ]);
 
+  // Names as entered can be all caps or all lowercase — show them as "Dela Cruz", "Juan".
+  const names = (r: { lastName: string; firstName: string }) => {
+    const lastName = formatPersonName(r.lastName);
+    const firstName = formatPersonName(r.firstName);
+    return { label: `${lastName}, ${firstName}`, lastName, firstName };
+  };
   const leaderIds = new Set(leaders.map((l) => l.id));
   const L = (id: number) => `l:${id}`;
   const nodes: GraphNode[] = leaders.map((l) => ({
     id: L(l.id),
     kind: "leader",
-    label: `${l.lastName}, ${l.firstName}`,
-    lastName: l.lastName,
-    firstName: l.firstName,
+    ...names(l),
     href: `/vg-leader-portal/leaders/${l.id}`,
     isLgl: l.isLeadershipGroupLeader,
     service: l.serviceAttending,
@@ -78,9 +84,7 @@ export default async function ConnectionsGraphPage() {
     nodes.push({
       id,
       kind: "participant",
-      label: `${p.lastName}, ${p.firstName}`,
-      lastName: p.lastName,
-      firstName: p.firstName,
+      ...names(p),
       href: `/participants/${p.id}`,
       service: p.serviceAttending,
     });
@@ -89,8 +93,17 @@ export default async function ConnectionsGraphPage() {
   }
   for (const i of internRows) {
     const id = `i:${i.id}`;
-    nodes.push({ id, kind: "intern", label: `${i.lastName}, ${i.firstName}`, lastName: i.lastName, firstName: i.firstName });
+    nodes.push({ id, kind: "intern", ...names(i) });
     link(i.vgLeaderId, id, "intern");
+  }
+
+  // A leader row that participants only name as their discipler — not anyone's VG leader, no
+  // Victory Group of their own, not an LGL. The graph can hide these (on by default).
+  const actsAsVgl = new Set<string>(vgOwnerRows.map((r) => L(r.vgLeaderId)));
+  const disciples = new Set<string>();
+  for (const l of links) (l.kind === "participantDiscipler" ? disciples : actsAsVgl).add(l.source);
+  for (const n of nodes) {
+    if (n.kind === "leader" && !n.isLgl && disciples.has(n.id) && !actsAsVgl.has(n.id)) n.isDisciplerOnly = true;
   }
 
   return (

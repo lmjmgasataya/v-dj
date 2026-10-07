@@ -34,6 +34,7 @@ const INCOMING: Record<GraphEdgeKind, string> = {
 export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: GraphNode[]; links: GraphLink[] }) {
   const [edgeKinds, setEdgeKinds] = useState<Set<GraphEdgeKind>>(() => new Set(EDGE_KINDS));
   const [hideUnconnected, setHideUnconnected] = useState(true);
+  const [hideDisciplerOnly, setHideDisciplerOnly] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [focus, setFocus] = useState<{ id: string; seq: number } | null>(null);
@@ -64,12 +65,16 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
 
   // force-graph keeps positions on the node objects, so reuse the same objects across filter
   // changes (the layout doesn't jump) but hand it fresh link objects (it rewrites their ends).
+  const disciplerOnlyIds = useMemo(() => new Set(allNodes.filter((n) => n.isDisciplerOnly).map((n) => n.id)), [allNodes]);
   const { nodes, links } = useMemo(() => {
-    const links = allLinks.filter((l) => edgeKinds.has(l.kind)).map((l) => ({ ...l }));
+    const hidden = (id: string) => hideDisciplerOnly && disciplerOnlyIds.has(id);
+    const links = allLinks
+      .filter((l) => edgeKinds.has(l.kind) && !hidden(l.source) && !hidden(l.target))
+      .map((l) => ({ ...l }));
     const linked = new Set(links.flatMap((l) => [l.source, l.target]));
-    const nodes = allNodes.filter((n) => (n.kind === "leader" && !hideUnconnected) || linked.has(n.id));
+    const nodes = allNodes.filter((n) => !hidden(n.id) && ((n.kind === "leader" && !hideUnconnected) || linked.has(n.id)));
     return { nodes, links };
-  }, [allNodes, allLinks, edgeKinds, hideUnconnected]);
+  }, [allNodes, allLinks, edgeKinds, hideUnconnected, hideDisciplerOnly, disciplerOnlyIds]);
 
   const byId = useMemo(() => new Map(allNodes.map((n) => [n.id, n])), [allNodes]);
   const selected = selectedId ? byId.get(selectedId) ?? null : null;
@@ -187,6 +192,13 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
         <label className="flex items-center gap-1.5 text-gray-600">
           <input type="checkbox" checked={hideUnconnected} onChange={(e) => setHideUnconnected(e.target.checked)} />
           Hide leaders with no connections
+        </label>
+        <label
+          className="flex items-center gap-1.5 text-gray-600"
+          title="People that participants name only as their discipler — not anyone's VG leader, no Victory Group, not an LGL"
+        >
+          <input type="checkbox" checked={hideDisciplerOnly} onChange={(e) => setHideDisciplerOnly(e.target.checked)} />
+          Hide disciplers who aren&apos;t VG leaders ({disciplerOnlyIds.size})
         </label>
         <span className="ml-auto text-gray-400">
           {counts.leader} leaders · {counts.participant} participants · {counts.intern} interns · {links.length} links

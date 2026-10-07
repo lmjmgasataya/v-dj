@@ -11,6 +11,8 @@ export type GraphNode = {
   href?: string;
   /** Leaders only. */
   isLgl?: boolean;
+  /** Leaders only: participants name them only as a discipler — they aren't a VG leader to anyone. */
+  isDisciplerOnly?: boolean;
   /** Service they attend (leaders and participants). */
   service?: string | null;
 };

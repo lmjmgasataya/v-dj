@@ -9,11 +9,14 @@ const LEADERSHIP_113_SORT: Record<Leadership113Status, number> = { no: 1, ongoin
 export interface DiscipleshipJourneyRow {
   id: number;
   name: string;
+  service: string;
+  /** Position of `service` in the standard service order, for sorting. */
+  serviceRank: number;
   leadership113: Leadership113Status | null;
   steps: Record<string, boolean>;
 }
 
-type SortKey = "name" | "leadership113" | `step:${string}`;
+type SortKey = "name" | "service" | "leadership113" | `step:${string}`;
 type SortDir = "asc" | "desc";
 
 function sortIcon(col: SortKey, currentSort: SortKey, currentDir: SortDir) {
@@ -42,6 +45,7 @@ export function DiscipleshipJourneyTable({
 
   function sortValue(r: DiscipleshipJourneyRow, key: SortKey): string | number {
     if (key === "name") return r.name.toLowerCase();
+    if (key === "service") return r.serviceRank;
     if (key === "leadership113") return r.leadership113 == null ? 0 : LEADERSHIP_113_SORT[r.leadership113];
     const step = key.slice("step:".length);
     return r.steps[step] ? 1 : 0;
@@ -54,11 +58,15 @@ export function DiscipleshipJourneyTable({
     return sortDir === "asc" ? cmp : -cmp;
   });
 
+  // The Name column stays put while the steps scroll sideways. A sticky cell needs its own
+  // background (rows behind it would show through), so it follows the row's hover via `group`.
+  const stickyName = "sticky left-0 z-10 shadow-[inset_-1px_0_0_#e5e7eb]";
+
   return (
     <table className="w-full text-sm">
       <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
         <tr>
-          <th className="px-4 py-2 text-left font-medium">
+          <th className={`${stickyName} bg-gray-50 px-4 py-2 text-left font-medium`}>
             <button
               type="button"
               onClick={() => toggleSort("name")}
@@ -67,6 +75,18 @@ export function DiscipleshipJourneyTable({
               Name
               <span className={sortKey === "name" ? "text-gray-700" : "text-gray-300"}>
                 {sortIcon("name", sortKey, sortDir)}
+              </span>
+            </button>
+          </th>
+          <th className="px-4 py-2 text-left font-medium">
+            <button
+              type="button"
+              onClick={() => toggleSort("service")}
+              className="flex items-center gap-0.5 hover:text-gray-800 select-none"
+            >
+              Service
+              <span className={sortKey === "service" ? "text-gray-700" : "text-gray-300"}>
+                {sortIcon("service", sortKey, sortDir)}
               </span>
             </button>
           </th>
@@ -103,12 +123,13 @@ export function DiscipleshipJourneyTable({
       </thead>
       <tbody className="divide-y divide-gray-100">
         {sorted.map((r) => (
-          <tr key={r.id} className="hover:bg-gray-50">
-            <td className="px-4 py-2.5 font-medium text-gray-800 whitespace-nowrap">
+          <tr key={r.id} className="group hover:bg-gray-50">
+            <td className={`${stickyName} bg-white group-hover:bg-gray-50 px-4 py-2.5 font-medium text-gray-800 whitespace-nowrap`}>
               <Link href={`/vg-leader-portal/leaders/${r.id}`} className="text-indigo-600 hover:text-indigo-800 underline">
                 {r.name}
               </Link>
             </td>
+            <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">{r.service}</td>
             {steps.map((step) => (
               <td key={step} className="px-4 py-2.5 text-center">
                 {r.steps[step] ? (

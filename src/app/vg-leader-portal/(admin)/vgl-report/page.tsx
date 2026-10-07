@@ -211,15 +211,26 @@ export default async function VgLeaderReportPage() {
     return { service: distinct.join(", "), serviceRank: rank(distinct[0]) };
   }
 
+  // Detail cell of the Duplicates/Exceptions tables: one linked item per bullet.
+  const linkList = (items: { key: number; href: string; label: string }[]) => (
+    <ul className="list-disc pl-4 space-y-0.5">
+      {items.map((it) => (
+        <li key={it.key}>
+          <Link href={it.href} className="text-gray-700 hover:text-indigo-800 underline">
+            {it.label}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
   const groupLinks = (groups: { victoryGroupId: number; vgLeaderId: number; vgLeaderName: string; place: string }[]) =>
-    groups.map((g, i) => (
-      <span key={g.victoryGroupId}>
-        {i > 0 && ", "}
-        <Link href={`/vg-leader-portal/leaders/${g.vgLeaderId}/edit`} className="text-gray-700 hover:text-indigo-800 underline">
-          {g.vgLeaderName} ({g.place})
-        </Link>
-      </span>
-    ));
+    linkList(
+      groups.map((g) => ({
+        key: g.victoryGroupId,
+        href: `/vg-leader-portal/leaders/${g.vgLeaderId}/edit`,
+        label: `${g.vgLeaderName} (${g.place})`,
+      })),
+    );
 
   // A VG leader should only be claimed as a member by one Leadership Group Leader.
   const byMember = new Map<number, { name: string; service: string | null; leaders: { id: number; name: string }[] }>();
@@ -242,14 +253,7 @@ export default async function VgLeaderReportPage() {
       nameHref: `/vg-leader-portal/leaders/${id}`,
       ...serviceInfo([v.service]),
       detailSort: v.leaders.map((l) => l.name).join("; "),
-      detail: v.leaders.map((l, i) => (
-        <span key={l.id}>
-          {i > 0 && ", "}
-          <Link href={`/vg-leader-portal/leaders/${l.id}`} className="text-gray-700 hover:text-indigo-800 underline">
-            {l.name}
-          </Link>
-        </span>
-      )),
+      detail: linkList(v.leaders.map((l) => ({ key: l.id, href: `/vg-leader-portal/leaders/${l.id}`, label: l.name }))),
     }));
 
   // An intern should only be listed under one Victory Group.

@@ -3,10 +3,15 @@ export type GraphNodeKind = "leader" | "participant" | "intern";
 export type GraphNode = {
   id: string;
   kind: GraphNodeKind;
+  /** "Last, First" — used for search and the side panel. */
   label: string;
+  /** Shown on separate lines on the graph card. */
+  lastName: string;
+  firstName: string;
   href?: string;
   /** Leaders only. */
   isLgl?: boolean;
+  /** Service they attend (leaders and participants). */
   service?: string | null;
 };
 

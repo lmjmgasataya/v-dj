@@ -230,7 +230,11 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
             <ul className="flex flex-col gap-1.5">
               {(Object.keys(NODE_STYLE) as (keyof typeof NODE_STYLE)[]).map((k) => (
                 <li key={k} className="flex items-center gap-2 text-gray-600">
-                  <span className="h-3 w-3 rounded-full" style={{ background: NODE_STYLE[k].color }} />
+                  {/* Mirrors a card in the graph: role-coloured border, thicker on top. */}
+                  <span
+                    className="h-3.5 w-6 rounded-[4px] border border-t-4 bg-white"
+                    style={{ borderColor: NODE_STYLE[k].color }}
+                  />
                   {NODE_STYLE[k].label}
                 </li>
               ))}

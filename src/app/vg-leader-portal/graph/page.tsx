@@ -42,6 +42,7 @@ export default async function ConnectionsGraphPage() {
         firstName: participants.firstName,
         vgLeaderId: participants.vgLeaderId,
         disciplerId: participants.disciplerId,
+        serviceAttending: participants.serviceAttending,
       })
       .from(participants)
       .where(and(isNull(participants.deletedAt), or(isNotNull(participants.vgLeaderId), isNotNull(participants.disciplerId)))),
@@ -58,6 +59,8 @@ export default async function ConnectionsGraphPage() {
     id: L(l.id),
     kind: "leader",
     label: `${l.lastName}, ${l.firstName}`,
+    lastName: l.lastName,
+    firstName: l.firstName,
     href: `/vg-leader-portal/leaders/${l.id}`,
     isLgl: l.isLeadershipGroupLeader,
     service: l.serviceAttending,
@@ -72,13 +75,21 @@ export default async function ConnectionsGraphPage() {
   for (const r of lglRows) if (leaderIds.has(r.memberId)) link(r.leaderId, L(r.memberId), "lgl");
   for (const p of participantRows) {
     const id = `p:${p.id}`;
-    nodes.push({ id, kind: "participant", label: `${p.lastName}, ${p.firstName}`, href: `/participants/${p.id}` });
+    nodes.push({
+      id,
+      kind: "participant",
+      label: `${p.lastName}, ${p.firstName}`,
+      lastName: p.lastName,
+      firstName: p.firstName,
+      href: `/participants/${p.id}`,
+      service: p.serviceAttending,
+    });
     link(p.vgLeaderId, id, "participantVgl");
     link(p.disciplerId, id, "participantDiscipler");
   }
   for (const i of internRows) {
     const id = `i:${i.id}`;
-    nodes.push({ id, kind: "intern", label: `${i.lastName}, ${i.firstName}` });
+    nodes.push({ id, kind: "intern", label: `${i.lastName}, ${i.firstName}`, lastName: i.lastName, firstName: i.firstName });
     link(i.vgLeaderId, id, "intern");
   }
 

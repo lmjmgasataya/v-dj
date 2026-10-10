@@ -102,7 +102,9 @@ export async function getVgLeaderRows(): Promise<VgLeaderRow[]> {
       duplicateMobile: !!mobileKey && (mobileCounts.get(mobileKey) ?? 0) > 1,
       duplicateName: (nameCounts.get(nameKey) ?? 0) > 1,
       similarNames: similarNamesById.get(l.id) ?? [],
-      claimed: !!account?.pinHash,
+      // Claimed once an account exists (claiming always creates it); a PIN reset doesn't undo that.
+      claimed: !!account,
+      pinReset: !!account && !account.pinHash,
       accountId: account?.id ?? null,
       profileCompleted: l.profileCompleted,
       activeGroups: groupCountByLeader.get(l.id) ?? 0,

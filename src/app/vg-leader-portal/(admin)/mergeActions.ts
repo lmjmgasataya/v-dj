@@ -117,11 +117,12 @@ export async function moveVgLeaderConnections(fromId: number, toId: number): Pro
       const [[from], [to], [toAccount]] = await Promise.all([
         tx.select().from(victoryGroupLeaders).where(eq(victoryGroupLeaders.id, fromId)).limit(1),
         tx.select().from(victoryGroupLeaders).where(eq(victoryGroupLeaders.id, toId)).limit(1),
-        tx.select({ pinHash: users.pinHash }).from(users).where(eq(users.vgLeaderId, toId)).limit(1),
+        tx.select({ id: users.id }).from(users).where(eq(users.vgLeaderId, toId)).limit(1),
       ]);
       if (!from || !to || to.deletedAt) throw new Error("One of the records no longer exists.");
       if (!areSimilarNames(from, to)) throw new Error("The records' names aren't similar enough to be duplicates.");
-      if (!toAccount?.pinHash || !to.profileCompleted) {
+      // Claimed = has an account (a PIN reset still counts).
+      if (!toAccount || !to.profileCompleted) {
         throw new Error("Connections can only be moved to a record that's claimed and has a completed profile.");
       }
 

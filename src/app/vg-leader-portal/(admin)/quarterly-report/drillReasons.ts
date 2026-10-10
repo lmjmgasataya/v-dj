@@ -1,5 +1,6 @@
 import { db } from "@/db";
-import { victoryGroupLeaders, victoryGroups, interns } from "@/db/schema";
+import { victoryGroupLeaders, victoryGroups, interns, users } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import {
   SERVICE_BUCKETS,
   serviceToBucket,
@@ -38,7 +39,7 @@ function leaderIdOf(item: MatchItem): number | null {
 export async function addDrillReasons(lists: Record<string, DrillLists>, latest: ReasonSide, previous: ReasonSide | null) {
   if (!previous) return;
 
-  const [leaderRows, groupRows, internRows, notCompletedRows] = await Promise.all([
+  const [leaderRows, groupRows, internRows, notCompletedRows, claimedAccounts] = await Promise.all([
     db
       .select({
         id: victoryGroupLeaders.id,
@@ -79,7 +80,12 @@ export async function addDrillReasons(lists: Record<string, DrillLists>, latest:
       })
       .from(interns),
     getProfileNotCompletedRows(),
+    db
+      .select({ vgLeaderId: users.vgLeaderId })
+      .from(users)
+      .where(eq(users.role, "vg_leader")),
   ]);
+  const claimedIds = new Set(claimedAccounts.map((a) => a.vgLeaderId));
 
   // Remarks per leader record, and by name for quarterly-update respondents with no record.
   const remarksById = new Map<number, string[]>();
@@ -134,6 +140,7 @@ export async function addDrillReasons(lists: Record<string, DrillLists>, latest:
     if (metric === "leadershipGroups") {
       if (!l.isLeadershipGroupLeader) return `${today}No longer marked as a Leadership Group Leader`;
     } else {
+      if (!claimedIds.has(l.id)) return `${today}Portal account never claimed`;
       if (!l.isActive) return `${today}Marked as not active`;
       if (!isQuarterlyActive(l.updatedAt)) return `${today}Profile not updated in the last 90 days (last update ${fmt(l.updatedAt)})`;
       const hasActiveGroup = (groupsByLeaderAnyType.get(l.id) ?? []).some((g) => !g.deletedAt && g.isActive);

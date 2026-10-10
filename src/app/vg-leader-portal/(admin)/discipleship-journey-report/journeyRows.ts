@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { victoryGroupLeaders, users } from "@/db/schema";
-import { and, eq, isNull, isNotNull, inArray } from "drizzle-orm";
+import { and, eq, isNull, inArray } from "drizzle-orm";
 import { DISCIPLESHIP_JOURNEY_STEPS, SERVICE_OPTIONS } from "@/components/form";
 import type { SessionPayload } from "@/lib/auth";
 import { rawServiceValues } from "@/lib/timeService";
@@ -10,8 +10,9 @@ import type { DiscipleshipJourneyRow } from "./DiscipleshipJourneyTable";
 const SERVICE_ORDER: string[] = [...SERVICE_OPTIONS, NOT_SET_SERVICE];
 
 /**
- * One row per claimed VG leader with the Discipleship Journey steps they've completed — shared by
- * the report page and its Excel export. A lead_pastor only sees leaders in their own service.
+ * One row per claimed VG leader (a PIN reset still counts as claimed) with the Discipleship
+ * Journey steps they've completed — shared by the report page and its Excel export. A
+ * lead_pastor only sees leaders in their own service.
  */
 export async function getDiscipleshipJourneyRows(session: SessionPayload | null): Promise<DiscipleshipJourneyRow[]> {
   const lockedServiceRawValues = session?.role === "lead_pastor" ? rawServiceValues(session?.timeService) : undefined;
@@ -29,7 +30,7 @@ export async function getDiscipleshipJourneyRows(session: SessionPayload | null)
     db
       .select({ vgLeaderId: users.vgLeaderId })
       .from(users)
-      .where(and(eq(users.role, "vg_leader"), isNotNull(users.pinHash))),
+      .where(eq(users.role, "vg_leader")),
   ]);
 
   const claimedIds = new Set(claimedAccounts.map((a) => a.vgLeaderId));

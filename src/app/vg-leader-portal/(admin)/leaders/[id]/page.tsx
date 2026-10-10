@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { victoryGroupLeaders, victoryGroups, interns, leadershipGroupMembers, participants, users, type VictoryGroup } from "@/db/schema";
-import { eq, isNull, isNotNull, ne, and, inArray } from "drizzle-orm";
+import { eq, isNull, ne, and, inArray } from "drizzle-orm";
 import { areSimilarNames } from "@/lib/vgLeaderMatch";
 import { MoveConnectionsButton } from "./MoveConnectionsButton";
 import { notFound } from "next/navigation";
@@ -201,8 +201,8 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
     { label: "Participants (as Discipler)", links: discipledParticipants.map(toParticipantLink) },
   ].filter((c) => c.links.length > 0);
 
-  // Possible duplicates that are the "real" record (claimed + profile complete) — the
-  // connections above can be moved onto them.
+  // Possible duplicates that are the "real" record (claimed + profile complete; a PIN reset still
+  // counts as claimed) — the connections above can be moved onto them.
   const claimedCompleted = await db
     .select({ id: victoryGroupLeaders.id, lastName: victoryGroupLeaders.lastName, firstName: victoryGroupLeaders.firstName })
     .from(victoryGroupLeaders)
@@ -211,7 +211,6 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
       and(
         isNull(victoryGroupLeaders.deletedAt),
         eq(victoryGroupLeaders.profileCompleted, true),
-        isNotNull(users.pinHash),
         ne(victoryGroupLeaders.id, leaderId),
       ),
     );

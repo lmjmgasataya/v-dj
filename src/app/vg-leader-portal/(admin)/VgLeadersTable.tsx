@@ -20,6 +20,8 @@ export interface VgLeaderRow {
   /** Other leaders whose name is nearly the same (includes exact matches). */
   similarNames: { id: number; name: string }[];
   claimed: boolean;
+  /** Claimed, but the PIN was reset and a new one isn't set yet. */
+  pinReset: boolean;
   accountId: number | null;
   profileCompleted: boolean;
   activeGroups: number;
@@ -255,10 +257,14 @@ export function VgLeadersTable({
                   <td className="px-4 py-2.5">
                     <span
                       className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        l.claimed ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                        l.pinReset
+                          ? "bg-amber-100 text-amber-700"
+                          : l.claimed
+                            ? "bg-green-100 text-green-700"
+                            : "bg-gray-100 text-gray-500"
                       }`}
                     >
-                      {l.claimed ? "Claimed" : "Not claimed"}
+                      {l.pinReset ? "Claimed · PIN reset" : l.claimed ? "Claimed" : "Not claimed"}
                     </span>
                   </td>
                   <td className="px-4 py-2.5">
@@ -277,7 +283,7 @@ export function VgLeadersTable({
                   {canEdit && (
                   <td className="px-4 py-2.5 text-right">
                     <div className="flex items-center justify-end gap-3">
-                      {l.claimed && l.accountId != null && (
+                      {l.claimed && !l.pinReset && l.accountId != null && (
                         <form
                           action={resetVgLeaderPin.bind(null, l.accountId)}
                           onSubmit={(e) => {

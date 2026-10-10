@@ -122,8 +122,10 @@ export default async function VgLeaderReportPage() {
     getProfileNotCompletedRows(),
   ]);
 
-  const claimedIds = new Set(vgLeaderAccounts.filter((a) => a.hasPin).map((a) => a.vgLeaderId));
-  // An account row with no PIN only happens after a reset (claiming always sets one).
+  // Claimed = has an account (claiming always creates one, with a PIN). A PIN reset clears the
+  // PIN but they're still claimed — same scope as the Quarterly Report's counts.
+  const claimedIds = new Set(vgLeaderAccounts.map((a) => a.vgLeaderId));
+  const pinSetIds = new Set(vgLeaderAccounts.filter((a) => a.hasPin).map((a) => a.vgLeaderId));
   const pinResetIds = new Set(vgLeaderAccounts.filter((a) => !a.hasPin).map((a) => a.vgLeaderId));
   const leaders = allLeaders.filter((l) => claimedIds.has(l.id));
 
@@ -315,7 +317,7 @@ export default async function VgLeaderReportPage() {
 
   // A leader whose profile is complete should also be able to get into the portal.
   const completedWithoutPin: IssueRow[] = allLeaders
-    .filter((l) => l.profileCompleted && !claimedIds.has(l.id))
+    .filter((l) => l.profileCompleted && !pinSetIds.has(l.id))
     .map((l) => {
       const reason = pinResetIds.has(l.id) ? "PIN reset, new PIN not set yet" : "Never claimed";
       return {

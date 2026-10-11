@@ -172,6 +172,8 @@ export const classSessions = pgTable("class_sessions", {
   isVictoryDay: boolean("is_victory_day").default(false).notNull(),
   requiresVictoryDay: boolean("requires_victory_day").default(true).notNull(),
   allowsWalkIn: boolean("allows_walk_in").default(false).notNull(),
+  // When on, the session's roster is active VG leaders (not participants) — check-ins go to sessionVglCheckIns.
+  vglOnly: boolean("vgl_only").default(false).notNull(),
   batchId: integer("batch_id").references(() => batches.id),
 }, (t) => [
   index("class_sessions_session_date_idx").on(t.sessionDate),
@@ -201,7 +203,30 @@ export const checkIns = pgTable(
   ]
 );
 
-export const eventAudienceEnum = pgEnum("event_audience", ["vg_leader", "intern"]);
+// Attendance for vglOnly class sessions. Kept apart from checkIns so every participant
+// report/export that joins checkIns → participants stays unaffected.
+export const sessionVglCheckIns = pgTable(
+  "session_vgl_check_ins",
+  {
+    id: serial("id").primaryKey(),
+    vgLeaderId: integer("vg_leader_id")
+      .references(() => victoryGroupLeaders.id)
+      .notNull(),
+    classSessionId: integer("class_session_id")
+      .references(() => classSessions.id)
+      .notNull(),
+    checkedInAt: timestamp("checked_in_at").defaultNow().notNull(),
+    remarks: text("remarks"),
+    status: checkInStatusEnum("status").notNull().default("On-time"),
+    method: checkInMethodEnum("method").notNull().default("Search"),
+  },
+  (t) => [
+    unique().on(t.vgLeaderId, t.classSessionId),
+    index("session_vgl_check_ins_class_session_id_idx").on(t.classSessionId),
+  ]
+);
+
+export const eventAudienceEnum =pgEnum("event_audience", ["vg_leader", "intern"]);
 
 export const events = pgTable("events", {
   id: serial("id").primaryKey(),
@@ -374,6 +399,7 @@ export const manualQuarterResponses = pgTable("manual_quarter_responses", {
 export type Participant = typeof participants.$inferSelect;
 export type ClassSession = typeof classSessions.$inferSelect;
 export type CheckIn = typeof checkIns.$inferSelect;
+export type SessionVglCheckIn = typeof sessionVglCheckIns.$inferSelect;
 export type CheckInStatus = (typeof checkInStatusEnum.enumValues)[number];
 export type CheckInMethod = (typeof checkInMethodEnum.enumValues)[number];
 export type User = typeof users.$inferSelect;

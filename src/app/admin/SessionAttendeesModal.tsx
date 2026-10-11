@@ -2,19 +2,47 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { getSessionCheckIns } from "./actions";
+import { getVglCheckinRoster } from "./vglActions";
 import { toTitleCase } from "@/lib/text";
 import { checkInStatusBadgeClass } from "@/lib/checkinStatus";
 
-type CheckIn = Awaited<ReturnType<typeof getSessionCheckIns>>[number];
+type CheckIn = Omit<Awaited<ReturnType<typeof getSessionCheckIns>>[number], "victoryDayDate"> & { victoryDayDate: string | null };
+
+// Shapes VGL check-ins like participant ones so the list below renders both; the
+// table / Victory Day badges stay hidden since those fields are left empty.
+async function loadVglCheckIns(sessionId: number): Promise<CheckIn[]> {
+  const roster = await getVglCheckinRoster(sessionId);
+  return roster
+    .filter((r) => r.checkInId != null)
+    .sort((a, b) => new Date(a.checkedInAt!).getTime() - new Date(b.checkedInAt!).getTime())
+    .map((r) => ({
+      id: r.checkInId!,
+      participantId: r.id,
+      lastName: r.lastName,
+      firstName: r.firstName,
+      middleInitial: r.middleInitial,
+      victoryDate: null,
+      checkedInAt: r.checkedInAt!,
+      remarks: r.checkInRemarks,
+      tableNumber: null,
+      status: r.checkInStatus!,
+      victoryDayDate: null,
+      victoryDayCount: 0,
+      totalVictoryDaySessions: 0,
+      completedVictoryDay: true,
+    }));
+}
 
 export function SessionAttendeesModal({
   sessionId,
   sessionName,
   attendeeCount,
+  vglOnly = false,
 }: {
   sessionId: number;
   sessionName: string;
   attendeeCount: number;
+  vglOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<CheckIn[]>([]);
@@ -22,7 +50,7 @@ export function SessionAttendeesModal({
 
   function load() {
     startTransition(async () => {
-      const result = await getSessionCheckIns(sessionId);
+      const result = vglOnly ? await loadVglCheckIns(sessionId) : await getSessionCheckIns(sessionId);
       setData(result);
     });
   }
@@ -126,9 +154,11 @@ export function SessionAttendeesModal({
                               <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${checkInStatusBadgeClass(c.status)}`}>
                                 {c.status}
                               </span>
-                              <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${c.tableNumber ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-400"}`}>
-                                {c.tableNumber ? `Table ${c.tableNumber}` : "No table"}
-                              </span>
+                              {!vglOnly && (
+                                <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${c.tableNumber ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-400"}`}>
+                                  {c.tableNumber ? `Table ${c.tableNumber}` : "No table"}
+                                </span>
+                              )}
                               {(() => {
                                 const vd = c.victoryDate ?? c.victoryDayDate;
                                 if (!vd) return null;

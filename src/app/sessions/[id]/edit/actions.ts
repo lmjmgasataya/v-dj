@@ -13,12 +13,14 @@ export async function updateSession(id: number, _: unknown, formData: FormData) 
   if (!name || !sessionDate) return { error: "Name and date are required." };
 
   const isVictoryDay = name.includes("Victory Day");
-  const requiresVictoryDay = formData.get("requiresVictoryDay") === "true";
-  const allowsWalkIn = formData.get("allowsWalkIn") === "true";
+  const vglOnly = formData.get("vglOnly") === "true";
+  // Victory Day / walk-in rules are participant-only, so they don't apply to a VGL-only session.
+  const requiresVictoryDay = !vglOnly && formData.get("requiresVictoryDay") === "true";
+  const allowsWalkIn = !vglOnly && formData.get("allowsWalkIn") === "true";
   const batchIdRaw = formData.get("batchId") as string;
   const batchId = batchIdRaw ? Number(batchIdRaw) : null;
 
-  await db.update(classSessions).set({ name, sessionDate, isVictoryDay, requiresVictoryDay, allowsWalkIn, batchId }).where(eq(classSessions.id, id));
+  await db.update(classSessions).set({ name, sessionDate, isVictoryDay, requiresVictoryDay, allowsWalkIn, vglOnly, batchId }).where(eq(classSessions.id, id));
 
   revalidatePath("/sessions");
   toastRedirect(`/sessions/${id}`, "Session updated.");

@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { classSessions, checkIns, participants, featureFlags, batches } from "@/db/schema";
+import { classSessions, checkIns, participants, featureFlags, batches, sessionVglCheckIns } from "@/db/schema";
 import { and, count, eq, inArray, isNull, ne } from "drizzle-orm";
 import { FEE_CATEGORIES } from "@/components/form";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -63,14 +63,25 @@ export default async function AdminPage({
   // Fetched for every session up front (instead of just the selected one) so
   // switching sessions client-side never needs a server round trip — required
   // for the session picker to keep working offline (see AdminSessionArea).
-  const attendeeCountRows = sessions.length
-    ? await db
-        .select({ sessionId: checkIns.classSessionId, total: count() })
-        .from(checkIns)
-        .where(and(inArray(checkIns.classSessionId, sessions.map((s) => s.id)), ne(checkIns.status, "Absent")))
-        .groupBy(checkIns.classSessionId)
-    : [];
-  const attendeeCounts = Object.fromEntries(attendeeCountRows.map((r) => [r.sessionId, r.total]));
+  const participantSessionIds = sessions.filter((s) => !s.vglOnly).map((s) => s.id);
+  const vglSessionIds = sessions.filter((s) => s.vglOnly).map((s) => s.id);
+  const [attendeeCountRows, vglAttendeeCountRows] = await Promise.all([
+    participantSessionIds.length
+      ? db
+          .select({ sessionId: checkIns.classSessionId, total: count() })
+          .from(checkIns)
+          .where(and(inArray(checkIns.classSessionId, participantSessionIds), ne(checkIns.status, "Absent")))
+          .groupBy(checkIns.classSessionId)
+      : [],
+    vglSessionIds.length
+      ? db
+          .select({ sessionId: sessionVglCheckIns.classSessionId, total: count() })
+          .from(sessionVglCheckIns)
+          .where(and(inArray(sessionVglCheckIns.classSessionId, vglSessionIds), ne(sessionVglCheckIns.status, "Absent")))
+          .groupBy(sessionVglCheckIns.classSessionId)
+      : [],
+  ]);
+  const attendeeCounts = Object.fromEntries([...attendeeCountRows, ...vglAttendeeCountRows].map((r) => [r.sessionId, r.total]));
 
   return (
     <div className="flex flex-col gap-6">
@@ -93,7 +104,8 @@ export default async function AdminPage({
       {flagMap["offline_checkin"] && (
         <>
           <OfflineSyncBar />
-          <RosterPrefetcher sessions={sessions} victoryDayAllowAllClasses={flagMap["victory_day_allow_all_classes"] ?? false} qrCheckin={flagMap["qr_checkin"] ?? false} />
+          {/* VGL-only sessions have no participant roster to cache (and their check-in is online-only). */}
+          <RosterPrefetcher sessions={sessions.filter((s) => !s.vglOnly)}victoryDayAllowAllClasses={flagMap["victory_day_allow_all_classes"] ?? false} qrCheckin={flagMap["qr_checkin"] ?? false} />
         </>
       )}
 

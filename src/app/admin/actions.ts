@@ -44,6 +44,10 @@ export async function setCheckinFlag(key: CheckinSettingsFlagKey, enabled: boole
   await toastRedirectBack("Setting updated.");
 }
 
+const VGL_ONLY_BLOCK_REASON = "This session is for active VG leaders only";
+
+// Also the gate for VGL-only sessions: every participant check-in path (search, QR,
+// offline replay) runs through this, so returning a reason here blocks them all.
 async function getVictoryDayBlockReason(
   participantId: number,
   classSessionId: number,
@@ -51,7 +55,7 @@ async function getVictoryDayBlockReason(
 ): Promise<string | null> {
   const [[session], victoryDate] = await Promise.all([
     db
-      .select({ isVictoryDay: classSessions.isVictoryDay, requiresVictoryDay: classSessions.requiresVictoryDay })
+      .select({ isVictoryDay: classSessions.isVictoryDay, requiresVictoryDay: classSessions.requiresVictoryDay, vglOnly: classSessions.vglOnly })
       .from(classSessions)
       .where(eq(classSessions.id, classSessionId))
       .limit(1),
@@ -65,6 +69,7 @@ async function getVictoryDayBlockReason(
           .then((rows) => rows[0]?.victoryDate ?? null),
   ]);
 
+  if (session?.vglOnly) return VGL_ONLY_BLOCK_REASON;
   if (!session || session.isVictoryDay || !session.requiresVictoryDay) return null;
   if (victoryDate) return null;
 
@@ -527,6 +532,13 @@ export async function addWalkIn(classSessionId: number, formData: FormData) {
   if (mobileNumber && !MOBILE_NUMBER_REGEX.test(mobileNumber)) {
     throw new Error("Invalid mobile number format.");
   }
+
+  const [targetSession] = await db
+    .select({ vglOnly: classSessions.vglOnly })
+    .from(classSessions)
+    .where(eq(classSessions.id, classSessionId))
+    .limit(1);
+  if (targetSession?.vglOnly) throw new Error(VGL_ONLY_BLOCK_REASON);
 
   const vgLeaderLastName = formData.get("vgLeaderLastName") as string;
   const vgLeaderFirstName = formData.get("vgLeaderFirstName") as string;

@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { classSessions, checkIns, participants, victoryGroupLeaders } from "@/db/schema";
+import { classSessions, checkIns, participants, victoryGroupLeaders, sessionVglCheckIns } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { notFound } from "next/navigation";
@@ -18,6 +18,45 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     .limit(1);
 
   if (!session) return notFound();
+
+  const filename = `${session.name.replace(/[^a-z0-9]/gi, "_")}_${session.sessionDate}.xlsx`;
+
+  if (session.vglOnly) {
+    const vglAttendees = await db
+      .select({
+        checkedInAt: sessionVglCheckIns.checkedInAt,
+        lastName: victoryGroupLeaders.lastName,
+        firstName: victoryGroupLeaders.firstName,
+        middleInitial: victoryGroupLeaders.middleInitial,
+        nickname: victoryGroupLeaders.nickname,
+        mobileNumber: victoryGroupLeaders.mobileNumber,
+        serviceAttending: victoryGroupLeaders.serviceAttending,
+        status: sessionVglCheckIns.status,
+        remarks: sessionVglCheckIns.remarks,
+      })
+      .from(sessionVglCheckIns)
+      .innerJoin(victoryGroupLeaders, eq(sessionVglCheckIns.vgLeaderId, victoryGroupLeaders.id))
+      .where(eq(sessionVglCheckIns.classSessionId, sessionId))
+      .orderBy(sessionVglCheckIns.checkedInAt);
+
+    return xlsxResponse(
+      vglAttendees.map((a, i) => ({
+        "#": i + 1,
+        "Last Name": a.lastName,
+        "First Name": a.firstName,
+        "M.I.": a.middleInitial ?? "",
+        "Nickname": a.nickname ?? "",
+        "Mobile": a.mobileNumber ?? "",
+        "Service": a.serviceAttending ?? "",
+        "Status": a.status,
+        "Check-in Time": new Date(a.checkedInAt).toLocaleTimeString("en-PH", {
+          hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Manila",
+        }),
+        "Remarks": a.remarks ?? "",
+      })),
+      filename
+    );
+  }
 
   const attendees = await db
     .select({
@@ -74,19 +113,21 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     "Remarks": a.remarks ?? "",
   }));
 
+  return xlsxResponse(rows, filename);
+}
+
+function xlsxResponse(rows: Record<string, unknown>[], filename: string) {
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Attendees");
 
   // Auto-fit column widths
   const colWidths = Object.keys(rows[0] ?? {}).map((key) => ({
-    wch: Math.max(key.length, ...rows.map((r) => String(r[key as keyof typeof r] ?? "").length)) + 2,
+    wch: Math.max(key.length, ...rows.map((r) => String(r[key] ?? "").length)) + 2,
   }));
   ws["!cols"] = colWidths;
 
   const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
-
-  const filename = `${session.name.replace(/[^a-z0-9]/gi, "_")}_${session.sessionDate}.xlsx`;
 
   return new Response(buf, {
     headers: {

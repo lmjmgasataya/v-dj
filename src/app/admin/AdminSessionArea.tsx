@@ -6,6 +6,7 @@ import type { ClassSession } from "@/db/schema";
 import { SessionAttendeesModal } from "./SessionAttendeesModal";
 import { ParticipantSearch } from "./ParticipantSearch";
 import { WalkInForm } from "./WalkInForm";
+import { VglCheckIn } from "./VglCheckIn";
 
 export function AdminSessionArea({
   sessions,
@@ -58,7 +59,7 @@ export function AdminSessionArea({
     const dateStr = new Date(s.sessionDate + "T00:00:00").toLocaleDateString("en-PH", {
       weekday: "short", month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila",
     });
-    return `${s.name} — ${dateStr}${s.isVictoryDay ? " (Victory Day)" : ""}`;
+    return `${s.name} — ${dateStr}${s.isVictoryDay ? " (Victory Day)" : ""}${s.vglOnly ? " (VGLs only)" : ""}`;
   }
 
   function handleSelect(id: number | null) {
@@ -97,6 +98,7 @@ export function AdminSessionArea({
               sessionId={selectedSession.id}
               sessionName={selectedSession.name}
               attendeeCount={attendeeCounts[selectedSession.id] ?? 0}
+              vglOnly={selectedSession.vglOnly}
             />
           )}
         </div>
@@ -139,8 +141,28 @@ export function AdminSessionArea({
         </div>
       </div>
 
+      {/* Step 2: Check in VG leader (VGL-only session) */}
+      {selectedSession && selectedSession.vglOnly && (
+        <div id="search-participant" className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00428E] text-white text-xs font-bold shrink-0">2</span>
+            <p className="text-sm font-semibold text-gray-700">
+              Search VG Leader —{" "}
+              <span className="text-indigo-600 font-medium">{selectedSession.name}</span>
+              <span className="ml-2 text-xs font-medium bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Active VGLs only</span>
+            </p>
+          </div>
+          <VglCheckIn
+            key={selectedSession.id}
+            sessionId={selectedSession.id}
+            sessionName={selectedSession.name}
+            confirmBeforeCheckIn={confirmBeforeCheckIn}
+          />
+        </div>
+      )}
+
       {/* Step 2: Search participant */}
-      {selectedSession && !selectedSession.allowsWalkIn && (
+      {selectedSession && !selectedSession.vglOnly && !selectedSession.allowsWalkIn && (
         <div id="search-participant" className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00428E] text-white text-xs font-bold shrink-0">2</span>
@@ -170,7 +192,7 @@ export function AdminSessionArea({
       )}
 
       {/* Step 2: Add walk-in */}
-      {selectedSession && selectedSession.allowsWalkIn && (
+      {selectedSession && !selectedSession.vglOnly && selectedSession.allowsWalkIn && (
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#00428E] text-white text-xs font-bold shrink-0">2.1</span>

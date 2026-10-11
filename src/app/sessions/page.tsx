@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { classSessions, checkIns, participants, batches } from "@/db/schema";
+import { classSessions, checkIns, participants, batches, sessionVglCheckIns, victoryGroupLeaders } from "@/db/schema";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
@@ -25,13 +25,13 @@ export default async function SessionsPage({
   // front, so the join below can be scoped without changing left-join semantics (sessions
   // with zero matching check-ins still need to show up with a count of 0, not disappear).
   let lockedParticipantIds: number[] | undefined;
-  if (isLeadPastor) {
-    const rawValues = rawServiceValues(session?.timeService);
-    const rows = await db.select({ id: participants.id }).from(participants).where(inArray(participants.serviceAttending, rawValues));
+  const lockedServiceRawValues = isLeadPastor ? rawServiceValues(session?.timeService) : undefined;
+  if (lockedServiceRawValues) {
+    const rows = await db.select({ id: participants.id }).from(participants).where(inArray(participants.serviceAttending, lockedServiceRawValues));
     lockedParticipantIds = rows.map((r) => r.id);
   }
 
-  const [allBatches, sessions] = await Promise.all([
+  const [allBatches, rawSessions, vglCounts] = await Promise.all([
     db.select({ id: batches.id, name: batches.name }).from(batches).orderBy(batches.classStartDate),
 
     db
@@ -40,6 +40,7 @@ export default async function SessionsPage({
         name: classSessions.name,
         sessionDate: classSessions.sessionDate,
         isVictoryDay: classSessions.isVictoryDay,
+        vglOnly: classSessions.vglOnly,
         checkInCount: sql<number>`count(${checkIns.id}) filter (where ${checkIns.status} != 'Absent')::int`,
         absentCount: sql<number>`count(${checkIns.id}) filter (where ${checkIns.status} = 'Absent')::int`,
       })
@@ -54,7 +55,26 @@ export default async function SessionsPage({
       .where(batchId ? eq(classSessions.batchId, batchId) : undefined)
       .groupBy(classSessions.id)
       .orderBy(classSessions.sessionDate, classSessions.id),
+
+    // VGL-only sessions record attendance in sessionVglCheckIns instead of checkIns.
+    db
+      .select({
+        sessionId: sessionVglCheckIns.classSessionId,
+        checkInCount: sql<number>`count(*) filter (where ${sessionVglCheckIns.status} != 'Absent')::int`,
+        absentCount: sql<number>`count(*) filter (where ${sessionVglCheckIns.status} = 'Absent')::int`,
+      })
+      .from(sessionVglCheckIns)
+      .innerJoin(victoryGroupLeaders, eq(sessionVglCheckIns.vgLeaderId, victoryGroupLeaders.id))
+      .where(lockedServiceRawValues ? inArray(victoryGroupLeaders.serviceAttending, lockedServiceRawValues) : undefined)
+      .groupBy(sessionVglCheckIns.classSessionId),
   ]);
+
+  const vglCountMap = new Map(vglCounts.map((r) => [r.sessionId, r]));
+  const sessions = rawSessions.map((s) =>
+    s.vglOnly
+      ? { ...s, checkInCount: vglCountMap.get(s.id)?.checkInCount ?? 0, absentCount: vglCountMap.get(s.id)?.absentCount ?? 0 }
+      : s
+  );
 
   const today = todayPH();
   const selectedBatch = allBatches.find((b) => b.id === batchId) ?? null;
@@ -119,6 +139,11 @@ export default async function SessionsPage({
                     {s.isVictoryDay && (
                       <span className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
                         Victory Day
+                      </span>
+                    )}
+                    {s.vglOnly && (
+                      <span className="text-xs font-medium bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                        VGLs Only
                       </span>
                     )}
                     {isToday && (

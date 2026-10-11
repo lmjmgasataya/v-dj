@@ -8,6 +8,7 @@ import {
   leadershipGroupMembers,
   eventRegistrations,
   eventCheckIns,
+  sessionVglCheckIns,
   users,
 } from "@/db/schema";
 import { eq, and, isNull, inArray } from "drizzle-orm";
@@ -213,6 +214,21 @@ export async function mergeVgLeaders(keepId: number, dropId: number): Promise<{ 
         await tx.delete(eventCheckIns).where(eq(eventCheckIns.id, row.id));
       } else {
         await tx.update(eventCheckIns).set({ vgLeaderId: keepId }).where(eq(eventCheckIns.id, row.id));
+      }
+    }
+
+    // session_vgl_check_ins: unique(vgLeaderId, classSessionId) — same keep-or-repoint rule.
+    const sessionCheckInRows = await tx.select().from(sessionVglCheckIns).where(eq(sessionVglCheckIns.vgLeaderId, dropId));
+    for (const row of sessionCheckInRows) {
+      const [existing] = await tx
+        .select({ id: sessionVglCheckIns.id })
+        .from(sessionVglCheckIns)
+        .where(and(eq(sessionVglCheckIns.classSessionId, row.classSessionId), eq(sessionVglCheckIns.vgLeaderId, keepId)))
+        .limit(1);
+      if (existing) {
+        await tx.delete(sessionVglCheckIns).where(eq(sessionVglCheckIns.id, row.id));
+      } else {
+        await tx.update(sessionVglCheckIns).set({ vgLeaderId: keepId }).where(eq(sessionVglCheckIns.id, row.id));
       }
     }
 

@@ -379,6 +379,13 @@
       "when": 1791260793576,
       "tag": "0053_snapshot_delete_protection",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1791722617511,
+      "tag": "0054_session_vgl_only",
+      "breakpoints": true
     }
   ]
 }

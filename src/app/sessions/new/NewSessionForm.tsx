@@ -19,6 +19,7 @@ export function NewSessionForm({
 }) {
   const [state, action, pending] = useActionState(createSession, undefined);
   const [mode, setMode] = useState<"existing" | "custom">("existing");
+  const [vglOnly, setVglOnly] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
@@ -86,13 +87,21 @@ export function NewSessionForm({
           />
         </div>
 
-        <CheckboxOption name="requiresVictoryDay" value="true" defaultChecked labelClassName="font-medium">
-          Require Victory Day completion before check-in
+        <CheckboxOption name="vglOnly" value="true" checked={vglOnly} onChange={(e) => setVglOnly(e.target.checked)} labelClassName="font-medium">
+          Active VG leaders only — only active VGLs can check in to this session
         </CheckboxOption>
 
-        <CheckboxOption name="allowsWalkIn" value="true" labelClassName="font-medium">
-          Allow walk-in registration for this session
-        </CheckboxOption>
+        {!vglOnly && (
+          <>
+            <CheckboxOption name="requiresVictoryDay" value="true" defaultChecked labelClassName="font-medium">
+              Require Victory Day completion before check-in
+            </CheckboxOption>
+
+            <CheckboxOption name="allowsWalkIn" value="true" labelClassName="font-medium">
+              Allow walk-in registration for this session
+            </CheckboxOption>
+          </>
+        )}
 
         <div className="flex gap-3 justify-end pt-1">
           <Link

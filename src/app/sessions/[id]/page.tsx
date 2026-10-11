@@ -1,10 +1,11 @@
 import { db } from "@/db";
-import { classSessions, checkIns, participants, victoryGroupLeaders } from "@/db/schema";
-import { and, count, eq, gte, inArray, lt } from "drizzle-orm";
+import { classSessions, checkIns, participants, victoryGroupLeaders, sessionVglCheckIns, users, type ClassSession } from "@/db/schema";
+import { and, count, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AttendeeList } from "./AttendeeList";
+import { VglAttendeeList } from "./VglAttendeeList";
 import { getSession } from "@/lib/auth";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { currentYearPH } from "@/lib/date";
@@ -24,7 +25,7 @@ export default async function SessionDetailPage({
   const isLeadPastor = authSession?.role === "lead_pastor";
   const lockedServiceRawValues = isLeadPastor ? rawServiceValues(authSession?.timeService) : undefined;
 
-  const [[session], attendees] = await Promise.all([
+  const [[session], attendees, vglAttendees] = await Promise.all([
     db
       .select()
       .from(classSessions)
@@ -75,11 +76,54 @@ export default async function SessionDetailPage({
         )
       )
       .orderBy(checkIns.checkedInAt),
+
+    db
+      .select({
+        checkInId: sessionVglCheckIns.id,
+        checkedInAt: sessionVglCheckIns.checkedInAt,
+        vgLeaderId: victoryGroupLeaders.id,
+        lastName: victoryGroupLeaders.lastName,
+        firstName: victoryGroupLeaders.firstName,
+        middleInitial: victoryGroupLeaders.middleInitial,
+        nickname: victoryGroupLeaders.nickname,
+        mobileNumber: victoryGroupLeaders.mobileNumber,
+        serviceAttending: victoryGroupLeaders.serviceAttending,
+        // Claimed = has a portal account (a PIN reset still counts), same as the VG Leader Portal.
+        claimedAndCompleted: sql<boolean>`(${users.id} is not null and ${victoryGroupLeaders.profileCompleted})`,
+        remarks: sessionVglCheckIns.remarks,
+        status: sessionVglCheckIns.status,
+        method: sessionVglCheckIns.method,
+      })
+      .from(sessionVglCheckIns)
+      .innerJoin(victoryGroupLeaders, eq(sessionVglCheckIns.vgLeaderId, victoryGroupLeaders.id))
+      .leftJoin(users, eq(users.vgLeaderId, victoryGroupLeaders.id))
+      .where(
+        and(
+          eq(sessionVglCheckIns.classSessionId, sessionId),
+          lockedServiceRawValues ? inArray(victoryGroupLeaders.serviceAttending, lockedServiceRawValues) : undefined
+        )
+      )
+      .orderBy(sessionVglCheckIns.checkedInAt),
   ]);
 
   if (!session) notFound();
 
   const isDeveloper = authSession?.role === "developer";
+
+  if (session.vglOnly) {
+    return (
+      <SessionDetailLayout
+        session={session}
+        isDeveloper={isDeveloper}
+        badge="VGLs Only"
+        attendedCount={vglAttendees.filter((a) => a.status !== "Absent").length}
+        absentCount={vglAttendees.filter((a) => a.status === "Absent").length}
+        hasAttendees={vglAttendees.length > 0}
+      >
+        <VglAttendeeList attendees={vglAttendees} />
+      </SessionDetailLayout>
+    );
+  }
 
   const participantIds = attendees.map((a) => a.participantId);
   const year = currentYearPH();
@@ -122,6 +166,36 @@ export default async function SessionDetailPage({
   const attendedCount = attendees.filter((a) => a.status !== "Absent").length;
   const absentCount = attendees.length - attendedCount;
 
+  return (
+    <SessionDetailLayout
+      session={session}
+      isDeveloper={isDeveloper}
+      attendedCount={attendedCount}
+      absentCount={absentCount}
+      hasAttendees={attendees.length > 0}
+    >
+      <AttendeeList attendees={attendeesWithVictoryDay} totalVictoryDaySessions={totalVictoryDaySessions} />
+    </SessionDetailLayout>
+  );
+}
+
+function SessionDetailLayout({
+  session,
+  isDeveloper,
+  badge,
+  attendedCount,
+  absentCount,
+  hasAttendees,
+  children,
+}: {
+  session: ClassSession;
+  isDeveloper: boolean;
+  badge?: string;
+  attendedCount: number;
+  absentCount: number;
+  hasAttendees: boolean;
+  children: React.ReactNode;
+}) {
   const dateStr = new Date(session.sessionDate + "T00:00:00").toLocaleDateString("en-PH", {
     weekday: "long",
     month: "long",
@@ -137,8 +211,11 @@ export default async function SessionDetailPage({
           <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Discipleship Journey Portal", href: "/journey" }, { label: "Sessions", href: "/sessions" }, { label: session.name }]} />
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-bold text-gray-900">{session.name}</h2>
+            {badge && (
+              <span className="text-xs font-medium bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{badge}</span>
+            )}
             {isDeveloper && (
-              <Link href={`/sessions/${sessionId}/edit`} className="text-xs text-gray-400 hover:text-indigo-600 underline underline-offset-2">
+              <Link href={`/sessions/${session.id}/edit`} className="text-xs text-gray-400 hover:text-indigo-600 underline underline-offset-2">
                 Edit
               </Link>
             )}
@@ -153,9 +230,9 @@ export default async function SessionDetailPage({
               <p className="text-xs text-red-500 mt-0.5">{absentCount} absent</p>
             )}
           </div>
-          {attendees.length > 0 && (
+          {hasAttendees && (
             <a
-              href={`/api/sessions/${sessionId}/export`}
+              href={`/api/sessions/${session.id}/export`}
               className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
             >
               <span>↓</span> Export Excel
@@ -164,12 +241,12 @@ export default async function SessionDetailPage({
         </div>
       </div>
 
-      {attendees.length === 0 ? (
+      {hasAttendees ? (
+        children
+      ) : (
         <div className="flex items-center justify-center h-40 rounded-xl border border-dashed border-gray-200 text-sm text-gray-400 bg-white">
           No check-ins recorded for this session yet.
         </div>
-      ) : (
-        <AttendeeList attendees={attendeesWithVictoryDay} totalVictoryDaySessions={totalVictoryDaySessions} />
       )}
     </div>
   );

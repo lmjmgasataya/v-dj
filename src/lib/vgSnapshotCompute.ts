@@ -4,7 +4,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { isQuarterlyActive } from "@/lib/vgLeaderStatus";
 import { getLiveQuarter, getProfileUpdateQuarters } from "@/lib/vgQuarters";
 import { getQuarterOptions } from "@/lib/vgQuarterFlags";
-import { computeProfileProgress } from "@/lib/profileCompleteness";
+import { computeProfileProgress, type LeaderProfileFields } from "@/lib/profileCompleteness";
 import { leadership113Label } from "@/lib/leadership113";
 import { currentYearPH } from "@/lib/date";
 import {
@@ -20,6 +20,25 @@ import {
   type VgLeaderRef,
   type SnapshotLeaderRow,
 } from "@/lib/vgSnapshot";
+
+/**
+ * The rule behind the VG Leaders count (see computeVgSnapshotCounts below): claimed portal account,
+ * currently leading (`isActive`), updated within the last quarter, 100%-complete profile, and a
+ * service that maps to a bucket. Shared so other lists (e.g. VGL-only session check-in) match it.
+ */
+export function countsAsActiveVgLeader(
+  leader: LeaderProfileFields & { isActive: boolean; updatedAt: Date },
+  claimed: boolean,
+  hasActiveGroup: boolean,
+): boolean {
+  return (
+    claimed &&
+    leader.isActive &&
+    isQuarterlyActive(leader.updatedAt) &&
+    computeProfileProgress(leader, hasActiveGroup).percent === 100 &&
+    serviceToBucket(leader.serviceAttending) != null
+  );
+}
 
 export function isInternSet(intern: string | null): boolean {
   return !!intern && intern.trim().toLowerCase() !== "none";
@@ -161,12 +180,8 @@ export async function computeVgSnapshotCounts(): Promise<
   };
 
   for (const leader of leaders) {
-    if (!claimedIds.has(leader.id)) continue;
-    if (!leader.isActive) continue;
-    if (!isQuarterlyActive(leader.updatedAt)) continue;
-    if (computeProfileProgress(leader, activeGroupIds.has(leader.id)).percent !== 100) continue;
-    const bucket = serviceToBucket(leader.serviceAttending);
-    if (!bucket) continue;
+    if (!countsAsActiveVgLeader(leader, claimedIds.has(leader.id), activeGroupIds.has(leader.id))) continue;
+    const bucket = serviceToBucket(leader.serviceAttending)!;
 
     byService[bucket].vgLeaders += 1;
     detailsByService[bucket].vgLeaders.push({ id: leader.id, name: leaderName(leader.id) });

@@ -7,6 +7,10 @@ export const REMARK_STYLE: Record<RemarkKind, { tag: string; chipActive: string 
     tag: "bg-sky-50 text-sky-700 border-sky-100",
     chipActive: "bg-sky-100 text-sky-800 ring-1 ring-sky-300",
   },
+  byVgl: {
+    tag: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100",
+    chipActive: "bg-fuchsia-100 text-fuchsia-800 ring-1 ring-fuchsia-300",
+  },
   byParticipant: {
     tag: "bg-violet-50 text-violet-700 border-violet-100",
     chipActive: "bg-violet-100 text-violet-800 ring-1 ring-violet-300",

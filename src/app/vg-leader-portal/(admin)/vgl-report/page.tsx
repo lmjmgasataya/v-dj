@@ -341,7 +341,8 @@ export default async function VgLeaderReportPage() {
       id: l.id,
       name: `${l.lastName}, ${l.firstName}`,
       service: l.serviceAttending || NOT_SET_SERVICE,
-      claimed: claimedIds.has(l.id),
+      vgLeaderId: l.ownVgLeaderId,
+      vgLeaderName: l.ownVgLeaderName,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 

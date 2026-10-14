@@ -46,6 +46,7 @@ const lglLeaders = alias(victoryGroupLeaders, "lgl_leaders");
  * per person with every reason that applies (in the REMARK order above):
  * - named as a member by a Leadership Group Leader who completed the update for the
  *   previous or live quarter (e.g. Q3–Q4), regardless of the carry-over setting
+ * - named as their own Victory Group Leader by another (non-deleted) VG leader
  * - named as their VG leader by a Discipleship Journey participant
  * - has a claimed portal account (a PIN reset still counts) but the profile is incomplete
  * - answered a quarterly update collected outside the portal (manual_quarter_responses)
@@ -121,6 +122,12 @@ export async function getProfileNotCompletedRows(): Promise<ProfileNotCompletedR
   for (const r of lglMemberRows) {
     if (leaderById.get(r.memberId)?.profileCompleted === false && lglUpdatedThisCycle(r.leaderId)) {
       addLeader(r.memberId, REMARK.byLgl);
+    }
+  }
+
+  for (const l of leaders) {
+    if (l.ownVgLeaderId != null && l.ownVgLeaderId !== l.id && leaderById.get(l.ownVgLeaderId)?.profileCompleted === false) {
+      addLeader(l.ownVgLeaderId, REMARK.byVgl);
     }
   }
 

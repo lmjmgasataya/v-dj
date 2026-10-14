@@ -7,23 +7,25 @@ export interface NewLeaderRow {
   id: number;
   name: string;
   service: string;
-  claimed: boolean;
+  /** Their own VG leader — a link when it matched a leader record, else the name as typed. */
+  vgLeaderId: number | null;
+  vgLeaderName: string | null;
 }
 
-type SortKey = "name" | "service" | "claimed";
+type SortKey = "name" | "service" | "vgLeader";
 type SortDir = "asc" | "desc";
 
 const SORT_COLUMNS: { key: SortKey; label: string }[] = [
   { key: "name", label: "Name" },
   { key: "service", label: "Service" },
-  { key: "claimed", label: "Portal Account" },
+  { key: "vgLeader", label: "VG Leader" },
 ];
 
-function sortValue(r: NewLeaderRow, key: SortKey): string | number {
+function sortValue(r: NewLeaderRow, key: SortKey): string {
   switch (key) {
     case "name": return r.name.toLowerCase();
     case "service": return r.service.toLowerCase();
-    case "claimed": return r.claimed ? 1 : 0;
+    case "vgLeader": return (r.vgLeaderName ?? "").toLowerCase();
   }
 }
 
@@ -81,7 +83,15 @@ export function NewLeadersTable({ rows }: { rows: NewLeaderRow[] }) {
               </Link>
             </td>
             <td className="px-4 py-2.5 text-gray-500">{l.service}</td>
-            <td className="px-4 py-2.5 text-gray-500">{l.claimed ? "Claimed" : "Not claimed"}</td>
+            <td className="px-4 py-2.5 text-gray-500">
+              {l.vgLeaderId ? (
+                <Link href={`/vg-leader-portal/leaders/${l.vgLeaderId}`} className="text-indigo-600 hover:text-indigo-800 underline">
+                  {l.vgLeaderName || "—"}
+                </Link>
+              ) : (
+                l.vgLeaderName || "—"
+              )}
+            </td>
           </tr>
         ))}
       </tbody>

@@ -88,7 +88,7 @@ export function NewSessionForm({
         </div>
 
         <CheckboxOption name="vglOnly" value="true" checked={vglOnly} onChange={(e) => setVglOnly(e.target.checked)} labelClassName="font-medium">
-          Active VG leaders only — only active VGLs can check in to this session
+          Active VG leaders only — only active VGLs with a completed profile can check in to this session
         </CheckboxOption>
 
         {!vglOnly && (

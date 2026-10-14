@@ -111,16 +111,23 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
   // lead_pastor gets a read-only view.
   const isDeveloper = (await getSession())?.role === "developer";
 
-  const [[leader], groups] = await Promise.all([
+  const [[leader], groups, [account]] = await Promise.all([
     db.select().from(victoryGroupLeaders).where(eq(victoryGroupLeaders.id, leaderId)).limit(1),
     db
       .select()
       .from(victoryGroups)
       .where(and(eq(victoryGroups.vgLeaderId, leaderId), isNull(victoryGroups.deletedAt)))
       .orderBy(victoryGroups.createdAt),
+    // Claimed = has a portal account (claiming creates one; a PIN reset still counts).
+    db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.vgLeaderId, leaderId), eq(users.role, "vg_leader")))
+      .limit(1),
   ]);
 
   if (!leader) notFound();
+  const claimed = !!account;
 
   const groupIds = groups.map((g) => g.id);
   const internRows = groupIds.length
@@ -233,7 +240,7 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
             <h2 className="text-2xl font-bold text-gray-900 capitalize">
               {leader.lastName}, {leader.firstName}
             </h2>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex flex-wrap items-center gap-2 mt-1">
               {leader.deletedAt && (
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700">
                   Deleted {fmtDate(leader.deletedAt)}
@@ -252,6 +259,13 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
                 }`}
               >
                 {leader.profileCompleted ? "Profile Complete" : "Profile Incomplete"}
+              </span>
+              <span
+                className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                  claimed ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                }`}
+              >
+                {claimed ? "Profile Claimed" : "Profile Not Claimed"}
               </span>
               <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${FRESHNESS_BADGE_CLASS[freshness]}`}>
                 Last updated {fmtDate(leader.updatedAt)}

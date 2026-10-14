@@ -1,8 +1,9 @@
 "use server";
 
 import { db } from "@/db";
-import { classSessions, sessionVglCheckIns, victoryGroupLeaders, users, type CheckInStatus } from "@/db/schema";
-import { and, eq, isNotNull, isNull, or } from "drizzle-orm";
+import { classSessions, sessionVglCheckIns, victoryGroupLeaders, victoryGroups, users, type CheckInStatus } from "@/db/schema";
+import { and, eq, isNull } from "drizzle-orm";
+import { countsAsActiveVgLeader } from "@/lib/vgSnapshotCompute";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { checkInStatusForDate } from "@/lib/date";
@@ -40,49 +41,68 @@ export interface VglRosterEntry {
 }
 
 /**
- * Everyone eligible for a VGL-only session: active, non-deleted VG leaders — plus anyone
- * already checked in, so a leader marked inactive afterwards doesn't vanish from the list.
+ * IDs of the VG leaders allowed into a VGL-only session — the same people the Quarterly
+ * Report's live "VG Leaders" count is over (see countsAsActiveVgLeader).
+ */
+async function getEligibleVglIds(): Promise<Set<number>> {
+  const [leaders, accounts, activeGroups] = await Promise.all([
+    db.select().from(victoryGroupLeaders).where(isNull(victoryGroupLeaders.deletedAt)),
+    db.select({ vgLeaderId: users.vgLeaderId }).from(users).where(eq(users.role, "vg_leader")),
+    db
+      .select({ vgLeaderId: victoryGroups.vgLeaderId })
+      .from(victoryGroups)
+      .where(and(isNull(victoryGroups.deletedAt), eq(victoryGroups.isActive, true))),
+  ]);
+  const claimedIds = new Set(accounts.map((a) => a.vgLeaderId));
+  const activeGroupIds = new Set(activeGroups.map((g) => g.vgLeaderId));
+  return new Set(
+    leaders
+      .filter((l) => countsAsActiveVgLeader(l, claimedIds.has(l.id), activeGroupIds.has(l.id)))
+      .map((l) => l.id)
+  );
+}
+
+/**
+ * Everyone eligible for a VGL-only session: active VG leaders with a claimed, completed
+ * profile (see getEligibleVglIds) — plus anyone already checked in, so a leader who drops
+ * out of that list afterwards doesn't vanish from the attendance.
  */
 export async function getVglCheckinRoster(classSessionId: number): Promise<VglRosterEntry[]> {
   if (!(await canCheckIn())) return [];
 
-  const rows = await db
-    .select({
-      id: victoryGroupLeaders.id,
-      firstName: victoryGroupLeaders.firstName,
-      lastName: victoryGroupLeaders.lastName,
-      middleInitial: victoryGroupLeaders.middleInitial,
-      nickname: victoryGroupLeaders.nickname,
-      mobileNumber: victoryGroupLeaders.mobileNumber,
-      serviceAttending: victoryGroupLeaders.serviceAttending,
-      profileCompleted: victoryGroupLeaders.profileCompleted,
-      accountId: users.id,
-      checkInId: sessionVglCheckIns.id,
-      checkedInAt: sessionVglCheckIns.checkedInAt,
-      checkInStatus: sessionVglCheckIns.status,
-      checkInRemarks: sessionVglCheckIns.remarks,
-    })
-    .from(victoryGroupLeaders)
-    .leftJoin(users, eq(users.vgLeaderId, victoryGroupLeaders.id))
-    .leftJoin(
-      sessionVglCheckIns,
-      and(eq(sessionVglCheckIns.vgLeaderId, victoryGroupLeaders.id), eq(sessionVglCheckIns.classSessionId, classSessionId))
-    )
-    .where(
-      or(
-        and(isNull(victoryGroupLeaders.deletedAt), eq(victoryGroupLeaders.isActive, true)),
-        isNotNull(sessionVglCheckIns.id)
+  const [eligibleIds, rows] = await Promise.all([
+    getEligibleVglIds(),
+    db
+      .select({
+        id: victoryGroupLeaders.id,
+        firstName: victoryGroupLeaders.firstName,
+        lastName: victoryGroupLeaders.lastName,
+        middleInitial: victoryGroupLeaders.middleInitial,
+        nickname: victoryGroupLeaders.nickname,
+        mobileNumber: victoryGroupLeaders.mobileNumber,
+        serviceAttending: victoryGroupLeaders.serviceAttending,
+        checkInId: sessionVglCheckIns.id,
+        checkedInAt: sessionVglCheckIns.checkedInAt,
+        checkInStatus: sessionVglCheckIns.status,
+        checkInRemarks: sessionVglCheckIns.remarks,
+      })
+      .from(victoryGroupLeaders)
+      .leftJoin(
+        sessionVglCheckIns,
+        and(eq(sessionVglCheckIns.vgLeaderId, victoryGroupLeaders.id), eq(sessionVglCheckIns.classSessionId, classSessionId))
       )
-    )
-    .orderBy(victoryGroupLeaders.lastName, victoryGroupLeaders.firstName);
+      .orderBy(victoryGroupLeaders.lastName, victoryGroupLeaders.firstName),
+  ]);
 
-  return rows.map(({ profileCompleted, accountId, ...r }) => ({
-    ...r,
-    claimedAndCompleted: accountId != null && profileCompleted,
-    firstName: toTitleCase(r.firstName),
-    lastName: toTitleCase(r.lastName),
-    middleInitial: r.middleInitial ? toTitleCase(r.middleInitial) : null,
-  }));
+  return rows
+    .filter((r) => eligibleIds.has(r.id) || r.checkInId != null)
+    .map((r) => ({
+      ...r,
+      claimedAndCompleted: eligibleIds.has(r.id),
+      firstName: toTitleCase(r.firstName),
+      lastName: toTitleCase(r.lastName),
+      middleInitial: r.middleInitial ? toTitleCase(r.middleInitial) : null,
+    }));
 }
 
 export async function checkInVgl(
@@ -109,7 +129,9 @@ export async function checkInVgl(
 
   if (!vglOnly) return { error: "This session is not a VG leaders only session" };
   if (!leader || leader.deletedAt) return { error: "VG leader not found" };
-  if (!leader.isActive) return { error: "Only active VG leaders can check in to this session" };
+  if (!leader.isActive || !(await getEligibleVglIds()).has(vgLeaderId)) {
+    return { error: "Only active VG leaders with a completed profile can check in to this session" };
+  }
 
   const finalStatus = status ?? checkInStatusForDate(new Date());
   await db

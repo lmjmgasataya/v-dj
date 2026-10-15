@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { and, eq, isNotNull, isNull, or } from "drizzle-orm";
 import { db } from "@/db";
-import { victoryGroupLeaders, victoryGroups, interns, leadershipGroupMembers, participants } from "@/db/schema";
+import { victoryGroupLeaders, victoryGroups, interns, leadershipGroupMembers, participants, users } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { formatPersonName } from "@/lib/text";
@@ -23,7 +23,7 @@ export default async function ConnectionsGraphPage() {
   const session = await getSession();
   if (!session || session.role !== "developer") redirect("/");
 
-  const [leaders, lglRows, participantRows, internRows, vgOwnerRows] = await Promise.all([
+  const [leaders, lglRows, participantRows, internRows, vgOwnerRows, accountRows] = await Promise.all([
     db
       .select({
         id: victoryGroupLeaders.id,
@@ -32,6 +32,7 @@ export default async function ConnectionsGraphPage() {
         ownVgLeaderId: victoryGroupLeaders.ownVgLeaderId,
         isLeadershipGroupLeader: victoryGroupLeaders.isLeadershipGroupLeader,
         serviceAttending: victoryGroupLeaders.serviceAttending,
+        profileCompleted: victoryGroupLeaders.profileCompleted,
       })
       .from(victoryGroupLeaders)
       .where(isNull(victoryGroupLeaders.deletedAt)),
@@ -53,6 +54,7 @@ export default async function ConnectionsGraphPage() {
       .innerJoin(victoryGroups, eq(interns.victoryGroupId, victoryGroups.id))
       .where(and(isNull(interns.deletedAt), isNull(victoryGroups.deletedAt))),
     db.selectDistinct({ vgLeaderId: victoryGroups.vgLeaderId }).from(victoryGroups).where(isNull(victoryGroups.deletedAt)),
+    db.select({ vgLeaderId: users.vgLeaderId }).from(users).where(eq(users.role, "vg_leader")),
   ]);
 
   // Names as entered can be all caps or all lowercase — show them as "Dela Cruz", "Juan".
@@ -62,6 +64,8 @@ export default async function ConnectionsGraphPage() {
     return { label: `${lastName}, ${firstName}`, lastName, firstName };
   };
   const leaderIds = new Set(leaders.map((l) => l.id));
+  // Claimed once a portal account exists (a PIN reset doesn't undo that) — same as the VG Leaders list.
+  const claimedIds = new Set(accountRows.map((a) => a.vgLeaderId));
   const L = (id: number) => `l:${id}`;
   const nodes: GraphNode[] = leaders.map((l) => ({
     id: L(l.id),
@@ -70,6 +74,7 @@ export default async function ConnectionsGraphPage() {
     href: `/vg-leader-portal/leaders/${l.id}`,
     isLgl: l.isLeadershipGroupLeader,
     service: l.serviceAttending,
+    profileStatus: !claimedIds.has(l.id) ? "unclaimed" : l.profileCompleted ? undefined : "incomplete",
   }));
   const links: GraphLink[] = [];
   // Only link to leaders that are still in the graph (not soft-deleted).

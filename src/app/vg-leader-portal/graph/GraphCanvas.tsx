@@ -2,7 +2,15 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import ForceGraph2D, { type ForceGraphMethods, type LinkObject, type NodeObject } from "react-force-graph-2d";
-import { EDGE_STYLE, NODE_STYLE, nodeStyleKey, type GraphLink, type GraphNode } from "./graphTypes";
+import {
+  EDGE_STYLE,
+  NODE_STYLE,
+  PROFILE_STYLE,
+  nodeStyleKey,
+  type GraphLink,
+  type GraphNode,
+  type ProfileStatus,
+} from "./graphTypes";
 
 type N = NodeObject<GraphNode>;
 type L = LinkObject<GraphNode, GraphLink>;
@@ -18,6 +26,9 @@ const CARD_GAP = 36; // minimum space kept between two cards
 const LEVEL_GAP = 110; // tree: vertical space between one row of cards and the next
 const TOP_BORDER = 5; // the thick role-coloured strip along the top
 const ARROW = 6;
+const MARK_DOT = 5; // radius of the profile follow-up dot on a card's corner
+const LANE_GAP = 4; // sideways space between two links joining the same two people
+const GRAVITY = 0.05; // network: how hard every card is pulled towards the middle
 const LAST_FONT = "600 11px sans-serif";
 const FIRST_FONT = "10px sans-serif";
 const SUB_FONT = "9px sans-serif";
@@ -50,6 +61,9 @@ function edgePoint(x: number, y: number, dx: number, dy: number) {
   const t = Math.min(ux ? (CARD_W / 2) / Math.abs(ux) : Infinity, uy ? (CARD_H / 2) / Math.abs(uy) : Infinity);
   return { x: x + ux * t, y: y + uy * t };
 }
+
+// A link's end: an id at first, the node object once force-graph has taken the data.
+const endId = (end: string | N) => (typeof end === "string" ? end : end.id);
 
 /**
  * Keeps cards from overlapping. A sweep over nodes sorted by x, so only nearby pairs are checked.
@@ -90,6 +104,24 @@ function cardCollide(strength = 0.8) {
 }
 
 /**
+ * Pulls every card gently towards the middle (like d3's forceX/forceY to 0), so groups with no
+ * link to the rest aren't pushed off into the distance by the charge.
+ */
+function gravity(strength: number) {
+  let nodes: N[] = [];
+  const force = (alpha: number) => {
+    for (const n of nodes) {
+      n.vx = (n.vx ?? 0) - (n.x ?? 0) * strength * alpha;
+      n.vy = (n.vy ?? 0) - (n.y ?? 0) * strength * alpha;
+    }
+  };
+  force.initialize = (n: N[]) => {
+    nodes = n;
+  };
+  return force;
+}
+
+/**
  * The canvas itself (browser-only — loaded with next/dynamic ssr:false from NetworkGraph).
  * `focus` / `fitKey` are requests from the toolbar: change them to pan to a node or zoom to fit.
  */
@@ -100,10 +132,12 @@ export default function GraphCanvas({
   height,
   selectedId,
   highlight,
+  downline,
   focus,
   fitKey,
   layout,
   showNames,
+  profileMarks,
   onSelect,
 }: {
   nodes: GraphNode[];
@@ -113,11 +147,15 @@ export default function GraphCanvas({
   selectedId: string | null;
   /** The selected node and its neighbours; everything else is dimmed. Null = nothing selected. */
   highlight: Set<string> | null;
+  /** The selected person and everyone below them, when the downline is highlighted; else null. */
+  downline: Set<string> | null;
   focus: { id: string; seq: number } | null;
   fitKey: number;
   /** "tree": top-down levels (people above → people below); "network": free force layout. */
   layout: GraphLayout;
   showNames: boolean;
+  /** Which profile statuses to mark on leaders' cards. */
+  profileMarks: Set<ProfileStatus>;
   onSelect: (id: string | null) => void;
 }) {
   const ref = useRef<ForceGraphMethods<N, L>>(undefined);
@@ -131,6 +169,8 @@ export default function GraphCanvas({
     ref.current?.d3Force("charge")?.strength(layout === "tree" ? -250 : -400);
     ref.current?.d3Force("link")?.distance(layout === "tree" ? 120 : 180);
     ref.current?.d3Force("collide", cardCollide() as never);
+    // Tree rows are pinned and line up on their own; only the free network layout needs it.
+    ref.current?.d3Force("gravity", layout === "network" ? (gravity(GRAVITY) as never) : null);
     fittedOnce.current = false;
     ref.current?.d3ReheatSimulation();
   }, [layout]);
@@ -139,8 +179,11 @@ export default function GraphCanvas({
     if (fitKey > 0) ref.current?.zoomToFit(600, 40);
   }, [fitKey]);
 
+  // Pan once per request (`seq`) — not again every time a filter change hands us new `nodes`.
+  const handledFocus = useRef(0);
   useEffect(() => {
-    if (!focus) return;
+    if (!focus || focus.seq === handledFocus.current) return;
+    handledFocus.current = focus.seq;
     const n = nodes.find((x) => x.id === focus.id) as N | undefined;
     if (n?.x == null || n.y == null) return;
     ref.current?.centerAt(n.x, n.y, 600);
@@ -150,6 +193,21 @@ export default function GraphCanvas({
   // Same object across re-renders — a new one (e.g. on every click/selection) makes force-graph
   // treat it as new data and re-run the layout. Only a filter change should do that.
   const graphData = useMemo(() => ({ nodes: nodes as N[], links: links as L[] }), [nodes, links]);
+
+  // Two links between the same two people (an LGL who's also their VG leader, a VG leader who's
+  // also their discipler) would trace the exact same curve — give each its own lane instead.
+  const lanes = useMemo(() => {
+    const byPair = new Map<string, GraphLink[]>();
+    for (const l of links) {
+      const key = `${endId(l.source as string | N)}>${endId(l.target as string | N)}`;
+      const group = byPair.get(key);
+      if (group) group.push(l);
+      else byPair.set(key, [l]);
+    }
+    const lanes = new Map<GraphLink, number>();
+    for (const group of byPair.values()) group.forEach((l, i) => lanes.set(l, (i - (group.length - 1) / 2) * LANE_GAP));
+    return lanes;
+  }, [links]);
 
   const isLit = (id: string) => !highlight || highlight.has(id);
 
@@ -176,7 +234,7 @@ export default function GraphCanvas({
       height={height}
       graphData={graphData}
       nodeId="id"
-      nodeLabel={(n) => (n.service ? `${n.label} · ${n.service}` : n.label)}
+      nodeLabel={(n) => [n.label, n.service, n.profileStatus && PROFILE_STYLE[n.profileStatus].label].filter(Boolean).join(" · ")}
       dagMode={layout === "tree" ? "td" : undefined}
       dagLevelDistance={CARD_H + LEVEL_GAP}
       // Two people who list each other (a loop) can't both be "above" — just skip the loop.
@@ -199,6 +257,7 @@ export default function GraphCanvas({
         if (n.x == null || n.y == null) return;
         const color = NODE_STYLE[nodeStyleKey(n)].color;
         const selected = n.id === selectedId;
+        const mark = n.profileStatus && profileMarks.has(n.profileStatus) ? PROFILE_STYLE[n.profileStatus] : null;
         const x0 = n.x - CARD_W / 2;
         const y0 = n.y - CARD_H / 2;
         ctx.save();
@@ -209,7 +268,7 @@ export default function GraphCanvas({
           ctx.shadowBlur = 12;
         }
         roundRect(ctx, x0, y0, CARD_W, CARD_H, CARD_R);
-        ctx.fillStyle = "#ffffff";
+        ctx.fillStyle = mark?.fill ?? "#ffffff";
         ctx.fill();
         ctx.shadowBlur = 0;
         ctx.lineWidth = selected ? 2.5 : 1.25;
@@ -222,6 +281,17 @@ export default function GraphCanvas({
         ctx.fillStyle = color;
         ctx.fillRect(x0, y0, CARD_W, TOP_BORDER);
         ctx.restore();
+
+        // Profile still needs following up: a dot on the top-right corner, ringed in white.
+        if (mark) {
+          ctx.beginPath();
+          ctx.arc(x0 + CARD_W - 3, y0 + 3, MARK_DOT, 0, 2 * Math.PI);
+          ctx.fillStyle = mark.dot;
+          ctx.fill();
+          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = "#ffffff";
+          ctx.stroke();
+        }
 
         // Text — skipped when it would be too small to read, or when names are switched off.
         const showText = (showNames || selected || !!highlight?.has(n.id)) && 11 * scale >= 4;
@@ -246,9 +316,12 @@ export default function GraphCanvas({
         const s = l.source as N;
         const t = l.target as N;
         if (s.x == null || s.y == null || t.x == null || t.y == null) return;
-        const lit = isLit(s.id) && isLit(t.id);
+        // Only the selected person's own links stay lit, not links between two of their neighbours —
+        // plus, with the downline on, every link down from someone in it.
+        const lit = !highlight || s.id === selectedId || t.id === selectedId || !!downline?.has(s.id);
         const style = EDGE_STYLE[l.kind];
         const color = lit ? style.color : DIM_LINK;
+        const lane = lanes.get(l) ?? 0;
 
         // A smooth curve from the card above to the card below. Tree: an S-curve from the bottom
         // edge to the top edge. Network (or a tree link that doesn't go down): a gentle arc.
@@ -257,8 +330,8 @@ export default function GraphCanvas({
         let tangent: { x: number; y: number }; // the direction the curve arrives at `end`
         ctx.beginPath();
         if (layout === "tree" && t.y - s.y > CARD_H) {
-          start = { x: s.x, y: s.y + CARD_H / 2 };
-          end = { x: t.x, y: t.y - CARD_H / 2 - ARROW };
+          start = { x: s.x + lane, y: s.y + CARD_H / 2 };
+          end = { x: t.x + lane, y: t.y - CARD_H / 2 - ARROW };
           const midY = (start.y + end.y) / 2;
           ctx.moveTo(start.x, start.y);
           ctx.bezierCurveTo(start.x, midY, end.x, midY, end.x, end.y);
@@ -266,8 +339,11 @@ export default function GraphCanvas({
         } else {
           const dx = t.x - s.x;
           const dy = t.y - s.y;
-          const cx = (s.x + t.x) / 2 - dy * 0.2;
-          const cy = (s.y + t.y) / 2 + dx * 0.2;
+          // Bulge sideways by a fifth of the length, moved out by the lane (the curve's middle
+          // travels half as far as its control point, hence the 2×).
+          const bend = 0.2 + (2 * lane) / (Math.hypot(dx, dy) || 1);
+          const cx = (s.x + t.x) / 2 - dy * bend;
+          const cy = (s.y + t.y) / 2 + dx * bend;
           start = edgePoint(s.x, s.y, cx - s.x, cy - s.y);
           const tip = edgePoint(t.x, t.y, cx - t.x, cy - t.y);
           const len = Math.hypot(tip.x - cx, tip.y - cy) || 1;

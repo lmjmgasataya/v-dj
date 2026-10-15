@@ -3,7 +3,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { EDGE_STYLE, NODE_STYLE, nodeStyleKey, type GraphEdgeKind, type GraphLink, type GraphNode } from "./graphTypes";
+import {
+  EDGE_STYLE,
+  NODE_STYLE,
+  PROFILE_STYLE,
+  nodeStyleKey,
+  type GraphEdgeKind,
+  type GraphLink,
+  type GraphNode,
+  type ProfileStatus,
+} from "./graphTypes";
 
 import type { GraphLayout } from "./GraphCanvas";
 
@@ -14,6 +23,17 @@ const GraphCanvas = dynamic(() => import("./GraphCanvas"), {
 });
 
 const EDGE_KINDS = Object.keys(EDGE_STYLE) as GraphEdgeKind[];
+// Participant links start unticked, so the graph opens on the leader network.
+const OFF_BY_DEFAULT: GraphEdgeKind[] = ["participantVgl", "participantDiscipler"];
+const PROFILE_STATUSES = Object.keys(PROFILE_STYLE) as ProfileStatus[];
+
+// A copy of `set` with `k` switched on or off.
+function toggled<T>(set: Set<T>, k: T) {
+  const next = new Set(set);
+  if (next.has(k)) next.delete(k);
+  else next.add(k);
+  return next;
+}
 
 // Wording for the side panel, from the selected person's point of view.
 const OUTGOING: Record<GraphEdgeKind, string> = {
@@ -31,16 +51,43 @@ const INCOMING: Record<GraphEdgeKind, string> = {
   intern: "Their VG Leader",
 };
 
+const words = (s: string) => s.toLowerCase().split(/[\s,()·]+/).filter(Boolean);
+
+/**
+ * The best match for a search: the exact name first, then every word of the query matching a
+ * word of the name — in any order, so "juan dela cruz" finds "Dela Cruz, Juan" — whole, by its
+ * start, then anywhere in it.
+ */
+function findPerson(people: GraphNode[], query: string, nameOf: (n: GraphNode) => string) {
+  const q = query.trim().toLowerCase();
+  const exact = people.find((n) => nameOf(n).toLowerCase() === q || n.label.toLowerCase() === q);
+  if (exact) return exact;
+  const tokens = words(q);
+  if (!tokens.length) return undefined;
+  const named = people.map((n) => ({ n, ws: words(n.label) }));
+  const tests = [(w: string, t: string) => w === t, (w: string, t: string) => w.startsWith(t), (w: string, t: string) => w.includes(t)];
+  for (const test of tests) {
+    const hit = named.find(({ ws }) => tokens.every((t) => ws.some((w) => test(w, t))));
+    if (hit) return hit.n;
+  }
+  return undefined;
+}
+
 export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: GraphNode[]; links: GraphLink[] }) {
-  const [edgeKinds, setEdgeKinds] = useState<Set<GraphEdgeKind>>(() => new Set(EDGE_KINDS));
+  const [edgeKinds, setEdgeKinds] = useState<Set<GraphEdgeKind>>(
+    () => new Set(EDGE_KINDS.filter((k) => !OFF_BY_DEFAULT.includes(k))),
+  );
   const [hideUnconnected, setHideUnconnected] = useState(true);
   const [hideDisciplerOnly, setHideDisciplerOnly] = useState(true);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [pickedId, setPickedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [searchMiss, setSearchMiss] = useState<string | null>(null);
   const [focus, setFocus] = useState<{ id: string; seq: number } | null>(null);
   const [fitKey, setFitKey] = useState(0);
   const [layout, setLayout] = useState<GraphLayout>("tree");
   const [showNames, setShowNames] = useState(true);
+  const [showDownline, setShowDownline] = useState(false);
+  const [profileMarks, setProfileMarks] = useState<Set<ProfileStatus>>(() => new Set(PROFILE_STATUSES));
 
   const box = useRef<HTMLDivElement>(null);
   const root = useRef<HTMLDivElement>(null);
@@ -65,26 +112,42 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
 
   // force-graph keeps positions on the node objects, so reuse the same objects across filter
   // changes (the layout doesn't jump) but hand it fresh link objects (it rewrites their ends).
+  // `shownLinks` are the same links untouched (plain id ends), for the side panel.
   const disciplerOnlyIds = useMemo(() => new Set(allNodes.filter((n) => n.isDisciplerOnly).map((n) => n.id)), [allNodes]);
-  const { nodes, links } = useMemo(() => {
+  const { nodes, links, shownLinks } = useMemo(() => {
     const hidden = (id: string) => hideDisciplerOnly && disciplerOnlyIds.has(id);
-    const links = allLinks
-      .filter((l) => edgeKinds.has(l.kind) && !hidden(l.source) && !hidden(l.target))
-      .map((l) => ({ ...l }));
-    const linked = new Set(links.flatMap((l) => [l.source, l.target]));
+    const shownLinks = allLinks.filter((l) => edgeKinds.has(l.kind) && !hidden(l.source) && !hidden(l.target));
+    const linked = new Set(shownLinks.flatMap((l) => [l.source, l.target]));
     const nodes = allNodes.filter((n) => !hidden(n.id) && ((n.kind === "leader" && !hideUnconnected) || linked.has(n.id)));
-    return { nodes, links };
+    return { nodes, links: shownLinks.map((l) => ({ ...l })), shownLinks };
   }, [allNodes, allLinks, edgeKinds, hideUnconnected, hideDisciplerOnly, disciplerOnlyIds]);
+
+  // Someone the filters hide counts as not selected — and is selected again if they come back.
+  const shownIds = useMemo(() => new Set(nodes.map((n) => n.id)), [nodes]);
+  const selectedId = pickedId && shownIds.has(pickedId) ? pickedId : null;
 
   const byId = useMemo(() => new Map(allNodes.map((n) => [n.id, n])), [allNodes]);
   const selected = selectedId ? byId.get(selectedId) ?? null : null;
 
-  // The selected person's connections, grouped by kind and direction.
+  // People who share a name get their role and service added, so the suggestions tell them apart.
+  const searchNames = useMemo(() => {
+    const count = new Map<string, number>();
+    for (const n of nodes) count.set(n.label, (count.get(n.label) ?? 0) + 1);
+    return new Map(
+      nodes.map((n) => {
+        if (count.get(n.label) === 1) return [n.id, n.label];
+        const extra = [NODE_STYLE[nodeStyleKey(n)].label, n.service].filter(Boolean).join(" · ");
+        return [n.id, `${n.label} (${extra})`];
+      }),
+    );
+  }, [nodes]);
+  const searchName = (n: GraphNode) => searchNames.get(n.id) ?? n.label;
+
+  // The selected person's connections as the graph shows them (same filters), grouped by kind and direction.
   const neighbourGroups = useMemo(() => {
     if (!selectedId) return [];
     const groups = new Map<string, GraphNode[]>();
-    for (const l of allLinks) {
-      if (!edgeKinds.has(l.kind)) continue;
+    for (const l of shownLinks) {
       const out = l.source === selectedId;
       if (!out && l.target !== selectedId) continue;
       const label = out ? OUTGOING[l.kind] : INCOMING[l.kind];
@@ -95,41 +158,63 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
       label,
       people: people.sort((a, b) => a.label.localeCompare(b.label)),
     }));
-  }, [selectedId, allLinks, edgeKinds, byId]);
+  }, [selectedId, shownLinks, byId]);
+
+  // With "Highlight downline" on: the selected person and everyone below them, following the
+  // shown links down any number of levels.
+  const downline = useMemo(() => {
+    if (!showDownline || !selectedId) return null;
+    const below = new Map<string, string[]>();
+    for (const l of shownLinks) {
+      const ids = below.get(l.source);
+      if (ids) ids.push(l.target);
+      else below.set(l.source, [l.target]);
+    }
+    const seen = new Set([selectedId]);
+    const queue = [selectedId];
+    for (const id of queue) {
+      for (const next of below.get(id) ?? []) {
+        if (seen.has(next)) continue;
+        seen.add(next);
+        queue.push(next);
+      }
+    }
+    return seen;
+  }, [showDownline, selectedId, shownLinks]);
 
   const highlight = useMemo(
-    () => (selectedId ? new Set([selectedId, ...neighbourGroups.flatMap((g) => g.people.map((p) => p.id))]) : null),
-    [selectedId, neighbourGroups],
+    () =>
+      selectedId
+        ? new Set([selectedId, ...neighbourGroups.flatMap((g) => g.people.map((p) => p.id)), ...(downline ?? [])])
+        : null,
+    [selectedId, neighbourGroups, downline],
   );
 
   function select(id: string | null, pan = false) {
-    setSelectedId(id);
+    setPickedId(id);
     if (id && pan) setFocus((f) => ({ id, seq: (f?.seq ?? 0) + 1 }));
   }
 
   function search(e: React.FormEvent) {
     e.preventDefault();
-    const q = query.trim().toLowerCase();
-    if (!q) return;
-    const hit =
-      nodes.find((n) => n.label.toLowerCase() === q) ??
-      nodes.find((n) => n.label.toLowerCase().includes(q)) ??
-      nodes.find((n) => n.label.toLowerCase().split(/[\s,]+/).join(" ").includes(q.replace(/,/g, " ").replace(/\s+/g, " ")));
-    if (hit) select(hit.id, true);
-  }
-
-  function toggleEdge(k: GraphEdgeKind) {
-    setEdgeKinds((prev) => {
-      const next = new Set(prev);
-      if (next.has(k)) next.delete(k);
-      else next.add(k);
-      return next;
-    });
+    if (!query.trim()) return;
+    const hit = findPerson(nodes, query, searchName);
+    if (hit) {
+      setSearchMiss(null);
+      select(hit.id, true);
+      return;
+    }
+    // Say why nothing happened: no such person, or they're filtered out of the graph.
+    const hidden = findPerson(allNodes, query, searchName);
+    setSearchMiss(hidden ? `${hidden.label} is hidden by the current filters` : "No one by that name");
   }
 
   const counts = useMemo(() => {
-    const c = { leader: 0, participant: 0, intern: 0 };
-    for (const n of nodes) c[n.kind] += 1;
+    const c = { leader: 0, participant: 0, intern: 0, unclaimed: 0, incomplete: 0 };
+    for (const n of nodes) {
+      c[n.kind] += 1;
+      if (n.profileStatus) c[n.profileStatus] += 1;
+    }
     return c;
   }, [nodes]);
 
@@ -141,18 +226,22 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
           <input
             list="graph-people"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setSearchMiss(null);
+            }}
             placeholder="Find a person…"
             className="w-56 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
           />
           <datalist id="graph-people">
             {nodes.map((n) => (
-              <option key={n.id} value={n.label} />
+              <option key={n.id} value={searchName(n)} />
             ))}
           </datalist>
           <button type="submit" className="rounded-lg bg-[#00428E] px-3 py-1.5 font-semibold text-white hover:bg-[#003578]">
             Find
           </button>
+          {searchMiss && <span className="text-amber-700">{searchMiss}</span>}
         </form>
         <button
           type="button"
@@ -189,6 +278,16 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
           <input type="checkbox" checked={showNames} onChange={(e) => setShowNames(e.target.checked)} />
           Show names
         </label>
+        <label
+          className="flex items-center gap-1.5 text-gray-600"
+          title="When someone is selected, also highlight everyone below them — any number of levels down"
+        >
+          <input type="checkbox" checked={showDownline} onChange={(e) => setShowDownline(e.target.checked)} />
+          Highlight downline
+          <span className="text-[9px] font-semibold uppercase tracking-wide text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full px-1.5 py-0.5">
+            New
+          </span>
+        </label>
         <label className="flex items-center gap-1.5 text-gray-600">
           <input type="checkbox" checked={hideUnconnected} onChange={(e) => setHideUnconnected(e.target.checked)} />
           Hide leaders with no connections
@@ -222,10 +321,12 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
               height={size.height}
               selectedId={selectedId}
               highlight={highlight}
+              downline={downline}
               focus={focus}
               fitKey={fitKey}
               layout={layout}
               showNames={showNames}
+              profileMarks={profileMarks}
               onSelect={(id) => select(id)}
             />
           )}
@@ -251,12 +352,35 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
                 </li>
               ))}
             </ul>
+            <p className="mt-4 mb-2 font-semibold text-gray-700 uppercase tracking-wide">Leader profiles</p>
+            <ul className="flex flex-col gap-1.5">
+              {PROFILE_STATUSES.map((s) => (
+                <li key={s}>
+                  <label className="flex items-center gap-2 text-gray-600">
+                    <input type="checkbox" checked={profileMarks.has(s)} onChange={() => setProfileMarks((prev) => toggled(prev, s))} />
+                    {/* Mirrors a marked card: tinted fill, dot on the corner. */}
+                    <span
+                      className="relative h-3.5 w-6 shrink-0 rounded-[4px] border"
+                      style={{ background: PROFILE_STYLE[s].fill, borderColor: PROFILE_STYLE[s].dot }}
+                    >
+                      <span
+                        className="absolute -right-1 -top-1 h-2 w-2 rounded-full ring-1 ring-white"
+                        style={{ background: PROFILE_STYLE[s].dot }}
+                      />
+                    </span>
+                    <span>
+                      {PROFILE_STYLE[s].label} <span className="text-gray-400">({counts[s]})</span>
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
             <p className="mt-4 mb-2 font-semibold text-gray-700 uppercase tracking-wide">Connections</p>
             <ul className="flex flex-col gap-1.5">
               {EDGE_KINDS.map((k) => (
                 <li key={k}>
                   <label className="flex items-center gap-2 text-gray-600">
-                    <input type="checkbox" checked={edgeKinds.has(k)} onChange={() => toggleEdge(k)} />
+                    <input type="checkbox" checked={edgeKinds.has(k)} onChange={() => setEdgeKinds((prev) => toggled(prev, k))} />
                     <span
                       className={`w-5 border-t-2 ${EDGE_STYLE[k].dashed ? "border-dashed" : ""}`}
                       style={{ borderColor: EDGE_STYLE[k].color }}
@@ -285,6 +409,16 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
                     {NODE_STYLE[nodeStyleKey(selected)].label}
                     {selected.service ? ` · ${selected.service}` : ""}
                   </p>
+                  {selected.profileStatus && (
+                    <p className="mt-1">
+                      <span
+                        className="inline-block rounded-full px-2 py-0.5 font-medium"
+                        style={{ background: PROFILE_STYLE[selected.profileStatus].fill, color: PROFILE_STYLE[selected.profileStatus].text }}
+                      >
+                        {PROFILE_STYLE[selected.profileStatus].label}
+                      </span>
+                    </p>
+                  )}
                   {selected.href && (
                     <Link href={selected.href} className="mt-1 inline-block text-indigo-600 hover:text-indigo-800 hover:underline">
                       Open profile →

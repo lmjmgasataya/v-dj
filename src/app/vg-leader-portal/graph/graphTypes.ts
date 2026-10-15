@@ -1,5 +1,8 @@
 export type GraphNodeKind = "leader" | "participant" | "intern";
 
+/** Leaders only: no portal account yet, or claimed but the profile isn't completed. */
+export type ProfileStatus = "unclaimed" | "incomplete";
+
 export type GraphNode = {
   id: string;
   kind: GraphNodeKind;
@@ -13,6 +16,8 @@ export type GraphNode = {
   isLgl?: boolean;
   /** Leaders only: participants name them only as a discipler — they aren't a VG leader to anyone. */
   isDisciplerOnly?: boolean;
+  /** Leaders only: what's left to do on their profile. Unset = claimed and completed. */
+  profileStatus?: ProfileStatus;
   /** Service they attend (leaders and participants). */
   service?: string | null;
 };
@@ -37,4 +42,11 @@ export const EDGE_STYLE: Record<GraphEdgeKind, { color: string; label: string; d
   intern: { color: "#f472b6", label: "Intern in their Victory Group" },
 };
 
-export const nodeStyleKey = (n: GraphNode) => (n.kind === "leader" && n.isLgl ? "lglLeader" : n.kind);
+// A leader whose profile needs following up gets a tinted card and a dot on its corner.
+// Same hues as the "Profile Not Yet Completed" report's remark tags.
+export const PROFILE_STYLE: Record<ProfileStatus, { fill: string; dot: string; text: string; label: string }> = {
+  unclaimed: { fill: "#ffe4e6", dot: "#f43f5e", text: "#be123c", label: "Profile not yet claimed" },
+  incomplete: { fill: "#fef3c7", dot: "#f59e0b", text: "#b45309", label: "Claimed profile but incomplete" },
+};
+
+export const nodeStyleKey =(n: GraphNode) => (n.kind === "leader" && n.isLgl ? "lglLeader" : n.kind);

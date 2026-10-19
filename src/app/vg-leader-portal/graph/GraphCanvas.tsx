@@ -11,6 +11,7 @@ import {
   type GraphNode,
   type ProfileStatus,
 } from "./graphTypes";
+import { separateCards } from "./separateCards";
 
 type N = NodeObject<GraphNode>;
 type L = LinkObject<GraphNode, GraphLink>;
@@ -240,7 +241,11 @@ export default function GraphCanvas({
       // Two people who list each other (a loop) can't both be "above" — just skip the loop.
       onDagError={() => {}}
       cooldownTicks={200}
+      // The collide force only nudges cards, and a crowded tree row can still end up stacked —
+      // so after every tick, before the frame is drawn, move any overlapping cards apart.
+      onEngineTick={() => separateCards(graphData.nodes, CARD_W + CARD_GAP, CARD_H + CARD_GAP)}
       onEngineStop={() => {
+        separateCards(graphData.nodes, CARD_W + CARD_GAP, CARD_H + CARD_GAP, true);
         if (fittedOnce.current) return;
         fittedOnce.current = true;
         ref.current?.zoomToFit(400, 40);

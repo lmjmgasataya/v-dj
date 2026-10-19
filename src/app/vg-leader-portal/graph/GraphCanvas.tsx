@@ -30,6 +30,8 @@ const ARROW = 6;
 const MARK_DOT = 5; // radius of the profile follow-up dot on a card's corner
 const LANE_GAP = 4; // sideways space between two links joining the same two people
 const GRAVITY = 0.05; // network: how hard every card is pulled towards the middle
+const FIT_PADDING = 40; // px kept clear around the graph when zooming to fit
+const MAX_FIT_ZOOM = 2.5; // zoom to fit never goes closer than this — a few cards shouldn't fill the screen
 const LAST_FONT = "600 11px sans-serif";
 const FIRST_FONT = "10px sans-serif";
 const SUB_FONT = "9px sans-serif";
@@ -123,6 +125,22 @@ function gravity(strength: number) {
 }
 
 /**
+ * Like force-graph's zoomToFit, but measuring the cards (its box is only of the node centres) and
+ * capping the zoom, so one person and a couple of connections don't fill the whole screen.
+ */
+function fitView(g: ForceGraphMethods<N, L> | undefined, width: number, height: number, ms: number) {
+  const box = g?.getGraphBbox();
+  if (!g || !box) return;
+  const k = Math.min(
+    (width - 2 * FIT_PADDING) / (box.x[1] - box.x[0] + CARD_W),
+    (height - 2 * FIT_PADDING) / (box.y[1] - box.y[0] + CARD_H),
+    MAX_FIT_ZOOM,
+  );
+  g.centerAt((box.x[0] + box.x[1]) / 2, (box.y[0] + box.y[1]) / 2, ms);
+  g.zoom(Math.max(k, 1e-3), ms);
+}
+
+/**
  * The canvas itself (browser-only — loaded with next/dynamic ssr:false from NetworkGraph).
  * `focus` / `fitKey` are requests from the toolbar: change them to pan to a node or zoom to fit.
  */
@@ -136,6 +154,7 @@ export default function GraphCanvas({
   downline,
   focus,
   fitKey,
+  fitScope,
   layout,
   showNames,
   profileMarks,
@@ -152,6 +171,8 @@ export default function GraphCanvas({
   downline: Set<string> | null;
   focus: { id: string; seq: number } | null;
   fitKey: number;
+  /** When this changes (e.g. the graph is cut down to one person's connections), zoom to fit again once the new layout settles. */
+  fitScope: string;
   /** "tree": top-down levels (people above → people below); "network": free force layout. */
   layout: GraphLayout;
   showNames: boolean;
@@ -176,8 +197,17 @@ export default function GraphCanvas({
     ref.current?.d3ReheatSimulation();
   }, [layout]);
 
+  // A new scope lays out around the middle (the center force keeps it there): look there now,
+  // and zoom to fit once it settles.
   useEffect(() => {
-    if (fitKey > 0) ref.current?.zoomToFit(600, 40);
+    fittedOnce.current = false;
+    ref.current?.centerAt(0, 0, 400);
+  }, [fitScope]);
+
+  // Only when the button asks — not again every time the canvas is resized.
+  useEffect(() => {
+    if (fitKey > 0) fitView(ref.current, width, height, 600);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fitKey]);
 
   // Pan once per request (`seq`) — not again every time a filter change hands us new `nodes`.
@@ -248,7 +278,7 @@ export default function GraphCanvas({
         separateCards(graphData.nodes, CARD_W + CARD_GAP, CARD_H + CARD_GAP, true);
         if (fittedOnce.current) return;
         fittedOnce.current = true;
-        ref.current?.zoomToFit(400, 40);
+        fitView(ref.current, width, height, 400);
       }}
       onNodeClick={(n) => onSelect(n.id)}
       onBackgroundClick={() => onSelect(null)}

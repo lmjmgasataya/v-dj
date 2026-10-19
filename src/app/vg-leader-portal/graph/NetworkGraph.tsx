@@ -35,6 +35,14 @@ function toggled<T>(set: Set<T>, k: T) {
   return next;
 }
 
+// force-graph writes its layout onto the node objects. A copy without it lays out from scratch.
+const LAYOUT_KEYS = ["x", "y", "vx", "vy", "fx", "fy", "index"];
+function freshNode(n: GraphNode): GraphNode {
+  const copy: Record<string, unknown> = { ...n };
+  for (const k of LAYOUT_KEYS) delete copy[k];
+  return copy as GraphNode;
+}
+
 // Wording for the side panel, from the selected person's point of view.
 const OUTGOING: Record<GraphEdgeKind, string> = {
   lgl: "Leads in their Leadership Group",
@@ -87,6 +95,7 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
   const [layout, setLayout] = useState<GraphLayout>("tree");
   const [showNames, setShowNames] = useState(true);
   const [showDownline, setShowDownline] = useState(false);
+  const [onlyConnections, setOnlyConnections] = useState(false);
   // Hiding the legend/filters panel gives its width to the graph.
   const [showSidebar, setShowSidebar] = useState(true);
   const [profileMarks, setProfileMarks] = useState<Set<ProfileStatus>>(() => new Set(PROFILE_STATUSES));
@@ -116,33 +125,34 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
   // changes (the layout doesn't jump) but hand it fresh link objects (it rewrites their ends).
   // `shownLinks` are the same links untouched (plain id ends), for the side panel.
   const disciplerOnlyIds = useMemo(() => new Set(allNodes.filter((n) => n.isDisciplerOnly).map((n) => n.id)), [allNodes]);
-  const { nodes, links, shownLinks } = useMemo(() => {
+  const { filteredNodes, filteredLinks, shownLinks } = useMemo(() => {
     const hidden = (id: string) => hideDisciplerOnly && disciplerOnlyIds.has(id);
     const shownLinks = allLinks.filter((l) => edgeKinds.has(l.kind) && !hidden(l.source) && !hidden(l.target));
     const linked = new Set(shownLinks.flatMap((l) => [l.source, l.target]));
-    const nodes = allNodes.filter((n) => !hidden(n.id) && ((n.kind === "leader" && !hideUnconnected) || linked.has(n.id)));
-    return { nodes, links: shownLinks.map((l) => ({ ...l })), shownLinks };
+    const filteredNodes = allNodes.filter((n) => !hidden(n.id) && ((n.kind === "leader" && !hideUnconnected) || linked.has(n.id)));
+    return { filteredNodes, filteredLinks: shownLinks.map((l) => ({ ...l })), shownLinks };
   }, [allNodes, allLinks, edgeKinds, hideUnconnected, hideDisciplerOnly, disciplerOnlyIds]);
 
   // Someone the filters hide counts as not selected — and is selected again if they come back.
-  const shownIds = useMemo(() => new Set(nodes.map((n) => n.id)), [nodes]);
+  const shownIds = useMemo(() => new Set(filteredNodes.map((n) => n.id)), [filteredNodes]);
   const selectedId = pickedId && shownIds.has(pickedId) ? pickedId : null;
 
   const byId = useMemo(() => new Map(allNodes.map((n) => [n.id, n])), [allNodes]);
   const selected = selectedId ? byId.get(selectedId) ?? null : null;
 
   // People who share a name get their role and service added, so the suggestions tell them apart.
+  // Searches the whole (filtered) graph, so finding someone else also moves the focus to them.
   const searchNames = useMemo(() => {
     const count = new Map<string, number>();
-    for (const n of nodes) count.set(n.label, (count.get(n.label) ?? 0) + 1);
+    for (const n of filteredNodes) count.set(n.label, (count.get(n.label) ?? 0) + 1);
     return new Map(
-      nodes.map((n) => {
+      filteredNodes.map((n) => {
         if (count.get(n.label) === 1) return [n.id, n.label];
         const extra = [NODE_STYLE[nodeStyleKey(n)].label, n.service].filter(Boolean).join(" · ");
         return [n.id, `${n.label} (${extra})`];
       }),
     );
-  }, [nodes]);
+  }, [filteredNodes]);
   const searchName = (n: GraphNode) => searchNames.get(n.id) ?? n.label;
 
   // The selected person's connections as the graph shows them (same filters), grouped by kind and direction.
@@ -192,6 +202,18 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
     [selectedId, neighbourGroups, downline],
   );
 
+  // "Only their connections": the graph is cut down to the selected person and who's highlighted
+  // with them, as fresh copies so it lays out again around them — the full graph keeps its own
+  // layout for when it comes back.
+  const focusIds = onlyConnections ? highlight : null;
+  const { nodes, links } = useMemo(() => {
+    if (!focusIds) return { nodes: filteredNodes, links: filteredLinks };
+    return {
+      nodes: filteredNodes.filter((n) => focusIds.has(n.id)).map(freshNode),
+      links: shownLinks.filter((l) => focusIds.has(l.source) && focusIds.has(l.target)).map((l) => ({ ...l })),
+    };
+  }, [focusIds, filteredNodes, filteredLinks, shownLinks]);
+
   function select(id: string | null, pan = false) {
     setPickedId(id);
     if (id && pan) setFocus((f) => ({ id, seq: (f?.seq ?? 0) + 1 }));
@@ -200,7 +222,7 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
   function search(e: React.FormEvent) {
     e.preventDefault();
     if (!query.trim()) return;
-    const hit = findPerson(nodes, query, searchName);
+    const hit = findPerson(filteredNodes, query, searchName);
     if (hit) {
       setSearchMiss(null);
       select(hit.id, true);
@@ -236,7 +258,7 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
             className="w-56 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
           />
           <datalist id="graph-people">
-            {nodes.map((n) => (
+            {filteredNodes.map((n) => (
               <option key={n.id} value={searchName(n)} />
             ))}
           </datalist>
@@ -258,15 +280,6 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
           className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-50"
         >
           {fullScreen ? "Exit full screen" : "Full screen"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowSidebar((s) => !s)}
-          aria-expanded={showSidebar}
-          aria-controls="graph-sidebar"
-          className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-50"
-        >
-          {showSidebar ? "Hide sidebar" : "Show sidebar"}
         </button>
         <div className="flex overflow-hidden rounded-lg border border-gray-300">
           {(
@@ -295,6 +308,16 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
         >
           <input type="checkbox" checked={showDownline} onChange={(e) => setShowDownline(e.target.checked)} />
           Highlight downline
+          <span className="text-[9px] font-semibold uppercase tracking-wide text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full px-1.5 py-0.5">
+            New
+          </span>
+        </label>
+        <label
+          className="flex items-center gap-1.5 text-gray-600"
+          title="When someone is selected, the graph shows only them and their connections (and their downline, if highlighted), laid out again around them"
+        >
+          <input type="checkbox" checked={onlyConnections} onChange={(e) => setOnlyConnections(e.target.checked)} />
+          Show only the selected person&apos;s connections
           <span className="text-[9px] font-semibold uppercase tracking-wide text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full px-1.5 py-0.5">
             New
           </span>
@@ -335,11 +358,23 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
               downline={downline}
               focus={focus}
               fitKey={fitKey}
+              fitScope={focusIds ? `${selectedId}|${showDownline}` : ""}
               layout={layout}
               showNames={showNames}
               profileMarks={profileMarks}
               onSelect={(id) => select(id)}
             />
+          )}
+          {!showSidebar && (
+            <button
+              type="button"
+              onClick={() => setShowSidebar(true)}
+              aria-expanded={false}
+              aria-controls="graph-sidebar"
+              className="absolute right-3 top-3 z-10 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+            >
+              Show sidebar
+            </button>
           )}
         </div>
 
@@ -350,6 +385,15 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
             fullScreen ? "lg:h-[calc(100vh-5.5rem)]" : "lg:h-[calc(100vh-15rem)]"
           }`}
         >
+          <button
+            type="button"
+            onClick={() => setShowSidebar(false)}
+            aria-expanded
+            aria-controls="graph-sidebar"
+            className="shrink-0 self-end rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Hide sidebar
+          </button>
           <div className="shrink-0 rounded-xl border border-gray-200 bg-white p-4">
             <p className="mb-2 font-semibold text-gray-700 uppercase tracking-wide">People</p>
             <ul className="flex flex-col gap-1.5">

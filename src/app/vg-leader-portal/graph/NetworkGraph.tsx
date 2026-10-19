@@ -87,6 +87,8 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
   const [layout, setLayout] = useState<GraphLayout>("tree");
   const [showNames, setShowNames] = useState(true);
   const [showDownline, setShowDownline] = useState(false);
+  // Hiding the legend/filters panel gives its width to the graph.
+  const [showSidebar, setShowSidebar] = useState(true);
   const [profileMarks, setProfileMarks] = useState<Set<ProfileStatus>>(() => new Set(PROFILE_STATUSES));
 
   const box = useRef<HTMLDivElement>(null);
@@ -257,6 +259,15 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
         >
           {fullScreen ? "Exit full screen" : "Full screen"}
         </button>
+        <button
+          type="button"
+          onClick={() => setShowSidebar((s) => !s)}
+          aria-expanded={showSidebar}
+          aria-controls="graph-sidebar"
+          className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-50"
+        >
+          {showSidebar ? "Hide sidebar" : "Show sidebar"}
+        </button>
         <div className="flex overflow-hidden rounded-lg border border-gray-300">
           {(
             [
@@ -334,7 +345,8 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
 
         {/* Legend + selection */}
         <aside
-          className={`flex w-full lg:w-72 shrink-0 flex-col gap-3 text-xs ${
+          id="graph-sidebar"
+          className={`${showSidebar ? "flex" : "hidden"} w-full lg:w-72 shrink-0 flex-col gap-3 text-xs ${
             fullScreen ? "lg:h-[calc(100vh-5.5rem)]" : "lg:h-[calc(100vh-15rem)]"
           }`}
         >

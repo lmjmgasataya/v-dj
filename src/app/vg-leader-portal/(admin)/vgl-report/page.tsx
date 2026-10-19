@@ -330,7 +330,34 @@ export default async function VgLeaderReportPage() {
       };
     });
 
-  const hasExceptions = internsAlreadyVgl.length > 0 || completedWithoutPin.length > 0;
+  // A leader shouldn't name themselves as their own VG leader. Typing their own name either
+  // links to a separate record with that name or, once that record is gone, to nothing.
+  const selfAsOwnVgl: IssueRow[] = allLeaders
+    .filter((l) => {
+      if (l.ownVgLeaderId === l.id) return true;
+      const [last, first] = (l.ownVgLeaderName ?? "").split(",").map((s) => s.trim().toLowerCase());
+      return last === l.lastName.trim().toLowerCase() && first === l.firstName.trim().toLowerCase();
+    })
+    .map((l) => {
+      const entered = l.ownVgLeaderName || `${l.lastName}, ${l.firstName}`;
+      const otherRecordId = l.ownVgLeaderId != null && l.ownVgLeaderId !== l.id ? l.ownVgLeaderId : null;
+      return {
+        key: String(l.id),
+        name: `${l.lastName}, ${l.firstName}`,
+        nameHref: `/vg-leader-portal/leaders/${l.id}`,
+        ...serviceInfo([l.serviceAttending]),
+        detailSort: entered,
+        detail: otherRecordId ? (
+          <Link href={`/vg-leader-portal/leaders/${otherRecordId}`} className="text-gray-700 hover:text-indigo-800 underline">
+            {entered} (separate record)
+          </Link>
+        ) : (
+          entered
+        ),
+      };
+    });
+
+  const hasExceptions = internsAlreadyVgl.length > 0 || completedWithoutPin.length > 0 || selfAsOwnVgl.length > 0;
 
   const notCompletedRemarkCounts = countRemarks(notCompletedRows);
 
@@ -352,6 +379,7 @@ export default async function VgLeaderReportPage() {
     dupInterns: "Interns listed under more than one Victory Group",
     internsAlreadyVgl: "Already a VG Leader but still reported as an Intern",
     completedWithoutPin: "Profile completed but not claimed, or PIN reset and not set again",
+    selfAsOwnVgl: "Marked themselves as their own VG Leader",
   };
   const issue = (id: string, label: string, rows: IssueRow[]): NavItem[] =>
     rows.length > 0 ? [{ id, label, count: rows.length }] : [];
@@ -373,6 +401,7 @@ export default async function VgLeaderReportPage() {
             children: [
               ...issue("interns-already-vgl", T.internsAlreadyVgl, internsAlreadyVgl),
               ...issue("completed-without-pin", T.completedWithoutPin, completedWithoutPin),
+              ...issue("self-as-own-vgl", T.selfAsOwnVgl, selfAsOwnVgl),
             ],
           },
         ]
@@ -459,6 +488,14 @@ export default async function VgLeaderReportPage() {
                 title={T.completedWithoutPin}
                 rows={completedWithoutPin}
                 detailLabel="Reason"
+              />
+            )}
+            {selfAsOwnVgl.length > 0 && (
+              <IssueSection
+                id="self-as-own-vgl"
+                title={T.selfAsOwnVgl}
+                rows={selfAsOwnVgl}
+                detailLabel="Own VG Leader Entered"
               />
             )}
           </div>

@@ -123,7 +123,7 @@ export default async function VgLeaderReportPage() {
   ]);
 
   // Claimed = has an account (claiming always creates one, with a PIN). A PIN reset clears the
-  // PIN but they're still claimed — same scope as the Quarterly Report's counts.
+  // PIN but they're still claimed — same scope as the Snapshot Report's counts.
   const claimedIds = new Set(vgLeaderAccounts.map((a) => a.vgLeaderId));
   const pinSetIds = new Set(vgLeaderAccounts.filter((a) => a.hasPin).map((a) => a.vgLeaderId));
   const pinResetIds = new Set(vgLeaderAccounts.filter((a) => !a.hasPin).map((a) => a.vgLeaderId));
@@ -131,8 +131,8 @@ export default async function VgLeaderReportPage() {
 
   const total = leaders.length;
 
-  // Quarterly update status (Q1-Q4 checkpoints) — "done" means the leader
-  // confirmed/completed their profile within the live quarter.
+  // Profile update status (Start of Year / Mid-Year / End of Year checkpoints) — "done" means
+  // the leader confirmed/completed their profile within the live period.
   const hasActiveGroupIds = new Set(activeGroups.map((g) => g.vgLeaderId));
   const liveQuarter = getLiveQuarter();
   const quarterlyStatusCounts = new Map<string, { total: number; done: number; notDone: number }>();
@@ -407,7 +407,7 @@ export default async function VgLeaderReportPage() {
         ]
       : []),
     { id: "profile-not-completed", label: "Profile Not Yet Completed", count: notCompletedRows.length },
-    { id: "quarterly-status", label: `Quarterly Update Status${liveQuarter ? ` — ${liveQuarter.label}` : ""}` },
+    { id: "quarterly-status", label: `Profile Update Status${liveQuarter ? ` — ${liveQuarter.label}` : ""}` },
     { id: "new-leaders", label: "Started Leading This Year", count: newLeaders.length },
     {
       id: "charts",
@@ -533,14 +533,14 @@ export default async function VgLeaderReportPage() {
       <div id="quarterly-status" className="scroll-mt-20 lg:scroll-mt-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
           <h3 className="font-semibold text-gray-800">
-            Quarterly Update Status{liveQuarter ? ` — ${liveQuarter.label}` : ""}
+            Profile Update Status{liveQuarter ? ` — ${liveQuarter.label}` : ""}
           </h3>
           {liveQuarter ? (
             <p className="text-xs text-gray-400 mt-0.5">
               {quarterlyTotals.done} done · {quarterlyTotals.notDone} not done · {quarterlyTotals.total} total
             </p>
           ) : (
-            <p className="text-xs text-gray-400 mt-0.5">No live quarterly checkpoint right now.</p>
+            <p className="text-xs text-gray-400 mt-0.5">No live update period right now.</p>
           )}
         </div>
         {liveQuarter && (

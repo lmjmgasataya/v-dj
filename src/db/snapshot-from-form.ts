@@ -1,5 +1,5 @@
 /**
- * Saves a quarterly-report snapshot built from a quarterly-update Google Form export
+ * Saves a snapshot-report snapshot built from a quarterly-update Google Form export
  * (see src/lib/formSnapshot.ts), for quarters before the VG Leader Portal existed.
  *
  *   npm run db:snapshot-from-form -- <csv path> "<label>" <as-of YYYY-MM-DD> [--goals <vgl> <lgl>] [--dry-run]

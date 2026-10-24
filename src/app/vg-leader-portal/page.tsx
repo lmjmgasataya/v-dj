@@ -17,16 +17,16 @@ export default async function VgLeaderPortalPage() {
     ? [
         {
           key: ACCEPT_PREVIOUS_QUARTER_FLAG,
-          title: "Still accepting responses for previous quarter",
+          title: "Still accepting responses for previous period",
           description:
-            "VG leaders can still open the quarter that just ended — e.g. Q3 during October. An update made now counts for both that quarter and the current one.",
+            "VG leaders can still open the update period that just ended — e.g. Mid-Year during September. An update made now counts for both that period and the current one.",
           enabled: quarterOptions.acceptPreviousQuarter,
         },
         {
           key: CARRY_OVER_PREVIOUS_QUARTER_FLAG,
-          title: "Carry over previous quarter's responses",
+          title: "Carry over previous period's responses",
           description:
-            "Leaders who updated during the previous quarter count as updated for the current one too — e.g. a Q3 update counts for Q4, so they don't need to update again.",
+            "Leaders who updated during the previous period count as updated for the current one too — e.g. a Mid-Year update counts for End of Year, so they don't need to update again.",
           enabled: quarterOptions.carryOverPreviousQuarter,
         },
       ]
@@ -73,12 +73,12 @@ export default async function VgLeaderPortalPage() {
               <span className="text-sm text-gray-500 text-center">Victory Group schedules and membership breakdown</span>
             </Link>
             <Link
-              href="/vg-leader-portal/quarterly-report"
+              href="/vg-leader-portal/snapshot-report"
               className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
             >
               <span className="text-4xl">🗓️</span>
-              <span className="text-lg font-semibold text-gray-900 text-center">Quarterly Report</span>
-              <span className="text-sm text-gray-500 text-center">Quarterly snapshots and convergence attendance</span>
+              <span className="text-lg font-semibold text-gray-900 text-center">Snapshot Report</span>
+              <span className="text-sm text-gray-500 text-center">End-of-period snapshots and convergence attendance</span>
             </Link>
             <Link
               href="/vg-leader-portal/discipleship-journey-report"
@@ -87,6 +87,14 @@ export default async function VgLeaderPortalPage() {
               <span className="text-4xl">✅</span>
               <span className="text-lg font-semibold text-gray-900 text-center">Discipleship Journey Report</span>
               <span className="text-sm text-gray-500 text-center">Journey steps completed per claimed VG leader</span>
+            </Link>
+            <Link
+              href="/vg-leader-portal/l113-candidates-report"
+              className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
+            >
+              <span className="text-4xl">🎓</span>
+              <span className="text-lg font-semibold text-gray-900 text-center">Potential L113 Students</span>
+              <span className="text-sm text-gray-500 text-center">Active leaders ready for Leadership 113</span>
             </Link>
           </>
         )}

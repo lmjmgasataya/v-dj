@@ -28,11 +28,14 @@ export const FRESHNESS_MESSAGE: Record<ProfileFreshness, string> = {
   overdue: "This hasn't been confirmed in over 2 months.",
 };
 
-const QUARTERLY_ACTIVE_DAYS = 90;
+// The longest update period is May–Aug (123 days), so an update on its first day still
+// counts when the period-end snapshot is taken.
+export const QUARTERLY_ACTIVE_DAYS = 123;
 
 /**
- * Used only for quarterly-report tagging: a VG leader is expected to update their
- * profile once per quarter, so no update in the last quarter counts as inactive.
+ * Used only for snapshot-report tagging: a VG leader is expected to update their
+ * profile once per period (Start of Year / Mid-Year / End of Year), so no update in
+ * the last period counts as inactive.
  * Distinct from the manual `isActive` toggle and the `getProfileFreshness` UI badge above.
  */
 export function isQuarterlyActive(updatedAt: Date, now: Date = new Date()): boolean {

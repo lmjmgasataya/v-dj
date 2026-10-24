@@ -1,5 +1,5 @@
 /**
- * Builds quarterly-report snapshot data from an outside quarterly-update export — the
+ * Builds snapshot-report snapshot data from an outside quarterly-update export — the
  * Discipleship team's Google Form ("Q2 2026 Discipleship Database - Form Responses"), which
  * predates the VG Leader Portal. Same shape and counting rules as computeVgSnapshotCounts, so
  * it can be compared against live data or other snapshots:

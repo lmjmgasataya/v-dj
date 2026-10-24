@@ -7,15 +7,11 @@
     },
     {
       "path": "/api/cron/vg-quarterly-snapshot",
-      "schedule": "0 23 30 3 *"
+      "schedule": "0 23 29 4 *"
     },
     {
       "path": "/api/cron/vg-quarterly-snapshot",
-      "schedule": "0 23 29 6 *"
-    },
-    {
-      "path": "/api/cron/vg-quarterly-snapshot",
-      "schedule": "0 23 29 9 *"
+      "schedule": "0 23 30 8 *"
     },
     {
       "path": "/api/cron/vg-quarterly-snapshot",

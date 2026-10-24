@@ -10,9 +10,11 @@ import { toTitleCase } from "@/lib/text";
 import { normalizeName } from "@/lib/vgLeaderMatch";
 import { isValidPin } from "@/lib/pin";
 
+// Without a deep link, land on the profile form for the open update period rather than the
+// dashboard — leaders were mistaking reaching the dashboard for having finished their update.
 function safeCallback(callbackUrl: string | null): string {
   if (callbackUrl && callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")) return callbackUrl;
-  return "/vg-portal";
+  return "/vg-portal/profile";
 }
 
 async function isPortalEnabled() {

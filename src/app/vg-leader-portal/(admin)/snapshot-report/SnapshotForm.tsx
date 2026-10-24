@@ -117,7 +117,7 @@ export function SnapshotForm() {
 
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">Label <span className="text-red-500">*</span></label>
-        <input name="label" required placeholder="e.g. Q3 2026" className={inputCls} />
+        <input name="label" required placeholder="e.g. End of Year 2026" className={inputCls} />
       </div>
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">As of Date <span className="text-red-500">*</span></label>
@@ -286,7 +286,7 @@ export function SnapshotListItem({ snapshot, canEdit }: { snapshot: VgReportSnap
       {canEdit && (
         <div className="flex items-center gap-3">
           <a
-            href={`/vg-leader-portal/quarterly-report/${snapshot.id}/export`}
+            href={`/vg-leader-portal/snapshot-report/${snapshot.id}/export`}
             className="text-xs text-gray-600 hover:text-gray-900 font-medium underline"
           >
             Export Excel

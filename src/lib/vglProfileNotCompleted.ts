@@ -45,7 +45,7 @@ const lglLeaders = alias(victoryGroupLeaders, "lgl_leaders");
  * VG leaders the Discipleship team should follow up on to finish their profile, one row
  * per person with every reason that applies (in the REMARK order above):
  * - named as a member by a Leadership Group Leader who completed the update for the
- *   previous or live quarter (e.g. Q3–Q4), regardless of the carry-over setting
+ *   previous or live period (e.g. Mid-Year–End of Year), regardless of the carry-over setting
  * - named as their own Victory Group Leader by another (non-deleted) VG leader
  * - named as their VG leader by a Discipleship Journey participant
  * - has a claimed portal account (a PIN reset still counts) but the profile is incomplete

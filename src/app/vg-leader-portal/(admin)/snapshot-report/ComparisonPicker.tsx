@@ -91,7 +91,7 @@ export function ComparisonPicker({
     <>
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-gray-800">Quarterly Discipleship Report</p>
+          <p className="text-sm font-semibold text-gray-800">Discipleship Snapshot Report</p>
           <p className="text-xs text-gray-500 mt-0.5">
             Each snapshot captures a point-in-time count. Save one at the end of every quarter to get quarter-over-quarter comparisons below.
           </p>

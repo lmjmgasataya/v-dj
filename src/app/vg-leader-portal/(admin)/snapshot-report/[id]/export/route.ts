@@ -6,7 +6,7 @@ import { snapshotWorkbook } from "@/lib/snapshotExcel";
 import type { VgSnapshotData } from "@/lib/vgSnapshot";
 
 // A saved snapshot as Excel, in the quarterly-update form's layout. Developer-only, like the
-// Saved Snapshots list (the proxy lets lead_pastor through to /quarterly-report*, so the role
+// Saved Snapshots list (the proxy lets lead_pastor through to /snapshot-report*, so the role
 // check here is what gates it).
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();

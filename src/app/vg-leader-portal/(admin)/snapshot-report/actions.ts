@@ -113,7 +113,7 @@ export async function createVgReportSnapshot(formData: FormData) {
     .values({ label, asOfDate, data })
     .onConflictDoUpdate({ target: vgReportSnapshots.label, set: { asOfDate, data } });
 
-  revalidatePath("/vg-leader-portal/quarterly-report");
+  revalidatePath("/vg-leader-portal/snapshot-report");
 }
 
 export async function updateVgReportSnapshot(id: number, formData: FormData) {
@@ -139,7 +139,7 @@ export async function updateVgReportSnapshot(id: number, formData: FormData) {
 
   await db.update(vgReportSnapshots).set({ label, asOfDate, data }).where(eq(vgReportSnapshots.id, id));
 
-  revalidatePath("/vg-leader-portal/quarterly-report");
+  revalidatePath("/vg-leader-portal/snapshot-report");
 }
 
 export async function deleteVgReportSnapshot(id: number): Promise<{ error: string } | undefined> {
@@ -148,14 +148,14 @@ export async function deleteVgReportSnapshot(id: number): Promise<{ error: strin
     .delete(vgReportSnapshots)
     .where(and(eq(vgReportSnapshots.id, id), eq(vgReportSnapshots.isDeleteProtected, false)))
     .returning({ id: vgReportSnapshots.id });
-  revalidatePath("/vg-leader-portal/quarterly-report");
+  revalidatePath("/vg-leader-portal/snapshot-report");
   if (deleted.length === 0) return { error: "This snapshot is delete-protected — turn off protection first." };
 }
 
 export async function setVgReportSnapshotDeleteProtection(id: number, isDeleteProtected: boolean) {
   await requireDeveloper();
   await db.update(vgReportSnapshots).set({ isDeleteProtected }).where(eq(vgReportSnapshots.id, id));
-  revalidatePath("/vg-leader-portal/quarterly-report");
+  revalidatePath("/vg-leader-portal/snapshot-report");
 }
 
 export async function addConvergenceAttendance(formData: FormData) {
@@ -165,13 +165,13 @@ export async function addConvergenceAttendance(formData: FormData) {
     eventDate: formData.get("eventDate") as string,
     attendees: Number(formData.get("attendees") || 0),
   });
-  revalidatePath("/vg-leader-portal/quarterly-report");
+  revalidatePath("/vg-leader-portal/snapshot-report");
 }
 
 export async function deleteConvergenceAttendance(id: number) {
   await requireDeveloper();
   await db.delete(vgConvergenceAttendance).where(eq(vgConvergenceAttendance.id, id));
-  revalidatePath("/vg-leader-portal/quarterly-report");
+  revalidatePath("/vg-leader-portal/snapshot-report");
 }
 
 export async function addLeadership113Batch(formData: FormData) {
@@ -181,11 +181,11 @@ export async function addLeadership113Batch(formData: FormData) {
     actual: Number(formData.get("actual") || 0),
     goal: Number(formData.get("goal") || 0),
   });
-  revalidatePath("/vg-leader-portal/quarterly-report");
+  revalidatePath("/vg-leader-portal/snapshot-report");
 }
 
 export async function deleteLeadership113Batch(id: number) {
   await requireDeveloper();
   await db.delete(leadership113Batches).where(eq(leadership113Batches.id, id));
-  revalidatePath("/vg-leader-portal/quarterly-report");
+  revalidatePath("/vg-leader-portal/snapshot-report");
 }

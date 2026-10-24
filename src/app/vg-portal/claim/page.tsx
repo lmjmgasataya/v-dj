@@ -33,7 +33,7 @@ export async function generateMetadata({
   if (callbackUrl?.startsWith("/vg-portal/profile")) {
     return {
       title: "Update Your VG Profile — Victory Iloilo",
-      description: "Confirm your info, Victory Groups, and quarterly update as a Victory Group Leader.",
+      description: "Confirm your info, Victory Groups, and Start / Mid / End of Year update as a Victory Group Leader.",
     };
   }
 

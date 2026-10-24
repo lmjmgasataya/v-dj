@@ -9,8 +9,9 @@ const SECTIONS = [
   { href: "/vg-leader-portal/interns", label: "Interns", description: "Interns attached to Victory Groups.", tab: true },
   { href: "/vg-leader-portal/vgl-report", label: "VG Leaders Report", description: "Demographics and stats for claimed VG leaders.", tab: false },
   { href: "/vg-leader-portal/vg-report", label: "Victory Group Report", description: "Victory Group schedules and membership breakdown.", tab: false },
-  { href: "/vg-leader-portal/quarterly-report", label: "Quarterly Report", description: "Quarterly snapshots and convergence attendance.", tab: false },
+  { href: "/vg-leader-portal/snapshot-report", label: "Snapshot Report", description: "End-of-period snapshots and convergence attendance.", tab: false },
   { href: "/vg-leader-portal/discipleship-journey-report", label: "Discipleship Journey Report", description: "Discipleship Journey steps completed per claimed VG leader.", tab: false },
+  { href: "/vg-leader-portal/l113-candidates-report", label: "Potential L113 Students", description: "Actively leading VG leaders done with the Discipleship Journey who haven't taken Leadership 113.", tab: false },
 ];
 
 const TABS = SECTIONS.filter((s) => s.tab);

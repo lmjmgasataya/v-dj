@@ -4,7 +4,7 @@ import type { DrillItem } from "@/lib/vgSnapshot";
 const GROUP_LABEL = /^(.*?) — (.*?) @ (.*)$/;
 
 /**
- * The names behind a quarterly-report number, as a numbered table sorted A–Z, with each
+ * The names behind a snapshot-report number, as a numbered table sorted A–Z, with each
  * one's service. When every item is a Victory Group label, it's split into Leader /
  * Schedule / Venue columns. The Service column is left out when no item has one.
  */

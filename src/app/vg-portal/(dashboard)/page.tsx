@@ -5,7 +5,7 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeProfileProgress } from "@/lib/profileCompleteness";
-import { getProfileUpdateQuarters, type QuarterCardStatus } from "@/lib/vgQuarters";
+import { getProfileUpdateQuarters, QUARTER_STATUS_BADGE, QUARTER_STATUS_LABEL } from "@/lib/vgQuarters";
 import { getQuarterOptions } from "@/lib/vgQuarterFlags";
 import { isRegistrationClosed } from "@/lib/date";
 import { ProfileFreshnessBanner } from "./ProfileFreshnessBanner";
@@ -13,18 +13,6 @@ import { ProfileFreshnessBanner } from "./ProfileFreshnessBanner";
 const AUDIENCE_LABEL: Record<string, string> = {
   vg_leader: "VG Leaders",
   intern: "Interns",
-};
-
-const QUARTER_STATUS_BADGE: Record<QuarterCardStatus, string> = {
-  updated: "bg-green-100 text-green-700",
-  incomplete: "bg-amber-100 text-amber-700",
-  not_updated: "bg-gray-100 text-gray-500",
-};
-
-const QUARTER_STATUS_LABEL: Record<QuarterCardStatus, string> = {
-  updated: "Updated",
-  incomplete: "Incomplete",
-  not_updated: "Not Updated",
 };
 
 export default async function VgPortalDashboardPage() {
@@ -148,7 +136,9 @@ export default async function VgPortalDashboardPage() {
 
       <div>
         <p className="text-base font-semibold text-gray-700 mb-1">Profile Updating</p>
-        <p className="text-sm text-gray-400 mb-3">Confirm your profile once each quarter.</p>
+        <p className="text-sm text-gray-400 mb-3">
+          Confirm your profile three times a year — Start of Year, Mid-Year, and End of Year.
+        </p>
         <div className="grid grid-cols-1 gap-4">
           {quarters.map((q) => {
             const cardClass =

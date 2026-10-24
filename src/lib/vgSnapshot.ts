@@ -148,7 +148,7 @@ export function internLastNameFirst(name: string): string {
 }
 
 /**
- * One name behind a quarterly-report number, with the service it counts under. On an added or
+ * One name behind a snapshot-report number, with the service it counts under. On an added or
  * removed item, `remarks` are the leader's "Profile Not Yet Completed" remarks (see vglRemarks)
  * and `reason` is the fallback explanation when there are none.
  */

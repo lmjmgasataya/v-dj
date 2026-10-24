@@ -7,10 +7,10 @@ import { getLiveQuarter } from "@/lib/vgQuarters";
 import { todayPH } from "@/lib/date";
 import type { VgSnapshotData } from "@/lib/vgSnapshot";
 
-// Runs once on each quarter-end date — Mar 31 / Jun 30 / Sep 30 / Dec 31, 7:00 AM Asia/Manila
-// time (see vercel.json; expressed there as 23:00 UTC the day before, since PH is UTC+8) —
-// so getLiveQuarter() still reads the closing quarter when this fires, freezing that
-// quarter's numbers (including quarterlyUpdateStatus) on its last day.
+// Runs once on the last day of each update period — Apr 30 (Start of Year) / Aug 31 (Mid-Year) /
+// Dec 31 (End of Year), 7:00 AM Asia/Manila time (see vercel.json; expressed there as 23:00 UTC
+// the day before, since PH is UTC+8) — so getLiveQuarter() still reads the closing period when
+// this fires, freezing that period's numbers (including quarterlyUpdateStatus) on its last day.
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   const auth = req.headers.get("authorization");

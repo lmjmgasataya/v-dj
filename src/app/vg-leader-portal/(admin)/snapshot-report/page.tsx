@@ -26,7 +26,7 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 const QUARTERLY_REPORT_BREADCRUMB = [
   { label: "Home", href: "/" },
   { label: "VG Leader Portal", href: "/vg-leader-portal" },
-  { label: "Quarterly Report" },
+  { label: "Snapshot Report" },
 ];
 
 function RowsTable({
@@ -400,8 +400,8 @@ export default async function QuarterlyReportPage({
                   </h3>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {isLiveA
-                      ? "As of right now — which claimed VG leaders have (not) updated their profile this quarter."
-                      : `Frozen when ${latest.label} was saved — which claimed VG leaders had (not) updated their profile that quarter.`}
+                      ? "As of right now — which claimed VG leaders have (not) updated their profile this period."
+                      : `Frozen when ${latest.label} was saved — which claimed VG leaders had (not) updated their profile that period.`}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 divide-x divide-gray-100">
@@ -427,7 +427,7 @@ export default async function QuarterlyReportPage({
               </div>
             ) : (
               <p className="text-xs text-gray-400 px-1">
-                Profile update status wasn&apos;t recorded for {latest.label} — save a new snapshot to start tracking who updates each quarter.
+                Profile update status wasn&apos;t recorded for {latest.label} — save a new snapshot to start tracking who updates each period.
               </p>
             )}
 

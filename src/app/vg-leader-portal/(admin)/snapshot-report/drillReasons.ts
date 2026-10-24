@@ -9,7 +9,7 @@ import {
   type MatchItem,
   type VgServiceBucket,
 } from "@/lib/vgSnapshot";
-import { isQuarterlyActive } from "@/lib/vgLeaderStatus";
+import { isQuarterlyActive, QUARTERLY_ACTIVE_DAYS } from "@/lib/vgLeaderStatus";
 import { computeProfileProgress } from "@/lib/profileCompleteness";
 import { normalizeName } from "@/lib/vgLeaderMatch";
 import { getProfileNotCompletedRows } from "@/lib/vglProfileNotCompleted";
@@ -142,7 +142,7 @@ export async function addDrillReasons(lists: Record<string, DrillLists>, latest:
     } else {
       if (!claimedIds.has(l.id)) return `${today}Portal account never claimed`;
       if (!l.isActive) return `${today}Marked as not active`;
-      if (!isQuarterlyActive(l.updatedAt)) return `${today}Profile not updated in the last 90 days (last update ${fmt(l.updatedAt)})`;
+      if (!isQuarterlyActive(l.updatedAt)) return `${today}Profile not updated in the last ${QUARTERLY_ACTIVE_DAYS} days (last update ${fmt(l.updatedAt)})`;
       const hasActiveGroup = (groupsByLeaderAnyType.get(l.id) ?? []).some((g) => !g.deletedAt && g.isActive);
       const { percent, missing } = computeProfileProgress(l, hasActiveGroup);
       if (percent !== 100) return `${today}Profile incomplete (missing: ${missing.join(", ")})`;

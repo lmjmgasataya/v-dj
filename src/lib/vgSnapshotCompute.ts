@@ -40,6 +40,28 @@ export function countsAsActiveVgLeader(
   );
 }
 
+/**
+ * IDs of the VG leaders the Snapshot Report's live "VG Leaders" count is over (see
+ * countsAsActiveVgLeader) — for other pages that need to count or list the same people.
+ */
+export async function getActiveVgLeaderIds(): Promise<Set<number>> {
+  const [leaders, accounts, activeGroups] = await Promise.all([
+    db.select().from(victoryGroupLeaders).where(isNull(victoryGroupLeaders.deletedAt)),
+    db.select({ vgLeaderId: users.vgLeaderId }).from(users).where(eq(users.role, "vg_leader")),
+    db
+      .select({ vgLeaderId: victoryGroups.vgLeaderId })
+      .from(victoryGroups)
+      .where(and(isNull(victoryGroups.deletedAt), eq(victoryGroups.isActive, true))),
+  ]);
+  const claimedIds = new Set(accounts.map((a) => a.vgLeaderId));
+  const activeGroupIds = new Set(activeGroups.map((g) => g.vgLeaderId));
+  return new Set(
+    leaders
+      .filter((l) => countsAsActiveVgLeader(l, claimedIds.has(l.id), activeGroupIds.has(l.id)))
+      .map((l) => l.id)
+  );
+}
+
 export function isInternSet(intern: string | null): boolean {
   return !!intern && intern.trim().toLowerCase() !== "none";
 }

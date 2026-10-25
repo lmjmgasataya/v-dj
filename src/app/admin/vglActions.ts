@@ -1,9 +1,9 @@
 "use server";
 
 import { db } from "@/db";
-import { classSessions, sessionVglCheckIns, victoryGroupLeaders, victoryGroups, users, type CheckInStatus } from "@/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
-import { countsAsActiveVgLeader } from "@/lib/vgSnapshotCompute";
+import { classSessions, sessionVglCheckIns, victoryGroupLeaders, type CheckInStatus } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
+import { getActiveVgLeaderIds } from "@/lib/vgSnapshotCompute";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { checkInStatusForDate } from "@/lib/date";
@@ -41,37 +41,15 @@ export interface VglRosterEntry {
 }
 
 /**
- * IDs of the VG leaders allowed into a VGL-only session — the same people the Quarterly
- * Report's live "VG Leaders" count is over (see countsAsActiveVgLeader).
- */
-async function getEligibleVglIds(): Promise<Set<number>> {
-  const [leaders, accounts, activeGroups] = await Promise.all([
-    db.select().from(victoryGroupLeaders).where(isNull(victoryGroupLeaders.deletedAt)),
-    db.select({ vgLeaderId: users.vgLeaderId }).from(users).where(eq(users.role, "vg_leader")),
-    db
-      .select({ vgLeaderId: victoryGroups.vgLeaderId })
-      .from(victoryGroups)
-      .where(and(isNull(victoryGroups.deletedAt), eq(victoryGroups.isActive, true))),
-  ]);
-  const claimedIds = new Set(accounts.map((a) => a.vgLeaderId));
-  const activeGroupIds = new Set(activeGroups.map((g) => g.vgLeaderId));
-  return new Set(
-    leaders
-      .filter((l) => countsAsActiveVgLeader(l, claimedIds.has(l.id), activeGroupIds.has(l.id)))
-      .map((l) => l.id)
-  );
-}
-
-/**
- * Everyone eligible for a VGL-only session: active VG leaders with a claimed, completed
- * profile (see getEligibleVglIds) — plus anyone already checked in, so a leader who drops
- * out of that list afterwards doesn't vanish from the attendance.
+ * Everyone eligible for a VGL-only session: the Snapshot Report's VG Leaders (see
+ * getActiveVgLeaderIds) — plus anyone already checked in, so a leader who drops out of
+ * that list afterwards doesn't vanish from the attendance.
  */
 export async function getVglCheckinRoster(classSessionId: number): Promise<VglRosterEntry[]> {
   if (!(await canCheckIn())) return [];
 
   const [eligibleIds, rows] = await Promise.all([
-    getEligibleVglIds(),
+    getActiveVgLeaderIds(),
     db
       .select({
         id: victoryGroupLeaders.id,
@@ -129,7 +107,7 @@ export async function checkInVgl(
 
   if (!vglOnly) return { error: "This session is not a VG leaders only session" };
   if (!leader || leader.deletedAt) return { error: "VG leader not found" };
-  if (!leader.isActive || !(await getEligibleVglIds()).has(vgLeaderId)) {
+  if (!leader.isActive || !(await getActiveVgLeaderIds()).has(vgLeaderId)) {
     return { error: "Only active VG leaders with a completed profile can check in to this session" };
   }
 

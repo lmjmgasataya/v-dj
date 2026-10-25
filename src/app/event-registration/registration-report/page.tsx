@@ -7,6 +7,7 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { SERVICE_OPTIONS } from "@/components/form";
 import { EventPicker } from "./EventPicker";
 import { rawServiceValues } from "@/lib/timeService";
+import { getActiveVgLeaderIds } from "@/lib/vgSnapshotCompute";
 
 const NOT_SET_BUCKET = "Not Set";
 
@@ -49,24 +50,27 @@ export default async function RegistrationReportPage({
     );
   }
 
-  const [leaders, registrations] = await Promise.all([
+  // Same leaders as the Snapshot Report's VG Leaders count (claimed, leading, updated this
+  // period, complete profile) so the two totals agree.
+  const [allLeaders, activeIds, registrations] = await Promise.all([
     db
       .select({ id: victoryGroupLeaders.id, lastName: victoryGroupLeaders.lastName, firstName: victoryGroupLeaders.firstName, serviceAttending: victoryGroupLeaders.serviceAttending })
       .from(victoryGroupLeaders)
       .where(
         and(
           isNull(victoryGroupLeaders.deletedAt),
-          eq(victoryGroupLeaders.isActive, true),
           lockedServiceRawValues ? inArray(victoryGroupLeaders.serviceAttending, lockedServiceRawValues) : undefined
         )
       )
       .orderBy(victoryGroupLeaders.lastName),
+    getActiveVgLeaderIds(),
     db
       .select({ vgLeaderId: eventRegistrations.vgLeaderId, willAttend: eventRegistrations.willAttend })
       .from(eventRegistrations)
       .where(eq(eventRegistrations.eventId, selectedEventId)),
   ]);
 
+  const leaders = allLeaders.filter((l) => activeIds.has(l.id));
   const regByLeader = new Map(registrations.map((r) => [r.vgLeaderId, r.willAttend]));
 
   const roster = leaders.map((l) => {
@@ -131,7 +135,7 @@ export default async function RegistrationReportPage({
               <tr>
                 <th className="px-4 py-2 text-left font-medium">Service</th>
                 <th className="px-4 py-2 text-right font-bold">
-                  <span className="cursor-help border-b border-dotted border-gray-400" title="Total active VG leaders in this service">
+                  <span className="cursor-help border-b border-dotted border-gray-400" title="Active VG leaders in this service — same people as the Snapshot Report's VG Leaders count">
                     Total VGL
                   </span>
                 </th>

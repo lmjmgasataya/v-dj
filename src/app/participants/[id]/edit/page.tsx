@@ -7,6 +7,7 @@ import { EditForm } from "./EditForm";
 import { DeleteButton } from "./DeleteButton";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ParticipantQrCode } from "./ParticipantQrCode";
+import { getVgLeaderOptions } from "@/lib/vgLeaderOptions";
 
 const disciplerLeaders = alias(victoryGroupLeaders, "discipler_leaders");
 
@@ -14,7 +15,7 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const participantId = parseInt(id, 10);
 
-  const [[participant], flags] = await Promise.all([
+  const [[participant], flags, vgLeaderOptions] = await Promise.all([
     db
       .select({
         ...getTableColumns(participants),
@@ -33,6 +34,7 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
       .where(eq(participants.id, participantId))
       .limit(1),
     db.select().from(featureFlags),
+    getVgLeaderOptions(),
   ]);
 
   if (!participant) notFound();
@@ -58,6 +60,7 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
       </div>
       <EditForm
         participant={participant}
+        vgLeaderOptions={vgLeaderOptions}
         newDatePicker={flagMap["new_date_picker"] ?? false}
         vgLeaderAutocomplete={flagMap["autocomplete_vg_leaders"] ?? true}
         disciplerAutocomplete={flagMap["autocomplete_disciplers"] ?? true}

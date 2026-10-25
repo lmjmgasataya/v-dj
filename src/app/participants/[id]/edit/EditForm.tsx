@@ -10,6 +10,7 @@ import { DisciplerFields } from "@/components/DisciplerFields";
 import Link from "next/link";
 import type { Participant } from "@/db/schema";
 import { MOBILE_NUMBER_PATTERN, MOBILE_NUMBER_HELP } from "@/lib/phone";
+import type { VgLeaderOption } from "@/lib/vgLeaderSearch";
 
 type ParticipantWithRelations = Participant & {
   disciplerLastName: string | null;
@@ -36,12 +37,14 @@ const STUDENT_LIFESTAGES = ["Student (JHS/SHS)", "Student (College)"];
 
 export function EditForm({
   participant,
+  vgLeaderOptions,
   newDatePicker,
   vgLeaderAutocomplete,
   disciplerAutocomplete,
   editRegistrationFee,
 }: {
   participant: ParticipantWithRelations;
+  vgLeaderOptions: VgLeaderOption[];
   newDatePicker: boolean;
   vgLeaderAutocomplete: boolean;
   disciplerAutocomplete: boolean;
@@ -225,6 +228,7 @@ export function EditForm({
       {showVgLeader ? (
         <Section title="Victory Group Leader Information">
           <VgLeaderFields
+            options={vgLeaderOptions}
             enabled={vgLeaderAutocomplete}
             defaultLastName={participant.vgLeaderLastName ?? ""}
             defaultFirstName={participant.vgLeaderFirstName ?? ""}
@@ -235,6 +239,7 @@ export function EditForm({
       ) : (
         <Section title="One2One Discipler Information" important="To be filled up by the One2One discipler">
           <DisciplerFields
+            options={vgLeaderOptions}
             enabled={disciplerAutocomplete}
             defaultLastName={participant.disciplerLastName ?? ""}
             defaultFirstName={participant.disciplerFirstName ?? ""}

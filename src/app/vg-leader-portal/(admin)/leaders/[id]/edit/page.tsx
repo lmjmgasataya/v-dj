@@ -6,12 +6,13 @@ import { EditForm } from "./EditForm";
 import { DeleteButton } from "./DeleteButton";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getProfileFreshness, FRESHNESS_BANNER_CLASS, FRESHNESS_MESSAGE } from "@/lib/vgLeaderStatus";
+import { getVgLeaderOptions } from "@/lib/vgLeaderOptions";
 
 export default async function EditVGLeaderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const leaderId = parseInt(id, 10);
 
-  const [[leader], groups] = await Promise.all([
+  const [[leader], groups, vgLeaderOptions] = await Promise.all([
     db
       .select()
       .from(victoryGroupLeaders)
@@ -23,6 +24,8 @@ export default async function EditVGLeaderPage({ params }: { params: Promise<{ i
       .from(victoryGroups)
       .where(and(eq(victoryGroups.vgLeaderId, leaderId), isNull(victoryGroups.deletedAt)))
       .orderBy(victoryGroups.createdAt),
+
+    getVgLeaderOptions(),
   ]);
 
   if (!leader) notFound();
@@ -75,6 +78,7 @@ export default async function EditVGLeaderPage({ params }: { params: Promise<{ i
       </div>
       <EditForm
         leader={leader}
+        vgLeaderOptions={vgLeaderOptions}
         leadershipGroupMembers={lglMemberRows}
         groups={groups}
         internsByGroup={internsByGroup}

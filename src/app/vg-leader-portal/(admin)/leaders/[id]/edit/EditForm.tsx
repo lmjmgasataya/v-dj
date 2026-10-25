@@ -7,6 +7,7 @@ import { Field, Section, CheckboxOption, RadioOption, inputCls, selectCls, SERVI
 import { OwnVgLeaderField } from "@/components/OwnVgLeaderField";
 import { MobileNumberInput } from "@/components/MobileNumberInput";
 import { LeadershipGroupMembersField, type MemberRowValue } from "@/components/LeadershipGroupMembersField";
+import type { VgLeaderOption } from "@/lib/vgLeaderSearch";
 import { VictoryGroupsSection } from "./VictoryGroupsSection";
 import type { VictoryGroupLeader, VictoryGroup } from "@/db/schema";
 import { lifestageEnum } from "@/db/schema";
@@ -36,11 +37,13 @@ function ReviewSection({ title, children }: { title: string; children: React.Rea
 
 export function EditForm({
   leader,
+  vgLeaderOptions,
   leadershipGroupMembers,
   groups,
   internsByGroup,
 }: {
   leader: VictoryGroupLeader;
+  vgLeaderOptions: VgLeaderOption[];
   leadershipGroupMembers: MemberRowValue[];
   groups: VictoryGroup[];
   internsByGroup: Record<number, InternRow[]>;
@@ -234,6 +237,7 @@ export function EditForm({
             <input name="facebookMessengerName" defaultValue={leader.facebookMessengerName ?? ""} className={inputCls} placeholder="e.g. Juan dela Cruz" />
           </Field>
           <OwnVgLeaderField
+            options={vgLeaderOptions}
             excludeId={leader.id}
             defaultLastName={ownVgLeaderLastName}
             defaultFirstName={ownVgLeaderFirstName}
@@ -272,7 +276,7 @@ export function EditForm({
             {isLGL && (
               <div className="mt-3">
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">VG Leaders they lead</p>
-                <LeadershipGroupMembersField excludeId={leader.id} defaultMembers={leadershipGroupMembers} />
+                <LeadershipGroupMembersField options={vgLeaderOptions} excludeId={leader.id} defaultMembers={leadershipGroupMembers} />
               </div>
             )}
           </div>

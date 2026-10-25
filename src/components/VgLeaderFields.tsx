@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Field, inputCls } from "./form";
-import type { VictoryGroupLeader } from "@/db/schema";
+import { searchVgLeaders, type VgLeaderOption } from "@/lib/vgLeaderSearch";
 import { MOBILE_NUMBER_PATTERN, MOBILE_NUMBER_HELP } from "@/lib/phone";
 
 interface Props {
+  options: VgLeaderOption[];
   enabled?: boolean;
   defaultLastName?: string;
   defaultFirstName?: string;
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function VgLeaderFields({
+  options,
   enabled = true,
   defaultLastName = "",
   defaultFirstName = "",
@@ -24,27 +26,17 @@ export function VgLeaderFields({
   const [firstName, setFirstName] = useState(defaultFirstName);
   const [mobileNumber, setMobileNumber] = useState(defaultMobileNumber);
   const [messengerName, setMessengerName] = useState(defaultMessengerName);
-  const [results, setResults] = useState<VictoryGroupLeader[]>([]);
+  const [results, setResults] = useState<VgLeaderOption[]>([]);
   const [open, setOpen] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   function search(q: string) {
     if (!enabled) return;
-    clearTimeout(timer.current);
-    if (q.trim().length < 2) {
-      setResults([]);
-      setOpen(false);
-      return;
-    }
-    timer.current = setTimeout(async () => {
-      const res = await fetch(`/api/vg-leaders?q=${encodeURIComponent(q)}`);
-      const data: VictoryGroupLeader[] = await res.json();
-      setResults(data);
-      setOpen(data.length > 0);
-    }, 250);
+    const found = searchVgLeaders(options, q);
+    setResults(found);
+    setOpen(found.length > 0);
   }
 
-  function handleSelect(v: VictoryGroupLeader) {
+  function handleSelect(v: VgLeaderOption) {
     setLastName(v.lastName);
     setFirstName(v.firstName);
     setMobileNumber(v.mobileNumber ?? "");
@@ -121,7 +113,7 @@ export function VgLeaderFields({
   );
 }
 
-function Dropdown({ results, onSelect }: { results: VictoryGroupLeader[]; onSelect: (v: VictoryGroupLeader) => void }) {
+function Dropdown({ results, onSelect }: { results: VgLeaderOption[]; onSelect: (v: VgLeaderOption) => void }) {
   return (
     <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
       {results.map((v) => (

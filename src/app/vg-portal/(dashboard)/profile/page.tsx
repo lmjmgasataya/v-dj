@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { computeProfileProgress } from "@/lib/profileCompleteness";
 import { getProfileUpdateQuarters, QUARTER_STATUS_BADGE, QUARTER_STATUS_LABEL } from "@/lib/vgQuarters";
 import { getQuarterOptions } from "@/lib/vgQuarterFlags";
+import { getVgLeaderOptions } from "@/lib/vgLeaderOptions";
 import { ProfileForm } from "../ProfileForm";
 
 export const metadata: Metadata = {
@@ -22,7 +23,7 @@ export default async function VgPortalProfilePage() {
 
   const vgLeaderId = session.vgLeaderId;
 
-  const [[leader], groups, quarterOptions] = await Promise.all([
+  const [[leader], groups, quarterOptions, vgLeaderOptions] = await Promise.all([
     db.select().from(victoryGroupLeaders).where(eq(victoryGroupLeaders.id, vgLeaderId)).limit(1),
     db
       .select()
@@ -30,6 +31,7 @@ export default async function VgPortalProfilePage() {
       .where(and(eq(victoryGroups.vgLeaderId, vgLeaderId), isNull(victoryGroups.deletedAt)))
       .orderBy(victoryGroups.createdAt),
     getQuarterOptions(),
+    getVgLeaderOptions(),
   ]);
 
   if (!leader) redirect("/login");
@@ -126,6 +128,7 @@ export default async function VgPortalProfilePage() {
 
       <ProfileForm
         leader={leader}
+        vgLeaderOptions={vgLeaderOptions}
         hasActiveGroup={hasActiveGroup}
         leadershipGroupMembers={lglMemberRows}
         groups={groups}

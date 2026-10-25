@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Field, inputCls } from "./form";
-import type { VictoryGroupLeader } from "@/db/schema";
+import { searchVgLeaders, type VgLeaderOption } from "@/lib/vgLeaderSearch";
 
 interface Props {
+  options: VgLeaderOption[];
   excludeId: number;
   defaultLastName?: string;
   defaultFirstName?: string;
@@ -16,6 +17,7 @@ interface Props {
 type ActiveField = "last" | "first" | null;
 
 export function OwnVgLeaderField({
+  options,
   excludeId,
   defaultLastName = "",
   defaultFirstName = "",
@@ -25,11 +27,10 @@ export function OwnVgLeaderField({
   const [lastName, setLastName] = useState(defaultLastName);
   const [firstName, setFirstName] = useState(defaultFirstName);
   const [id, setId] = useState<number | null>(defaultId);
-  const [results, setResults] = useState<VictoryGroupLeader[]>([]);
+  const [results, setResults] = useState<VgLeaderOption[]>([]);
   const [open, setOpen] = useState(false);
   const [activeField, setActiveField] = useState<ActiveField>(null);
   const [rect, setRect] = useState<{ top: number; left: number; width: number } | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const lastNameRef = useRef<HTMLInputElement>(null);
   const firstNameRef = useRef<HTMLInputElement>(null);
 
@@ -53,21 +54,12 @@ export function OwnVgLeaderField({
   }, [open, activeField]);
 
   function search(q: string) {
-    clearTimeout(timer.current);
-    if (q.trim().length < 2) {
-      setResults([]);
-      setOpen(false);
-      return;
-    }
-    timer.current = setTimeout(async () => {
-      const res = await fetch(`/api/vg-leaders?q=${encodeURIComponent(q)}&excludeId=${excludeId}`);
-      const data: VictoryGroupLeader[] = await res.json();
-      setResults(data);
-      setOpen(data.length > 0);
-    }, 250);
+    const found = searchVgLeaders(options, q, excludeId);
+    setResults(found);
+    setOpen(found.length > 0);
   }
 
-  function handleSelect(v: VictoryGroupLeader) {
+  function handleSelect(v: VgLeaderOption) {
     setLastName(v.lastName);
     setFirstName(v.firstName);
     setId(v.id);

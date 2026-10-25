@@ -1,18 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Field, inputCls } from "./form";
 import { MOBILE_NUMBER_PATTERN, MOBILE_NUMBER_HELP } from "@/lib/phone";
-
-interface DisciplerSearchResult {
-  id: number;
-  lastName: string;
-  firstName: string;
-  mobileNumber: string;
-  messengerName: string | null;
-}
+import { searchVgLeaders, type VgLeaderOption } from "@/lib/vgLeaderSearch";
 
 interface Props {
+  /** Disciplers are VG leaders, so this takes the same preloaded list as VgLeaderFields. */
+  options: VgLeaderOption[];
   enabled?: boolean;
   defaultLastName?: string;
   defaultFirstName?: string;
@@ -21,6 +16,7 @@ interface Props {
 }
 
 export function DisciplerFields({
+  options,
   enabled = true,
   defaultLastName = "",
   defaultFirstName = "",
@@ -31,31 +27,21 @@ export function DisciplerFields({
   const [firstName, setFirstName] = useState(defaultFirstName);
   const [mobileNumber, setMobileNumber] = useState(defaultMobileNumber);
   const [messengerName, setMessengerName] = useState(defaultMessengerName);
-  const [results, setResults] = useState<DisciplerSearchResult[]>([]);
+  const [results, setResults] = useState<VgLeaderOption[]>([]);
   const [open, setOpen] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   function search(q: string) {
     if (!enabled) return;
-    clearTimeout(timer.current);
-    if (q.trim().length < 2) {
-      setResults([]);
-      setOpen(false);
-      return;
-    }
-    timer.current = setTimeout(async () => {
-      const res = await fetch(`/api/disciplers?q=${encodeURIComponent(q)}`);
-      const data: DisciplerSearchResult[] = await res.json();
-      setResults(data);
-      setOpen(data.length > 0);
-    }, 250);
+    const found = searchVgLeaders(options, q);
+    setResults(found);
+    setOpen(found.length > 0);
   }
 
-  function handleSelect(d: DisciplerSearchResult) {
+  function handleSelect(d: VgLeaderOption) {
     setLastName(d.lastName);
     setFirstName(d.firstName);
-    setMobileNumber(d.mobileNumber);
-    setMessengerName(d.messengerName ?? "");
+    setMobileNumber(d.mobileNumber ?? "");
+    setMessengerName(d.facebookMessengerName ?? "");
     setOpen(false);
   }
 
@@ -84,7 +70,7 @@ export function DisciplerFields({
               >
                 <p className="font-medium text-gray-900">{d.lastName}, {d.firstName}</p>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  {d.mobileNumber}{d.messengerName ? ` · ${d.messengerName}` : ""}
+                  {d.mobileNumber}{d.facebookMessengerName ? ` · ${d.facebookMessengerName}` : ""}
                 </p>
               </button>
             ))}

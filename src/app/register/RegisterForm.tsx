@@ -8,6 +8,7 @@ import { VgLeaderFields } from "@/components/VgLeaderFields";
 import { DisciplerFields } from "@/components/DisciplerFields";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { MOBILE_NUMBER_PATTERN, MOBILE_NUMBER_HELP } from "@/lib/phone";
+import type { VgLeaderOption } from "@/lib/vgLeaderSearch";
 
 function getDefaultService(): string {
   const hour = parseInt(
@@ -35,6 +36,7 @@ const LIFESTAGES = [
 ];
 
 interface Props {
+  vgLeaderOptions: VgLeaderOption[];
   vgLeaderAutocomplete: boolean;
   disciplerAutocomplete: boolean;
   newDatePicker: boolean;
@@ -62,7 +64,7 @@ function ReviewSection({ title, children }: { title: string; children: React.Rea
 
 const STUDENT_LIFESTAGES = ["Student (JHS/SHS)", "Student (College)"];
 
-export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newDatePicker }: Props) {
+export function RegisterForm({ vgLeaderOptions, vgLeaderAutocomplete, disciplerAutocomplete, newDatePicker }: Props) {
   const [previousChurch, setPreviousChurch] = useState("");
   const [registrationFee, setRegistrationFee] = useState("");
   const [lifestage, setLifestage] = useState("");
@@ -356,11 +358,11 @@ export function RegisterForm({ vgLeaderAutocomplete, disciplerAutocomplete, newD
 
           {showVgLeader ? (
             <Section title="Victory Group Leader Information">
-              <VgLeaderFields enabled={vgLeaderAutocomplete} />
+              <VgLeaderFields options={vgLeaderOptions} enabled={vgLeaderAutocomplete} />
             </Section>
           ) : isAB ? (
             <Section title="One2One Discipler Information" important="To be filled up by the One2One discipler">
-              <DisciplerFields enabled={disciplerAutocomplete} />
+              <DisciplerFields options={vgLeaderOptions} enabled={disciplerAutocomplete} />
               <div className="sm:col-span-2">
                 <CheckboxOption name="confirmedReadiness" required align="start" labelClassName="text-red-800 font-bold">
                   I am confirming that the participant is ready to join Victory Day, that we will

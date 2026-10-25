@@ -94,8 +94,6 @@ Role checks: `session.role === "developer"` for developer-only pages. `!!session
 **API routes** (`src/app/api/`) exist only for:
 - `health` — health check
 - `keep-alive` — pings the DB to prevent idle connection drops
-- `disciplers` — autocomplete search
-- `vg-leaders` — autocomplete search
 - `participants/export` — Excel export via `xlsx`
 - `sessions/[id]/export` — per-session Excel export
 - `devops-admin/export` — full data export for developers
@@ -114,8 +112,9 @@ Role checks: `session.role === "developer"` for developer-only pages. `!!session
 - `DatePickerField` — controlled date input wrapper.
 - `SubmitButton` — form submit button with loading state.
 - `PageLoader` — full-page loading indicator.
-- `DisciplerAutocomplete` / `DisciplerFields` — autocomplete + field set for discipler selection.
-- `VgLeaderAutocomplete` / `VgLeaderFields` — autocomplete + field set for VG leader selection.
+- `VgLeaderFields` / `DisciplerFields` / `OwnVgLeaderField` / `LeadershipGroupMembersField` / `VgLeaderAutocomplete` — VG leader autocompletes (disciplers are VG leaders too).
+
+**VGL autocomplete** — the page calls `getVgLeaderOptions()` (`src/lib/vgLeaderOptions.ts`) once to preload every non-deleted VG leader (a few hundred rows) and passes the list down as an `options` prop; the components filter it client-side with `searchVgLeaders()` (`src/lib/vgLeaderSearch.ts` — every typed word must appear in last/first name or nickname, ignoring case, accents and dots). There's no search API route; a new autocomplete field should take `options` the same way.
 
 **Path alias:** `@/*` maps to `src/*`.
 

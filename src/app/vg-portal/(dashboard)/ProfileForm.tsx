@@ -6,6 +6,7 @@ import { Field, Section, CheckboxOption, RadioOption, inputCls, selectCls, SERVI
 import { OwnVgLeaderField } from "@/components/OwnVgLeaderField";
 import { MobileNumberInput } from "@/components/MobileNumberInput";
 import { LeadershipGroupMembersField, type MemberRowValue } from "@/components/LeadershipGroupMembersField";
+import type { VgLeaderOption } from "@/lib/vgLeaderSearch";
 import { MyVictoryGroups } from "./MyVictoryGroups";
 import type { VictoryGroupLeader, VictoryGroup } from "@/db/schema";
 import { lifestageEnum } from "@/db/schema";
@@ -34,12 +35,14 @@ function ReviewSection({ title, children }: { title: string; children: React.Rea
 
 export function ProfileForm({
   leader,
+  vgLeaderOptions,
   hasActiveGroup,
   leadershipGroupMembers,
   groups,
   internsByGroup,
 }: {
   leader: VictoryGroupLeader;
+  vgLeaderOptions: VgLeaderOption[];
   hasActiveGroup: boolean;
   leadershipGroupMembers: MemberRowValue[];
   groups: VictoryGroup[];
@@ -235,6 +238,7 @@ export function ProfileForm({
               />
             </Field>
             <OwnVgLeaderField
+              options={vgLeaderOptions}
               excludeId={leader.id}
               defaultLastName={ownVgLeaderLastName}
               defaultFirstName={ownVgLeaderFirstName}
@@ -287,7 +291,7 @@ export function ProfileForm({
                   <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">
                     VG Leaders you lead <span className="text-red-500">*</span>
                   </p>
-                  <LeadershipGroupMembersField excludeId={leader.id} defaultMembers={leadershipGroupMembers} />
+                  <LeadershipGroupMembersField options={vgLeaderOptions} excludeId={leader.id} defaultMembers={leadershipGroupMembers} />
                 </div>
               )}
             </div>

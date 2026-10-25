@@ -1,39 +1,28 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { inputCls } from "./form";
-import type { VictoryGroupLeader } from "@/db/schema";
+import { searchVgLeaders, type VgLeaderOption } from "@/lib/vgLeaderSearch";
 
 interface Props {
-  onSelect: (v: VictoryGroupLeader) => void;
+  options: VgLeaderOption[];
+  onSelect: (v: VgLeaderOption) => void;
 }
 
-export function VgLeaderAutocomplete({ onSelect }: Props) {
+export function VgLeaderAutocomplete({ options, onSelect }: Props) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<VictoryGroupLeader[]>([]);
+  const [results, setResults] = useState<VgLeaderOption[]>([]);
   const [open, setOpen] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value;
     setQuery(val);
-    clearTimeout(timer.current);
-
-    if (val.trim().length < 2) {
-      setResults([]);
-      setOpen(false);
-      return;
-    }
-
-    timer.current = setTimeout(async () => {
-      const res = await fetch(`/api/vg-leaders?q=${encodeURIComponent(val)}`);
-      const data: VictoryGroupLeader[] = await res.json();
-      setResults(data);
-      setOpen(data.length > 0);
-    }, 250);
+    const found = searchVgLeaders(options, val);
+    setResults(found);
+    setOpen(found.length > 0);
   }
 
-  function handleSelect(v: VictoryGroupLeader) {
+  function handleSelect(v: VgLeaderOption) {
     onSelect(v);
     setQuery(`${v.lastName}, ${v.firstName}`);
     setOpen(false);

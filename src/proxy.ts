@@ -34,7 +34,7 @@ const PUBLIC_PATHS = [
   /^\/api\/cron\//,
 ];
 
-const VG_LEADER_ALLOWED = [/^\/vg-portal/, /^\/api\/vg-leaders/];
+const VG_LEADER_ALLOWED = [/^\/vg-portal/];
 
 const LEAD_PASTOR_ALLOWED = [
   /^\/$/,

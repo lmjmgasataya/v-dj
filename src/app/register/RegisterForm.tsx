@@ -40,6 +40,8 @@ interface Props {
   vgLeaderAutocomplete: boolean;
   disciplerAutocomplete: boolean;
   newDatePicker: boolean;
+  /** The default batch, which new registrations are added to. */
+  activeBatch: { name: string; classDates: string } | null;
 }
 
 function ReviewRow({ label, value, span }: { label: string; value?: string | null; span?: boolean }) {
@@ -64,7 +66,7 @@ function ReviewSection({ title, children }: { title: string; children: React.Rea
 
 const STUDENT_LIFESTAGES = ["Student (JHS/SHS)", "Student (College)"];
 
-export function RegisterForm({ vgLeaderOptions, vgLeaderAutocomplete, disciplerAutocomplete, newDatePicker }: Props) {
+export function RegisterForm({ vgLeaderOptions, vgLeaderAutocomplete, disciplerAutocomplete, newDatePicker, activeBatch }: Props) {
   const [previousChurch, setPreviousChurch] = useState("");
   const [registrationFee, setRegistrationFee] = useState("");
   const [lifestage, setLifestage] = useState("");
@@ -149,6 +151,16 @@ export function RegisterForm({ vgLeaderOptions, vgLeaderAutocomplete, disciplerA
             "Please review the information below before confirming."
           )}
         </p>
+        {activeBatch ? (
+          <div className="mt-4 rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
+            Registering for the <span className="font-semibold">{activeBatch.name}</span> batch
+            <span className="text-indigo-700"> · Classes {activeBatch.classDates}</span>
+          </div>
+        ) : (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            No active batch is set. Registrations won&apos;t be added to any batch until one is set as default in Sessions › Batches.
+          </div>
+        )}
       </div>
 
       {/* Step indicator */}

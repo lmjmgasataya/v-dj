@@ -121,6 +121,8 @@ Role checks: `session.role === "developer"` for developer-only pages. `!!session
 
 **Event audiences** — `vg_leader`, `leadership_group_leader`, `intern`. LGLs register and check in as VG leaders; an LGL-only event is hidden from, and closed to, other VG leaders. Use the helpers in `src/lib/eventAudience.ts` (`hasLeaderAudience`, `isEventOpenToLeader`, `EVENT_AUDIENCE_LABEL`) instead of checking for `"vg_leader"` directly. Events have optional `startTime`/`endTime` (`"HH:MM"` text; `formatEventTimeRange()` for display).
 
+**Batches** — the batch with `isDefault` is the active one: registration (and the banner on top of the form) adds new registrants to it, and `/admin` check-in, the Participants list/export and the reports default to it. Check-in to a session is limited by `eligibleForSession()` (`src/lib/batchCheckIn.ts`) to the session's own batch, plus registrants of earlier batches who haven't attended a class of the same name (make-up classes — the same class names repeat every batch); `getVictoryDayBlockReason()` in `src/app/admin/actions.ts` enforces it on every check-in path. Victory Day completion counts the Victory Day sessions of the participant's own batch (`getVictoryDayTotalsByBatch()`), not the calendar year. Walk-ins take the session's batch.
+
 **Path alias:** `@/*` maps to `src/*`.
 
 ### Environment variables

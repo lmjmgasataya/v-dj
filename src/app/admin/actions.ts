@@ -1,15 +1,16 @@
 "use server";
 
 import { db } from "@/db";
-import { participants, checkIns, classSessions, victoryGroupLeaders, featureFlags, type lifestageEnum, type CheckInStatus, type CheckInMethod } from "@/db/schema";
-import { currentYearPH, checkInStatusForDate } from "@/lib/date";
+import { participants, checkIns, classSessions, victoryGroupLeaders, featureFlags, batches, type lifestageEnum, type CheckInStatus, type CheckInMethod } from "@/db/schema";
+import { checkInStatusForDate } from "@/lib/date";
 import { toTitleCase } from "@/lib/text";
 import { ORIENTATION_ALLOWED_CLASSES } from "@/lib/constants";
 import { assignTableNumber } from "@/lib/tables";
 import { MOBILE_NUMBER_REGEX } from "@/lib/phone";
+import { eligibleForSession, getBatchBlockReason, getSessionBatchScope, getVictoryDayTotalsByBatch, victoryDayTotalFor } from "@/lib/batchCheckIn";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
-import { and, count, eq, gte, ilike, inArray, isNull, lt, notInArray, or } from "drizzle-orm";
+import { and, count, eq, ilike, inArray, isNull, notInArray, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { syncJourneyStepsAfterResponse } from "@/lib/djPortalJourney";
 import { getSession } from "@/lib/auth";
@@ -47,45 +48,57 @@ export async function setCheckinFlag(key: CheckinSettingsFlagKey, enabled: boole
 
 const VGL_ONLY_BLOCK_REASON = "This session is for active VG leaders only";
 
-// Also the gate for VGL-only sessions: every participant check-in path (search, QR,
-// offline replay) runs through this, so returning a reason here blocks them all.
+// Also the gate for VGL-only sessions and for the session's batch: every participant
+// check-in path (search, QR, offline replay) runs through this, so returning a reason
+// here blocks them all.
 async function getVictoryDayBlockReason(
   participantId: number,
-  classSessionId: number,
-  precomputedVictoryDate?: string | null
+  classSessionId: number
 ): Promise<string | null> {
-  const [[session], victoryDate] = await Promise.all([
+  const [[session], [participant]] = await Promise.all([
     db
-      .select({ isVictoryDay: classSessions.isVictoryDay, requiresVictoryDay: classSessions.requiresVictoryDay, vglOnly: classSessions.vglOnly })
+      .select({
+        id: classSessions.id,
+        name: classSessions.name,
+        batchId: classSessions.batchId,
+        batchStart: batches.classStartDate,
+        isVictoryDay: classSessions.isVictoryDay,
+        requiresVictoryDay: classSessions.requiresVictoryDay,
+        vglOnly: classSessions.vglOnly,
+      })
       .from(classSessions)
+      .leftJoin(batches, eq(classSessions.batchId, batches.id))
       .where(eq(classSessions.id, classSessionId))
       .limit(1),
-    precomputedVictoryDate !== undefined
-      ? Promise.resolve(precomputedVictoryDate)
-      : db
-          .select({ victoryDate: participants.victoryDate })
-          .from(participants)
-          .where(eq(participants.id, participantId))
-          .limit(1)
-          .then((rows) => rows[0]?.victoryDate ?? null),
+    db
+      .select({ victoryDate: participants.victoryDate, batchId: participants.batchId })
+      .from(participants)
+      .where(eq(participants.id, participantId))
+      .limit(1),
   ]);
 
   if (session?.vglOnly) return VGL_ONLY_BLOCK_REASON;
-  if (!session || session.isVictoryDay || !session.requiresVictoryDay) return null;
-  if (victoryDate) return null;
+  if (!session) return null;
 
-  const year = currentYearPH();
+  // Same-batch registrants (the usual case) skip the eligibility query.
+  if (participant && session.batchId != null && participant.batchId !== session.batchId) {
+    const batchBlockReason = await getBatchBlockReason(participantId, session);
+    if (batchBlockReason) return batchBlockReason;
+  }
+
+  if (session.isVictoryDay || !session.requiresVictoryDay) return null;
+  if (participant?.victoryDate) return null;
+
+  // Victory Day is counted within the participant's own batch (a make-up attendee from an
+  // earlier batch keeps their batch's requirement).
+  const victoryDayBatchId = participant?.batchId ?? session.batchId;
   const [[{ totalVictoryDaySessions }], [{ attended }]] = await Promise.all([
-    db
-      .select({ totalVictoryDaySessions: count() })
-      .from(classSessions)
-      .where(
-        and(
-          eq(classSessions.isVictoryDay, true),
-          gte(classSessions.sessionDate, `${year}-01-01`),
-          lt(classSessions.sessionDate, `${year + 1}-01-01`)
-        )
-      ),
+    victoryDayBatchId == null
+      ? Promise.resolve([{ totalVictoryDaySessions: 0 }])
+      : db
+          .select({ totalVictoryDaySessions: count() })
+          .from(classSessions)
+          .where(and(eq(classSessions.isVictoryDay, true), eq(classSessions.batchId, victoryDayBatchId))),
     db
       .select({ attended: count() })
       .from(checkIns)
@@ -274,9 +287,11 @@ export async function getCheckinRoster(
   allowAllClasses = false,
   isOrientation = false
 ): Promise<CheckinRosterEntry[]> {
+  const session = await getSessionBatchScope(sessionId);
   const rows = await db
     .select({
       id: participants.id,
+      batchId: participants.batchId,
       firstName: participants.firstName,
       lastName: participants.lastName,
       middleInitial: participants.middleInitial,
@@ -298,6 +313,7 @@ export async function getCheckinRoster(
     .where(
       and(
         isNull(participants.deletedAt),
+        session ? eligibleForSession(session) : undefined,
         isVictoryDay && !allowAllClasses ? notInArray(participants.registrationFee, ["C", "D"]) : undefined,
         isOrientation ? inArray(participants.registrationFee, ORIENTATION_ALLOWED_CLASSES) : undefined
       )
@@ -306,19 +322,9 @@ export async function getCheckinRoster(
   if (rows.length === 0) return [];
 
   const ids = rows.map((r) => r.id);
-  const year = currentYearPH();
 
-  const [[totals], victoryCheckIns] = await Promise.all([
-    db
-      .select({ totalVictoryDaySessions: count() })
-      .from(classSessions)
-      .where(
-        and(
-          eq(classSessions.isVictoryDay, true),
-          gte(classSessions.sessionDate, `${year}-01-01`),
-          lt(classSessions.sessionDate, `${year + 1}-01-01`)
-        )
-      ),
+  const [victoryDayTotals, victoryCheckIns] = await Promise.all([
+    getVictoryDayTotalsByBatch(),
     db
       .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
       .from(checkIns)
@@ -326,7 +332,6 @@ export async function getCheckinRoster(
       .where(and(inArray(checkIns.participantId, ids), eq(classSessions.isVictoryDay, true))),
   ]);
 
-  const totalVictoryDaySessions = totals.totalVictoryDaySessions;
   const victoryDayDateMap: Record<number, string> = {};
   const victoryAttendanceCount: Record<number, number> = {};
   for (const v of victoryCheckIns) {
@@ -338,6 +343,7 @@ export async function getCheckinRoster(
 
   return rows.map((r) => {
     const alreadyCheckedIn = r.checkInId != null;
+    const totalVictoryDaySessions = victoryDayTotalFor(victoryDayTotals, r.batchId ?? session?.batchId ?? null);
     const attended = victoryAttendanceCount[r.id] ?? 0;
     const completedVictoryDay = attended >= totalVictoryDaySessions;
 
@@ -396,6 +402,7 @@ export async function getSessionCheckIns(sessionId: number) {
       firstName: participants.firstName,
       middleInitial: participants.middleInitial,
       victoryDate: participants.victoryDate,
+      batchId: participants.batchId,
       checkedInAt: checkIns.checkedInAt,
       remarks: checkIns.remarks,
       tableNumber: checkIns.tableNumber,
@@ -409,19 +416,9 @@ export async function getSessionCheckIns(sessionId: number) {
   if (rows.length === 0) return [];
 
   const participantIds = rows.map((r) => r.participantId);
-  const year = currentYearPH();
 
-  const [[{ totalVictoryDaySessions }], victoryCheckIns] = await Promise.all([
-    db
-      .select({ totalVictoryDaySessions: count() })
-      .from(classSessions)
-      .where(
-        and(
-          eq(classSessions.isVictoryDay, true),
-          gte(classSessions.sessionDate, `${year}-01-01`),
-          lt(classSessions.sessionDate, `${year + 1}-01-01`)
-        )
-      ),
+  const [victoryDayTotals, victoryCheckIns] = await Promise.all([
+    getVictoryDayTotalsByBatch(),
 
     db
       .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
@@ -437,20 +434,25 @@ export async function getSessionCheckIns(sessionId: number) {
     victoryAttendanceCount[v.participantId] = (victoryAttendanceCount[v.participantId] ?? 0) + 1;
   }
 
-  return rows.map((r) => ({
-    ...r,
-    victoryDayDate: victoryDayMap[r.participantId] ?? null,
-    victoryDayCount: victoryAttendanceCount[r.participantId] ?? 0,
-    totalVictoryDaySessions,
-    completedVictoryDay: (victoryAttendanceCount[r.participantId] ?? 0) >= totalVictoryDaySessions,
-  }));
+  return rows.map(({ batchId, ...r }) => {
+    const totalVictoryDaySessions = victoryDayTotalFor(victoryDayTotals, batchId);
+    return {
+      ...r,
+      victoryDayDate: victoryDayMap[r.participantId] ?? null,
+      victoryDayCount: victoryAttendanceCount[r.participantId] ?? 0,
+      totalVictoryDaySessions,
+      completedVictoryDay: (victoryAttendanceCount[r.participantId] ?? 0) >= totalVictoryDaySessions,
+    };
+  });
 }
 
 export async function searchParticipants(sessionId: number, q: string, isVictoryDay = false, allowAllClasses = false, isOrientation = false) {
   if (!q.trim()) return [];
+  const session = await getSessionBatchScope(sessionId);
   const rows = await db
     .select({
       id: participants.id,
+      batchId: participants.batchId,
       lastName: participants.lastName,
       firstName: participants.firstName,
       middleInitial: participants.middleInitial,
@@ -483,6 +485,7 @@ export async function searchParticipants(sessionId: number, q: string, isVictory
           ilike(participants.firstName, `%${q}%`),
           ilike(participants.mobileNumber, `%${q}%`)
         ),
+        session ? eligibleForSession(session) : undefined,
         isVictoryDay && !allowAllClasses ? notInArray(participants.registrationFee, ["C", "D"]) : undefined,
         isOrientation ? inArray(participants.registrationFee, ORIENTATION_ALLOWED_CLASSES) : undefined
       )
@@ -493,19 +496,9 @@ export async function searchParticipants(sessionId: number, q: string, isVictory
   if (rows.length === 0) return [];
 
   const ids = rows.map((r) => r.id);
-  const year = currentYearPH();
 
-  const [[{ totalVictoryDaySessions }], victoryCheckIns] = await Promise.all([
-    db
-      .select({ totalVictoryDaySessions: count() })
-      .from(classSessions)
-      .where(
-        and(
-          eq(classSessions.isVictoryDay, true),
-          gte(classSessions.sessionDate, `${year}-01-01`),
-          lt(classSessions.sessionDate, `${year + 1}-01-01`)
-        )
-      ),
+  const [victoryDayTotals, victoryCheckIns] = await Promise.all([
+    getVictoryDayTotalsByBatch(),
 
     db
       .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
@@ -521,14 +514,17 @@ export async function searchParticipants(sessionId: number, q: string, isVictory
     victoryAttendanceCount[v.participantId] = (victoryAttendanceCount[v.participantId] ?? 0) + 1;
   }
 
-  return rows.map((r) => ({
-    ...r,
-    victoryDayDate: victoryCountMap[r.id] ?? null,
-    victoryDayCount: victoryAttendanceCount[r.id] ?? 0,
-    totalVictoryDaySessions,
-    completedVictoryDay: (victoryAttendanceCount[r.id] ?? 0) >= totalVictoryDaySessions,
-    checkInRemarks: r.checkInRemarks ?? null,
-  }));
+  return rows.map(({ batchId, ...r }) => {
+    const totalVictoryDaySessions = victoryDayTotalFor(victoryDayTotals, batchId ?? session?.batchId ?? null);
+    return {
+      ...r,
+      victoryDayDate: victoryCountMap[r.id] ?? null,
+      victoryDayCount: victoryAttendanceCount[r.id] ?? 0,
+      totalVictoryDaySessions,
+      completedVictoryDay: (victoryAttendanceCount[r.id] ?? 0) >= totalVictoryDaySessions,
+      checkInRemarks: r.checkInRemarks ?? null,
+    };
+  });
 }
 
 export async function addWalkIn(classSessionId: number, formData: FormData) {
@@ -538,7 +534,7 @@ export async function addWalkIn(classSessionId: number, formData: FormData) {
   }
 
   const [targetSession] = await db
-    .select({ vglOnly: classSessions.vglOnly })
+    .select({ vglOnly: classSessions.vglOnly, batchId: classSessions.batchId })
     .from(classSessions)
     .where(eq(classSessions.id, classSessionId))
     .limit(1);
@@ -568,6 +564,7 @@ export async function addWalkIn(classSessionId: number, formData: FormData) {
       vgLeaderId: vgLeaderRecord?.id ?? null,
       victoryDate: formData.get("victoryDate") as string,
       isWalkIn: true,
+      batchId: targetSession?.batchId ?? null,
     })
     .returning({ id: participants.id });
 

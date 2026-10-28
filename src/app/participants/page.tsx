@@ -5,17 +5,28 @@ import { getSession } from "@/lib/auth";
 import { ParticipantList, ParticipantListSkeleton } from "./ParticipantList";
 import { ParticipantFilters } from "./ParticipantFilters";
 import { rawServiceValues } from "@/lib/timeService";
+import { db } from "@/db";
+import { batches } from "@/db/schema";
+import { desc } from "drizzle-orm";
 
 export default async function ParticipantsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string; lifestage?: string; fee?: string; gender?: string; service?: string; previousChurch?: string; waterBaptism?: string; victoryWeekend?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; lifestage?: string; fee?: string; gender?: string; service?: string; previousChurch?: string; waterBaptism?: string; victoryWeekend?: string; batch?: string }>;
 }) {
-  const [{ q = "", page: pageParam, lifestage = "", fee = "", gender = "", service = "", previousChurch = "", waterBaptism = "", victoryWeekend = "" }, session] = await Promise.all([searchParams, getSession()]);
+  const [{ q = "", page: pageParam, lifestage = "", fee = "", gender = "", service = "", previousChurch = "", waterBaptism = "", victoryWeekend = "", batch: batchParam }, session, allBatches] = await Promise.all([
+    searchParams,
+    getSession(),
+    db.select({ id: batches.id, name: batches.name, isDefault: batches.isDefault }).from(batches).orderBy(desc(batches.classStartDate)),
+  ]);
   const isDeveloper = session?.role === "developer";
   const isLeadPastor = session?.role === "lead_pastor";
   const lockedServiceRawValues = isLeadPastor ? rawServiceValues(session?.timeService) : undefined;
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
+  // No ?batch= shows the active (default) batch; ?batch=all shows every batch.
+  const defaultBatchId = (allBatches.find((b) => b.isDefault) ?? allBatches[0])?.id ?? null;
+  const batchId = batchParam === "all" ? null : (parseInt(batchParam ?? "", 10) || defaultBatchId);
+  const batch = batchId == null ? "all" : String(batchId);
 
   return (
     <div className="flex flex-col gap-6">
@@ -33,7 +44,7 @@ export default async function ParticipantsPage({
               </Link>
             )}
             <a
-              href="/api/participants/export"
+              href={`/api/participants/export?batch=${batch}`}
               className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition"
             >
               <span>↓</span> Export Excel
@@ -46,7 +57,7 @@ export default async function ParticipantsPage({
       </div>
 
       <ParticipantFilters
-        key={`${q}-${lifestage}-${fee}-${gender}-${service}-${previousChurch}-${waterBaptism}-${victoryWeekend}`}
+        key={`${q}-${lifestage}-${fee}-${gender}-${service}-${previousChurch}-${waterBaptism}-${victoryWeekend}-${batch}`}
         q={q}
         lifestage={lifestage}
         fee={fee}
@@ -55,11 +66,13 @@ export default async function ParticipantsPage({
         previousChurch={previousChurch}
         waterBaptism={waterBaptism}
         victoryWeekend={victoryWeekend}
+        batch={batch}
+        batches={allBatches}
         hideServiceFilter={isLeadPastor}
       />
 
-      <Suspense key={`${q}-${lifestage}-${fee}-${gender}-${service}-${previousChurch}-${waterBaptism}-${victoryWeekend}-${page}`} fallback={<ParticipantListSkeleton />}>
-        <ParticipantList q={q} lifestage={lifestage} fee={fee} gender={gender} service={service} previousChurch={previousChurch} waterBaptism={waterBaptism} victoryWeekend={victoryWeekend} page={page} isDeveloper={isDeveloper} lockedServiceRawValues={lockedServiceRawValues} />
+      <Suspense key={`${q}-${lifestage}-${fee}-${gender}-${service}-${previousChurch}-${waterBaptism}-${victoryWeekend}-${batch}-${page}`} fallback={<ParticipantListSkeleton />}>
+        <ParticipantList q={q} lifestage={lifestage} fee={fee} gender={gender} service={service} previousChurch={previousChurch} waterBaptism={waterBaptism} victoryWeekend={victoryWeekend} batchId={batchId} page={page} isDeveloper={isDeveloper} lockedServiceRawValues={lockedServiceRawValues} />
       </Suspense>
     </div>
   );

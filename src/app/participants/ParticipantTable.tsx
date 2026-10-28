@@ -70,7 +70,7 @@ export function ParticipantTable({
   victoryDayDates = {},
   completedVictoryDays = {},
   victoryDayCounts = {},
-  totalVictoryDaySessions = 0,
+  victoryDayTotals = {},
   showEdit = true,
 }: {
   rows: ParticipantRow[];
@@ -79,7 +79,7 @@ export function ParticipantTable({
   victoryDayDates?: Record<number, string>;
   completedVictoryDays?: Record<number, boolean>;
   victoryDayCounts?: Record<number, number>;
-  totalVictoryDaySessions?: number;
+  victoryDayTotals?: Record<number, number>;
   showEdit?: boolean;
 }) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -180,7 +180,7 @@ export function ParticipantTable({
                         <span className="text-xs text-gray-400">—</span>
                       ) : !completed ? (
                         <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                          {vd} ({victoryDayCount}/{totalVictoryDaySessions})
+                          {vd} ({victoryDayCount}/{victoryDayTotals[p.id] ?? 0})
                         </span>
                       ) : (
                         <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">

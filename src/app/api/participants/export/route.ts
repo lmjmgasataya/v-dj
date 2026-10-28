@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { participants, victoryGroupLeaders, checkIns, classSessions } from "@/db/schema";
+import { participants, victoryGroupLeaders, checkIns, classSessions, batches } from "@/db/schema";
 import { isNull, desc, eq, inArray, and, getTableColumns } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import * as XLSX from "xlsx";
@@ -9,11 +9,52 @@ import { rawServiceValues } from "@/lib/timeService";
 
 const disciplerLeaders = alias(victoryGroupLeaders, "discipler_leaders");
 
-export async function GET() {
+type AttendanceEntry = { date: string; remarks: string | null; absent: boolean };
+
+function classKey(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+function uniqueByClass<T extends { name: string }>(sessions: T[]): T[] {
+  const seen = new Set<string>();
+  return sessions.filter((s) => {
+    const key = classKey(s.name);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/** participantId → class name → earliest check-in, preferring one that isn't Absent. */
+function attendanceByClass(
+  rows: { participantId: number; sessionName: string; sessionDate: string; remarks: string | null; status: string }[]
+): Map<number, Map<string, AttendanceEntry>> {
+  const map = new Map<number, Map<string, AttendanceEntry>>();
+  for (const a of rows) {
+    if (!map.has(a.participantId)) map.set(a.participantId, new Map());
+    const byClass = map.get(a.participantId)!;
+    const existing = byClass.get(classKey(a.sessionName));
+    if (!existing || (existing.absent && a.status !== "Absent")) {
+      byClass.set(classKey(a.sessionName), { date: a.sessionDate, remarks: a.remarks, absent: a.status === "Absent" });
+    }
+  }
+  return map;
+}
+
+export async function GET(request: Request) {
   const session = await getSession();
   const isLeadPastor = session?.role === "lead_pastor";
 
-  const [rows, sessions, victorySessions] = await Promise.all([
+  // Same as the Participants page: no ?batch= is the active (default) batch, ?batch=all is every batch.
+  const batchParam = new URL(request.url).searchParams.get("batch");
+  const [defaultBatch] = await db
+    .select({ id: batches.id })
+    .from(batches)
+    .where(eq(batches.isDefault, true))
+    .limit(1);
+  const batchId = batchParam === "all" ? null : (parseInt(batchParam ?? "", 10) || defaultBatch?.id || null);
+
+  const [rows, batchSessions, batchVictorySessions] = await Promise.all([
     db
       .select({
         ...getTableColumns(participants),
@@ -30,6 +71,7 @@ export async function GET() {
       .where(
         and(
           isNull(participants.deletedAt),
+          batchId != null ? eq(participants.batchId, batchId) : undefined,
           isLeadPastor ? inArray(participants.serviceAttending, rawServiceValues(session?.timeService)) : undefined
         )
       )
@@ -38,15 +80,20 @@ export async function GET() {
     db
       .select()
       .from(classSessions)
-      .where(eq(classSessions.isVictoryDay, false))
+      .where(and(eq(classSessions.isVictoryDay, false), batchId != null ? eq(classSessions.batchId, batchId) : undefined))
       .orderBy(classSessions.sessionDate),
 
     db
       .select()
       .from(classSessions)
-      .where(eq(classSessions.isVictoryDay, true))
+      .where(and(eq(classSessions.isVictoryDay, true), batchId != null ? eq(classSessions.batchId, batchId) : undefined))
       .orderBy(classSessions.sessionDate),
   ]);
+
+  // One column per class name: every batch repeats the same classes, and a make-up
+  // attendance in another batch's session fills the participant's own class column.
+  const sessions = uniqueByClass(batchSessions);
+  const victorySessions = uniqueByClass(batchVictorySessions);
 
   const participantIds = rows.map((r) => r.id);
 
@@ -55,9 +102,10 @@ export async function GET() {
       ? db
           .select({
             participantId: checkIns.participantId,
-            sessionId: checkIns.classSessionId,
+            sessionName: classSessions.name,
             sessionDate: classSessions.sessionDate,
             remarks: checkIns.remarks,
+            status: checkIns.status,
           })
           .from(checkIns)
           .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
@@ -67,15 +115,17 @@ export async function GET() {
               eq(classSessions.isVictoryDay, false)
             )
           )
+          .orderBy(classSessions.sessionDate)
       : Promise.resolve([]),
 
     participantIds.length > 0
       ? db
           .select({
             participantId: checkIns.participantId,
-            sessionId: checkIns.classSessionId,
+            sessionName: classSessions.name,
             sessionDate: classSessions.sessionDate,
             remarks: checkIns.remarks,
+            status: checkIns.status,
           })
           .from(checkIns)
           .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
@@ -85,20 +135,12 @@ export async function GET() {
               eq(classSessions.isVictoryDay, true)
             )
           )
+          .orderBy(classSessions.sessionDate)
       : Promise.resolve([]),
   ]);
 
-  const attendanceMap = new Map<number, Map<number, { date: string; remarks: string | null }>>();
-  for (const a of attendance) {
-    if (!attendanceMap.has(a.participantId)) attendanceMap.set(a.participantId, new Map());
-    attendanceMap.get(a.participantId)!.set(a.sessionId, { date: a.sessionDate, remarks: a.remarks });
-  }
-
-  const victoryAttendanceMap = new Map<number, Map<number, { date: string; remarks: string | null }>>();
-  for (const a of victoryAttendance) {
-    if (!victoryAttendanceMap.has(a.participantId)) victoryAttendanceMap.set(a.participantId, new Map());
-    victoryAttendanceMap.get(a.participantId)!.set(a.sessionId, { date: a.sessionDate, remarks: a.remarks });
-  }
+  const attendanceMap = attendanceByClass(attendance);
+  const victoryAttendanceMap = attendanceByClass(victoryAttendance);
 
   const formatDate = (date: string) =>
     new Date(date + "T00:00:00").toLocaleDateString("en-PH", {
@@ -109,20 +151,20 @@ export async function GET() {
     });
 
   const data = rows.map((p, i) => {
-    const attended = attendanceMap.get(p.id) ?? new Map<number, { date: string; remarks: string | null }>();
+    const attended = attendanceMap.get(p.id) ?? new Map<string, AttendanceEntry>();
     const sessionCols: Record<string, string> = {};
     for (const s of sessions) {
-      const entry = attended.get(s.id);
+      const entry = attended.get(classKey(s.name));
       sessionCols[s.name] = entry ? formatDate(entry.date) + (entry.remarks ? ` (${entry.remarks})` : "") : "";
     }
 
-    const victoryAttended = victoryAttendanceMap.get(p.id) ?? new Map<number, { date: string; remarks: string | null }>();
+    const victoryAttended = victoryAttendanceMap.get(p.id) ?? new Map<string, AttendanceEntry>();
     const earliestVictoryDate = Array.from(victoryAttended.values()).map(e => e.date).sort()[0] ?? null;
     const participantVictoryDate = earliestVictoryDate ?? p.victoryDate ?? null;
 
     const victorySessionCols: Record<string, string> = {};
     for (const s of victorySessions) {
-      const entry = victoryAttended.get(s.id);
+      const entry = victoryAttended.get(classKey(s.name));
       victorySessionCols[s.name] = entry
         ? formatDate(entry.date) + (entry.remarks ? ` (${entry.remarks})` : "")
         : participantVictoryDate ? formatDate(participantVictoryDate) : "";

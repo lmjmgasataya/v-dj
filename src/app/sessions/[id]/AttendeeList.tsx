@@ -34,6 +34,7 @@ export interface Attendee {
   victoryDate: string | null;
   victoryDayDate: string | null;
   victoryDayCount: number;
+  totalVictoryDaySessions: number;
   completedVictoryDay: boolean;
   remarks: string | null;
   tableNumber: number | null;
@@ -82,14 +83,14 @@ function victoryDayValue(attendee: Attendee): string {
   return (attendee.isWalkIn ? attendee.victoryDate : attendee.victoryDayDate) ?? "";
 }
 
-function VictoryDayBadge({ attendee, totalVictoryDaySessions }: { attendee: Attendee; totalVictoryDaySessions: number }) {
+function VictoryDayBadge({ attendee }: { attendee: Attendee }) {
   const vd = attendee.isWalkIn ? attendee.victoryDate : attendee.victoryDayDate;
   if (!vd) return (
     <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">—</span>
   );
   if (!attendee.completedVictoryDay) return (
     <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-      {vd} ({attendee.victoryDayCount}/{totalVictoryDaySessions})
+      {vd} ({attendee.victoryDayCount}/{attendee.totalVictoryDaySessions})
     </span>
   );
   return (
@@ -99,7 +100,7 @@ function VictoryDayBadge({ attendee, totalVictoryDaySessions }: { attendee: Atte
   );
 }
 
-export function AttendeeList({ attendees, totalVictoryDaySessions }: { attendees: Attendee[]; totalVictoryDaySessions: number }) {
+export function AttendeeList({ attendees }: { attendees: Attendee[] }) {
   const [q, setQ] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("checkedInAt");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
@@ -205,7 +206,7 @@ export function AttendeeList({ attendees, totalVictoryDaySessions }: { attendees
                       </td>
                       <td className="px-3 py-3 text-gray-600 whitespace-nowrap">{checkInTime}</td>
                       <td className="px-3 py-3 whitespace-nowrap">
-                        <VictoryDayBadge attendee={a} totalVictoryDaySessions={totalVictoryDaySessions} />
+                        <VictoryDayBadge attendee={a} />
                       </td>
                     </tr>
                   );

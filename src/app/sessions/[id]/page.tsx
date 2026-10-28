@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { classSessions, checkIns, participants, victoryGroupLeaders, sessionVglCheckIns, users, type ClassSession } from "@/db/schema";
-import { and, count, eq, gte, inArray, lt, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -8,7 +8,7 @@ import { AttendeeList } from "./AttendeeList";
 import { VglAttendeeList } from "./VglAttendeeList";
 import { getSession } from "@/lib/auth";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { currentYearPH } from "@/lib/date";
+import { getVictoryDayTotalsByBatch, victoryDayTotalFor } from "@/lib/batchCheckIn";
 import { rawServiceValues } from "@/lib/timeService";
 
 const disciplerLeaders = alias(victoryGroupLeaders, "discipler_leaders");
@@ -57,6 +57,7 @@ export default async function SessionDetailPage({
         disciplerMobileNumber: disciplerLeaders.mobileNumber,
         disciplerMessengerName: disciplerLeaders.facebookMessengerName,
         isWalkIn: participants.isWalkIn,
+        batchId: participants.batchId,
         vgLeaderLastName: victoryGroupLeaders.lastName,
         vgLeaderFirstName: victoryGroupLeaders.firstName,
         victoryDate: participants.victoryDate,
@@ -126,9 +127,8 @@ export default async function SessionDetailPage({
   }
 
   const participantIds = attendees.map((a) => a.participantId);
-  const year = currentYearPH();
 
-  const [victoryCheckIns, [{ totalVictoryDaySessions }]] = await Promise.all([
+  const [victoryCheckIns, victoryDayTotals] = await Promise.all([
     participantIds.length > 0
       ? db
           .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
@@ -137,16 +137,7 @@ export default async function SessionDetailPage({
           .where(and(inArray(checkIns.participantId, participantIds), eq(classSessions.isVictoryDay, true)))
       : Promise.resolve([]),
 
-    db
-      .select({ totalVictoryDaySessions: count() })
-      .from(classSessions)
-      .where(
-        and(
-          eq(classSessions.isVictoryDay, true),
-          gte(classSessions.sessionDate, `${year}-01-01`),
-          lt(classSessions.sessionDate, `${year + 1}-01-01`)
-        )
-      ),
+    getVictoryDayTotalsByBatch(),
   ]);
 
   const victoryDayMap: Record<number, string> = {};
@@ -156,12 +147,16 @@ export default async function SessionDetailPage({
     victoryCountMap[v.participantId] = (victoryCountMap[v.participantId] ?? 0) + 1;
   }
 
-  const attendeesWithVictoryDay = attendees.map((a) => ({
-    ...a,
-    victoryDayDate: victoryDayMap[a.participantId] ?? null,
-    victoryDayCount: victoryCountMap[a.participantId] ?? 0,
-    completedVictoryDay: a.isWalkIn ? true : (victoryCountMap[a.participantId] ?? 0) >= totalVictoryDaySessions,
-  }));
+  const attendeesWithVictoryDay = attendees.map(({ batchId, ...a }) => {
+    const totalVictoryDaySessions = victoryDayTotalFor(victoryDayTotals, batchId);
+    return {
+      ...a,
+      victoryDayDate: victoryDayMap[a.participantId] ?? null,
+      victoryDayCount: victoryCountMap[a.participantId] ?? 0,
+      totalVictoryDaySessions,
+      completedVictoryDay: a.isWalkIn ? true : (victoryCountMap[a.participantId] ?? 0) >= totalVictoryDaySessions,
+    };
+  });
 
   const attendedCount = attendees.filter((a) => a.status !== "Absent").length;
   const absentCount = attendees.length - attendedCount;
@@ -174,7 +169,7 @@ export default async function SessionDetailPage({
       absentCount={absentCount}
       hasAttendees={attendees.length > 0}
     >
-      <AttendeeList attendees={attendeesWithVictoryDay} totalVictoryDaySessions={totalVictoryDaySessions} />
+      <AttendeeList attendees={attendeesWithVictoryDay} />
     </SessionDetailLayout>
   );
 }

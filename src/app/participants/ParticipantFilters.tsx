@@ -26,6 +26,8 @@ export function ParticipantFilters({
   previousChurch,
   waterBaptism,
   victoryWeekend,
+  batch,
+  batches,
   hideServiceFilter,
 }: {
   q: string;
@@ -36,13 +38,17 @@ export function ParticipantFilters({
   previousChurch: string;
   waterBaptism: string;
   victoryWeekend: string;
+  /** Batch id, or "all" */
+  batch: string;
+  batches: { id: number; name: string; isDefault: boolean }[];
   hideServiceFilter?: boolean;
 }) {
   const router = useRouter();
 
   function buildUrl(overrides: Record<string, string>) {
-    const vals = { q, lifestage, fee, gender, service, previousChurch, waterBaptism, victoryWeekend, ...overrides };
+    const vals = { q, lifestage, fee, gender, service, previousChurch, waterBaptism, victoryWeekend, batch, ...overrides };
     const params = new URLSearchParams();
+    if (vals.batch) params.set("batch", vals.batch);
     if (vals.q) params.set("q", vals.q);
     if (vals.lifestage) params.set("lifestage", vals.lifestage);
     if (vals.fee) params.set("fee", vals.fee);
@@ -86,7 +92,7 @@ export function ParticipantFilters({
         </button>
         {hasFilters && (
           <Link
-            href="/participants"
+            href={`/participants?batch=${batch}`}
             className="bg-white border border-gray-300 text-gray-600 text-sm font-semibold px-4 py-2 rounded-lg hover:bg-gray-50 transition"
           >
             Clear
@@ -95,6 +101,19 @@ export function ParticipantFilters({
       </form>
 
       <div className="flex flex-wrap gap-2">
+        {batches.length > 0 && (
+          <select
+            defaultValue={batch}
+            onChange={(e) => router.push(buildUrl({ batch: e.target.value }))}
+            className={selectCls}
+          >
+            {batches.map((b) => (
+              <option key={b.id} value={String(b.id)}>{b.name}{b.isDefault ? " (active)" : ""}</option>
+            ))}
+            <option value="all">All Batches</option>
+          </select>
+        )}
+
         <select
           defaultValue={lifestage}
           onChange={(e) => router.push(buildUrl({ lifestage: e.target.value }))}

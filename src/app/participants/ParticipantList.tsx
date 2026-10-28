@@ -1,10 +1,10 @@
 import { db } from "@/db";
 import { participants, victoryGroupLeaders, checkIns, classSessions } from "@/db/schema";
-import { ilike, or, isNull, isNotNull, and, count, gte, lt, eq, inArray, getTableColumns, desc, ne } from "drizzle-orm";
+import { ilike, or, isNull, isNotNull, and, count, eq, inArray, getTableColumns, desc, ne } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
 import { ParticipantTable } from "./ParticipantTable";
-import { currentYearPH } from "@/lib/date";
+import { getVictoryDayTotalsByBatch, victoryDayTotalFor } from "@/lib/batchCheckIn";
 
 const PAGE_SIZE = 20;
 
@@ -42,6 +42,7 @@ export async function ParticipantList({
   previousChurch,
   waterBaptism,
   victoryWeekend,
+  batchId,
   page,
   isDeveloper,
   lockedServiceRawValues,
@@ -54,6 +55,8 @@ export async function ParticipantList({
   previousChurch: string;
   waterBaptism: string;
   victoryWeekend: string;
+  /** null = all batches */
+  batchId: number | null;
   page: number;
   isDeveloper: boolean;
   lockedServiceRawValues?: string[];
@@ -73,6 +76,7 @@ export async function ParticipantList({
 
   const baseWhere = and(
     isNull(participants.deletedAt),
+    batchId != null ? eq(participants.batchId, batchId) : undefined,
     q.trim() ? or(
       ilike(participants.lastName, `%${q}%`),
       ilike(participants.firstName, `%${q}%`),
@@ -108,9 +112,8 @@ export async function ParticipantList({
   ]);
 
   const participantIds = rows.map((r) => r.id);
-  const year = currentYearPH();
 
-  const [attendanceList, absenceList, [{ totalVictoryDaySessions }]] = await Promise.all([
+  const [attendanceList, absenceList, victoryDayTotals] = await Promise.all([
     participantIds.length > 0
       ? db
           .select({
@@ -138,17 +141,12 @@ export async function ParticipantList({
           .orderBy(classSessions.sessionDate)
       : Promise.resolve([]),
 
-    db
-      .select({ totalVictoryDaySessions: count() })
-      .from(classSessions)
-      .where(
-        and(
-          eq(classSessions.isVictoryDay, true),
-          gte(classSessions.sessionDate, `${year}-01-01`),
-          lt(classSessions.sessionDate, `${year + 1}-01-01`)
-        )
-      ),
+    getVictoryDayTotalsByBatch(),
   ]);
+
+  const victoryDayTotalByParticipant = Object.fromEntries(
+    rows.map((r) => [r.id, victoryDayTotalFor(victoryDayTotals, r.batchId)])
+  );
 
   const attendanceByParticipant = attendanceList.reduce<
     Record<number, { sessionName: string; sessionDate: string }[]>
@@ -177,7 +175,7 @@ export async function ParticipantList({
   }, {});
 
   const completedVictoryDayMap = Object.fromEntries(
-    Object.entries(victoryDayCountByParticipant).map(([id, c]) => [id, c >= totalVictoryDaySessions])
+    Object.entries(victoryDayCountByParticipant).map(([id, c]) => [id, c >= victoryDayTotalByParticipant[Number(id)]])
   );
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -192,6 +190,7 @@ export async function ParticipantList({
     if (previousChurch) params.set("previousChurch", previousChurch);
     if (waterBaptism) params.set("waterBaptism", waterBaptism);
     if (victoryWeekend) params.set("victoryWeekend", victoryWeekend);
+    params.set("batch", batchId == null ? "all" : String(batchId));
     if (p > 1) params.set("page", String(p));
     const qs = params.toString();
     return `/participants${qs ? `?${qs}` : ""}`;
@@ -215,7 +214,7 @@ export async function ParticipantList({
         victoryDayDates={victoryDayMap}
         completedVictoryDays={completedVictoryDayMap}
         victoryDayCounts={victoryDayCountByParticipant}
-        totalVictoryDaySessions={totalVictoryDaySessions}
+        victoryDayTotals={victoryDayTotalByParticipant}
         showEdit={isDeveloper}
       />
 

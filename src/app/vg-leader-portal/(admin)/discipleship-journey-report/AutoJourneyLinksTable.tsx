@@ -8,6 +8,7 @@ type ResultFilter = "all" | "auto" | "already";
 
 const STEP_PILL: Record<string, string> = {
   "Spiritual Foundations": "bg-purple-100 text-purple-700",
+  "Making Disciples": "bg-teal-100 text-teal-700",
   "Empowering Leaders": "bg-amber-100 text-amber-700",
 };
 

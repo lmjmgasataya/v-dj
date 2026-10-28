@@ -26,7 +26,7 @@ export const DISCIPLESHIP_JOURNEY_STEPS = [
  * Steps the Discipleship Journey Portal marks done from attendance (src/lib/djPortalJourney.ts).
  * VG leaders can't check these on their own profile; developers still can on the leader edit page.
  */
-export const AUTO_JOURNEY_STEPS: readonly string[] = ["Spiritual Foundations", "Empowering Leaders"];
+export const AUTO_JOURNEY_STEPS: readonly string[] = ["Spiritual Foundations", "Making Disciples", "Empowering Leaders"];
 
 export const SERVICE_OPTIONS = [
   "9AM - Mandurriao",

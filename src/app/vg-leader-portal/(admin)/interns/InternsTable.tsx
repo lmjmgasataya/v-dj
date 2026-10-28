@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { TIME_SERVICES, rawServiceValues, type LeadPastorTimeService } from "@/lib/timeService";
+import { serviceRank } from "@/lib/serviceOrder";
 
 export interface InternRow {
   id: number;
@@ -30,14 +31,14 @@ const SORT_COLUMNS: { key: SortKey; label: string }[] = [
 const selectCls =
   "rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent";
 
-function sortValue(g: InternRow, key: SortKey): string {
+function sortValue(g: InternRow, key: SortKey): string | number {
   switch (key) {
     case "intern": return `${g.lastName}, ${g.firstName}`.toLowerCase();
     case "leader": return `${g.leaderLastName}, ${g.leaderFirstName}`.toLowerCase();
     case "place": return g.place.toLowerCase();
     case "day": return g.day.toLowerCase();
     case "time": return g.time.toLowerCase();
-    case "service": return g.serviceAttending?.toLowerCase() ?? "";
+    case "service": return serviceRank(g.serviceAttending);
   }
 }
 

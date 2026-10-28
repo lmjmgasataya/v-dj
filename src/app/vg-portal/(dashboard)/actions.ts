@@ -16,7 +16,8 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { toTitleCase } from "@/lib/text";
-import { recomputeProfileCompleted, touchVgLeaderUpdatedAt } from "@/lib/vgLeaderProfile";
+import { getLiveUpdateStatus, recomputeProfileCompleted, touchVgLeaderUpdatedAt } from "@/lib/vgLeaderProfile";
+import { eventCallbackPath } from "@/lib/eventLink";
 import { resolveOwnVgLeader } from "@/lib/ownVgLeader";
 import { replaceGroupInterns } from "@/lib/interns";
 import { resolveLeadershipGroupMembers, replaceLeadershipGroupMembers } from "@/lib/leadershipGroupMembers";
@@ -153,6 +154,20 @@ export async function updateOwnProfile(formData: FormData) {
   await recomputeProfileCompleted(session.vgLeaderId);
   revalidatePath("/vg-portal");
   revalidatePath("/vg-portal/profile");
+
+  // Sent here from an event link: continue to its attendance confirmation once the profile is
+  // up to date (the event page checks the same thing), otherwise stay on the profile.
+  const eventPath = eventCallbackPath(formData.get("callbackUrl") as string | null);
+  if (eventPath) {
+    if ((await getLiveUpdateStatus(session.vgLeaderId)) === "updated") {
+      toastRedirect(eventPath, "Profile updated. You can now confirm your attendance.");
+    }
+    toastRedirect(
+      `/vg-portal/profile?callbackUrl=${encodeURIComponent(eventPath)}`,
+      "Profile saved, but it isn't 100% complete yet. Fill in the missing details to continue to the event.",
+      "error"
+    );
+  }
 
   toastRedirect("/vg-portal", "Profile updated.");
 }

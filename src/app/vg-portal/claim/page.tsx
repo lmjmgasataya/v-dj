@@ -2,23 +2,10 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
-import { featureFlags, events } from "@/db/schema";
+import { featureFlags } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { getEventNameForCallback } from "@/lib/eventLink";
 import { ClaimForm } from "./ClaimForm";
-
-async function getEventNameForCallback(callbackUrl: string | null): Promise<string | null> {
-  if (!callbackUrl) return null;
-  const match = callbackUrl.match(/^\/vg-portal\/events\/([^/]+)$/);
-  if (!match) return null;
-  const param = match[1];
-  const isNumeric = /^\d+$/.test(param);
-  const [event] = await db
-    .select({ name: events.name })
-    .from(events)
-    .where(isNumeric ? eq(events.id, Number(param)) : eq(events.shareToken, param))
-    .limit(1);
-  return event?.name ?? null;
-}
 
 // This is the page link previews (Messenger, Telegram, etc.) actually land on:
 // deep links like /vg-portal/profile redirect here for anyone without a session,

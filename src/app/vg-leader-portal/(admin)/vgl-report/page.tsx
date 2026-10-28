@@ -15,6 +15,7 @@ import { rawServiceValues } from "@/lib/timeService";
 import { QuarterlyStatusTable } from "./QuarterlyStatusTable";
 import { QuarterlyRosterTable } from "./QuarterlyRosterTable";
 import { NewLeadersTable } from "./NewLeadersTable";
+import { LeadershipGroupLeadersTable } from "./LeadershipGroupLeadersTable";
 import { IssueTable, type IssueRow } from "./IssueTable";
 import { ReportSideNav, type NavItem } from "./ReportSideNav";
 import { ProfileNotCompletedTable } from "./ProfileNotCompletedTable";
@@ -373,14 +374,20 @@ export default async function VgLeaderReportPage() {
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  const membersByLgl = new Map<number, { id: number; name: string }[]>();
+  for (const r of lglMemberRows) {
+    const list = membersByLgl.get(r.leaderId) ?? [];
+    list.push({ id: r.memberId, name: `${r.memberLastName}, ${r.memberFirstName}` });
+    membersByLgl.set(r.leaderId, list);
+  }
+
   const leadershipGroupLeaders = allLeaders
     .filter((l) => l.isLeadershipGroupLeader)
     .map((l) => ({
       id: l.id,
       name: `${l.lastName}, ${l.firstName}`,
       service: l.serviceAttending || NOT_SET_SERVICE,
-      vgLeaderId: l.ownVgLeaderId,
-      vgLeaderName: l.ownVgLeaderName,
+      members: (membersByLgl.get(l.id) ?? []).sort((a, b) => a.name.localeCompare(b.name)),
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -589,11 +596,11 @@ export default async function VgLeaderReportPage() {
       <div id="leadership-group-leaders" className="scroll-mt-20 lg:scroll-mt-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
           <h3 className="font-semibold text-gray-800">Leadership Group Leaders ({leadershipGroupLeaders.length})</h3>
-          <p className="text-xs text-gray-400 mt-0.5">VG leaders who lead a Leadership Group, with their own VG leader.</p>
+          <p className="text-xs text-gray-400 mt-0.5">VG leaders who lead a Leadership Group, with the VG leaders they lead.</p>
         </div>
         {leadershipGroupLeaders.length > 0 ? (
           <div className="overflow-x-auto">
-            <NewLeadersTable rows={leadershipGroupLeaders} />
+            <LeadershipGroupLeadersTable rows={leadershipGroupLeaders} />
           </div>
         ) : (
           <p className="px-6 py-4 text-sm text-gray-500">No Leadership Group Leaders yet.</p>

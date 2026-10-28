@@ -7,6 +7,7 @@ import { ParticipantsCell, type ParticipantsCellEntry } from "@/components/Parti
 import { resetVgLeaderPin } from "./actions";
 import { MergeVgLeadersModal } from "./MergeVgLeadersModal";
 import { TIME_SERVICES, rawServiceValues, type LeadPastorTimeService } from "@/lib/timeService";
+import { serviceRank } from "@/lib/serviceOrder";
 
 export interface VgLeaderRow {
   id: number;
@@ -49,7 +50,7 @@ function sortValue(l: VgLeaderRow, key: SortKey): string | number {
   switch (key) {
     case "name": return `${l.lastName}, ${l.firstName}`.toLowerCase();
     case "mobile": return l.mobileNumber?.toLowerCase() ?? "";
-    case "service": return l.serviceAttending?.toLowerCase() ?? "";
+    case "service": return serviceRank(l.serviceAttending);
     case "portal": return l.claimed ? 1 : 0;
     case "profile": return l.profileCompleted ? 1 : 0;
     case "groups": return l.activeGroups;

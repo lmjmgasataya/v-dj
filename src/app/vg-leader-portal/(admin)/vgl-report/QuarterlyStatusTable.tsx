@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { serviceRank } from "@/lib/serviceOrder";
 
 export interface QuarterlyStatusRow {
   service: string;
@@ -21,7 +22,7 @@ const SORT_COLUMNS: { key: SortKey; label: string; align: "left" | "right" }[] =
 
 function sortValue(r: QuarterlyStatusRow, key: SortKey): string | number {
   switch (key) {
-    case "service": return r.service.toLowerCase();
+    case "service": return serviceRank(r.service);
     case "total": return r.total;
     case "done": return r.done;
     case "notDone": return r.notDone;

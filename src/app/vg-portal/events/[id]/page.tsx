@@ -7,6 +7,7 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { EventRegistrationForm } from "./EventRegistrationForm";
 import { isRegistrationClosed } from "@/lib/date";
 import { EVENT_AUDIENCE_LABEL, formatEventTimeRange, isEventOpenToLeader } from "@/lib/eventAudience";
+import { getLiveUpdateStatus } from "@/lib/vgLeaderProfile";
 
 export default async function EventRegistrationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: param } = await params;
@@ -26,7 +27,7 @@ export default async function EventRegistrationPage({ params }: { params: Promis
   const vgLeaderId = session.vgLeaderId;
   const eventId = event.id;
 
-  const [[existingReg], [leader]] = await Promise.all([
+  const [[existingReg], [leader], updateStatus] = await Promise.all([
     db
       .select()
       .from(eventRegistrations)
@@ -37,8 +38,16 @@ export default async function EventRegistrationPage({ params }: { params: Promis
       .from(victoryGroupLeaders)
       .where(eq(victoryGroupLeaders.id, vgLeaderId))
       .limit(1),
+    getLiveUpdateStatus(vgLeaderId),
   ]);
   const openToLeader = isEventOpenToLeader(event.audience, leader?.isLeadershipGroupLeader ?? false);
+  const registrationClosed = isRegistrationClosed(event.registrationDeadline);
+
+  // Leaders confirm attendance only with an up-to-date profile: updated this period and 100%
+  // complete. Saving the profile brings them back here (updateOwnProfile).
+  if (openToLeader && !registrationClosed && updateStatus !== "updated") {
+    redirect(`/vg-portal/profile?callbackUrl=${encodeURIComponent(`/vg-portal/events/${param}`)}`);
+  }
 
   const dateStr = new Date(event.eventDate + "T00:00:00").toLocaleDateString("en-PH", {
     weekday: "long",
@@ -48,7 +57,6 @@ export default async function EventRegistrationPage({ params }: { params: Promis
     timeZone: "Asia/Manila",
   });
   const timeStr = formatEventTimeRange(event.startTime, event.endTime);
-  const registrationClosed = isRegistrationClosed(event.registrationDeadline);
   const deadlineStr = event.registrationDeadline
     ? new Date(event.registrationDeadline + "T00:00:00").toLocaleDateString("en-PH", {
         month: "long",

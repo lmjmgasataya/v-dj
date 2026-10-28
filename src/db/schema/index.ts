@@ -405,7 +405,7 @@ export const autoJourneySteps = pgTable("auto_journey_steps", {
   id: serial("id").primaryKey(),
   vgLeaderId: integer("vg_leader_id").references(() => victoryGroupLeaders.id, { onDelete: "cascade" }).notNull(),
   step: text("step").notNull(),
-  // Spiritual Foundations: the participant record (and so the batch) the leader was matched from.
+  // Spiritual Foundations / Making Disciples: the participant record (and so the batch) the leader was matched from.
   participantId: integer("participant_id").references(() => participants.id, { onDelete: "set null" }),
   // Empowering Leaders: the VGL-only session they checked in to.
   classSessionId: integer("class_session_id").references(() => classSessions.id, { onDelete: "set null" }),

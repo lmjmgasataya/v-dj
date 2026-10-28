@@ -73,6 +73,7 @@ export function ProfileForm({
   leadershipGroupMembers,
   groups,
   internsByGroup,
+  callbackUrl = null,
 }: {
   leader: VictoryGroupLeader;
   vgLeaderOptions: VgLeaderOption[];
@@ -80,6 +81,8 @@ export function ProfileForm({
   leadershipGroupMembers: MemberRowValue[];
   groups: VictoryGroup[];
   internsByGroup: Record<number, { lastName: string; firstName: string }[]>;
+  /** An event page to continue to after saving (see updateOwnProfile). */
+  callbackUrl?: string | null;
 }) {
   const [pending, startTransition] = useTransition();
   const completedSteps = (leader.discipleshipJourneyCompleted ?? "").split(",").filter(Boolean);
@@ -179,6 +182,7 @@ export function ProfileForm({
       if (Array.isArray(v)) v.forEach((item) => fd.append(k, item));
       else fd.append(k, v);
     });
+    if (callbackUrl) fd.append("callbackUrl", callbackUrl);
     startTransition(async () => {
       await updateOwnProfile(fd);
     });
@@ -350,7 +354,7 @@ export function ProfileForm({
                 )
               )}
               <p className="text-xs text-gray-400">
-                Spiritual Foundations and Empowering Leaders are checked automatically once you complete them in the
+                Spiritual Foundations, Making Disciples and Empowering Leaders are checked automatically once you complete them in the
                 Discipleship Journey classes.
               </p>
             </div>

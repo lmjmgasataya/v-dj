@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { serviceRank } from "@/lib/serviceOrder";
 
 export interface NewLeaderRow {
   id: number;
@@ -21,10 +22,10 @@ const SORT_COLUMNS: { key: SortKey; label: string }[] = [
   { key: "vgLeader", label: "VG Leader" },
 ];
 
-function sortValue(r: NewLeaderRow, key: SortKey): string {
+function sortValue(r: NewLeaderRow, key: SortKey): string | number {
   switch (key) {
     case "name": return r.name.toLowerCase();
-    case "service": return r.service.toLowerCase();
+    case "service": return serviceRank(r.service);
     case "vgLeader": return (r.vgLeaderName ?? "").toLowerCase();
   }
 }

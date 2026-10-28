@@ -56,7 +56,7 @@ export default async function DiscipleshipJourneyReportPage() {
         <div className="px-6 py-4 border-b border-gray-100">
           <h3 className="font-semibold text-gray-800">Marked from the Discipleship Journey Portal ({autoLinks.length})</h3>
           <p className="text-xs text-gray-400 mt-0.5">
-            VG leaders who completed Spiritual Foundations or Empowering Leaders in the Discipleship Journey Portal.
+            VG leaders who completed Spiritual Foundations, Making Disciples or Empowering Leaders in the Discipleship Journey Portal.
             {" "}{autoAdded} checked automatically · {autoLinks.length - autoAdded} had already checked it themselves.
           </p>
         </div>

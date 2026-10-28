@@ -8,6 +8,8 @@ import { computeProfileProgress } from "@/lib/profileCompleteness";
 import { getProfileUpdateQuarters, QUARTER_STATUS_BADGE, QUARTER_STATUS_LABEL } from "@/lib/vgQuarters";
 import { getQuarterOptions } from "@/lib/vgQuarterFlags";
 import { getVgLeaderOptions } from "@/lib/vgLeaderOptions";
+import { eventCallbackPath, getEventNameForCallback } from "@/lib/eventLink";
+import Link from "next/link";
 import { ProfileForm } from "../ProfileForm";
 
 export const metadata: Metadata = {
@@ -15,15 +17,21 @@ export const metadata: Metadata = {
   description: "Update your profile, Victory Groups, and Start / Mid / End of Year update status.",
 };
 
-export default async function VgPortalProfilePage() {
-  const session = await getSession();
+export default async function VgPortalProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ callbackUrl?: string }>;
+}) {
+  const [session, { callbackUrl }] = await Promise.all([getSession(), searchParams]);
+  // Sent here from an event link because the profile isn't up to date yet.
+  const eventPath = eventCallbackPath(callbackUrl);
   if (!session || session.role !== "vg_leader" || !session.vgLeaderId) {
     redirect("/vg-portal/claim?callbackUrl=/vg-portal/profile");
   }
 
   const vgLeaderId = session.vgLeaderId;
 
-  const [[leader], groups, quarterOptions, vgLeaderOptions] = await Promise.all([
+  const [[leader], groups, quarterOptions, vgLeaderOptions, eventName] = await Promise.all([
     db.select().from(victoryGroupLeaders).where(eq(victoryGroupLeaders.id, vgLeaderId)).limit(1),
     db
       .select()
@@ -32,6 +40,7 @@ export default async function VgPortalProfilePage() {
       .orderBy(victoryGroups.createdAt),
     getQuarterOptions(),
     getVgLeaderOptions(),
+    getEventNameForCallback(eventPath),
   ]);
 
   if (!leader) redirect("/login");
@@ -91,6 +100,24 @@ export default async function VgPortalProfilePage() {
 
   return (
     <>
+      {eventPath &&
+        (livePeriod?.status === "updated" ? (
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 flex items-center justify-between gap-4 flex-wrap">
+            <p>Your profile is up to date.</p>
+            <Link href={eventPath} className="font-semibold underline hover:text-green-900">
+              Continue to {eventName ?? "the event"} →
+            </Link>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-amber-200 bg-amber-100 px-4 py-3 text-sm text-amber-900 flex flex-col gap-0.5">
+            <p className="font-semibold">Update your profile first to confirm your attendance{eventName ? ` for ${eventName}` : ""}.</p>
+            <p>
+              Your profile needs to be updated{livePeriod ? ` for ${livePeriod.label}` : ""} and 100% complete. Once you{" "}
+              {submitSteps}, you&apos;ll go straight to the attendance confirmation.
+            </p>
+          </div>
+        ))}
+
       {livePeriod && (
         <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 flex flex-col gap-3">
           <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -133,6 +160,7 @@ export default async function VgPortalProfilePage() {
         leadershipGroupMembers={lglMemberRows}
         groups={groups}
         internsByGroup={internsByGroup}
+        callbackUrl={eventPath}
       />
     </>
   );

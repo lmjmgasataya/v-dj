@@ -3,6 +3,7 @@
 import { db } from "@/db";
 import { victoryGroupLeaders, interns, eventRegistrations, internEventRegistrations } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
+import { hasLeaderAudience, type EventAudience } from "@/lib/eventAudience";
 
 export interface EventAudiencePerson {
   id: number;
@@ -12,10 +13,10 @@ export interface EventAudiencePerson {
 
 export async function getEventAudience(
   eventId: number,
-  audience: ("vg_leader" | "intern")[]
+  audience: EventAudience[]
 ): Promise<{ vgLeaders: EventAudiencePerson[]; interns: EventAudiencePerson[] }> {
   let vgLeaders: EventAudiencePerson[] = [];
-  if (audience.includes("vg_leader")) {
+  if (hasLeaderAudience(audience)) {
     const rows = await db
       .select({
         id: victoryGroupLeaders.id,

@@ -373,6 +373,17 @@ export default async function VgLeaderReportPage() {
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  const leadershipGroupLeaders = allLeaders
+    .filter((l) => l.isLeadershipGroupLeader)
+    .map((l) => ({
+      id: l.id,
+      name: `${l.lastName}, ${l.firstName}`,
+      service: l.serviceAttending || NOT_SET_SERVICE,
+      vgLeaderId: l.ownVgLeaderId,
+      vgLeaderName: l.ownVgLeaderName,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
   // Section titles are shared by the headings and the side menu.
   const T = {
     dupLgl: "VG Leaders led by more than one Leadership Group Leader",
@@ -409,6 +420,7 @@ export default async function VgLeaderReportPage() {
     { id: "profile-not-completed", label: "Profile Not Yet Completed", count: notCompletedRows.length },
     { id: "quarterly-status", label: `Profile Update Status${liveQuarter ? ` — ${liveQuarter.label}` : ""}` },
     { id: "new-leaders", label: "Started Leading This Year", count: newLeaders.length },
+    { id: "leadership-group-leaders", label: "Leadership Group Leaders", count: leadershipGroupLeaders.length },
     {
       id: "charts",
       label: "Charts",
@@ -571,6 +583,20 @@ export default async function VgLeaderReportPage() {
           </div>
         ) : (
           <p className="px-6 py-4 text-sm text-gray-500">No new VG leaders this year yet.</p>
+        )}
+      </div>
+
+      <div id="leadership-group-leaders" className="scroll-mt-20 lg:scroll-mt-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-800">Leadership Group Leaders ({leadershipGroupLeaders.length})</h3>
+          <p className="text-xs text-gray-400 mt-0.5">VG leaders who lead a Leadership Group, with their own VG leader.</p>
+        </div>
+        {leadershipGroupLeaders.length > 0 ? (
+          <div className="overflow-x-auto">
+            <NewLeadersTable rows={leadershipGroupLeaders} />
+          </div>
+        ) : (
+          <p className="px-6 py-4 text-sm text-gray-500">No Leadership Group Leaders yet.</p>
         )}
       </div>
 

@@ -8,12 +8,8 @@ import { computeProfileProgress } from "@/lib/profileCompleteness";
 import { getProfileUpdateQuarters, QUARTER_STATUS_BADGE, QUARTER_STATUS_LABEL } from "@/lib/vgQuarters";
 import { getQuarterOptions } from "@/lib/vgQuarterFlags";
 import { isRegistrationClosed } from "@/lib/date";
+import { EVENT_AUDIENCE_LABEL, formatEventTimeRange, isEventOpenToLeader } from "@/lib/eventAudience";
 import { ProfileFreshnessBanner } from "./ProfileFreshnessBanner";
-
-const AUDIENCE_LABEL: Record<string, string> = {
-  vg_leader: "VG Leaders",
-  intern: "Interns",
-};
 
 export default async function VgPortalDashboardPage() {
   const session = await getSession();
@@ -37,18 +33,22 @@ export default async function VgPortalDashboardPage() {
   const { percent } = computeProfileProgress(leader, hasActiveGroup);
   const quarters = getProfileUpdateQuarters(leader.updatedAt, percent, quarterOptions);
 
-  const upcomingEvents = await db
-    .select({
-      id: events.id,
-      name: events.name,
-      description: events.description,
-      eventDate: events.eventDate,
-      audience: events.audience,
-      registrationDeadline: events.registrationDeadline,
-    })
-    .from(events)
-    .where(and(isNull(events.deletedAt), eq(events.isDone, false)))
-    .orderBy(events.eventDate);
+  const upcomingEvents = (
+    await db
+      .select({
+        id: events.id,
+        name: events.name,
+        description: events.description,
+        eventDate: events.eventDate,
+        startTime: events.startTime,
+        endTime: events.endTime,
+        audience: events.audience,
+        registrationDeadline: events.registrationDeadline,
+      })
+      .from(events)
+      .where(and(isNull(events.deletedAt), eq(events.isDone, false)))
+      .orderBy(events.eventDate)
+  ).filter((e) => isEventOpenToLeader(e.audience, leader.isLeadershipGroupLeader));
 
   const eventIds = upcomingEvents.map((e) => e.id);
   const myRegs = eventIds.length
@@ -72,6 +72,7 @@ export default async function VgPortalDashboardPage() {
                 year: "numeric",
                 timeZone: "Asia/Manila",
               });
+              const timeStr = formatEventTimeRange(e.startTime, e.endTime);
               const registered = regByEvent.get(e.id);
               const registrationClosed = isRegistrationClosed(e.registrationDeadline);
 
@@ -81,11 +82,14 @@ export default async function VgPortalDashboardPage() {
                     <span className="font-semibold text-gray-900 text-base">{e.name}</span>
                     {e.audience.map((a) => (
                       <span key={a} className="text-sm font-medium bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-full">
-                        {AUDIENCE_LABEL[a] ?? a}
+                        {EVENT_AUDIENCE_LABEL[a] ?? a}
                       </span>
                     ))}
                   </div>
-                  <span className="text-sm text-gray-500">{dateStr}</span>
+                  <span className="text-sm text-gray-500">
+                    {dateStr}
+                    {timeStr && ` · ${timeStr}`}
+                  </span>
                   {e.description && <span className="text-sm text-gray-600">{e.description}</span>}
                   {registrationClosed ? (
                     <span className="text-sm font-medium w-fit px-2.5 py-1 rounded-full bg-gray-200 text-gray-500">

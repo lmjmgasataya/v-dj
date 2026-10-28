@@ -7,6 +7,7 @@ import { DatePickerField } from "@/components/DatePickerField";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { CheckboxOption } from "@/components/form";
 import { useToast } from "@/components/toast/ToastProvider";
+import { EVENT_AUDIENCE_OPTIONS } from "@/lib/eventAudience";
 
 export function NewEventForm({ newDatePicker }: { newDatePicker: boolean }) {
   const [state, action, pending] = useActionState(createEvent, undefined);
@@ -64,6 +65,29 @@ export function NewEventForm({ newDatePicker }: { newDatePicker: boolean }) {
           />
         </div>
 
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              From <span className="normal-case text-gray-400">(optional)</span>
+            </label>
+            <input
+              type="time"
+              name="startTime"
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              To <span className="normal-case text-gray-400">(optional)</span>
+            </label>
+            <input
+              type="time"
+              name="endTime"
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+          </div>
+        </div>
+
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
             Registration Deadline <span className="normal-case text-gray-400">(optional — registration stays open until this date)</span>
@@ -77,12 +101,11 @@ export function NewEventForm({ newDatePicker }: { newDatePicker: boolean }) {
 
         <div className="flex flex-col gap-2">
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Audience</label>
-          <CheckboxOption name="audience" value="vg_leader" labelClassName="font-medium">
-            Victory Group Leaders
-          </CheckboxOption>
-          <CheckboxOption name="audience" value="intern" labelClassName="font-medium">
-            Interns
-          </CheckboxOption>
+          {EVENT_AUDIENCE_OPTIONS.map((o) => (
+            <CheckboxOption key={o.value} name="audience" value={o.value} labelClassName="font-medium">
+              {o.label}
+            </CheckboxOption>
+          ))}
         </div>
 
         <div className="flex gap-3 justify-end pt-1">

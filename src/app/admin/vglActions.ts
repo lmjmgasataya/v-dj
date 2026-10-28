@@ -5,6 +5,7 @@ import { classSessions, sessionVglCheckIns, victoryGroupLeaders, type CheckInSta
 import { and, eq } from "drizzle-orm";
 import { getActiveVgLeaderIds } from "@/lib/vgSnapshotCompute";
 import { revalidatePath } from "next/cache";
+import { syncJourneyStepsAfterResponse } from "@/lib/djPortalJourney";
 import { getSession } from "@/lib/auth";
 import { checkInStatusForDate } from "@/lib/date";
 import { toTitleCase } from "@/lib/text";
@@ -116,6 +117,7 @@ export async function checkInVgl(
     .insert(sessionVglCheckIns)
     .values({ vgLeaderId, classSessionId, remarks: remarks || null, status: finalStatus, method: "Search" })
     .onConflictDoNothing();
+  syncJourneyStepsAfterResponse();
 
   revalidatePath("/admin");
   revalidatePath("/sessions");

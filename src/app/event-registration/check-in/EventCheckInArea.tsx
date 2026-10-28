@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import type { EventAudience } from "@/lib/eventAudience";
 import {
   listEventRegisteredAttendees,
   checkInEventVgLeader,
@@ -15,14 +16,16 @@ interface EventOption {
   id: number;
   name: string;
   eventDate: string;
-  audience: ("vg_leader" | "intern")[];
+  audience: EventAudience[];
 }
 
 const inputCls =
   "w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent";
 
-const TYPE_LABEL: Record<"vg_leader" | "intern", string> = {
+// Leadership Group Leaders check in as VG leaders; the entry only satisfies the enum type.
+const TYPE_LABEL: Record<EventAudience, string> = {
   vg_leader: "VG Leader",
+  leadership_group_leader: "Leadership Group Leader",
   intern: "Intern",
 };
 
@@ -33,7 +36,7 @@ function AttendeeSearch({
   refreshKey,
 }: {
   eventId: number;
-  audience: ("vg_leader" | "intern")[];
+  audience: EventAudience[];
   onChange: () => void;
   refreshKey: number;
 }) {

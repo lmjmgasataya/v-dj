@@ -1,16 +1,12 @@
 import { db } from "@/db";
-import { events, eventRegistrations } from "@/db/schema";
+import { events, eventRegistrations, victoryGroupLeaders } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { EventRegistrationForm } from "./EventRegistrationForm";
 import { isRegistrationClosed } from "@/lib/date";
-
-const AUDIENCE_LABEL: Record<string, string> = {
-  vg_leader: "VG Leaders",
-  intern: "Interns",
-};
+import { EVENT_AUDIENCE_LABEL, formatEventTimeRange, isEventOpenToLeader } from "@/lib/eventAudience";
 
 export default async function EventRegistrationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: param } = await params;
@@ -30,11 +26,19 @@ export default async function EventRegistrationPage({ params }: { params: Promis
   const vgLeaderId = session.vgLeaderId;
   const eventId = event.id;
 
-  const [existingReg] = await db
-    .select()
-    .from(eventRegistrations)
-    .where(and(eq(eventRegistrations.eventId, eventId), eq(eventRegistrations.vgLeaderId, vgLeaderId)))
-    .limit(1);
+  const [[existingReg], [leader]] = await Promise.all([
+    db
+      .select()
+      .from(eventRegistrations)
+      .where(and(eq(eventRegistrations.eventId, eventId), eq(eventRegistrations.vgLeaderId, vgLeaderId)))
+      .limit(1),
+    db
+      .select({ isLeadershipGroupLeader: victoryGroupLeaders.isLeadershipGroupLeader })
+      .from(victoryGroupLeaders)
+      .where(eq(victoryGroupLeaders.id, vgLeaderId))
+      .limit(1),
+  ]);
+  const openToLeader = isEventOpenToLeader(event.audience, leader?.isLeadershipGroupLeader ?? false);
 
   const dateStr = new Date(event.eventDate + "T00:00:00").toLocaleDateString("en-PH", {
     weekday: "long",
@@ -43,6 +47,7 @@ export default async function EventRegistrationPage({ params }: { params: Promis
     year: "numeric",
     timeZone: "Asia/Manila",
   });
+  const timeStr = formatEventTimeRange(event.startTime, event.endTime);
   const registrationClosed = isRegistrationClosed(event.registrationDeadline);
   const deadlineStr = event.registrationDeadline
     ? new Date(event.registrationDeadline + "T00:00:00").toLocaleDateString("en-PH", {
@@ -61,18 +66,25 @@ export default async function EventRegistrationPage({ params }: { params: Promis
         <div className="flex items-center gap-2 mt-1">
           {event.audience.map((a) => (
             <span key={a} className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
-              {AUDIENCE_LABEL[a] ?? a}
+              {EVENT_AUDIENCE_LABEL[a] ?? a}
             </span>
           ))}
         </div>
-        <p className="text-sm text-gray-500 mt-1">{dateStr}</p>
+        <p className="text-sm text-gray-500 mt-1">
+          {dateStr}
+          {timeStr && ` · ${timeStr}`}
+        </p>
         {deadlineStr && !registrationClosed && (
           <p className="text-xs text-gray-400 mt-0.5">Registration open through {deadlineStr}</p>
         )}
         {event.description && <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">{event.description}</p>}
       </div>
 
-      {registrationClosed ? (
+      {!openToLeader ? (
+        <p className="text-sm font-medium text-amber-700 bg-amber-50 border border-amber-100 rounded-xl p-6">
+          This event is for Leadership Group Leaders only.
+        </p>
+      ) : registrationClosed ? (
         <p className="text-sm font-medium text-amber-700 bg-amber-50 border border-amber-100 rounded-xl p-6">
           Registration for this event ended on {deadlineStr}.
         </p>

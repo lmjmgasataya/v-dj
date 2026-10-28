@@ -25,7 +25,8 @@ function isDoneWithDiscipleshipJourney(completed: Set<string>): boolean {
 
 /**
  * Potential Leadership 113 students — claimed VG leaders (a PIN reset still counts) who are
- * actively leading, haven't graduated from L113, and are done with the Discipleship Journey.
+ * actively leading, haven't graduated from or started L113 (ongoing), and are done with the
+ * Discipleship Journey.
  * Shared by the report page and its Excel export. A lead_pastor only sees their own service.
  */
 export async function getL113CandidateRows(session: SessionPayload | null): Promise<L113CandidateRow[]> {
@@ -51,7 +52,7 @@ export async function getL113CandidateRows(session: SessionPayload | null): Prom
   const claimedIds = new Set(claimedAccounts.map((a) => a.vgLeaderId));
 
   return allLeaders
-    .filter((l) => claimedIds.has(l.id) && l.graduateOfLeadership113 !== "yes")
+    .filter((l) => claimedIds.has(l.id) && l.graduateOfLeadership113 !== "yes" && l.graduateOfLeadership113 !== "ongoing")
     .map((l) => ({ leader: l, completed: new Set((l.discipleshipJourneyCompleted ?? "").split(",").filter(Boolean)) }))
     .filter(({ completed }) => isDoneWithDiscipleshipJourney(completed))
     .map(({ leader: l, completed }) => {

@@ -12,6 +12,7 @@ import {
 } from "@/db/schema";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { hasLeaderAudience } from "@/lib/eventAudience";
 
 type Audience = (typeof eventAudienceEnum.enumValues)[number];
 
@@ -116,7 +117,7 @@ export async function listEventRegisteredAttendees(
   serviceRawValues?: string[]
 ): Promise<EventSearchResult[]> {
   const [vgl, internResults] = await Promise.all([
-    audience.includes("vg_leader") ? listRegisteredVgLeaders(eventId, serviceRawValues) : Promise.resolve([]),
+    hasLeaderAudience(audience) ? listRegisteredVgLeaders(eventId, serviceRawValues) : Promise.resolve([]),
     audience.includes("intern") ? listRegisteredInterns(eventId, serviceRawValues) : Promise.resolve([]),
   ]);
 

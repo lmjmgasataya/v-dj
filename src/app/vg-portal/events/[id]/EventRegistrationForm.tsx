@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { registerForEvent } from "../actions";
 import { useToast } from "@/components/toast/ToastProvider";
+import { hasLeaderAudience, type EventAudience } from "@/lib/eventAudience";
 
 export function EventRegistrationForm({
   eventId,
@@ -11,7 +12,7 @@ export function EventRegistrationForm({
   defaultWillAttend,
 }: {
   eventId: number;
-  audience: ("vg_leader" | "intern")[];
+  audience: EventAudience[];
   defaultWillAttend: boolean | null;
 }) {
   const router = useRouter();
@@ -19,7 +20,7 @@ export function EventRegistrationForm({
   const toast = useToast();
   const [willAttend, setWillAttend] = useState<boolean | null>(defaultWillAttend);
 
-  const showAttendance = audience.includes("vg_leader");
+  const showAttendance = hasLeaderAudience(audience);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

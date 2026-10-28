@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { updateOwnProfile } from "./actions";
-import { Field, Section, CheckboxOption, RadioOption, inputCls, selectCls, SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
+import { Field, Section, CheckboxOption, RadioOption, inputCls, selectCls, SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS, AUTO_JOURNEY_STEPS } from "@/components/form";
 import { OwnVgLeaderField } from "@/components/OwnVgLeaderField";
 import { MobileNumberInput } from "@/components/MobileNumberInput";
 import { LeadershipGroupMembersField, type MemberRowValue } from "@/components/LeadershipGroupMembersField";
@@ -12,6 +12,39 @@ import type { VictoryGroupLeader, VictoryGroup } from "@/db/schema";
 import { lifestageEnum } from "@/db/schema";
 import { computeProfileProgress } from "@/lib/profileCompleteness";
 import { LEADERSHIP_113_LABEL, LEADERSHIP_113_STATUSES, leadership113Label } from "@/lib/leadership113";
+
+/**
+ * A journey step the Discipleship Journey Portal marks from attendance — shown, not editable. The
+ * hidden input keeps it in the form data so the "at least one step" check and the review count it;
+ * the server keeps whatever is on record regardless.
+ */
+function AutoJourneyStep({ step, done }: { step: string; done: boolean }) {
+  return (
+    <div className="flex items-center gap-2.5 cursor-not-allowed" title="Marked automatically from the Discipleship Journey Portal">
+      {done && <input type="hidden" name="discipleshipJourneyCompleted" value={step} />}
+      <span
+        className={`relative flex-shrink-0 w-4 h-4 rounded border-2 ${done ? "border-gray-400 bg-gray-400" : "border-gray-200 bg-gray-50"}`}
+      >
+        {done && (
+          <svg
+            className="absolute inset-0 m-auto w-2.5 h-2.5 text-white"
+            viewBox="0 0 12 12"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="1.5,6 4.5,9 10.5,3" />
+          </svg>
+        )}
+      </span>
+      <span className="text-sm text-gray-500 select-none leading-snug">
+        {step} <span className="text-xs text-gray-400">(automatic)</span>
+      </span>
+    </div>
+  );
+}
 
 function ReviewRow({ label, value, span }: { label: string; value?: string | null; span?: boolean }) {
   return (
@@ -302,16 +335,24 @@ export function ProfileForm({
               <p className="text-sm font-medium text-gray-700 -mb-1">
                 Steps Completed <span className="text-red-500">*</span>
               </p>
-              {DISCIPLESHIP_JOURNEY_STEPS.map((journeyStep) => (
-                <CheckboxOption
-                  key={journeyStep}
-                  name="discipleshipJourneyCompleted"
-                  value={journeyStep}
-                  defaultChecked={completedSteps.includes(journeyStep)}
-                >
-                  {journeyStep}
-                </CheckboxOption>
-              ))}
+              {DISCIPLESHIP_JOURNEY_STEPS.map((journeyStep) =>
+                AUTO_JOURNEY_STEPS.includes(journeyStep) ? (
+                  <AutoJourneyStep key={journeyStep} step={journeyStep} done={completedSteps.includes(journeyStep)} />
+                ) : (
+                  <CheckboxOption
+                    key={journeyStep}
+                    name="discipleshipJourneyCompleted"
+                    value={journeyStep}
+                    defaultChecked={completedSteps.includes(journeyStep)}
+                  >
+                    {journeyStep}
+                  </CheckboxOption>
+                )
+              )}
+              <p className="text-xs text-gray-400">
+                Spiritual Foundations and Empowering Leaders are checked automatically once you complete them in the
+                Discipleship Journey classes.
+              </p>
             </div>
             <div className="sm:col-span-2">
               <p className="text-sm font-medium text-gray-700 mb-1.5">

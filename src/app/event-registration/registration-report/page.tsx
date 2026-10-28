@@ -8,6 +8,7 @@ import { SERVICE_OPTIONS } from "@/components/form";
 import { EventPicker } from "./EventPicker";
 import { rawServiceValues } from "@/lib/timeService";
 import { getActiveVgLeaderIds } from "@/lib/vgSnapshotCompute";
+import { isEventOpenToLeader } from "@/lib/eventAudience";
 
 const NOT_SET_BUCKET = "Not Set";
 
@@ -32,9 +33,14 @@ export default async function RegistrationReportPage({
   const { event: eventParam } = await searchParams;
 
   const eventList = await db
-    .select({ id: events.id, name: events.name, eventDate: events.eventDate })
+    .select({ id: events.id, name: events.name, eventDate: events.eventDate, audience: events.audience })
     .from(events)
-    .where(and(isNull(events.deletedAt), sql`'vg_leader' = ANY(${events.audience})`))
+    .where(
+      and(
+        isNull(events.deletedAt),
+        sql`(${events.audience} && array['vg_leader', 'leadership_group_leader']::event_audience[])`
+      )
+    )
     .orderBy(sql`${events.eventDate} desc`);
 
   const requestedId = eventParam ? parseInt(eventParam, 10) : null;
@@ -54,7 +60,13 @@ export default async function RegistrationReportPage({
   // period, complete profile) so the two totals agree.
   const [allLeaders, activeIds, registrations] = await Promise.all([
     db
-      .select({ id: victoryGroupLeaders.id, lastName: victoryGroupLeaders.lastName, firstName: victoryGroupLeaders.firstName, serviceAttending: victoryGroupLeaders.serviceAttending })
+      .select({
+        id: victoryGroupLeaders.id,
+        lastName: victoryGroupLeaders.lastName,
+        firstName: victoryGroupLeaders.firstName,
+        serviceAttending: victoryGroupLeaders.serviceAttending,
+        isLeadershipGroupLeader: victoryGroupLeaders.isLeadershipGroupLeader,
+      })
       .from(victoryGroupLeaders)
       .where(
         and(
@@ -70,7 +82,11 @@ export default async function RegistrationReportPage({
       .where(eq(eventRegistrations.eventId, selectedEventId)),
   ]);
 
-  const leaders = allLeaders.filter((l) => activeIds.has(l.id));
+  const selectedEvent = eventList.find((e) => e.id === selectedEventId)!;
+  // An event for Leadership Group Leaders only counts the LGLs among the active leaders.
+  const leaders = allLeaders.filter(
+    (l) => activeIds.has(l.id) && isEventOpenToLeader(selectedEvent.audience, l.isLeadershipGroupLeader)
+  );
   const regByLeader = new Map(registrations.map((r) => [r.vgLeaderId, r.willAttend]));
 
   const roster = leaders.map((l) => {
@@ -112,8 +128,6 @@ export default async function RegistrationReportPage({
     if (a.status !== b.status) return statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
     return a.name.localeCompare(b.name);
   });
-
-  const selectedEvent = eventList.find((e) => e.id === selectedEventId)!;
 
   return (
     <div className="flex flex-col gap-6">

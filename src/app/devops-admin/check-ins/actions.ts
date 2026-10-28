@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { checkIns, participants } from "@/db/schema";
 import { and, eq, ilike, isNull, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { syncJourneyStepsAfterResponse } from "@/lib/djPortalJourney";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { toastRedirectBack } from "@/lib/toast";
@@ -52,6 +53,7 @@ export async function createCheckIn(formData: FormData) {
   if (!participantId || !classSessionId) return;
   const remarks = (formData.get("remarks") as string) || null;
   await db.insert(checkIns).values({ participantId, classSessionId, remarks }).onConflictDoNothing();
+  syncJourneyStepsAfterResponse();
   revalidatePath("/devops-admin/check-ins");
   await toastRedirectBack("Check-in added.");
 }

@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
         destination: "/vg-leader-portal/snapshot-report/:path*",
         permanent: true,
       },
+      // Potential L113 Students moved out of the VG Leader Portal into its own L113 Portal.
+      {
+        source: "/vg-leader-portal/l113-candidates-report/:path*",
+        destination: "/l113-portal/potential-students/:path*",
+        permanent: true,
+      },
     ];
   },
 };

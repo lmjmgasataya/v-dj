@@ -9,11 +9,7 @@ import { listEventRegisteredAttendees } from "../../check-in/actions";
 import { RemoveInternButton } from "./RemoveInternButton";
 import { isRegistrationClosed } from "@/lib/date";
 import { rawServiceValues } from "@/lib/timeService";
-
-const AUDIENCE_LABEL: Record<string, string> = {
-  vg_leader: "VG Leaders",
-  intern: "Interns",
-};
+import { EVENT_AUDIENCE_LABEL, formatEventTimeRange } from "@/lib/eventAudience";
 
 const TYPE_LABEL: Record<string, string> = {
   vg_leader: "VG Leader",
@@ -48,6 +44,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
     year: "numeric",
     timeZone: "Asia/Manila",
   });
+  const timeStr = formatEventTimeRange(event.startTime, event.endTime);
   const registrationClosed = isRegistrationClosed(event.registrationDeadline);
   const deadlineStr = event.registrationDeadline
     ? new Date(event.registrationDeadline + "T00:00:00").toLocaleDateString("en-PH", {
@@ -81,11 +78,14 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
             </span>
             {event.audience.map((a) => (
               <span key={a} className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
-                {AUDIENCE_LABEL[a] ?? a}
+                {EVENT_AUDIENCE_LABEL[a] ?? a}
               </span>
             ))}
           </div>
-          <p className="text-sm text-gray-500 mt-1">{dateStr}</p>
+          <p className="text-sm text-gray-500 mt-1">
+            {dateStr}
+            {timeStr && ` · ${timeStr}`}
+          </p>
           {deadlineStr && (
             <p className="text-xs text-gray-400 mt-0.5">Registration open through {deadlineStr}</p>
           )}

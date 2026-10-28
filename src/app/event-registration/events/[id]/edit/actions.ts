@@ -1,26 +1,27 @@
 "use server";
 
 import { db } from "@/db";
-import { events, type eventAudienceEnum } from "@/db/schema";
+import { events } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { toastRedirect } from "@/lib/toast";
-
-type Audience = (typeof eventAudienceEnum.enumValues)[number];
+import { parseEventTimes, type EventAudience } from "@/lib/eventAudience";
 
 export async function updateEvent(id: number, _: unknown, formData: FormData) {
   const name = ((formData.get("name") as string) || "").trim();
   const description = ((formData.get("description") as string) || "").trim();
   const eventDate = formData.get("eventDate") as string;
+  const { startTime, endTime, error: timeError } = parseEventTimes(formData);
   const registrationDeadline = (formData.get("registrationDeadline") as string) || null;
-  const audience = formData.getAll("audience") as Audience[];
+  const audience = formData.getAll("audience") as EventAudience[];
   const isDone = formData.get("isDone") === "on";
 
   if (!name || !eventDate) return { error: "Name and date are required." };
+  if (timeError) return { error: timeError };
   if (audience.length === 0) return { error: "Select at least one audience." };
 
   await db
     .update(events)
-    .set({ name, description: description || null, eventDate, registrationDeadline, audience, isDone })
+    .set({ name, description: description || null, eventDate, startTime, endTime, registrationDeadline, audience, isDone })
     .where(eq(events.id, id));
 
   toastRedirect("/event-registration/events", "Event updated.");

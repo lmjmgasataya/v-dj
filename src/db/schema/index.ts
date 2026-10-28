@@ -226,13 +226,16 @@ export const sessionVglCheckIns = pgTable(
   ]
 );
 
-export const eventAudienceEnum =pgEnum("event_audience", ["vg_leader", "intern"]);
+export const eventAudienceEnum =pgEnum("event_audience", ["vg_leader", "intern", "leadership_group_leader"]);
 
 export const events = pgTable("events", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
   eventDate: date("event_date").notNull(),
+  // "HH:MM" (24-hour), both optional.
+  startTime: text("start_time"),
+  endTime: text("end_time"),
   registrationDeadline: date("registration_deadline"),
   isDone: boolean("is_done").default(false).notNull(),
   audience: eventAudienceEnum("audience").array().notNull(),
@@ -395,6 +398,21 @@ export const manualQuarterResponses = pgTable("manual_quarter_responses", {
   respondedAt: timestamp("responded_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [unique().on(t.quarterLabel, t.lastName, t.firstName)]);
+
+// Discipleship Journey steps the Discipleship Journey Portal confirmed for a VG leader from
+// attendance (src/lib/djPortalJourney.ts) — one row per leader and step, recorded the first time.
+export const autoJourneySteps = pgTable("auto_journey_steps", {
+  id: serial("id").primaryKey(),
+  vgLeaderId: integer("vg_leader_id").references(() => victoryGroupLeaders.id, { onDelete: "cascade" }).notNull(),
+  step: text("step").notNull(),
+  // Spiritual Foundations: the participant record (and so the batch) the leader was matched from.
+  participantId: integer("participant_id").references(() => participants.id, { onDelete: "set null" }),
+  // Empowering Leaders: the VGL-only session they checked in to.
+  classSessionId: integer("class_session_id").references(() => classSessions.id, { onDelete: "set null" }),
+  // The leader had already checked the step themselves, so the sync didn't add it.
+  wasAlreadyChecked: boolean("was_already_checked").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [unique().on(t.vgLeaderId, t.step)]);
 
 export type Participant = typeof participants.$inferSelect;
 export type ClassSession = typeof classSessions.$inferSelect;

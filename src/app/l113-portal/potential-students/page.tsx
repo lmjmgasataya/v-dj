@@ -10,13 +10,19 @@ export default async function L113CandidatesReportPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Breadcrumbs
-        items={[
-          { label: "Home", href: "/" },
-          { label: "VG Leader Portal", href: "/vg-leader-portal" },
-          { label: "Potential L113 Students" },
-        ]}
-      />
+      <div>
+        <Breadcrumbs
+          items={[
+            { label: "Home", href: "/" },
+            { label: "L113 Portal", href: "/l113-portal" },
+            { label: "Potential L113 Students" },
+          ]}
+        />
+        <h2 className="text-2xl font-bold text-gray-900">Potential L113 Students</h2>
+        <p className="text-sm text-gray-500 mt-0.5">
+          Actively leading VG leaders done with the Discipleship Journey who haven&apos;t taken Leadership 113.
+        </p>
+      </div>
       <p className="text-sm text-gray-500 -mt-2">
         {rows.length} potential student{rows.length !== 1 ? "s" : ""} · {empoweringLeadersDone} done with Empowering
         Leaders · {rows.length - empoweringLeadersDone} not done
@@ -27,14 +33,14 @@ export default async function L113CandidatesReportPage() {
           <div>
             <h3 className="font-semibold text-gray-800">Potential Leadership 113 Students</h3>
             <p className="text-xs text-gray-400 mt-0.5">
-              Claimed VG leaders who are actively leading, not yet L113 graduates, and have completed One2One, Victory
+              Claimed VG leaders who are actively leading, haven&apos;t graduated from or started L113, and have completed One2One, Victory
               Weekend/Victory Day, Making Disciples, and either Spiritual Foundations or Church Community + Purple Book
               Class.
             </p>
           </div>
           {rows.length > 0 && (
             <a
-              href="/vg-leader-portal/l113-candidates-report/export"
+              href="/l113-portal/potential-students/export"
               className="shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
             >
               ⬇ Download Excel

@@ -44,6 +44,8 @@ export default async function EventsPage() {
         name: events.name,
         description: events.description,
         eventDate: events.eventDate,
+        startTime: events.startTime,
+        endTime: events.endTime,
         isDone: events.isDone,
         audience: events.audience,
         checkedInCount: sql<number>`count(${eventCheckIns.id})::int`,

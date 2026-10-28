@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
+import { getAutoJourneyLinks } from "@/lib/djPortalJourney";
 import { getProfileFreshness, FRESHNESS_BADGE_CLASS } from "@/lib/vgLeaderStatus";
 import { leadership113Label } from "@/lib/leadership113";
 import { getSession } from "@/lib/auth";
@@ -139,6 +140,9 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
   }
 
   const completedSteps = (leader.discipleshipJourneyCompleted ?? "").split(",").filter(Boolean);
+  const autoLinkByStep = new Map(
+    (await getAutoJourneyLinks({ vgLeaderIds: [leader.id] })).map((l) => [l.step, l])
+  );
   const freshness = getProfileFreshness(leader.updatedAt);
 
   const lglMembers = leader.isLeadershipGroupLeader
@@ -389,10 +393,19 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
           <div className="flex flex-col gap-1.5">
             {DISCIPLESHIP_JOURNEY_STEPS.map((s) => {
               const done = completedSteps.includes(s);
+              const autoLink = autoLinkByStep.get(s);
               return (
-                <div key={s} className="flex items-center gap-2 text-sm">
-                  <span className={done ? "text-green-600" : "text-gray-300"}>{done ? "✓" : "○"}</span>
-                  <span className={done ? "text-gray-900" : "text-gray-400"}>{s}</span>
+                <div key={s} className="flex flex-col">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className={done ? "text-green-600" : "text-gray-300"}>{done ? "✓" : "○"}</span>
+                    <span className={done ? "text-gray-900" : "text-gray-400"}>{s}</span>
+                    {autoLink && (
+                      <span className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
+                        from DJ Portal
+                      </span>
+                    )}
+                  </div>
+                  {autoLink && <p className="ml-6 text-xs text-gray-400">{autoLink.source}</p>}
                 </div>
               );
             })}

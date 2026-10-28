@@ -3,14 +3,25 @@
 import { useEffect, useState } from "react";
 import { getEventAudience, type EventAudiencePerson } from "./actions";
 import { normalizePhoneToE164 } from "@/lib/phone";
+import { EVENT_AUDIENCE_LABEL, hasLeaderAudience, type EventAudience } from "@/lib/eventAudience";
 
-type EventOption = { id: number; name: string; eventDate: string; audience: ("vg_leader" | "intern")[] };
+type EventOption = { id: number; name: string; eventDate: string; audience: EventAudience[] };
 type MessageTemplate = { id: number; title: string; message: string };
 type DefaultKey = { id: number; name: string; endpoint: string | null; apiKey: string } | null;
 type Recipient = { id: number; name: string; phone: string };
 type SendResult = Recipient & { status: "pending" | "sending" | "sent" | "failed"; error?: string };
 type View = "compose" | "review" | "sending" | "done";
 type Tab = "vg_leader" | "intern";
+
+// Leadership Group Leaders register as VG leaders, so they share the VG leader tab.
+function audienceTabs(audience: EventAudience[]): Tab[] {
+  return [...(hasLeaderAudience(audience) ? (["vg_leader"] as const) : []), ...(audience.includes("intern") ? (["intern"] as const) : [])];
+}
+
+function tabLabel(tab: Tab, audience: EventAudience[]): string {
+  if (tab === "intern") return EVENT_AUDIENCE_LABEL.intern;
+  return audience.includes("vg_leader") ? EVENT_AUDIENCE_LABEL.vg_leader : EVENT_AUDIENCE_LABEL.leadership_group_leader;
+}
 
 function StatusDot({ status }: { status: SendResult["status"] }) {
   if (status === "pending") return <span className="w-4 h-4 rounded-full border-2 border-gray-200 inline-block shrink-0" />;
@@ -43,7 +54,7 @@ export function EventSmsClient({
 
   useEffect(() => {
     if (!selectedEvent) return;
-    setTab(selectedEvent.audience[0] ?? null);
+    setTab(audienceTabs(selectedEvent.audience)[0] ?? null);
     setSelected(new Set());
     getEventAudience(selectedEvent.id, selectedEvent.audience).then((r) => {
       setVgLeaders(r.vgLeaders);
@@ -216,9 +227,9 @@ export function EventSmsClient({
 
       {selectedEvent && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex flex-col gap-4">
-          {selectedEvent.audience.length > 1 && (
+          {audienceTabs(selectedEvent.audience).length > 1 && (
             <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm font-medium w-fit">
-              {selectedEvent.audience.map((a) => (
+              {audienceTabs(selectedEvent.audience).map((a) => (
                 <button
                   key={a}
                   type="button"
@@ -228,7 +239,7 @@ export function EventSmsClient({
                   }}
                   className={`px-4 py-2 transition ${tab === a ? "bg-[#00428E] text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
                 >
-                  {a === "vg_leader" ? "VG Leaders" : "Interns"}
+                  {tabLabel(a, selectedEvent.audience)}
                 </button>
               ))}
             </div>

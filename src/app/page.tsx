@@ -34,6 +34,7 @@ export default async function Home() {
     .where(eq(featureFlags.key, "event_registration"))
     .then((r) => r[0]);
   const showEventRegistration = eventRegistrationFlag?.enabled ?? false;
+  const canViewL113Portal = session.role === "developer" || session.role === "lead_pastor";
 
   return (
     <div className="flex flex-col items-center gap-8 py-12">
@@ -75,11 +76,22 @@ export default async function Home() {
             <span className="text-sm text-gray-500 text-center">Coming soon</span>
           </div>
         )}
-        <div className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 opacity-50 cursor-not-allowed select-none">
-          <span className="text-4xl">🏛️</span>
-          <span className="text-lg font-semibold text-gray-900 text-center">L113 Portal</span>
-          <span className="text-sm text-gray-500 text-center">Coming soon</span>
-        </div>
+        {canViewL113Portal ? (
+          <Link
+            href="/l113-portal"
+            className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 hover:border-indigo-400 hover:shadow-md transition"
+          >
+            <span className="text-4xl">🏛️</span>
+            <span className="text-lg font-semibold text-gray-900 text-center">L113 Portal</span>
+            <span className="text-sm text-gray-500 text-center">Leadership 113 students and candidates</span>
+          </Link>
+        ) : (
+          <div className="flex flex-col items-center gap-3 rounded-2xl bg-white border border-gray-200 shadow-sm p-8 opacity-50 cursor-not-allowed select-none">
+            <span className="text-4xl">🏛️</span>
+            <span className="text-lg font-semibold text-gray-900 text-center">L113 Portal</span>
+            <span className="text-sm text-gray-500 text-center">Coming soon</span>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -5,19 +5,17 @@ import { useRouter } from "next/navigation";
 import { EventDoneCheckbox } from "./EventDoneCheckbox";
 import { getEventShareToken } from "./actions";
 import { useToast } from "@/components/toast/ToastProvider";
-
-const AUDIENCE_LABEL: Record<string, string> = {
-  vg_leader: "VG Leaders",
-  intern: "Interns",
-};
+import { EVENT_AUDIENCE_LABEL, formatEventTimeRange, type EventAudience } from "@/lib/eventAudience";
 
 interface EventRow {
   id: number;
   name: string;
   description: string | null;
   eventDate: string;
+  startTime: string | null;
+  endTime: string | null;
   isDone: boolean;
-  audience: ("vg_leader" | "intern")[];
+  audience: EventAudience[];
   checkedInCount: number;
   preregisteredCount: number;
 }
@@ -34,6 +32,7 @@ export function EventCard({ event: e }: { event: EventRow }) {
     year: "numeric",
     timeZone: "Asia/Manila",
   });
+  const timeStr = formatEventTimeRange(e.startTime, e.endTime);
 
   async function handleCopyLink(kind: "vg_leader" | "intern") {
     setCopying(kind);
@@ -70,11 +69,14 @@ export function EventCard({ event: e }: { event: EventRow }) {
             </span>
             {e.audience.map((a) => (
               <span key={a} className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
-                {AUDIENCE_LABEL[a] ?? a}
+                {EVENT_AUDIENCE_LABEL[a] ?? a}
               </span>
             ))}
           </div>
-          <span className="text-sm text-gray-500">{dateStr}</span>
+          <span className="text-sm text-gray-500">
+            {dateStr}
+            {timeStr && ` · ${timeStr}`}
+          </span>
           {e.description && <span className="text-sm text-gray-500 truncate">{e.description}</span>}
         </div>
         <div className="flex items-center gap-4 shrink-0 ml-4">

@@ -9,6 +9,7 @@ import {
   eventRegistrations,
   eventCheckIns,
   sessionVglCheckIns,
+  autoJourneySteps,
   users,
 } from "@/db/schema";
 import { eq, and, isNull, inArray } from "drizzle-orm";
@@ -229,6 +230,21 @@ export async function mergeVgLeaders(keepId: number, dropId: number): Promise<{ 
         await tx.delete(sessionVglCheckIns).where(eq(sessionVglCheckIns.id, row.id));
       } else {
         await tx.update(sessionVglCheckIns).set({ vgLeaderId: keepId }).where(eq(sessionVglCheckIns.id, row.id));
+      }
+    }
+
+    // auto_journey_steps: unique(vgLeaderId, step) — same keep-or-repoint rule.
+    const autoStepRows = await tx.select().from(autoJourneySteps).where(eq(autoJourneySteps.vgLeaderId, dropId));
+    for (const row of autoStepRows) {
+      const [existing] = await tx
+        .select({ id: autoJourneySteps.id })
+        .from(autoJourneySteps)
+        .where(and(eq(autoJourneySteps.step, row.step), eq(autoJourneySteps.vgLeaderId, keepId)))
+        .limit(1);
+      if (existing) {
+        await tx.delete(autoJourneySteps).where(eq(autoJourneySteps.id, row.id));
+      } else {
+        await tx.update(autoJourneySteps).set({ vgLeaderId: keepId }).where(eq(autoJourneySteps.id, row.id));
       }
     }
 

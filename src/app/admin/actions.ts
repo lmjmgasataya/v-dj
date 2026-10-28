@@ -11,6 +11,7 @@ import { MOBILE_NUMBER_REGEX } from "@/lib/phone";
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
 import { and, count, eq, gte, ilike, inArray, isNull, lt, notInArray, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { syncJourneyStepsAfterResponse } from "@/lib/djPortalJourney";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { toastRedirectBack } from "@/lib/toast";
@@ -118,6 +119,7 @@ export async function checkInParticipant(
     .insert(checkIns)
     .values({ participantId, classSessionId, remarks: remarks || null, tableNumber, status: status ?? checkInStatusForDate(new Date()), method: "Search" })
     .onConflictDoNothing();
+  syncJourneyStepsAfterResponse();
   revalidatePath("/admin");
   revalidatePath("/sessions");
   return { success: true, tableNumber };
@@ -217,6 +219,7 @@ export async function checkInByQr(
   const tableNumber = tableEnabled ? tableNumberIfEnabled : null;
   await db.insert(checkIns).values({ participantId, classSessionId, remarks: remarks || null, tableNumber, status: status ?? checkInStatusForDate(new Date()), method }).onConflictDoNothing();
   if (!skipRevalidate) {
+    syncJourneyStepsAfterResponse();
     revalidatePath("/admin");
     revalidatePath("/sessions");
   }
@@ -228,6 +231,7 @@ export async function checkInByQr(
 // skipRevalidate so each one doesn't push a live full-page refresh to
 // whoever's viewing /admin — revalidate once here after the whole batch.
 export async function revalidateAfterOfflineSync() {
+  syncJourneyStepsAfterResponse();
   revalidatePath("/admin");
   revalidatePath("/sessions");
 }

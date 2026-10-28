@@ -34,14 +34,19 @@ export function FunnelChart({ data }: { data: FunnelBucket[] }) {
   const maxSessions = data[data.length - 1]?.total ?? 1;
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={380}>
       <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+        {/* Short class names (SF Day 2, MD Day 1…), slanted so every one fits. */}
         <XAxis
           dataKey="label"
           tick={{ fontSize: 11, fill: "#6b7280" }}
           tickLine={false}
           axisLine={false}
+          interval={0}
+          angle={-40}
+          textAnchor="end"
+          height={110}
         />
         <YAxis
           allowDecimals={false}

@@ -30,6 +30,7 @@ export default async function TableAssignmentsPage({
             id: classSessions.id,
             name: classSessions.name,
             sessionDate: classSessions.sessionDate,
+            vglOnly: classSessions.vglOnly,
           })
           .from(classSessions)
           .where(eq(classSessions.batchId, selectedBatchId))
@@ -51,7 +52,7 @@ export default async function TableAssignmentsPage({
 
       {selectedSession ? (
         <Suspense key={selectedSession.id} fallback={<TablesResultsSkeleton />}>
-          <TablesResults sessionId={selectedSession.id} />
+          <TablesResults sessionId={selectedSession.id} vglOnly={selectedSession.vglOnly} />
         </Suspense>
       ) : (
         <div className="flex items-center justify-center h-40 rounded-xl border border-dashed border-gray-200 bg-white text-sm text-gray-400">

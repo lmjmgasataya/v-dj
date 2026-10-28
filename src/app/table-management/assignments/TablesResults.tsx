@@ -1,22 +1,35 @@
 import { db } from "@/db";
-import { checkIns, participants } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { checkIns, participants, sessionVglCheckIns, victoryGroupLeaders } from "@/db/schema";
+import { eq, sql } from "drizzle-orm";
 import { toTitleCase } from "@/lib/text";
 import { getTableRanges, getTotalTables, getTotalSeats, getTableCapacity } from "@/lib/tables";
 
-export async function TablesResults({ sessionId }: { sessionId: number }) {
+export async function TablesResults({ sessionId, vglOnly }: { sessionId: number; vglOnly: boolean }) {
   const [rows, ranges] = await Promise.all([
-    db
-      .select({
-        tableNumber: checkIns.tableNumber,
-        lastName: participants.lastName,
-        firstName: participants.firstName,
-        middleInitial: participants.middleInitial,
-      })
-      .from(checkIns)
-      .innerJoin(participants, eq(checkIns.participantId, participants.id))
-      .where(eq(checkIns.classSessionId, sessionId))
-      .orderBy(participants.lastName, participants.firstName),
+    // VGL-only sessions record VG leaders in sessionVglCheckIns, which never assigns a table.
+    vglOnly
+      ? db
+          .select({
+            tableNumber: sql<number | null>`null`,
+            lastName: victoryGroupLeaders.lastName,
+            firstName: victoryGroupLeaders.firstName,
+            middleInitial: victoryGroupLeaders.middleInitial,
+          })
+          .from(sessionVglCheckIns)
+          .innerJoin(victoryGroupLeaders, eq(sessionVglCheckIns.vgLeaderId, victoryGroupLeaders.id))
+          .where(eq(sessionVglCheckIns.classSessionId, sessionId))
+          .orderBy(victoryGroupLeaders.lastName, victoryGroupLeaders.firstName)
+      : db
+          .select({
+            tableNumber: checkIns.tableNumber,
+            lastName: participants.lastName,
+            firstName: participants.firstName,
+            middleInitial: participants.middleInitial,
+          })
+          .from(checkIns)
+          .innerJoin(participants, eq(checkIns.participantId, participants.id))
+          .where(eq(checkIns.classSessionId, sessionId))
+          .orderBy(participants.lastName, participants.firstName),
     getTableRanges(),
   ]);
 
@@ -45,6 +58,12 @@ export async function TablesResults({ sessionId }: { sessionId: number }) {
 
   return (
     <div className="flex flex-col gap-4">
+      {vglOnly && (
+        <p className="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-800">
+          This session is for VG leaders only — tables aren&apos;t assigned when VG leaders check in.
+        </p>
+      )}
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { label: "Checked In", value: rows.length },
@@ -88,7 +107,7 @@ export async function TablesResults({ sessionId }: { sessionId: number }) {
         {unseated.length > 0 && (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <p className="text-sm font-semibold text-gray-800">Not Seated</p>
+              <p className="text-sm font-semibold text-gray-800">{vglOnly ? "VG Leaders Checked In" : "Not Seated"}</p>
               <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
                 {unseated.length}
               </span>

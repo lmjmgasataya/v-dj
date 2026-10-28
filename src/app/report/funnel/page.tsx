@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { participants, classSessions, checkIns, batches } from "@/db/schema";
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, not, sql } from "drizzle-orm";
+import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -11,14 +12,15 @@ import { rawServiceValues } from "@/lib/timeService";
 export default async function FunnelReportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ batch?: string }>;
+  searchParams: Promise<{ batch?: string; waterBaptism?: string }>;
 }) {
   const authSession = await getSession();
   if (!authSession) redirect("/");
   const lockedServiceRawValues =
     authSession.role === "lead_pastor" ? rawServiceValues(authSession.timeService) : undefined;
 
-  const { batch: batchParam } = await searchParams;
+  const { batch: batchParam, waterBaptism } = await searchParams;
+  const excludeWaterBaptism = waterBaptism === "exclude";
 
   const allBatches = await db
     .select({ id: batches.id, name: batches.name, isDefault: batches.isDefault })
@@ -36,6 +38,14 @@ export default async function FunnelReportPage({
   let sessionAttendance: { name: string; count: number }[] = [];
 
   if (selectedBatchId !== null) {
+    // The participant classes of the batch: VGL-only sessions record VG leaders, not
+    // participants, so they never belong in the funnel; Water Baptism is optional to leave out.
+    const funnelSession = and(
+      eq(classSessions.batchId, selectedBatchId),
+      eq(classSessions.vglOnly, false),
+      excludeWaterBaptism ? not(sql`${classSessions.name} ilike '%water baptism%'`) : undefined
+    );
+
     const qualifiedParticipant = and(
       isNull(participants.deletedAt),
       eq(participants.isWalkIn, false),
@@ -55,7 +65,7 @@ export default async function FunnelReportPage({
         .from(classSessions)
         .leftJoin(checkIns, eq(checkIns.classSessionId, classSessions.id))
         .leftJoin(participants, and(eq(participants.id, checkIns.participantId), qualifiedParticipant))
-        .where(eq(classSessions.batchId, selectedBatchId))
+        .where(funnelSession)
         .groupBy(classSessions.id, classSessions.name)
         .orderBy(classSessions.sessionDate, classSessions.id),
 
@@ -68,13 +78,7 @@ export default async function FunnelReportPage({
         })
         .from(participants)
         .leftJoin(checkIns, eq(checkIns.participantId, participants.id))
-        .leftJoin(
-          classSessions,
-          and(
-            eq(classSessions.id, checkIns.classSessionId),
-            eq(classSessions.batchId, selectedBatchId)
-          )
-        )
+        .leftJoin(classSessions, and(eq(classSessions.id, checkIns.classSessionId), funnelSession))
         .where(qualifiedParticipant)
         .groupBy(participants.id),
     ]);
@@ -88,16 +92,21 @@ export default async function FunnelReportPage({
 
   const partialCount = registrantCount - noneCount - completeCount;
 
-  const funnelData = [
-    { sessions: 0, label: "0", count: noneCount, total: totalSessions, sessionName: null as string | null },
-    ...sessionAttendance.map((s, idx) => ({
-      sessions: idx + 1,
-      label: idx + 1 === totalSessions ? `${idx + 1} ✓` : String(idx + 1),
-      count: s.count,
-      total: totalSessions,
-      sessionName: s.name,
-    })),
-  ];
+  const funnelData = sessionAttendance.map((s, idx) => ({
+    sessions: idx + 1,
+    label: idx + 1 === totalSessions ? `${idx + 1} ✓` : String(idx + 1),
+    count: s.count,
+    total: totalSessions,
+    sessionName: s.name,
+  }));
+
+  const toggleHref = (() => {
+    const params = new URLSearchParams();
+    if (batchParam) params.set("batch", batchParam);
+    if (!excludeWaterBaptism) params.set("waterBaptism", "exclude");
+    const qs = params.toString();
+    return `/report/funnel${qs ? `?${qs}` : ""}`;
+  })();
 
   return (
     <div className="flex flex-col gap-6">
@@ -116,7 +125,26 @@ export default async function FunnelReportPage({
         </p>
       </div>
 
-      <BatchPicker batches={allBatches} selectedId={selectedBatchId} />
+      <div className="flex flex-wrap items-center gap-4">
+        <BatchPicker batches={allBatches} selectedId={selectedBatchId} />
+        <Link
+          href={toggleHref}
+          className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${
+            excludeWaterBaptism
+              ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+              : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          <span
+            className={`flex h-4 w-4 items-center justify-center rounded border text-[10px] ${
+              excludeWaterBaptism ? "border-indigo-500 bg-indigo-500 text-white" : "border-gray-300 bg-white"
+            }`}
+          >
+            {excludeWaterBaptism ? "✓" : ""}
+          </span>
+          Exclude Water Baptism
+        </Link>
+      </div>
 
       <div className="grid grid-cols-3 gap-4">
         {[
@@ -141,7 +169,7 @@ export default async function FunnelReportPage({
           Participants by sessions attended
         </p>
         <p className="text-xs text-gray-400 mb-4">
-          0 = no sessions yet · bars 1–{totalSessions} = attendance per session, in order · ✓ = final session
+          Bars 1–{totalSessions} = attendance per session, in order · ✓ = final session
         </p>
         <FunnelChart data={funnelData} />
       </div>

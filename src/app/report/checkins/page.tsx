@@ -43,6 +43,7 @@ export default async function CheckInsReportPage({
             id: classSessions.id,
             name: classSessions.name,
             sessionDate: classSessions.sessionDate,
+            vglOnly: classSessions.vglOnly,
           })
           .from(classSessions)
           .where(eq(classSessions.batchId, selectedBatchId))
@@ -88,7 +89,7 @@ export default async function CheckInsReportPage({
 
       {selectedSession ? (
         <Suspense key={`${selectedSession.id}-${windowMinutes}`} fallback={<CheckInsResultsSkeleton />}>
-          <CheckInsResults sessionId={selectedSession.id} windowMinutes={windowMinutes} lockedServiceRawValues={lockedServiceRawValues} />
+          <CheckInsResults sessionId={selectedSession.id} vglOnly={selectedSession.vglOnly} windowMinutes={windowMinutes} lockedServiceRawValues={lockedServiceRawValues} />
         </Suspense>
       ) : (
         <div className="flex items-center justify-center h-40 rounded-xl border border-dashed border-gray-200 bg-white text-sm text-gray-400">

@@ -16,7 +16,7 @@ interface FunnelBucket {
   count: number;
   sessions: number;
   total: number;
-  sessionName: string | null;
+  sessionName: string;
 }
 
 export function FunnelChart({ data }: { data: FunnelBucket[] }) {
@@ -67,7 +67,7 @@ export function FunnelChart({ data }: { data: FunnelBucket[] }) {
                   {bucket.count} participant{bucket.count !== 1 ? "s" : ""}
                 </p>
                 <p className="text-gray-400 mt-0.5">
-                  {bucket.sessionName ?? "No sessions attended"}
+                  {bucket.sessionName}
                 </p>
               </div>
             );
@@ -75,7 +75,6 @@ export function FunnelChart({ data }: { data: FunnelBucket[] }) {
         />
         <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={56}>
           {data.map((entry) => {
-            if (entry.sessions === 0) return <Cell key={entry.sessions} fill="#f87171" />;
             const ratio = entry.sessions / maxSessions;
             const opacity = 0.35 + ratio * 0.65;
             return (

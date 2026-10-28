@@ -1,58 +1,86 @@
 import { db } from "@/db";
-import { checkIns, participants } from "@/db/schema";
+import { checkIns, participants, sessionVglCheckIns, victoryGroupLeaders } from "@/db/schema";
 import { and, count, eq, inArray, max, min, ne, sql } from "drizzle-orm";
 import { CheckInsChart } from "./CheckInsChart";
 import { CHECKIN_WINDOW_OPTIONS, DEFAULT_CHECKIN_WINDOW_MINUTES } from "@/lib/constants";
 
+/**
+ * The session's check-ins as one (checkedInAt, status) list: VGL-only sessions record VG leaders
+ * in sessionVglCheckIns, every other session records participants in checkIns.
+ */
+function sessionCheckIns(sessionId: number, vglOnly: boolean, lockedServiceRawValues?: string[]) {
+  if (vglOnly) {
+    return db
+      .select({ checkedInAt: sessionVglCheckIns.checkedInAt, status: sessionVglCheckIns.status })
+      .from(sessionVglCheckIns)
+      .innerJoin(victoryGroupLeaders, eq(sessionVglCheckIns.vgLeaderId, victoryGroupLeaders.id))
+      .where(
+        and(
+          eq(sessionVglCheckIns.classSessionId, sessionId),
+          lockedServiceRawValues ? inArray(victoryGroupLeaders.serviceAttending, lockedServiceRawValues) : undefined
+        )
+      )
+      .as("session_check_ins");
+  }
+  return db
+    .select({ checkedInAt: checkIns.checkedInAt, status: checkIns.status })
+    .from(checkIns)
+    .innerJoin(participants, eq(checkIns.participantId, participants.id))
+    .where(
+      and(
+        eq(checkIns.classSessionId, sessionId),
+        lockedServiceRawValues ? inArray(participants.serviceAttending, lockedServiceRawValues) : undefined
+      )
+    )
+    .as("session_check_ins");
+}
+
 export async function CheckInsResults({
   sessionId,
+  vglOnly,
   windowMinutes,
   lockedServiceRawValues,
 }: {
   sessionId: number;
+  vglOnly: boolean;
   windowMinutes: number;
   lockedServiceRawValues?: string[];
 }) {
   const minutes = CHECKIN_WINDOW_OPTIONS.includes(windowMinutes) ? windowMinutes : DEFAULT_CHECKIN_WINDOW_MINUTES;
   const bucket = sql.raw(String(minutes));
 
-  const serviceFilter = lockedServiceRawValues
-    ? inArray(participants.serviceAttending, lockedServiceRawValues)
-    : undefined;
+  const c = sessionCheckIns(sessionId, vglOnly, lockedServiceRawValues);
 
   const [bucketRows, summaryRows, [absentRow]] = await Promise.all([
     db
       .select({
         time: sql<string>`to_char(
-          date_trunc('hour', ${checkIns.checkedInAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') +
-          floor(extract(minute from ${checkIns.checkedInAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') / ${bucket}) * interval '${bucket} minutes',
+          date_trunc('hour', ${c.checkedInAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') +
+          floor(extract(minute from ${c.checkedInAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') / ${bucket}) * interval '${bucket} minutes',
           'HH12:MI AM'
         )`,
-        sortKey: sql<string>`date_trunc('hour', ${checkIns.checkedInAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') +
-          floor(extract(minute from ${checkIns.checkedInAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') / ${bucket}) * interval '${bucket} minutes'`,
+        sortKey: sql<string>`date_trunc('hour', ${c.checkedInAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') +
+          floor(extract(minute from ${c.checkedInAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila') / ${bucket}) * interval '${bucket} minutes'`,
         count: count(),
       })
-      .from(checkIns)
-      .innerJoin(participants, eq(checkIns.participantId, participants.id))
-      .where(and(eq(checkIns.classSessionId, sessionId), ne(checkIns.status, "Absent"), serviceFilter))
+      .from(c)
+      .where(ne(c.status, "Absent"))
       .groupBy(sql`1, 2`)
       .orderBy(sql`2`),
 
     db
       .select({
         total: count(),
-        first: min(checkIns.checkedInAt),
-        last: max(checkIns.checkedInAt),
+        first: min(c.checkedInAt),
+        last: max(c.checkedInAt),
       })
-      .from(checkIns)
-      .innerJoin(participants, eq(checkIns.participantId, participants.id))
-      .where(and(eq(checkIns.classSessionId, sessionId), ne(checkIns.status, "Absent"), serviceFilter)),
+      .from(c)
+      .where(ne(c.status, "Absent")),
 
     db
       .select({ absent: count() })
-      .from(checkIns)
-      .innerJoin(participants, eq(checkIns.participantId, participants.id))
-      .where(and(eq(checkIns.classSessionId, sessionId), eq(checkIns.status, "Absent"), serviceFilter)),
+      .from(c)
+      .where(eq(c.status, "Absent")),
   ]);
 
   const buckets = bucketRows.map((r) => ({ time: r.time, count: r.count }));

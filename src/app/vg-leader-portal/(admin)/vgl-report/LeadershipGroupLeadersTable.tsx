@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { serviceRank } from "@/lib/serviceOrder";
 
@@ -84,16 +84,19 @@ export function LeadershipGroupLeadersTable({ rows }: { rows: LeadershipGroupLea
             </td>
             <td className="px-4 py-2.5 text-gray-500">{l.service}</td>
             <td className="px-4 py-2.5 text-gray-500">
-              {l.members.length === 0
-                ? "—"
-                : l.members.map((m, i) => (
-                    <Fragment key={m.id}>
-                      {i > 0 && "; "}
+              {l.members.length === 0 ? (
+                "—"
+              ) : (
+                <ul className="flex flex-col gap-0.5">
+                  {l.members.map((m) => (
+                    <li key={m.id}>
                       <Link href={`/vg-leader-portal/leaders/${m.id}`} className="text-indigo-600 hover:text-indigo-800 underline">
                         {m.name}
                       </Link>
-                    </Fragment>
+                    </li>
                   ))}
+                </ul>
+              )}
             </td>
           </tr>
         ))}

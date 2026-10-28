@@ -1,8 +1,8 @@
-import Link from "next/link";
-import { DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
+import { AUTO_JOURNEY_STEPS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
 import { getSession } from "@/lib/auth";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { DiscipleshipJourneyTable } from "./DiscipleshipJourneyTable";
+import { AutoJourneyLinksTable } from "./AutoJourneyLinksTable";
 import { getDiscipleshipJourneyRows } from "./journeyRows";
 import { getAutoJourneyLinks } from "@/lib/djPortalJourney";
 import { rawServiceValues } from "@/lib/timeService";
@@ -61,44 +61,7 @@ export default async function DiscipleshipJourneyReportPage() {
           </p>
         </div>
         {autoLinks.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
-                <tr>
-                  <th className="px-4 py-2 text-left font-medium">Name</th>
-                  <th className="px-4 py-2 text-left font-medium">Service</th>
-                  <th className="px-4 py-2 text-left font-medium">Step</th>
-                  <th className="px-4 py-2 text-left font-medium">From</th>
-                  <th className="px-4 py-2 text-left font-medium">Result</th>
-                  <th className="px-4 py-2 text-left font-medium">Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {autoLinks.map((l) => (
-                  <tr key={`${l.vgLeaderId}-${l.step}`} className="hover:bg-gray-50">
-                    <td className="px-4 py-2.5 font-medium text-gray-800 whitespace-nowrap">
-                      <Link href={`/vg-leader-portal/leaders/${l.vgLeaderId}`} className="text-indigo-600 hover:text-indigo-800 underline">
-                        {l.leaderName}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">{l.service || "Not Set"}</td>
-                    <td className="px-4 py-2.5 text-gray-700 whitespace-nowrap">{l.step}</td>
-                    <td className="px-4 py-2.5 text-gray-500">{l.source}</td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">
-                      {l.wasAlreadyChecked ? (
-                        <span className="text-gray-500">Already checked</span>
-                      ) : (
-                        <span className="text-green-600 font-semibold">Checked automatically</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">
-                      {l.linkedAt.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila" })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <AutoJourneyLinksTable links={autoLinks} steps={AUTO_JOURNEY_STEPS} />
         ) : (
           <p className="px-6 py-4 text-sm text-gray-500">
             Nothing yet — this fills in after check-ins and the nightly sync.

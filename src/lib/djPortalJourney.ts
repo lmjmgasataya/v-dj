@@ -2,7 +2,7 @@ import { after } from "next/server";
 import { db } from "@/db";
 import { autoJourneySteps, batches, checkIns, classSessions, participants, sessionVglCheckIns, victoryGroupLeaders } from "@/db/schema";
 import { and, desc, eq, inArray, isNotNull, isNull, like, ne, sql } from "drizzle-orm";
-import { areSimilarNames, createLeaderMatcher } from "@/lib/vgLeaderMatch";
+import { areSimilarNames, createLeaderMatcher, normalizeName } from "@/lib/vgLeaderMatch";
 import { AUTO_JOURNEY_STEPS } from "@/components/form";
 
 const [SPIRITUAL_FOUNDATIONS, EMPOWERING_LEADERS] = AUTO_JOURNEY_STEPS;
@@ -172,8 +172,10 @@ export interface AutoJourneyLink {
   leaderName: string;
   service: string | null;
   step: string;
-  /** "Batch Jul-Oct 2026, as participant Delicana, Kristine Joyce" / "Empowering Leaders, Oct 24, 2026". */
+  /** Short: "Jul-Oct 2026 batch" (Spiritual Foundations) / "Oct 24, 2026 session" (Empowering Leaders). */
   source: string;
+  /** The participant record's name — only when it's spelled differently from the leader's. */
+  participantName: string | null;
   wasAlreadyChecked: boolean;
   linkedAt: Date;
 }
@@ -192,7 +194,6 @@ export async function getAutoJourneyLinks(opts: { vgLeaderIds?: number[]; servic
       participantLastName: participants.lastName,
       participantFirstName: participants.firstName,
       batchName: batches.name,
-      sessionName: classSessions.name,
       sessionDate: classSessions.sessionDate,
     })
     .from(autoJourneySteps)
@@ -211,16 +212,21 @@ export async function getAutoJourneyLinks(opts: { vgLeaderIds?: number[]; servic
 
   return rows.map((r) => {
     let source = "Discipleship Journey Portal";
-    if (r.participantLastName) {
-      source = `${r.batchName ? `Batch ${r.batchName}, ` : ""}as participant ${r.participantLastName}, ${r.participantFirstName}`;
-    } else if (r.sessionName && r.sessionDate) {
+    let participantName: string | null = null;
+    if (r.participantLastName != null && r.participantFirstName != null) {
+      if (r.batchName) source = `${r.batchName} batch`;
+      const sameName =
+        normalizeName(r.participantLastName) === normalizeName(r.lastName) &&
+        normalizeName(r.participantFirstName) === normalizeName(r.firstName);
+      if (!sameName) participantName = `${r.participantLastName}, ${r.participantFirstName}`;
+    } else if (r.sessionDate) {
       const date = new Date(r.sessionDate + "T00:00:00").toLocaleDateString("en-PH", {
         month: "short",
         day: "numeric",
         year: "numeric",
         timeZone: "Asia/Manila",
       });
-      source = `${r.sessionName}, ${date}`;
+      source = `${date} session`;
     }
     return {
       vgLeaderId: r.vgLeaderId,
@@ -228,6 +234,7 @@ export async function getAutoJourneyLinks(opts: { vgLeaderIds?: number[]; servic
       service: r.service,
       step: r.step,
       source,
+      participantName,
       wasAlreadyChecked: r.wasAlreadyChecked,
       linkedAt: r.linkedAt,
     };

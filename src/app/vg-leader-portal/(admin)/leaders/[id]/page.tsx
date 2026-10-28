@@ -405,7 +405,12 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
                       </span>
                     )}
                   </div>
-                  {autoLink && <p className="ml-6 text-xs text-gray-400">{autoLink.source}</p>}
+                  {autoLink && (
+                    <p className="ml-6 text-xs text-gray-400">
+                      {autoLink.source}
+                      {autoLink.participantName && ` · as participant ${autoLink.participantName}`}
+                    </p>
+                  )}
                 </div>
               );
             })}

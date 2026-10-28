@@ -41,6 +41,7 @@ export async function FunnelResults({
     db
       .select({
         name: classSessions.name,
+        isVictoryDay: classSessions.isVictoryDay,
         count: sql<number>`COUNT(DISTINCT ${participants.id})::int`,
         // Marked Absent for arriving 15+ minutes late — they still attended, so they stay in
         // `count` and only show in red on the chart.
@@ -50,15 +51,19 @@ export async function FunnelResults({
       .leftJoin(checkIns, eq(checkIns.classSessionId, classSessions.id))
       .leftJoin(participants, and(eq(participants.id, checkIns.participantId), qualifiedParticipant))
       .where(funnelSession)
-      .groupBy(classSessions.id, classSessions.name)
+      .groupBy(classSessions.id, classSessions.name, classSessions.isVictoryDay)
       .orderBy(classSessions.sessionDate, classSessions.id),
 
-    // Per-participant total distinct sessions attended, used only for the
-    // "No Sessions Yet / In Progress / Completed All" summary cards.
+    // Per-participant sessions attended, used only for the "No Sessions Yet / In Progress /
+    // Completed All" summary cards. Same rule as Attendance Per Discipleship Journey's
+    // "Attended all": a check-in marked Absent isn't attending, and fee categories C/D (who
+    // already had their Victory Day) don't need the Victory Day sessions.
     db
       .select({
         id: participants.id,
-        checkInCount: sql<number>`COUNT(${classSessions.id})::int`,
+        registrationFee: participants.registrationFee,
+        attended: sql<number>`(COUNT(DISTINCT ${classSessions.id}) FILTER (WHERE ${checkIns.status} <> 'Absent'))::int`,
+        attendedVictoryDay: sql<number>`(COUNT(DISTINCT ${classSessions.id}) FILTER (WHERE ${checkIns.status} <> 'Absent' AND ${classSessions.isVictoryDay}))::int`,
       })
       .from(participants)
       .leftJoin(checkIns, eq(checkIns.participantId, participants.id))
@@ -68,9 +73,15 @@ export async function FunnelResults({
   ]);
 
   const totalSessions = sessionRows.length;
+  const victoryDaySessions = sessionRows.filter((s) => s.isVictoryDay).length;
   const registrantCount = pRows.length;
-  const noneCount = pRows.filter((p) => p.checkInCount === 0).length;
-  const completeCount = pRows.filter((p) => p.checkInCount === totalSessions).length;
+  const noneCount = pRows.filter((p) => p.attended === 0).length;
+  const completeCount = pRows.filter((p) => {
+    const skipsVictoryDay = p.registrationFee === "C" || p.registrationFee === "D";
+    const required = skipsVictoryDay ? totalSessions - victoryDaySessions : totalSessions;
+    const attended = skipsVictoryDay ? p.attended - p.attendedVictoryDay : p.attended;
+    return required > 0 && attended === required;
+  }).length;
   const partialCount = registrantCount - noneCount - completeCount;
 
   const funnelData = sessionRows.map((s, idx) => ({

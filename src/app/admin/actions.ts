@@ -10,7 +10,7 @@ import { MOBILE_NUMBER_REGEX } from "@/lib/phone";
 import { eligibleForSession, getBatchBlockReason, getSessionBatchScope, getVictoryDayTotalsByBatch, victoryDayTotalFor } from "@/lib/batchCheckIn";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
-import { and, count, eq, ilike, inArray, isNull, notInArray, or } from "drizzle-orm";
+import { and, count, eq, ilike, inArray, isNull, ne, notInArray, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { syncJourneyStepsAfterResponse } from "@/lib/djPortalJourney";
 import { getSession } from "@/lib/auth";
@@ -103,7 +103,7 @@ async function getVictoryDayBlockReason(
       .select({ attended: count() })
       .from(checkIns)
       .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
-      .where(and(eq(checkIns.participantId, participantId), eq(classSessions.isVictoryDay, true))),
+      .where(and(eq(checkIns.participantId, participantId), eq(classSessions.isVictoryDay, true), ne(checkIns.status, "Absent"))),
   ]);
 
   if (totalVictoryDaySessions > 0 && attended >= totalVictoryDaySessions) return null;
@@ -329,7 +329,7 @@ export async function getCheckinRoster(
       .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
       .from(checkIns)
       .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
-      .where(and(inArray(checkIns.participantId, ids), eq(classSessions.isVictoryDay, true))),
+      .where(and(inArray(checkIns.participantId, ids), eq(classSessions.isVictoryDay, true), ne(checkIns.status, "Absent"))),
   ]);
 
   const victoryDayDateMap: Record<number, string> = {};
@@ -424,7 +424,7 @@ export async function getSessionCheckIns(sessionId: number) {
       .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
       .from(checkIns)
       .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
-      .where(and(inArray(checkIns.participantId, participantIds), eq(classSessions.isVictoryDay, true))),
+      .where(and(inArray(checkIns.participantId, participantIds), eq(classSessions.isVictoryDay, true), ne(checkIns.status, "Absent"))),
   ]);
 
   const victoryDayMap: Record<number, string> = {};
@@ -504,7 +504,7 @@ export async function searchParticipants(sessionId: number, q: string, isVictory
       .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
       .from(checkIns)
       .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
-      .where(and(inArray(checkIns.participantId, ids), eq(classSessions.isVictoryDay, true))),
+      .where(and(inArray(checkIns.participantId, ids), eq(classSessions.isVictoryDay, true), ne(checkIns.status, "Absent"))),
   ]);
 
   const victoryCountMap: Record<number, string> = {};

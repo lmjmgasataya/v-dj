@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { classSessions, checkIns, participants, victoryGroupLeaders, sessionVglCheckIns, users, type ClassSession } from "@/db/schema";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -134,7 +134,7 @@ export default async function SessionDetailPage({
           .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
           .from(checkIns)
           .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
-          .where(and(inArray(checkIns.participantId, participantIds), eq(classSessions.isVictoryDay, true)))
+          .where(and(inArray(checkIns.participantId, participantIds), eq(classSessions.isVictoryDay, true), ne(checkIns.status, "Absent")))
       : Promise.resolve([]),
 
     getVictoryDayTotalsByBatch(),

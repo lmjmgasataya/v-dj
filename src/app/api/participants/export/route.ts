@@ -150,24 +150,33 @@ export async function GET(request: Request) {
       timeZone: "Asia/Manila",
     });
 
+  // A check-in marked Absent (15+ min late) isn't attendance — same as the attendance reports.
+  const cell = (entry: AttendanceEntry) =>
+    (entry.absent ? "Absent" : formatDate(entry.date)) + (entry.remarks ? ` (${entry.remarks})` : "");
+
   const data = rows.map((p, i) => {
     const attended = attendanceMap.get(p.id) ?? new Map<string, AttendanceEntry>();
     const sessionCols: Record<string, string> = {};
     for (const s of sessions) {
       const entry = attended.get(classKey(s.name));
-      sessionCols[s.name] = entry ? formatDate(entry.date) + (entry.remarks ? ` (${entry.remarks})` : "") : "";
+      sessionCols[s.name] = entry ? cell(entry) : "";
     }
 
     const victoryAttended = victoryAttendanceMap.get(p.id) ?? new Map<string, AttendanceEntry>();
-    const earliestVictoryDate = Array.from(victoryAttended.values()).map(e => e.date).sort()[0] ?? null;
+    const earliestVictoryDate = Array.from(victoryAttended.values()).filter((e) => !e.absent).map((e) => e.date).sort()[0] ?? null;
     const participantVictoryDate = earliestVictoryDate ?? p.victoryDate ?? null;
 
     const victorySessionCols: Record<string, string> = {};
     for (const s of victorySessions) {
       const entry = victoryAttended.get(classKey(s.name));
-      victorySessionCols[s.name] = entry
-        ? formatDate(entry.date) + (entry.remarks ? ` (${entry.remarks})` : "")
-        : participantVictoryDate ? formatDate(participantVictoryDate) : "";
+      victorySessionCols[s.name] =
+        entry && !entry.absent
+          ? cell(entry)
+          : participantVictoryDate
+            ? formatDate(participantVictoryDate)
+            : entry
+              ? cell(entry)
+              : "";
     }
 
     const victoryDateDisplay = participantVictoryDate ? formatDate(participantVictoryDate) : "";

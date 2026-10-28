@@ -35,7 +35,7 @@ export default async function FunnelReportPage({
   let registrantCount = 0;
   let noneCount = 0;
   let completeCount = 0;
-  let sessionAttendance: { name: string; count: number }[] = [];
+  let sessionAttendance: { name: string; count: number; absent: number }[] = [];
 
   if (selectedBatchId !== null) {
     // The participant classes of the batch: VGL-only sessions record VG leaders, not
@@ -61,6 +61,9 @@ export default async function FunnelReportPage({
         .select({
           name: classSessions.name,
           count: sql<number>`COUNT(DISTINCT ${participants.id})::int`,
+          // Marked Absent for arriving 15+ minutes late — they still attended, so they stay in
+          // `count` and only show in red on the chart.
+          absent: sql<number>`(COUNT(DISTINCT ${participants.id}) FILTER (WHERE ${checkIns.status} = 'Absent'))::int`,
         })
         .from(classSessions)
         .leftJoin(checkIns, eq(checkIns.classSessionId, classSessions.id))
@@ -96,6 +99,8 @@ export default async function FunnelReportPage({
     sessions: idx + 1,
     label: idx + 1 === totalSessions ? `${idx + 1} ✓` : String(idx + 1),
     count: s.count,
+    present: s.count - s.absent,
+    absent: s.absent,
     total: totalSessions,
     sessionName: s.name,
   }));
@@ -169,7 +174,8 @@ export default async function FunnelReportPage({
           Participants by sessions attended
         </p>
         <p className="text-xs text-gray-400 mb-4">
-          Bars 1–{totalSessions} = attendance per session, in order · ✓ = final session
+          Bars 1–{totalSessions} = attendance per session, in order · ✓ = final session ·{" "}
+          <span className="text-red-500">red</span> = marked Absent (came 15+ min late), still counted
         </p>
         <FunnelChart data={funnelData} />
       </div>

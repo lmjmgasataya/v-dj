@@ -14,6 +14,9 @@ import {
 interface FunnelBucket {
   label: string;
   count: number;
+  /** count = present + absent (marked Absent for coming late, but they attended) */
+  present: number;
+  absent: number;
   sessions: number;
   total: number;
   sessionName: string;
@@ -66,6 +69,11 @@ export function FunnelChart({ data }: { data: FunnelBucket[] }) {
                 <p className="font-medium text-gray-700">
                   {bucket.count} participant{bucket.count !== 1 ? "s" : ""}
                 </p>
+                {bucket.absent > 0 && (
+                  <p className="text-red-500 mt-0.5">
+                    {bucket.absent} marked Absent (late)
+                  </p>
+                )}
                 <p className="text-gray-400 mt-0.5">
                   {bucket.sessionName}
                 </p>
@@ -73,7 +81,7 @@ export function FunnelChart({ data }: { data: FunnelBucket[] }) {
             );
           }}
         />
-        <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={56}>
+        <Bar dataKey="present" stackId="attendance" maxBarSize={56}>
           {data.map((entry) => {
             const ratio = entry.sessions / maxSessions;
             const opacity = 0.35 + ratio * 0.65;
@@ -85,6 +93,7 @@ export function FunnelChart({ data }: { data: FunnelBucket[] }) {
             );
           })}
         </Bar>
+        <Bar dataKey="absent" stackId="attendance" fill="#f87171" radius={[4, 4, 0, 0]} maxBarSize={56} />
       </BarChart>
     </ResponsiveContainer>
   );

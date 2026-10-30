@@ -2,9 +2,12 @@ import { db } from "@/db";
 import { interns, victoryGroups, victoryGroupLeaders } from "@/db/schema";
 import { and, isNull, eq } from "drizzle-orm";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { getSession } from "@/lib/auth";
 import { InternsTable } from "./InternsTable";
 
 export default async function InternsPage() {
+  const session = await getSession();
+  const isDeveloper = session?.role === "developer";
   const rows = await db
     .select({
       id: interns.id,
@@ -31,7 +34,7 @@ export default async function InternsPage() {
           <h3 className="font-semibold text-gray-800">Interns</h3>
           <span className="text-xs text-gray-400">{rows.length} intern{rows.length !== 1 ? "s" : ""}</span>
         </div>
-        <InternsTable rows={rows} />
+        <InternsTable rows={rows} canEdit={isDeveloper} />
       </div>
     </div>
   );

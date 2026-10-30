@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useToast } from "@/components/toast/ToastProvider";
 import { TIME_SERVICES, rawServiceValues, type LeadPastorTimeService } from "@/lib/timeService";
 import { serviceRank } from "@/lib/serviceOrder";
+import { updateIntern } from "./actions";
 
 export interface InternRow {
   id: number;
@@ -28,6 +30,9 @@ const SORT_COLUMNS: { key: SortKey; label: string }[] = [
   { key: "service", label: "Service" },
 ];
 
+const inputCls =
+  "w-32 rounded-md border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent";
+
 const selectCls =
   "rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent";
 
@@ -47,7 +52,10 @@ function sortIcon(col: SortKey, currentSort: SortKey, currentDir: SortDir) {
   return currentDir === "asc" ? " ↑" : " ↓";
 }
 
-export function InternsTable({ rows }: { rows: InternRow[] }) {
+export function InternsTable({ rows, canEdit = false }: { rows: InternRow[]; canEdit?: boolean }) {
+  const toast = useToast();
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [saving, startSaving] = useTransition();
   const [serviceFilter, setServiceFilter] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("intern");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
@@ -59,6 +67,18 @@ export function InternsTable({ rows }: { rows: InternRow[] }) {
       setSortKey(col);
       setSortDir("asc");
     }
+  }
+
+  function save(formData: FormData) {
+    startSaving(async () => {
+      const result = await updateIntern(formData);
+      if (result.error) {
+        toast.show(result.error, "error");
+        return;
+      }
+      setEditingId(null);
+      toast.show("Intern updated.", "success");
+    });
   }
 
   const serviceRawValues = serviceFilter ? rawServiceValues(serviceFilter as LeadPastorTimeService) : null;
@@ -112,17 +132,56 @@ export function InternsTable({ rows }: { rows: InternRow[] }) {
                     </button>
                   </th>
                 ))}
+                {canEdit && <th className="px-4 py-2" />}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {sorted.map((g) => (
                 <tr key={g.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2.5 text-gray-900 font-medium">{g.lastName}, {g.firstName}</td>
+                  <td className="px-4 py-2.5 text-gray-900 font-medium">
+                    {editingId === g.id ? (
+                      <form action={save} className="flex flex-wrap items-center gap-2">
+                        <input type="hidden" name="id" value={g.id} />
+                        <input name="lastName" defaultValue={g.lastName} placeholder="Last name" required autoFocus className={inputCls} />
+                        <input name="firstName" defaultValue={g.firstName} placeholder="First name" required className={inputCls} />
+                        <button
+                          type="submit"
+                          disabled={saving}
+                          className="px-2.5 py-1 bg-[#00428E] hover:bg-[#003578] text-white text-xs font-semibold rounded-md transition disabled:opacity-50"
+                        >
+                          {saving ? "Saving…" : "Save"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingId(null)}
+                          disabled={saving}
+                          className="text-xs text-gray-500 hover:text-gray-700"
+                        >
+                          Cancel
+                        </button>
+                      </form>
+                    ) : (
+                      <>{g.lastName}, {g.firstName}</>
+                    )}
+                  </td>
                   <td className="px-4 py-2.5 text-gray-700">{g.leaderLastName}, {g.leaderFirstName}</td>
                   <td className="px-4 py-2.5 text-gray-500">{g.place}</td>
                   <td className="px-4 py-2.5 text-gray-500">{g.day}</td>
                   <td className="px-4 py-2.5 text-gray-500">{g.time}</td>
                   <td className="px-4 py-2.5 text-gray-500">{g.serviceAttending ?? "—"}</td>
+                  {canEdit && (
+                    <td className="px-4 py-2.5 text-right">
+                      {editingId !== g.id && (
+                        <button
+                          type="button"
+                          onClick={() => setEditingId(g.id)}
+                          className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

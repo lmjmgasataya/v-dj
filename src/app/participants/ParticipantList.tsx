@@ -5,6 +5,7 @@ import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
 import { ParticipantTable } from "./ParticipantTable";
 import { getVictoryDayTotalsByBatch, victoryDayTotalFor } from "@/lib/batchCheckIn";
+import { areSimilarNames, phoneKey } from "@/lib/vgLeaderMatch";
 
 const PAGE_SIZE = 20;
 
@@ -45,6 +46,7 @@ export async function ParticipantList({
   batchId,
   page,
   isDeveloper,
+  canViewLeaders,
   lockedServiceRawValues,
 }: {
   q: string;
@@ -59,6 +61,8 @@ export async function ParticipantList({
   batchId: number | null;
   page: number;
   isDeveloper: boolean;
+  /** Leader profiles are developer / lead_pastor only (proxy.ts). */
+  canViewLeaders: boolean;
   lockedServiceRawValues?: string[];
 }) {
   const offset = (page - 1) * PAGE_SIZE;
@@ -113,7 +117,7 @@ export async function ParticipantList({
 
   const participantIds = rows.map((r) => r.id);
 
-  const [attendanceList, absenceList, victoryDayTotals] = await Promise.all([
+  const [attendanceList, absenceList, victoryDayTotals, leaders] = await Promise.all([
     participantIds.length > 0
       ? db
           .select({
@@ -142,7 +146,31 @@ export async function ParticipantList({
       : Promise.resolve([]),
 
     getVictoryDayTotalsByBatch(),
+
+    db
+      .select({
+        id: victoryGroupLeaders.id,
+        lastName: victoryGroupLeaders.lastName,
+        firstName: victoryGroupLeaders.firstName,
+        mobileNumber: victoryGroupLeaders.mobileNumber,
+      })
+      .from(victoryGroupLeaders)
+      .where(isNull(victoryGroupLeaders.deletedAt)),
   ]);
+
+  // Participants who are already VG leaders: same mobile number AND a similar name. Neither is
+  // enough alone — families share phones, and different people share names.
+  const leadersByPhone = new Map<string, typeof leaders>();
+  for (const l of leaders) {
+    const key = phoneKey(l.mobileNumber);
+    if (key) leadersByPhone.set(key, [...(leadersByPhone.get(key) ?? []), l]);
+  }
+  const vgLeaderIdByParticipant: Record<number, number> = {};
+  for (const r of rows) {
+    const key = phoneKey(r.mobileNumber);
+    const leader = key ? leadersByPhone.get(key)?.find((l) => areSimilarNames(l, r)) : undefined;
+    if (leader) vgLeaderIdByParticipant[r.id] = leader.id;
+  }
 
   const victoryDayTotalByParticipant = Object.fromEntries(
     rows.map((r) => [r.id, victoryDayTotalFor(victoryDayTotals, r.batchId)])
@@ -215,6 +243,8 @@ export async function ParticipantList({
         completedVictoryDays={completedVictoryDayMap}
         victoryDayCounts={victoryDayCountByParticipant}
         victoryDayTotals={victoryDayTotalByParticipant}
+        vgLeaderIds={vgLeaderIdByParticipant}
+        linkVgLeaders={canViewLeaders}
         showEdit={isDeveloper}
       />
 

@@ -72,7 +72,7 @@ export default async function ParticipantsPage({
       />
 
       <Suspense key={`${q}-${lifestage}-${fee}-${gender}-${service}-${previousChurch}-${waterBaptism}-${victoryWeekend}-${batch}-${page}`} fallback={<ParticipantListSkeleton />}>
-        <ParticipantList q={q} lifestage={lifestage} fee={fee} gender={gender} service={service} previousChurch={previousChurch} waterBaptism={waterBaptism} victoryWeekend={victoryWeekend} batchId={batchId} page={page} isDeveloper={isDeveloper} lockedServiceRawValues={lockedServiceRawValues} />
+        <ParticipantList q={q} lifestage={lifestage} fee={fee} gender={gender} service={service} previousChurch={previousChurch} waterBaptism={waterBaptism} victoryWeekend={victoryWeekend} batchId={batchId} page={page} isDeveloper={isDeveloper} canViewLeaders={isDeveloper || isLeadPastor} lockedServiceRawValues={lockedServiceRawValues} />
       </Suspense>
     </div>
   );

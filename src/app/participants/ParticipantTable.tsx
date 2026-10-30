@@ -71,6 +71,8 @@ export function ParticipantTable({
   completedVictoryDays = {},
   victoryDayCounts = {},
   victoryDayTotals = {},
+  vgLeaderIds = {},
+  linkVgLeaders = false,
   showEdit = true,
 }: {
   rows: ParticipantRow[];
@@ -80,6 +82,9 @@ export function ParticipantTable({
   completedVictoryDays?: Record<number, boolean>;
   victoryDayCounts?: Record<number, number>;
   victoryDayTotals?: Record<number, number>;
+  /** participant id → id of the VG leader they matched */
+  vgLeaderIds?: Record<number, number>;
+  linkVgLeaders?: boolean;
   showEdit?: boolean;
 }) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -149,6 +154,7 @@ export function ParticipantTable({
               const vd = p.victoryDate ?? victoryDayDates[p.id] ?? null;
               const completed = !!p.victoryDate || !!completedVictoryDays[p.id];
               const victoryDayCount = victoryDayCounts[p.id] ?? 0;
+              const vgLeaderId = vgLeaderIds[p.id];
 
               return (
                 <Fragment key={p.id}>
@@ -161,6 +167,24 @@ export function ParticipantTable({
                         {toTitleCase(p.lastName)}, {toTitleCase(p.firstName)}
                         {p.middleInitial ? ` ${toTitleCase(p.middleInitial)}.` : ""}
                       </span>
+                      {vgLeaderId != null &&
+                        (linkVgLeaders ? (
+                          <Link
+                            href={`/vg-leader-portal/leaders/${vgLeaderId}`}
+                            onClick={(e) => e.stopPropagation()}
+                            title="Already a VG leader — view their profile"
+                            className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition"
+                          >
+                            VGL ↗
+                          </Link>
+                        ) : (
+                          <span
+                            title="Already a VG leader"
+                            className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700"
+                          >
+                            VGL
+                          </span>
+                        ))}
                     </td>
                     <td className="px-3 py-3 text-gray-600 whitespace-nowrap">
                       {p.lifestage ?? "—"}

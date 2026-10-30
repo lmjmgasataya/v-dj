@@ -1,44 +1,23 @@
 import { db } from "@/db";
-import {
-  participants, victoryGroupLeaders, victoryGroups,
-  classSessions, checkIns, users, loginLogs, smsLogs, featureFlags, batches,
-} from "@/db/schema";
-import { count, min } from "drizzle-orm";
+import { smsLogs } from "@/db/schema";
+import { count, min, sql } from "drizzle-orm";
+import { DEVOPS_TABLES, DEVOPS_TABLE_GROUPS } from "@/lib/devopsTables";
 import { ImportForm } from "./ImportForm";
 import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
 import { purgeSmsLogsOlderThan, purgeAllSmsLogs } from "./actions";
 
-async function getCounts() {
-  const [p, vgl, vg, cs, ci, u, ll, ff, b] = await Promise.all([
-    db.select({ c: count() }).from(participants).then(r => r[0].c),
-    db.select({ c: count() }).from(victoryGroupLeaders).then(r => r[0].c),
-    db.select({ c: count() }).from(victoryGroups).then(r => r[0].c),
-    db.select({ c: count() }).from(classSessions).then(r => r[0].c),
-    db.select({ c: count() }).from(checkIns).then(r => r[0].c),
-    db.select({ c: count() }).from(users).then(r => r[0].c),
-    db.select({ c: count() }).from(loginLogs).then(r => r[0].c),
-    db.select({ c: count() }).from(featureFlags).then(r => r[0].c),
-    db.select({ c: count() }).from(batches).then(r => r[0].c),
-  ]);
-  return { participants: p, vg_leaders: vgl, vg_groups: vg, class_sessions: cs, check_ins: ci, users: u, login_logs: ll, feature_flags: ff, batches: b };
+// One round trip for every table's row count (UNION ALL) instead of a query per table.
+async function getCounts(): Promise<Record<string, number>> {
+  const result = await db.execute<{ key: string; c: number }>(
+    sql.join(DEVOPS_TABLES.map((t) => sql`SELECT ${t.key} AS key, count(*)::int AS c FROM ${t.table}`), sql` UNION ALL `)
+  );
+  return Object.fromEntries(result.rows.map((r) => [r.key, r.c]));
 }
 
 async function getSmsLogStats() {
   const [row] = await db.select({ count: count(), oldest: min(smsLogs.createdAt) }).from(smsLogs);
   return { count: row?.count ?? 0, oldest: row?.oldest ?? null };
 }
-
-const EXPORT_TABLES = [
-  { key: "participants",    label: "Participants" },
-  { key: "vg_leaders",      label: "VG Leaders" },
-  { key: "vg_groups",       label: "VG Groups" },
-  { key: "batches",         label: "Batches" },
-  { key: "class_sessions",  label: "Class Sessions" },
-  { key: "check_ins",       label: "Check-ins" },
-  { key: "users",           label: "Users (no passwords)" },
-  { key: "login_logs",      label: "Login Logs" },
-  { key: "feature_flags",   label: "Feature Flags" },
-] as const;
 
 const IMPORT_TABLES = [
   { key: "participants",   label: "Participants",   note: "Skips rows with duplicate keys. id column is ignored." },
@@ -57,27 +36,35 @@ export default async function DataPage() {
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
           <h3 className="font-semibold text-gray-800">Export CSV</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Downloads a full CSV of each table. Data is current at time of download.</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Downloads a full CSV of each table, grouped by portal. Data is current at time of download.
+            Password / PIN hashes and SMS API keys are left out.
+          </p>
         </div>
-        <div className="divide-y divide-gray-100">
-          {EXPORT_TABLES.map(({ key, label }) => (
-            <div key={key} className="px-6 py-3 flex items-center justify-between">
-              <div>
-                <span className="text-sm font-medium text-gray-800">{label}</span>
-                <span className="ml-2 text-xs text-gray-400 font-mono">
-                  {key in counts ? `${counts[key as keyof typeof counts].toLocaleString()} rows` : ""}
-                </span>
-              </div>
-              <a
-                href={`/api/devops-admin/export?table=${key}`}
-                download
-                className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition"
-              >
-                Download CSV
-              </a>
+        {DEVOPS_TABLE_GROUPS.map(({ portal, tables }) => (
+          <div key={portal}>
+            <p className="px-6 py-2 bg-gray-50 border-y border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              {portal}
+            </p>
+            <div className="divide-y divide-gray-100">
+              {tables.map(({ key, label }) => (
+                <div key={key} className="px-6 py-3 flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-medium text-gray-800">{label}</span>
+                    <span className="ml-2 text-xs text-gray-400 font-mono">{counts[key].toLocaleString()} rows</span>
+                  </div>
+                  <a
+                    href={`/api/devops-admin/export?table=${key}`}
+                    download
+                    className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition"
+                  >
+                    Download CSV
+                  </a>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
 
       {/* Import */}

@@ -31,8 +31,8 @@ export async function toggleFlag(key: string) {
       target: featureFlags.key,
       set: { enabled: sql`NOT ${featureFlags.enabled}`, updatedAt: new Date() },
     });
-  revalidatePath("/devops-admin");
-  revalidatePath("/admin");
+  // Flags are read all over the app (check-in, register, portals) — refresh every page.
+  revalidatePath("/", "layout");
   await toastRedirectBack("Flag toggled.");
 }
 

@@ -79,7 +79,7 @@ Twelve tables:
 - `src/app/l113-portal/` — L113 Portal hub for `developer`/`lead_pastor` (gated in its `layout.tsx` and in `proxy.ts`), with `potential-students/` — claimed, actively leading VG leaders done with the Discipleship Journey who haven't graduated from or started (ongoing) Leadership 113. Moved from `vg-leader-portal/l113-candidates-report/` (redirected in `next.config.ts`)
 - `src/app/sms-sender/` — SMS blast tool (gated by `sms_sender` feature flag); select session, pick/edit message template, send via Traccer API; sub-route `message-templates/` for template CRUD
 - `src/app/report/` — reporting dashboards: `checkins`, `class-category`, `demographics`, `funnel`, `registrations` (per worship service), `remittance` (AR summary with date range), `collection-monitoring`; all filtered by batch
-- `src/app/devops-admin/` — `developer`-role-only area: participants, class-sessions, check-ins, disciplers, VG groups/leaders, login-logs, data tools, batches CRUD
+- `src/app/devops-admin/` — `developer`-role-only area: participants, class-sessions, check-ins, disciplers, VG groups/leaders, login-logs, data tools, batches CRUD. Feature flags on the Overview are grouped by portal (`FLAG_GROUPS` in `page.tsx`) — list a new flag there. Every table is listed by portal in `src/lib/devopsTables.ts`, which drives the Data page's row counts / CSV exports and the Overview's database sizes — add a new table there (and any secret columns to its `omit`)
 - `src/app/login/` — login page; Server Actions handle auth
 
 ### Patterns

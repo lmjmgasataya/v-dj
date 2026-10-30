@@ -1,7 +1,9 @@
 import { db } from "@/db";
 import { featureFlags, smsApiKeys, users } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { ne, sql } from "drizzle-orm";
+import { getTableName, ne, sql } from "drizzle-orm";
+import { DEVOPS_TABLE_GROUPS } from "@/lib/devopsTables";
+import { ACCEPT_PREVIOUS_QUARTER_FLAG, CARRY_OVER_PREVIOUS_QUARTER_FLAG } from "@/lib/vgQuarters";
 import { toggleFlag, createFlag, deleteFlag, changeRole, resetPassword, deleteUser, createUser, createSmsApiKey, updateSmsApiKey, deleteSmsApiKey, setSmsApiKeyDefault } from "./actions";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 import { SmsTester } from "./SmsTester";
@@ -9,25 +11,92 @@ import { PasswordInput } from "@/components/PasswordInput";
 import { RoleServiceSelect } from "./RoleServiceSelect";
 // session is read here (not in layout) because we need session.userId to hide delete-self button
 
-const FLAG_LABELS: Record<string, string> = {
-  autocomplete_vg_leaders: "VG Leader autocomplete",
-  autocomplete_disciplers: "Discipler autocomplete",
-  new_date_picker: "New date picker (calendar popover)",
-  qr_checkin: "QR code check-in (scan to check in + QR on participant page)",
-  qr_auto_open_scanner: "QR check-in — auto-open camera after selecting a session",
-  print_id_show_fullname: "Print IDs — show full name at bottom of card",
-  sms_sender: "SMS Sender (show on home page)",
-  victory_day_allow_all_classes: "Victory Day check-in — allow all classes to search & check in (default: Class A/B only)",
-  edit_registration_fee: "Allow editing a participant's registration fee/class on the edit page",
-  sms_on_registration: "Send an SMS to participants automatically on registration",
-  vg_leader_portal: "VG Leader self-service portal (login, manage own victory groups & info)",
-  checkin_confirm_popup: "Check-in — show confirmation popup before check-in (see /admin settings)",
-  checkin_table_assignment: "Check-in — assign table number on check-in (see /table-management/settings)",
-  checkin_autocheckin: "Check-in — auto check-in (skip popup, mark On-time) for arrivals on or before 9:00 AM",
-  offline_checkin: "Check-in — allow scanning/searching to queue locally and sync later when the connection drops (see /admin)",
-  checkin_timeout_fallback: "Check-in — if a check-in takes longer than 5s even while online, save it locally and sync once the response comes back (requires offline_checkin)",
-  event_registration: "Event Registration (show on home page)",
-};
+// Every flag the code reads, grouped by the portal it affects. Flags in the database that
+// aren't listed here show under "Other" (with a delete button).
+const FLAG_GROUPS: { title: string; flags: Record<string, string> }[] = [
+  {
+    title: "Discipleship Journey Portal — Registration & Participants",
+    flags: {
+      autocomplete_vg_leaders: "VG Leader autocomplete",
+      autocomplete_disciplers: "Discipler autocomplete",
+      sms_on_registration: "Send an SMS to participants automatically on registration",
+      edit_registration_fee: "Allow editing a participant's registration fee/class on the edit page",
+      print_id_show_fullname: "Print IDs — show full name at bottom of card",
+      sms_sender: "SMS Sender (show on the Discipleship Journey Portal)",
+    },
+  },
+  {
+    title: "Discipleship Journey Portal — Check-in",
+    flags: {
+      qr_checkin: "QR code check-in (scan to check in + QR on participant page)",
+      qr_auto_open_scanner: "QR check-in — auto-open camera after selecting a session",
+      victory_day_allow_all_classes: "Victory Day check-in — allow all classes to search & check in (default: Class A/B only)",
+      checkin_confirm_popup: "Check-in — show confirmation popup before check-in (see /admin settings)",
+      checkin_autocheckin: "Check-in — auto check-in (skip popup, mark On-time) for arrivals on or before 9:00 AM",
+      checkin_autocheckin_915: "Check-in — auto check-in (skip popup, mark On-time or Late) for arrivals on or before 9:15 AM",
+      checkin_table_assignment: "Check-in — assign table number on check-in (see /table-management/settings)",
+      offline_checkin: "Check-in — allow scanning/searching to queue locally and sync later when the connection drops (see /admin)",
+      checkin_timeout_fallback: "Check-in — if a check-in takes longer than 5s even while online, save it locally and sync once the response comes back (requires offline_checkin)",
+    },
+  },
+  {
+    title: "VG Leader Portal",
+    flags: {
+      vg_leader_portal: "VG Leader self-service portal (login, manage own victory groups & info)",
+      [ACCEPT_PREVIOUS_QUARTER_FLAG]: "Still accepting responses for the previous update period (see /vg-leader-portal)",
+      [CARRY_OVER_PREVIOUS_QUARTER_FLAG]: "Carry over the previous period's responses to the live one (see /vg-leader-portal)",
+    },
+  },
+  {
+    title: "Event Registration",
+    flags: {
+      event_registration: "Event Registration (show on home page)",
+    },
+  },
+  {
+    title: "Shared",
+    flags: {
+      new_date_picker: "New date picker (calendar popover) — registration, participant, session and event forms",
+    },
+  },
+];
+
+const KNOWN_FLAGS = new Set(FLAG_GROUPS.flatMap((g) => Object.keys(g.flags)));
+
+// pg table name → portal, for grouping the Database size list.
+const PORTAL_BY_TABLE = new Map(
+  DEVOPS_TABLE_GROUPS.flatMap(({ portal, tables }) => tables.map((t) => [getTableName(t.table), portal] as const))
+);
+
+const OTHER_APPS = "Not in this app's schema (other apps sharing the database)";
+
+function FlagToggle({ flagKey, enabled }: { flagKey: string; enabled: boolean }) {
+  return (
+    <form action={toggleFlag.bind(null, flagKey)}>
+      <button
+        type="submit"
+        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+          enabled ? "bg-[#00428E]" : "bg-gray-200"
+        }`}
+        aria-label={enabled ? "Disable" : "Enable"}
+      >
+        <span
+          className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-200 ${
+            enabled ? "translate-x-5" : "translate-x-0"
+          }`}
+        />
+      </button>
+    </form>
+  );
+}
+
+function GroupHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="px-6 py-2 bg-gray-50 border-y border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+      {children}
+    </p>
+  );
+}
 
 async function getDbStats() {
   const sizeResult = await db.execute<{ db_size: string }>(
@@ -62,64 +131,41 @@ export default async function DevopsAdminPage() {
           <h3 className="font-semibold text-gray-800">Feature Flags</h3>
           <p className="text-xs text-gray-500 mt-0.5">Changes take effect immediately on the next page load.</p>
         </div>
-        <ul className="divide-y divide-gray-100">
-          {Object.keys(FLAG_LABELS).map((key) => {
-            const flag = flags.find((f) => f.key === key);
-            const enabled = flag?.enabled ?? false;
-            return (
-              <li key={key} className="flex items-center justify-between px-6 py-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-800">{FLAG_LABELS[key]}</p>
-                  <p className="text-xs text-gray-400 font-mono mt-0.5">{key}</p>
-                </div>
-                <form action={toggleFlag.bind(null, key)}>
-                  <button
-                    type="submit"
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-                      enabled ? "bg-[#00428E]" : "bg-gray-200"
-                    }`}
-                    aria-label={enabled ? "Disable" : "Enable"}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-200 ${
-                        enabled ? "translate-x-5" : "translate-x-0"
-                      }`}
+        {FLAG_GROUPS.map(({ title, flags: groupFlags }) => (
+          <div key={title}>
+            <GroupHeading>{title}</GroupHeading>
+            <ul className="divide-y divide-gray-100">
+              {Object.entries(groupFlags).map(([key, label]) => (
+                <li key={key} className="flex items-center justify-between gap-4 px-6 py-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">{label}</p>
+                    <p className="text-xs text-gray-400 font-mono mt-0.5">{key}</p>
+                  </div>
+                  <FlagToggle flagKey={key} enabled={flags.find((f) => f.key === key)?.enabled ?? false} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+        {flags.some((f) => !KNOWN_FLAGS.has(f.key)) && (
+          <div>
+            <GroupHeading>Other (not read by the code)</GroupHeading>
+            <ul className="divide-y divide-gray-100">
+              {flags.filter((f) => !KNOWN_FLAGS.has(f.key)).map((flag) => (
+                <li key={flag.key} className="flex items-center justify-between gap-4 px-6 py-4">
+                  <p className="text-sm font-medium text-gray-800 font-mono">{flag.key}</p>
+                  <div className="flex items-center gap-3">
+                    <FlagToggle flagKey={flag.key} enabled={flag.enabled} />
+                    <ConfirmDeleteButton
+                      action={deleteFlag.bind(null, flag.key)}
+                      message={`Delete flag "${flag.key}"?`}
                     />
-                  </button>
-                </form>
-              </li>
-            );
-          })}
-          {flags.filter((f) => !(f.key in FLAG_LABELS)).map((flag) => (
-            <li key={flag.key} className="flex items-center justify-between px-6 py-4">
-              <div>
-                <p className="text-sm font-medium text-gray-800">{flag.key}</p>
-                <p className="text-xs text-gray-400 font-mono mt-0.5">{flag.key}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <form action={toggleFlag.bind(null, flag.key)}>
-                  <button
-                    type="submit"
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-                      flag.enabled ? "bg-[#00428E]" : "bg-gray-200"
-                    }`}
-                    aria-label={flag.enabled ? "Disable" : "Enable"}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-200 ${
-                        flag.enabled ? "translate-x-5" : "translate-x-0"
-                      }`}
-                    />
-                  </button>
-                </form>
-                <ConfirmDeleteButton
-                  action={deleteFlag.bind(null, flag.key)}
-                  message={`Delete flag "${flag.key}"?`}
-                />
-              </div>
-            </li>
-          ))}
-        </ul>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="px-6 py-5 border-t border-gray-100 bg-gray-50">
           <p className="text-sm font-semibold text-gray-700 mb-3">Create Flag</p>
           <form action={createFlag} className="flex items-center gap-3">
@@ -352,14 +398,26 @@ export default async function DevopsAdminPage() {
               <th className="px-6 py-2 text-right font-medium">Size</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
-            {tables.map((t) => (
-              <tr key={t.table} className="hover:bg-gray-50">
-                <td className="px-6 py-2.5 font-mono text-gray-700">{t.table}</td>
-                <td className="px-6 py-2.5 text-right text-gray-500">{t.total_size}</td>
-              </tr>
-            ))}
-          </tbody>
+          {/* The Supabase database is shared — other apps' tables (e.g. v-4-events' er_*) land in the last group. */}
+          {[...DEVOPS_TABLE_GROUPS.map((g) => g.portal), OTHER_APPS].map((portal) => {
+            const rows = tables.filter((t) => (PORTAL_BY_TABLE.get(t.table) ?? OTHER_APPS) === portal);
+            if (rows.length === 0) return null;
+            return (
+              <tbody key={portal} className="divide-y divide-gray-100">
+                <tr>
+                  <td colSpan={2} className="px-6 py-2 bg-gray-50 border-y border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    {portal}
+                  </td>
+                </tr>
+                {rows.map((t) => (
+                  <tr key={t.table} className="hover:bg-gray-50">
+                    <td className="px-6 py-2.5 font-mono text-gray-700">{t.table}</td>
+                    <td className="px-6 py-2.5 text-right text-gray-500">{t.total_size}</td>
+                  </tr>
+                ))}
+              </tbody>
+            );
+          })}
         </table>
       </div>
     </div>

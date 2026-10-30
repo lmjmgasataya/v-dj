@@ -3,8 +3,12 @@ import { redirect } from "next/navigation";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
-import { featureFlags } from "@/db/schema";
+import { batches, featureFlags } from "@/db/schema";
 import { eq } from "drizzle-orm";
+
+function formatBatchDate(date: string) {
+  return new Date(date + "T00:00:00").toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila" });
+}
 
 export default async function JourneyPortalPage() {
   const session = await getSession();
@@ -12,9 +16,16 @@ export default async function JourneyPortalPage() {
   const isDeveloper = session.role === "developer";
   const isLeadPastor = session.role === "lead_pastor";
 
-  const smsSenderFlag = isDeveloper
-    ? await db.select().from(featureFlags).where(eq(featureFlags.key, "sms_sender")).then((r) => r[0])
-    : null;
+  const [smsSenderFlag, [defaultBatch]] = await Promise.all([
+    isDeveloper
+      ? db.select().from(featureFlags).where(eq(featureFlags.key, "sms_sender")).then((r) => r[0])
+      : null,
+    db
+      .select({ name: batches.name, classStartDate: batches.classStartDate, classEndDate: batches.classEndDate })
+      .from(batches)
+      .where(eq(batches.isDefault, true))
+      .limit(1),
+  ]);
   const showSmsSender = smsSenderFlag?.enabled ?? false;
 
   return (
@@ -23,6 +34,35 @@ export default async function JourneyPortalPage() {
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Discipleship Journey Portal" }]} />
         <h2 className="text-2xl font-bold text-gray-900">Discipleship Journey Portal</h2>
         <p className="text-sm text-gray-500 mt-0.5">Registration, check-ins, and reporting for the discipleship classes.</p>
+        {/* Lead pastors can't open /sessions/batches (see proxy.ts), so they get the note without the link. */}
+        {defaultBatch ? (
+          <div className="mt-4 rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
+            Current default batch: <span className="font-semibold">{defaultBatch.name}</span>
+            <span className="text-indigo-700">
+              {" "}· Classes {formatBatchDate(defaultBatch.classStartDate)} – {formatBatchDate(defaultBatch.classEndDate)}
+            </span>
+            {!isLeadPastor && (
+              <>
+                {" "}·{" "}
+                <Link href="/sessions/batches" className="font-medium text-indigo-700 underline hover:text-indigo-900">
+                  Change default batch
+                </Link>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            No default batch is set. Registrations, check-ins and reports won&apos;t be scoped to a batch until one is set.
+            {!isLeadPastor && (
+              <>
+                {" "}
+                <Link href="/sessions/batches" className="font-medium underline hover:text-amber-900">
+                  Set a default batch
+                </Link>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

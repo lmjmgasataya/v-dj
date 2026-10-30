@@ -115,7 +115,7 @@ export function VgLeaderFields({
 
 function Dropdown({ results, onSelect }: { results: VgLeaderOption[]; onSelect: (v: VgLeaderOption) => void }) {
   return (
-    <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+    <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
       {results.map((v) => (
         <button
           key={v.id}

@@ -45,8 +45,9 @@ export const selectCls = inputCls;
 
 export function Section({ title, description, important, children }: { title: string; description?: string; important?: boolean | string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      <div className="bg-indigo-50 border-b border-indigo-100 px-6 py-3">
+    // No overflow-hidden: it would clip autocomplete dropdowns that extend past the card.
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+      <div className="bg-indigo-50 border-b border-indigo-100 rounded-t-xl px-6 py-3">
         <h2 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">{title}</h2>
         {important && <span className="mt-0.5 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 uppercase tracking-wide">{typeof important === "string" ? important : "Important"}</span>}
         {description && <p className="text-xs text-indigo-500 mt-0.5">{description}</p>}

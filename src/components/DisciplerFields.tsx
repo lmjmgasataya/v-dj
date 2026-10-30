@@ -60,7 +60,7 @@ export function DisciplerFields({
           />
         </Field>
         {open && (
-          <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+          <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
             {results.map((d) => (
               <button
                 key={d.id}

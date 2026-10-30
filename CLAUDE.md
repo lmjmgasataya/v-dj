@@ -52,7 +52,7 @@ docker run --rm --env-file .env.local --user "$(id -u):$(id -g)" -v "$(pwd)/back
 ### Stack
 - **Next.js 16 App Router** with React 19 — all pages under `src/app/`
 - **Drizzle ORM** on PostgreSQL — schema in `src/db/schema/index.ts`, client in `src/db/index.ts`
-- **JWT sessions** via `jose` — implementation in `src/lib/auth.ts`, stored in `dj_session` cookie (12h expiry, HS256)
+- **JWT sessions** via `jose` — implementation in `src/lib/auth.ts`, stored in `dj_session` cookie (7-day expiry, HS256)
 - **Tailwind CSS 4** for styling
 
 ### Data model

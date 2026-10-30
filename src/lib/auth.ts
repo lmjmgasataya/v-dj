@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import type { LeadPastorTimeService } from "./timeService";
 
 const COOKIE = "dj_session";
+// The token and the cookie expire together.
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
 function secret() {
   return new TextEncoder().encode(
@@ -25,7 +27,7 @@ export async function signSession(payload: SessionPayload) {
   return new SignJWT(payload as unknown as Record<string, unknown>)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("12h")
+    .setExpirationTime(`${SESSION_MAX_AGE_SECONDS}s`)
     .sign(secret());
 }
 
@@ -49,7 +51,7 @@ export async function setSessionCookie(token: string) {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 60 * 60 * 12,
+    maxAge: SESSION_MAX_AGE_SECONDS,
     path: "/",
   });
 }

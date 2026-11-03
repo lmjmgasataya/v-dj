@@ -32,6 +32,8 @@ const TYPE_LABEL: Record<EventAudience, string> = {
   intern: "Intern",
 };
 
+const MAX_RESULTS = 20;
+
 function AttendeeSearch({
   eventId,
   audience,
@@ -52,6 +54,8 @@ function AttendeeSearch({
   const results = q.trim()
     ? attendees.filter((r) => r.attendeeName.toLowerCase().includes(q.trim().toLowerCase()))
     : attendees;
+  // A long list is slow to scroll on a phone at the door; search finds anyone past the first ones.
+  const shown = results.slice(0, MAX_RESULTS);
 
   // Preload the full pre-registered list for this event, and re-fetch when check-ins
   // change elsewhere (e.g. an undo from the "Checked In" list below), so a row's status
@@ -112,7 +116,7 @@ function AttendeeSearch({
         </p>
       ) : (
         <div className="flex flex-col gap-2">
-          {results.map((r) => (
+          {shown.map((r) => (
             <div key={r.key} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-2.5">
               <div className="flex items-center gap-2">
                 <div>
@@ -148,28 +152,30 @@ function AttendeeSearch({
               )}
             </div>
           ))}
+          {results.length > shown.length && (
+            <p className="text-xs text-gray-400 text-center pt-1">
+              Showing {shown.length} of {results.length}. Search by name to find someone else.
+            </p>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-const MAX_WALK_IN_RESULTS = 20;
-
 /**
  * Check-in for VG leaders who didn't register. Only leaders with an updated profile (saved this
  * update period and 100% complete) can be checked in; the server checks again.
  */
 function WalkInSearch({ eventId, onChange, refreshKey }: { eventId: number; onChange: () => void; refreshKey: number }) {
-  const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [candidates, setCandidates] = useState<WalkInCandidate[] | null>(null);
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Loaded only once opened, and again when check-ins change (an undone walk-in is offered again).
+  // Preloaded with the event, and again when check-ins change (an undone walk-in is offered again).
+  // Nobody is listed until a name is typed.
   useEffect(() => {
-    if (!open) return;
     let cancelled = false;
     listEventWalkInCandidates(eventId).then((c) => {
       if (!cancelled) setCandidates(c);
@@ -177,13 +183,13 @@ function WalkInSearch({ eventId, onChange, refreshKey }: { eventId: number; onCh
     return () => {
       cancelled = true;
     };
-  }, [open, eventId, refreshKey]);
+  }, [eventId, refreshKey]);
 
   const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const matches =
     words.length === 0 || !candidates
       ? []
-      : candidates.filter((c) => words.every((w) => c.attendeeName.toLowerCase().includes(w))).slice(0, MAX_WALK_IN_RESULTS);
+      : candidates.filter((c) => words.every((w) => c.attendeeName.toLowerCase().includes(w))).slice(0, MAX_RESULTS);
 
   async function handleCheckIn(c: WalkInCandidate) {
     setPendingId(c.vgLeaderId);
@@ -199,26 +205,9 @@ function WalkInSearch({ eventId, onChange, refreshKey }: { eventId: number; onCh
     onChange();
   }
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="self-start rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-      >
-        + Check in a walk-in
-      </button>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-gray-800">Walk-in</h3>
-        <button type="button" onClick={() => setOpen(false)} className="text-xs text-gray-500 hover:text-gray-700 underline">
-          Close
-        </button>
-      </div>
+      <h3 className="text-sm font-semibold text-gray-800">Walk-in</h3>
       <p className="text-xs text-gray-500">
         For VG leaders who didn&apos;t register. They need an updated profile in the VGL Portal before they can be checked in.
       </p>
@@ -227,12 +216,11 @@ function WalkInSearch({ eventId, onChange, refreshKey }: { eventId: number; onCh
         onChange={(e) => setQ(e.target.value)}
         placeholder="Search VG leaders by name..."
         className={inputCls}
-        autoFocus
       />
       {error && <p className="text-xs text-red-500">{error}</p>}
-      {candidates === null ? (
+      {words.length === 0 ? null : candidates === null ? (
         <p className="text-sm text-gray-400 py-2">Loading VG leaders...</p>
-      ) : words.length === 0 ? null : matches.length === 0 ? (
+      ) : matches.length === 0 ? (
         <p className="text-sm text-gray-400 py-2">No VG leader by that name who isn&apos;t registered or checked in already.</p>
       ) : (
         <div className="flex flex-col gap-2">
@@ -264,8 +252,7 @@ function WalkInSearch({ eventId, onChange, refreshKey }: { eventId: number; onCh
 }
 
 export function EventCheckInArea({ events }: { events: EventOption[] }) {
-  const firstEvent = events[0] ?? null;
-  const [eventId, setEventId] = useState<number | null>(firstEvent?.id ?? null);
+  const [eventId, setEventId] = useState<number | null>(null);
   const [checkedIn, setCheckedIn] = useState<EventCheckInRow[]>([]);
   const [undoingId, setUndoingId] = useState<number | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -279,11 +266,6 @@ export function EventCheckInArea({ events }: { events: EventOption[] }) {
       setRefreshKey((k) => k + 1);
     });
   }
-
-  useEffect(() => {
-    if (firstEvent) refreshCheckIns(firstEvent.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   function handleEventChange(id: number) {
     setEventId(id);
@@ -311,11 +293,16 @@ export function EventCheckInArea({ events }: { events: EventOption[] }) {
           onChange={(e) => handleEventChange(Number(e.target.value))}
           className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
         >
+          <option value="" disabled>
+            Select an event...
+          </option>
           {events.map((e) => (
             <option key={e.id} value={e.id}>{e.name}</option>
           ))}
         </select>
       </div>
+
+      {!selectedEvent && <p className="text-sm text-gray-400">Select an event to see who registered.</p>}
 
       {selectedEvent && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">

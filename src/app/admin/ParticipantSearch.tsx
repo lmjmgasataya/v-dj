@@ -7,6 +7,9 @@ import { QrScanner, QR_PREFIX, type QrScannerHandle } from "./QrScanner";
 import { ORIENTATION_SESSION_NAME } from "@/lib/constants";
 import { saveRosterSnapshot, loadRosterSnapshot } from "@/lib/offlineStore";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
+import { useNewCheckinUi } from "./ui/NewCheckinUi";
+import { Notice } from "./ui/ConfirmCheckInSheet";
+import { SearchIcon, Spinner } from "./ui/icons";
 
 type Results = CheckinRosterEntry[];
 
@@ -64,6 +67,7 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
   const [searchUnavailableOffline, setSearchUnavailableOffline] = useState(false);
   const onlineStatus = useOnlineStatus();
   const isOnline = !offlineCheckin || onlineStatus;
+  const newUi = useNewCheckinUi();
   // Once the roster's loaded, results are derived from it live — so a check-in
   // (via QR or the list below) is reflected immediately, with no re-fetch race.
   const results = rosterLoaded ? filterRoster(roster, committedQuery) : fallbackResults;
@@ -203,31 +207,119 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
+  const qrScanner = qrCheckin && (
+    <QrScanner
+      ref={qrScannerRef}
+      sessionId={sessionId}
+      isVictoryDay={isVictoryDay}
+      allowAllClasses={victoryDayAllowAllClasses}
+      isOrientation={isOrientation}
+      autoOpen={autoOpenQrScanner && !initialQ?.trim()}
+      confirmBeforeCheckIn={confirmBeforeCheckIn}
+      showTableNumber={showTableNumber}
+      autoCheckin={autoCheckin}
+      autoCheckin915={autoCheckin915}
+      offlineCheckin={offlineCheckin}
+      checkinTimeoutFallback={checkinTimeoutFallback}
+      roster={roster}
+      onRosterUpdate={updateRoster}
+      onCheckIn={(info) => {
+        const nextQuery = info.lastName.trim() || q;
+        setQ(nextQuery);
+        runSearch(nextQuery);
+      }}
+    />
+  );
+
+  const resultsList = (
+    <SessionCheckInList
+      participants={results}
+      sessionId={sessionId}
+      isVictoryDay={isVictoryDay}
+      requiresVictoryDay={requiresVictoryDay}
+      onAction={() => runSearch(q)}
+      onRosterUpdate={updateRoster}
+      searchQuery={q.trim()}
+      confirmBeforeCheckIn={confirmBeforeCheckIn}
+      showTableNumber={showTableNumber}
+      offlineCheckin={offlineCheckin}
+      checkinTimeoutFallback={checkinTimeoutFallback}
+      autoCheckin={autoCheckin}
+      autoCheckin915={autoCheckin915}
+    />
+  );
+
+  if (newUi) {
+    return (
+      <div className="flex flex-col gap-3">
+        {qrScanner}
+        <form onSubmit={handleSubmit} role="search" className="flex gap-2">
+          <label className="relative flex-1">
+            <span className="sr-only">Search by name or mobile number</span>
+            <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-gray-500" />
+            <input
+              type="search"
+              enterKeyHint="search"
+              autoComplete="off"
+              value={q}
+              onChange={(e) => {
+                const val = e.target.value;
+                setQ(val);
+                if (!val.trim()) { setSearched(false); setCommittedQuery(""); setFallbackResults([]); }
+              }}
+              placeholder="Name or mobile number"
+              className="h-12 w-full rounded-xl border border-gray-300 bg-white pr-3 pl-11 text-base text-gray-900 placeholder:text-gray-500 focus:border-[#00428E] focus:outline-none focus:ring-2 focus:ring-[#00428E]/20"
+            />
+          </label>
+          {!rosterLoaded && (
+            <button
+              type="submit"
+              disabled={pending}
+              className="inline-flex h-12 items-center gap-2 rounded-xl px-4 text-sm font-semibold text-gray-800 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00428E] disabled:opacity-50"
+            >
+              {pending && <Spinner className="size-4" />}
+              Search
+            </button>
+          )}
+        </form>
+
+        {!isOnline && !rosterLoaded && (
+          <Notice tone="warn">No offline participant list for this session yet. Connect once while online to search offline.</Notice>
+        )}
+
+        {searched && (
+          pending && results.length === 0 ? (
+            <div className="divide-y divide-gray-200 overflow-hidden rounded-2xl bg-white ring-1 ring-gray-200" aria-busy="true" aria-label="Searching">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-center justify-between gap-3 px-4 py-3.5">
+                  <div className="flex flex-col gap-2">
+                    <div className="h-4 w-44 animate-pulse rounded bg-gray-200" />
+                    <div className="h-3 w-32 animate-pulse rounded bg-gray-100" />
+                  </div>
+                  <div className="h-11 w-24 animate-pulse rounded-xl bg-gray-100" />
+                </div>
+              ))}
+            </div>
+          ) : searchUnavailableOffline ? (
+            <Notice tone="warn">Can&rsquo;t search offline. There&rsquo;s no saved participant list for this session.</Notice>
+          ) : results.length === 0 ? (
+            <div className="rounded-2xl bg-white px-4 py-6 text-center ring-1 ring-gray-200">
+              <p className="font-medium text-gray-900">No one found for &ldquo;{q.trim()}&rdquo;</p>
+              <p className="mt-1 text-sm text-gray-600">Try their last name or mobile number.</p>
+            </div>
+          ) : (
+            resultsList
+          )
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
       {qrCheckin && (
         <>
-          <QrScanner
-            ref={qrScannerRef}
-            sessionId={sessionId}
-            isVictoryDay={isVictoryDay}
-            allowAllClasses={victoryDayAllowAllClasses}
-            isOrientation={isOrientation}
-            autoOpen={autoOpenQrScanner && !initialQ?.trim()}
-            confirmBeforeCheckIn={confirmBeforeCheckIn}
-            showTableNumber={showTableNumber}
-            autoCheckin={autoCheckin}
-            autoCheckin915={autoCheckin915}
-            offlineCheckin={offlineCheckin}
-            checkinTimeoutFallback={checkinTimeoutFallback}
-            roster={roster}
-            onRosterUpdate={updateRoster}
-            onCheckIn={(info) => {
-              const nextQuery = info.lastName.trim() || q;
-              setQ(nextQuery);
-              runSearch(nextQuery);
-            }}
-          />
+          {qrScanner}
           <div className="relative flex items-center my-4">
             <div className="flex-1 border-t border-gray-200" />
             <span className="px-3 text-xs text-gray-400">or search manually</span>
@@ -270,21 +362,7 @@ export function ParticipantSearch({ sessionId, sessionName, isVictoryDay, requir
           ) : results.length === 0 ? (
             <p className="text-sm text-gray-500">No participants found for &ldquo;{q}&rdquo;.</p>
           ) : (
-            <SessionCheckInList
-              participants={results}
-              sessionId={sessionId}
-              isVictoryDay={isVictoryDay}
-              requiresVictoryDay={requiresVictoryDay}
-              onAction={() => runSearch(q)}
-              onRosterUpdate={updateRoster}
-              searchQuery={q.trim()}
-              confirmBeforeCheckIn={confirmBeforeCheckIn}
-              showTableNumber={showTableNumber}
-              offlineCheckin={offlineCheckin}
-              checkinTimeoutFallback={checkinTimeoutFallback}
-              autoCheckin={autoCheckin}
-              autoCheckin915={autoCheckin915}
-            />
+            resultsList
           )}
         </div>
       )}

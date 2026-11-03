@@ -9,6 +9,9 @@ import { OfflineSyncBar } from "./OfflineSyncBar";
 import { RosterPrefetcher } from "./RosterPrefetcher";
 import { ConnectionStatus } from "./ConnectionStatus";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import Link from "next/link";
+import { NewCheckinUiProvider } from "./ui/NewCheckinUi";
+import { ChevronLeftIcon } from "./ui/icons";
 
 export default async function AdminPage({
   searchParams,
@@ -83,6 +86,64 @@ export default async function AdminPage({
   ]);
   const attendeeCounts = Object.fromEntries([...attendeeCountRows, ...vglAttendeeCountRows].map((r) => [r.sessionId, r.total]));
 
+  const sessionAreaProps = {
+    sessions,
+    initialSelectedId: sessionId,
+    batchName: defaultBatch?.name,
+    attendeeCounts,
+    initialQ,
+    qrCheckin: flagMap["qr_checkin"] ?? false,
+    victoryDayAllowAllClasses: flagMap["victory_day_allow_all_classes"] ?? false,
+    autoOpenQrScanner: flagMap["qr_auto_open_scanner"] ?? false,
+    confirmBeforeCheckIn: flagMap["checkin_confirm_popup"] ?? true,
+    showTableNumber: flagMap["checkin_table_assignment"] ?? true,
+    autoCheckin: flagMap["checkin_autocheckin"] ?? false,
+    autoCheckin915: flagMap["checkin_autocheckin_915"] ?? false,
+    offlineCheckin: flagMap["offline_checkin"] ?? false,
+    checkinTimeoutFallback: flagMap["checkin_timeout_fallback"] ?? false,
+    newDatePicker: flagMap["new_date_picker"] ?? false,
+  };
+
+  const offlineTools = flagMap["offline_checkin"] && (
+    <>
+      <OfflineSyncBar />
+      {/* VGL-only sessions have no participant roster to cache (and their check-in is online-only). */}
+      <RosterPrefetcher sessions={sessions.filter((s) => !s.vglOnly)} victoryDayAllowAllClasses={flagMap["victory_day_allow_all_classes"] ?? false} qrCheckin={flagMap["qr_checkin"] ?? false} />
+    </>
+  );
+
+  if (flagMap["new_ui_checkin"]) {
+    const classBreakdown = feeBreakdown.map(({ fee, total }) => {
+      const cat = FEE_CATEGORIES.find((f) => f.value === fee);
+      return { label: cat ? `Class ${cat.value} (${cat.description})` : (fee ?? "Unknown"), total };
+    });
+    return (
+      <NewCheckinUiProvider enabled>
+        <div data-new-ui className="mx-auto flex max-w-2xl flex-col gap-4 caret-[#00428E] selection:bg-[#00428E]/15">
+          <header className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <Link href="/journey" className="-ml-1 inline-flex items-center gap-0.5 rounded text-sm font-medium text-gray-600 hover:text-gray-900">
+                <ChevronLeftIcon className="size-4" />
+                Discipleship Journey Portal
+              </Link>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900">Check-in</h2>
+              {defaultBatch && <p className="text-sm text-gray-600">{defaultBatch.name}</p>}
+            </div>
+            <div className="flex shrink-0 items-center gap-2 pt-6">
+              {flagMap["offline_checkin"] && <ConnectionStatus />}
+              <CheckInSettingsButton flags={flagMap} />
+            </div>
+          </header>
+
+          <ServiceWorkerRegister enabled={flagMap["offline_checkin"] ?? false} />
+          {offlineTools}
+
+          <AdminSessionArea {...sessionAreaProps} registeredCount={registeredCount} classBreakdown={classBreakdown} />
+        </div>
+      </NewCheckinUiProvider>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4">
@@ -101,13 +162,7 @@ export default async function AdminPage({
 
       <ServiceWorkerRegister enabled={flagMap["offline_checkin"] ?? false} />
 
-      {flagMap["offline_checkin"] && (
-        <>
-          <OfflineSyncBar />
-          {/* VGL-only sessions have no participant roster to cache (and their check-in is online-only). */}
-          <RosterPrefetcher sessions={sessions.filter((s) => !s.vglOnly)}victoryDayAllowAllClasses={flagMap["victory_day_allow_all_classes"] ?? false} qrCheckin={flagMap["qr_checkin"] ?? false} />
-        </>
-      )}
+      {offlineTools}
 
       <div className="px-4 py-3 rounded-xl border border-indigo-100 bg-indigo-50 w-fit flex flex-col gap-2">
         <div className="flex items-center gap-2">
@@ -133,23 +188,7 @@ export default async function AdminPage({
         )}
       </div>
 
-      <AdminSessionArea
-        sessions={sessions}
-        initialSelectedId={sessionId}
-        batchName={defaultBatch?.name}
-        attendeeCounts={attendeeCounts}
-        initialQ={initialQ}
-        qrCheckin={flagMap["qr_checkin"] ?? false}
-        victoryDayAllowAllClasses={flagMap["victory_day_allow_all_classes"] ?? false}
-        autoOpenQrScanner={flagMap["qr_auto_open_scanner"] ?? false}
-        confirmBeforeCheckIn={flagMap["checkin_confirm_popup"] ?? true}
-        showTableNumber={flagMap["checkin_table_assignment"] ?? true}
-        autoCheckin={flagMap["checkin_autocheckin"] ?? false}
-        autoCheckin915={flagMap["checkin_autocheckin_915"] ?? false}
-        offlineCheckin={flagMap["offline_checkin"] ?? false}
-        checkinTimeoutFallback={flagMap["checkin_timeout_fallback"] ?? false}
-        newDatePicker={flagMap["new_date_picker"] ?? false}
-      />
+      <AdminSessionArea {...sessionAreaProps} />
     </div>
   );
 }

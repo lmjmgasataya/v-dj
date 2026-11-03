@@ -60,16 +60,16 @@ export function DisciplerFields({
           />
         </Field>
         {open && (
-          <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+          <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden new-ui:rounded-xl new-ui:border-0 new-ui:shadow-[0_12px_32px_rgba(15,23,42,0.16)] new-ui:ring-1 new-ui:ring-gray-200">
             {results.map((d) => (
               <button
                 key={d.id}
                 type="button"
                 onMouseDown={() => handleSelect(d)}
-                className="w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 transition border-b border-gray-100 last:border-0"
+                className="w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 transition border-b border-gray-100 last:border-0 new-ui:hover:bg-[#00428E]/5 new-ui:focus-visible:bg-[#00428E]/5 new-ui:focus-visible:outline-none"
               >
                 <p className="font-medium text-gray-900">{d.lastName}, {d.firstName}</p>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5 new-ui:text-gray-600">
                   {d.mobileNumber}{d.facebookMessengerName ? ` · ${d.facebookMessengerName}` : ""}
                 </p>
               </button>

@@ -38,19 +38,28 @@ export const SERVICE_OPTIONS = [
   "1PM - Lapaz",
 ];
 
+// `new-ui:` classes only apply inside a [data-new-ui] container (see globals.css), so
+// pages still on the old look are unaffected.
 export const inputCls =
-  "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent";
+  "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent" +
+  " new-ui:rounded-xl new-ui:bg-white new-ui:px-3.5 new-ui:py-2.5 new-ui:text-base new-ui:text-gray-900 new-ui:placeholder:text-gray-500 new-ui:focus:border-[#00428E] new-ui:focus:ring-[#00428E]/20 new-ui:disabled:bg-gray-100 new-ui:disabled:text-gray-600";
 
-export const selectCls = inputCls;
+export const selectCls =
+  inputCls +
+  ` new-ui:appearance-none new-ui:bg-no-repeat new-ui:pr-10 new-ui:bg-[length:1.125rem] new-ui:bg-[position:right_0.75rem_center] new-ui:bg-[url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%234b5563'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='m6%209%206%206%206-6'/%3E%3C/svg%3E")]`;
+
+const importantCls =
+  "mt-0.5 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 uppercase tracking-wide" +
+  " new-ui:mt-0 new-ui:rounded-md new-ui:bg-amber-50 new-ui:px-2 new-ui:text-xs new-ui:font-medium new-ui:normal-case new-ui:tracking-normal new-ui:text-amber-800 new-ui:ring-1 new-ui:ring-inset new-ui:ring-amber-600/25";
 
 export function Section({ title, description, important, children }: { title: string; description?: string; important?: boolean | string; children: React.ReactNode }) {
   return (
     // No overflow-hidden: it would clip autocomplete dropdowns that extend past the card.
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-      <div className="bg-indigo-50 border-b border-indigo-100 rounded-t-xl px-6 py-3">
-        <h2 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">{title}</h2>
-        {important && <span className="mt-0.5 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 uppercase tracking-wide">{typeof important === "string" ? important : "Important"}</span>}
-        {description && <p className="text-xs text-indigo-500 mt-0.5">{description}</p>}
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm new-ui:rounded-2xl new-ui:border-0 new-ui:shadow-[0_1px_2px_rgba(15,23,42,0.05)] new-ui:ring-1 new-ui:ring-gray-200">
+      <div className="bg-indigo-50 border-b border-indigo-100 rounded-t-xl px-6 py-3 new-ui:flex new-ui:flex-wrap new-ui:items-center new-ui:gap-x-2 new-ui:gap-y-1 new-ui:rounded-t-2xl new-ui:border-gray-100 new-ui:bg-transparent new-ui:pt-5 new-ui:pb-4">
+        <h2 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide new-ui:text-lg new-ui:normal-case new-ui:tracking-normal new-ui:text-gray-900">{title}</h2>
+        {important && <span className={importantCls}>{typeof important === "string" ? important : "Important"}</span>}
+        {description && <p className="text-xs text-indigo-500 mt-0.5 new-ui:mt-0 new-ui:w-full new-ui:text-sm new-ui:text-gray-600">{description}</p>}
       </div>
       <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">{children}</div>
     </div>
@@ -79,8 +88,8 @@ export function CheckboxOption({
   labelClassName?: string;
 }) {
   return (
-    <label className={`flex ${align === "start" ? "items-start" : "items-center"} gap-2.5 cursor-pointer group`}>
-      <span className={`relative flex-shrink-0 w-4 h-4${align === "start" ? " mt-0.5" : ""}`}>
+    <label className={`flex ${align === "start" ? "items-start" : "items-center"} gap-2.5 cursor-pointer group new-ui:gap-3 new-ui:py-1`}>
+      <span className={`relative flex-shrink-0 w-4 h-4 new-ui:size-5${align === "start" ? " mt-0.5" : ""}`}>
         <input
           type="checkbox"
           name={name}
@@ -91,9 +100,9 @@ export function CheckboxOption({
           onChange={onChange}
           className="peer sr-only"
         />
-        <span className="absolute inset-0 rounded border-2 border-gray-300 bg-white transition-colors group-hover:border-indigo-400 peer-checked:border-indigo-600 peer-checked:bg-[#00428E] peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-400 peer-focus-visible:ring-offset-1" />
+        <span className="absolute inset-0 rounded border-2 border-gray-300 bg-white transition-colors group-hover:border-indigo-400 peer-checked:border-indigo-600 peer-checked:bg-[#00428E] peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-400 peer-focus-visible:ring-offset-1 new-ui:rounded-md new-ui:border-gray-400 new-ui:group-hover:border-[#00428E] new-ui:peer-checked:border-[#00428E] new-ui:peer-focus-visible:ring-[#00428E]/40" />
         <svg
-          className="absolute inset-0 m-auto w-2.5 h-2.5 text-white opacity-0 peer-checked:opacity-100 scale-75 peer-checked:scale-100 transition-all duration-150 pointer-events-none"
+          className="absolute inset-0 m-auto w-2.5 h-2.5 new-ui:size-3 text-white opacity-0 peer-checked:opacity-100 scale-75 peer-checked:scale-100 transition-all duration-150 pointer-events-none"
           viewBox="0 0 12 12"
           fill="none"
           stroke="currentColor"
@@ -104,7 +113,7 @@ export function CheckboxOption({
           <polyline points="1.5,6 4.5,9 10.5,3" />
         </svg>
       </span>
-      <span className={`text-sm text-gray-700 select-none leading-snug${labelClassName ? ` ${labelClassName}` : ""}`}>
+      <span className={`text-sm text-gray-700 select-none leading-snug new-ui:text-base new-ui:text-gray-800${labelClassName ? ` ${labelClassName}` : ""}`}>
         {children}
       </span>
     </label>
@@ -129,8 +138,8 @@ export function RadioOption({
   onChange?: () => void;
 }) {
   return (
-    <label className="flex items-center gap-2.5 cursor-pointer group">
-      <span className="relative flex-shrink-0 w-4 h-4">
+    <label className="flex items-center gap-2.5 cursor-pointer group new-ui:gap-3 new-ui:py-1">
+      <span className="relative flex-shrink-0 w-4 h-4 new-ui:size-5">
         <input
           type="radio"
           name={name}
@@ -141,10 +150,10 @@ export function RadioOption({
           onChange={onChange && (() => onChange())}
           className="peer sr-only"
         />
-        <span className="absolute inset-0 rounded-full border-2 border-gray-300 bg-white transition-colors group-hover:border-indigo-400 peer-checked:border-indigo-600 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-400 peer-focus-visible:ring-offset-1" />
-        <span className="absolute inset-0 m-auto w-2 h-2 rounded-full bg-[#00428E] scale-0 peer-checked:scale-100 transition-transform duration-150 pointer-events-none" />
+        <span className="absolute inset-0 rounded-full border-2 border-gray-300 bg-white transition-colors group-hover:border-indigo-400 peer-checked:border-indigo-600 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-400 peer-focus-visible:ring-offset-1 new-ui:border-gray-400 new-ui:group-hover:border-[#00428E] new-ui:peer-checked:border-[#00428E] new-ui:peer-focus-visible:ring-[#00428E]/40" />
+        <span className="absolute inset-0 m-auto w-2 h-2 new-ui:size-2.5 rounded-full bg-[#00428E] scale-0 peer-checked:scale-100 transition-transform duration-150 pointer-events-none" />
       </span>
-      <span className="text-sm text-gray-700 group-hover:text-gray-900 select-none leading-tight">
+      <span className="text-sm text-gray-700 group-hover:text-gray-900 select-none leading-tight new-ui:text-base new-ui:text-gray-800">
         {label}
       </span>
     </label>
@@ -166,9 +175,9 @@ export function Field({
 }) {
   return (
     <div className={className}>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label} {required && <span className="text-red-500">*</span>}
-        {important && <span className="ml-1.5 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 uppercase tracking-wide">Important</span>}
+      <label className="block text-sm font-medium text-gray-700 mb-1 new-ui:mb-1.5 new-ui:text-gray-800">
+        {label} {required && <span className="text-red-500 new-ui:text-red-600">*</span>}
+        {important && <span className={`ml-1.5 ${importantCls}`}>Important</span>}
       </label>
       {children}
     </div>

@@ -5,6 +5,10 @@ import { getSessionCheckIns } from "./actions";
 import { getVglCheckinRoster } from "./vglActions";
 import { toTitleCase } from "@/lib/text";
 import { checkInStatusBadgeClass } from "@/lib/checkinStatus";
+import { useNewCheckinUi } from "./ui/NewCheckinUi";
+import { Sheet } from "./ui/Sheet";
+import { StatusPill, Tag } from "./ui/StatusPill";
+import { CloseIcon, RefreshIcon, UsersIcon } from "./ui/icons";
 
 type CheckIn = Omit<Awaited<ReturnType<typeof getSessionCheckIns>>[number], "victoryDayDate"> & { victoryDayDate: string | null };
 
@@ -47,6 +51,7 @@ export function SessionAttendeesModal({
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<CheckIn[]>([]);
   const [pending, startTransition] = useTransition();
+  const newUi = useNewCheckinUi();
 
   function load() {
     startTransition(async () => {
@@ -70,6 +75,103 @@ export function SessionAttendeesModal({
     if (open) document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
+
+  if (newUi) {
+    const formatName = (c: CheckIn) => `${toTitleCase(c.lastName)}, ${toTitleCase(c.firstName)}${c.middleInitial ? ` ${toTitleCase(c.middleInitial)}.` : ""}`;
+    return (
+      <>
+        <button
+          type="button"
+          onClick={handleOpen}
+          aria-haspopup="dialog"
+          className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-[#00428E] ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00428E]"
+        >
+          <UsersIcon className="size-4" />
+          See list
+        </button>
+
+        {open && (
+          <Sheet labelledBy={`attendees-${sessionId}`} onClose={() => setOpen(false)} dismissOnBackdrop wide>
+            <div className="flex items-start justify-between gap-3 border-b border-gray-200 px-5 pt-3 pb-3 sm:pt-4">
+              <div className="min-w-0">
+                <h3 id={`attendees-${sessionId}`} className="text-lg font-semibold text-gray-900">{sessionName}</h3>
+                <p className="text-sm text-gray-600" aria-live="polite">
+                  {pending ? (
+                    <span className="inline-block h-3.5 w-24 animate-pulse rounded bg-gray-200 align-middle" />
+                  ) : (
+                    <>
+                      <span className="tabular-nums">{attendedCount}</span> checked in
+                      {absentCount > 0 && <span className="text-red-700"> · <span className="tabular-nums">{absentCount}</span> absent</span>}
+                    </>
+                  )}
+                </p>
+              </div>
+              <div className="-mr-2 flex shrink-0 items-center">
+                <button
+                  type="button"
+                  onClick={load}
+                  disabled={pending}
+                  aria-label="Refresh list"
+                  className="flex size-11 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-800 disabled:opacity-40"
+                >
+                  <RefreshIcon className={`size-5 ${pending ? "animate-spin" : ""}`} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  aria-label="Close"
+                  className="flex size-11 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                >
+                  <CloseIcon />
+                </button>
+              </div>
+            </div>
+
+            <div className="min-h-40 flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)]">
+              {pending && data.length === 0 ? (
+                <div className="divide-y divide-gray-100">
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex items-center justify-between gap-3 px-5 py-3.5">
+                      <div className="h-4 w-44 animate-pulse rounded bg-gray-200" />
+                      <div className="h-3.5 w-12 animate-pulse rounded bg-gray-100" />
+                    </div>
+                  ))}
+                </div>
+              ) : data.length === 0 ? (
+                <div className="px-5 py-10 text-center">
+                  <p className="font-medium text-gray-900">No check-ins yet</p>
+                  <p className="mt-1 text-sm text-gray-600">People you check in will show up here.</p>
+                </div>
+              ) : (
+                <ol className="divide-y divide-gray-100">
+                  {data.map((c, i) => {
+                    const time = new Date(c.checkedInAt).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Manila" });
+                    const vd = c.victoryDate ?? c.victoryDayDate;
+                    const isIncomplete = !!c.victoryDayDate && !c.completedVictoryDay && !c.victoryDate;
+                    return (
+                      <li key={c.id} className="flex items-start gap-3 px-5 py-3">
+                        <span className="w-6 shrink-0 pt-0.5 text-right text-sm text-gray-500 tabular-nums">{i + 1}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-gray-900 capitalize">{formatName(c)}</p>
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            <StatusPill status={c.status} />
+                            {!vglOnly && <Tag>{c.tableNumber ? `Table ${c.tableNumber}` : "No table"}</Tag>}
+                            {vd && <Tag tone={isIncomplete ? "amber" : "gray"}>Victory Day {vd}{isIncomplete ? ` (${c.victoryDayCount}/${c.totalVictoryDaySessions})` : ""}</Tag>}
+                          </div>
+                          {c.remarks && <p className="mt-1 text-sm text-amber-800">{c.remarks}</p>}
+                        </div>
+                        <span className="shrink-0 pt-0.5 text-sm text-gray-600 tabular-nums">{time}</span>
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
+            </div>
+          </Sheet>
+        )}
+      </>
+    );
+  }
 
   return (
     <>

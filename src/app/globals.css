@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Redesigned UI (DESIGN.md), switched on per portal by a `new_ui_*` flag. Shared
+   components carry `new-ui:` classes that only apply inside a [data-new-ui] container,
+   so pages still on the old look are untouched. */
+@custom-variant new-ui ([data-new-ui] &);
+
 :root {
   color-scheme: light;
 }
@@ -64,7 +69,39 @@ button {
   animation: check-tick-stroke-draw 5s ease-out infinite;
 }
 
+/* New check-in UI: sheets rise into place (exponential ease-out). */
+@keyframes sheet-in {
+  from {
+    transform: translateY(24px);
+    opacity: 0.4;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.animate-sheet-in {
+  animation: sheet-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* New check-in UI: the result mark lands once, already visible on the first frame. */
+@keyframes result-pop {
+  from {
+    transform: scale(0.82);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.animate-result-pop {
+  animation: result-pop 320ms cubic-bezier(0.16, 1, 0.3, 1) 60ms backwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .animate-sheet-in,
+  .animate-result-pop,
   .animate-check-circle-pop,
   .animate-check-circle-stroke,
   .animate-check-tick-stroke {

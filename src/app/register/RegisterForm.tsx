@@ -42,22 +42,24 @@ interface Props {
   newDatePicker: boolean;
   /** The default batch, which new registrations are added to. */
   activeBatch: { name: string; classDates: string } | null;
+  /** `new_ui_register` flag: render in the redesigned look (DESIGN.md). Same fields and steps. */
+  newUi?: boolean;
 }
 
 function ReviewRow({ label, value, span }: { label: string; value?: string | null; span?: boolean }) {
   return (
     <div className={span ? "sm:col-span-2" : ""}>
-      <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">{label}</dt>
-      <dd className="text-sm text-gray-900">{value || "—"}</dd>
+      <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5 new-ui:text-sm new-ui:font-normal new-ui:normal-case new-ui:tracking-normal new-ui:text-gray-600">{label}</dt>
+      <dd className="text-sm text-gray-900 new-ui:text-base new-ui:font-medium">{value || "—"}</dd>
     </div>
   );
 }
 
 function ReviewSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      <div className="bg-indigo-50 border-b border-indigo-100 px-6 py-3">
-        <h3 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">{title}</h3>
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden new-ui:rounded-2xl new-ui:border-0 new-ui:shadow-[0_1px_2px_rgba(15,23,42,0.05)] new-ui:ring-1 new-ui:ring-gray-200">
+      <div className="bg-indigo-50 border-b border-indigo-100 px-6 py-3 new-ui:border-gray-100 new-ui:bg-transparent new-ui:pt-5 new-ui:pb-4">
+        <h3 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide new-ui:text-lg new-ui:normal-case new-ui:tracking-normal new-ui:text-gray-900">{title}</h3>
       </div>
       <dl className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">{children}</dl>
     </div>
@@ -66,7 +68,7 @@ function ReviewSection({ title, children }: { title: string; children: React.Rea
 
 const STUDENT_LIFESTAGES = ["Student (JHS/SHS)", "Student (College)"];
 
-export function RegisterForm({ vgLeaderOptions, vgLeaderAutocomplete, disciplerAutocomplete, newDatePicker, activeBatch }: Props) {
+export function RegisterForm({ vgLeaderOptions, vgLeaderAutocomplete, disciplerAutocomplete, newDatePicker, activeBatch, newUi = false }: Props) {
   const [previousChurch, setPreviousChurch] = useState("");
   const [registrationFee, setRegistrationFee] = useState("");
   const [lifestage, setLifestage] = useState("");
@@ -138,45 +140,48 @@ export function RegisterForm({ vgLeaderOptions, vgLeaderAutocomplete, disciplerA
     captured.previousChurch === "Others" ? captured.previousChurchOther : captured.previousChurch;
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div
+      data-new-ui={newUi ? "" : undefined}
+      className={`max-w-3xl mx-auto${newUi ? " caret-[#00428E] selection:bg-[#00428E]/15" : ""}`}
+    >
       <div className="mb-6">
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Register" }]} />
-        <h2 className="text-2xl font-bold text-gray-900">
+        <h2 className="text-2xl font-bold text-gray-900 new-ui:font-semibold new-ui:tracking-tight">
           {step === "review" ? "Review Registration" : "Participant Registration"}
         </h2>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-gray-500 mt-1 new-ui:text-gray-600">
           {step === "form" ? (
-            <>All fields marked with <span className="text-red-500">*</span> are required.</>
+            <>All fields marked with <span className="text-red-500 new-ui:text-red-600">*</span> are required.</>
           ) : (
             "Please review the information below before confirming."
           )}
         </p>
         {activeBatch ? (
-          <div className="mt-4 rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
+          <div className="mt-4 rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-900 new-ui:rounded-xl new-ui:border-0 new-ui:bg-[#00428E]/5 new-ui:text-[#00336E] new-ui:ring-1 new-ui:ring-inset new-ui:ring-[#00428E]/15">
             Registering for the <span className="font-semibold">{activeBatch.name}</span> batch
-            <span className="text-indigo-700"> · Classes {activeBatch.classDates}</span>
+            <span className="text-indigo-700 new-ui:text-[#00428E]"> · Classes {activeBatch.classDates}</span>
           </div>
         ) : (
-          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 new-ui:rounded-xl new-ui:border-0 new-ui:text-amber-900 new-ui:ring-1 new-ui:ring-inset new-ui:ring-amber-600/25">
             No active batch is set. Registrations won&apos;t be added to any batch until one is set as default in Sessions › Batches.
           </div>
         )}
       </div>
 
       {/* Step indicator */}
-      <div className="flex items-center gap-2 mb-6 text-sm select-none">
-        <span className={`flex items-center gap-1.5 font-medium ${step === "form" ? "text-[#00428E]" : "text-gray-400"}`}>
-          <span className={`w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold ${step === "form" ? "bg-[#00428E] text-white" : "bg-gray-300 text-gray-500"}`}>1</span>
+      <div className="flex items-center gap-2 mb-6 text-sm select-none new-ui:gap-3">
+        <span className={`flex items-center gap-1.5 font-medium ${step === "form" ? "text-[#00428E]" : "text-gray-400 new-ui:text-gray-600"}`}>
+          <span className={`w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold new-ui:size-6 new-ui:font-semibold ${step === "form" ? "bg-[#00428E] text-white" : "bg-gray-300 text-gray-500 new-ui:bg-gray-200 new-ui:text-gray-700"}`}>1</span>
           Fill Out Form
         </span>
-        <span className="text-gray-300">›</span>
-        <span className={`flex items-center gap-1.5 font-medium ${step === "review" ? "text-[#00428E]" : "text-gray-400"}`}>
-          <span className={`w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold ${step === "review" ? "bg-[#00428E] text-white" : "bg-gray-300 text-gray-500"}`}>2</span>
+        <span className="text-gray-300 new-ui:text-gray-400" aria-hidden="true">›</span>
+        <span className={`flex items-center gap-1.5 font-medium ${step === "review" ? "text-[#00428E]" : "text-gray-400 new-ui:text-gray-600"}`}>
+          <span className={`w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold new-ui:size-6 new-ui:font-semibold ${step === "review" ? "bg-[#00428E] text-white" : "bg-gray-300 text-gray-500 new-ui:bg-gray-200 new-ui:text-gray-700"}`}>2</span>
           Review
         </span>
-        <span className="text-gray-300">›</span>
-        <span className="flex items-center gap-1.5 font-medium text-gray-400">
-          <span className="w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold bg-gray-300 text-gray-500">3</span>
+        <span className="text-gray-300 new-ui:text-gray-400" aria-hidden="true">›</span>
+        <span className="flex items-center gap-1.5 font-medium text-gray-400 new-ui:text-gray-600">
+          <span className="w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold bg-gray-300 text-gray-500 new-ui:size-6 new-ui:font-semibold new-ui:bg-gray-200 new-ui:text-gray-700">3</span>
           Done
         </span>
       </div>
@@ -189,10 +194,10 @@ export function RegisterForm({ vgLeaderOptions, vgLeaderAutocomplete, disciplerA
           onChange={() => { isDirty.current = true; }}
           className="flex flex-col gap-6"
         >
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-5 flex flex-col gap-3">
-            <p className="text-sm font-semibold text-gray-700">
-              I will register for: <span className="text-red-500">*</span>
-              <span className="ml-1.5 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 uppercase tracking-wide">Important</span>
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-5 flex flex-col gap-3 new-ui:rounded-2xl new-ui:border-0 new-ui:shadow-[0_1px_2px_rgba(15,23,42,0.05)] new-ui:ring-1 new-ui:ring-gray-200">
+            <p className="text-sm font-semibold text-gray-700 new-ui:text-lg new-ui:text-gray-900">
+              I will register for: <span className="text-red-500 new-ui:text-red-600">*</span>
+              <span className="ml-1.5 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 uppercase tracking-wide new-ui:ml-2 new-ui:rounded-md new-ui:bg-amber-50 new-ui:px-2 new-ui:align-middle new-ui:text-xs new-ui:font-medium new-ui:normal-case new-ui:tracking-normal new-ui:text-amber-800 new-ui:ring-1 new-ui:ring-inset new-ui:ring-amber-600/25">Important</span>
             </p>
             <select
               name="registrationFee"
@@ -211,7 +216,7 @@ export function RegisterForm({ vgLeaderOptions, vgLeaderAutocomplete, disciplerA
             </select>
             {isAB && (
               <div className="flex flex-col gap-1.5">
-                <span className="text-sm text-gray-700">Have you gone through Victory Weekend before?</span>
+                <span className="text-sm text-gray-700 new-ui:text-base new-ui:text-gray-800">Have you gone through Victory Weekend before?</span>
                 <div className="flex gap-4">
                   <RadioOption name="isDoneWithVictoryWeekend" value="yes" label="Yes" required checked={isDoneWithVictoryWeekend === true} onChange={() => setIsDoneWithVictoryWeekend(true)} />
                   <RadioOption name="isDoneWithVictoryWeekend" value="no" label="No" checked={isDoneWithVictoryWeekend === false} onChange={() => setIsDoneWithVictoryWeekend(false)} />
@@ -220,11 +225,11 @@ export function RegisterForm({ vgLeaderOptions, vgLeaderAutocomplete, disciplerA
             )}
           </div>
 
-          <Section title="Participant Information">
+          <Section title="Participant Information" description={newUi ? "Filled in by the participant." : undefined}>
             {needsVictoryDate && (
-              <div className="sm:col-span-2 rounded-xl border-2 border-amber-400 bg-amber-50 px-5 py-4 flex flex-col gap-1">
-                <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Required</p>
-                <p className="text-xs text-amber-600 mb-2">Please enter the date when the participant completed Victory Weekend.</p>
+              <div className="sm:col-span-2 rounded-xl border-2 border-amber-400 bg-amber-50 px-5 py-4 flex flex-col gap-1 new-ui:border-0 new-ui:ring-1 new-ui:ring-inset new-ui:ring-amber-600/30">
+                <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide new-ui:hidden">Required</p>
+                <p className="text-xs text-amber-600 mb-2 new-ui:text-sm new-ui:text-amber-900">Please enter the date when the participant completed Victory Weekend.</p>
                 <Field label="Victory Weekend Date" required>
                   <DatePickerField name="victoryDate" required max={today} className={inputCls} newDatePicker={newDatePicker} />
                 </Field>
@@ -356,7 +361,7 @@ export function RegisterForm({ vgLeaderOptions, vgLeaderAutocomplete, disciplerA
                       name="previousChurchOther"
                       required
                       placeholder="Please specify your previous church"
-                      className={`${inputCls} mt-1 ml-5`}
+                      className={`${inputCls} mt-1 ml-5 new-ui:ml-8`}
                     />
                   )}
                 </div>
@@ -369,7 +374,7 @@ export function RegisterForm({ vgLeaderOptions, vgLeaderAutocomplete, disciplerA
           </Section>
 
           {showVgLeader ? (
-            <Section title="Victory Group Leader Information">
+            <Section title="Victory Group Leader Information" description={newUi ? "Filled in by the participant." : undefined}>
               <VgLeaderFields options={vgLeaderOptions} enabled={vgLeaderAutocomplete} />
             </Section>
           ) : isAB ? (
@@ -384,11 +389,11 @@ export function RegisterForm({ vgLeaderOptions, vgLeaderAutocomplete, disciplerA
             </Section>
           ) : null}
 
-          <Section title="Payment &amp; Admin">
+          <Section title="Payment &amp; Admin" description={newUi ? "Filled in by the admin service team." : undefined}>
             <Field label="Registration Fee" required>
               <select
                 disabled
-                className={`${selectCls} opacity-60 cursor-not-allowed bg-gray-50`}
+                className={`${selectCls} opacity-60 cursor-not-allowed bg-gray-50 new-ui:opacity-100`}
                 value={registrationFee}
               >
                 <option value="">-- Select --</option>
@@ -419,7 +424,7 @@ export function RegisterForm({ vgLeaderOptions, vgLeaderAutocomplete, disciplerA
 
           <button
             type="submit"
-            className="w-full sm:w-auto self-end bg-[#00428E] hover:bg-[#003578] text-white font-semibold py-3 px-10 rounded-xl transition"
+            className="w-full sm:w-auto self-end bg-[#00428E] hover:bg-[#003578] text-white font-semibold py-3 px-10 rounded-xl transition new-ui:h-12 new-ui:py-0 new-ui:px-8 new-ui:focus-visible:outline-2 new-ui:focus-visible:outline-offset-2 new-ui:focus-visible:outline-[#00428E]"
           >
             Review Registration →
           </button>
@@ -511,7 +516,7 @@ export function RegisterForm({ vgLeaderOptions, vgLeaderAutocomplete, disciplerA
             <button
               type="button"
               onClick={() => setStep("form")}
-              className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 hover:text-gray-900 px-5 py-2.5 rounded-xl border border-gray-300 hover:border-gray-400 transition"
+              className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 hover:text-gray-900 px-5 py-2.5 rounded-xl border border-gray-300 hover:border-gray-400 transition new-ui:h-12 new-ui:justify-center new-ui:py-0 new-ui:border-0 new-ui:text-gray-800 new-ui:ring-1 new-ui:ring-inset new-ui:ring-gray-300 new-ui:hover:bg-gray-50 new-ui:focus-visible:outline-2 new-ui:focus-visible:outline-offset-2 new-ui:focus-visible:outline-[#00428E]"
             >
               ← Back to Edit
             </button>
@@ -519,7 +524,7 @@ export function RegisterForm({ vgLeaderOptions, vgLeaderAutocomplete, disciplerA
               type="button"
               onClick={handleConfirm}
               disabled={isPending}
-              className="w-full sm:w-auto bg-[#00428E] hover:bg-[#003578] disabled:opacity-70 text-white font-semibold py-3 px-10 rounded-xl transition"
+              className="w-full sm:w-auto bg-[#00428E] hover:bg-[#003578] disabled:opacity-70 text-white font-semibold py-3 px-10 rounded-xl transition new-ui:h-12 new-ui:py-0 new-ui:px-8 new-ui:focus-visible:outline-2 new-ui:focus-visible:outline-offset-2 new-ui:focus-visible:outline-[#00428E]"
             >
               {isPending ? "Registering..." : "Confirm & Register"}
             </button>

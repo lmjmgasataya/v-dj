@@ -7,6 +7,10 @@ import { SessionAttendeesModal } from "./SessionAttendeesModal";
 import { ParticipantSearch } from "./ParticipantSearch";
 import { WalkInForm } from "./WalkInForm";
 import { VglCheckIn } from "./VglCheckIn";
+import { useNewCheckinUi } from "./ui/NewCheckinUi";
+import { SessionPickerSheet, SessionTags, formatSessionDate } from "./ui/SessionPickerSheet";
+import { ChevronDownIcon } from "./ui/icons";
+import { Tag } from "./ui/StatusPill";
 
 export function AdminSessionArea({
   sessions,
@@ -24,6 +28,8 @@ export function AdminSessionArea({
   offlineCheckin,
   checkinTimeoutFallback,
   newDatePicker,
+  registeredCount,
+  classBreakdown = [],
 }: {
   sessions: ClassSession[];
   initialSelectedId: number | null;
@@ -40,7 +46,11 @@ export function AdminSessionArea({
   offlineCheckin?: boolean;
   checkinTimeoutFallback?: boolean;
   newDatePicker?: boolean;
+  /** New UI only: registered participants in the batch, total and per class. */
+  registeredCount?: number;
+  classBreakdown?: { label: string; total: number }[];
 }) {
+  const newUi = useNewCheckinUi();
   const currentParams = useSearchParams();
   const [open, setOpen] = useState(false);
   // Owned client-side (not derived from the URL) so picking a session never
@@ -80,6 +90,139 @@ export function AdminSessionArea({
     if (open) document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [open]);
+
+  if (newUi) {
+    const checkedIn = selectedSession ? attendeeCounts[selectedSession.id] ?? 0 : 0;
+    // The batch's registered count only means something next to a regular class's roster.
+    const showRegistered = !!selectedSession && !selectedSession.vglOnly && !selectedSession.allowsWalkIn && registeredCount != null;
+    return (
+      <>
+        <section className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)] ring-1 ring-gray-200">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-haspopup="dialog"
+            className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-gray-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#00428E]"
+          >
+            <span className="min-w-0 flex-1">
+              {selectedSession ? (
+                <>
+                  <span className="block text-lg leading-snug font-semibold text-gray-900">{selectedSession.name}</span>
+                  <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600">
+                    {formatSessionDate(selectedSession)}
+                    <SessionTags session={selectedSession} />
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="block text-lg leading-snug font-semibold text-gray-900">Choose a session</span>
+                  <span className="block text-sm text-gray-600">Pick the class you&rsquo;re checking people in for.</span>
+                </>
+              )}
+            </span>
+            <span className="flex shrink-0 items-center gap-1 text-sm font-semibold text-[#00428E]">
+              {selectedSession && "Change"}
+              <ChevronDownIcon className="size-5" />
+            </span>
+          </button>
+
+          {selectedSession && (
+            <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3">
+              <div>
+                <p className="text-sm text-gray-600">
+                  <span className="mr-1.5 text-2xl leading-none font-semibold text-gray-900 tabular-nums">{checkedIn}</span>
+                  checked in
+                </p>
+                {showRegistered && (
+                  <p className="mt-0.5 text-xs text-gray-600">
+                    of <span className="tabular-nums">{registeredCount}</span> registered in the batch
+                  </p>
+                )}
+              </div>
+              <SessionAttendeesModal
+                sessionId={selectedSession.id}
+                sessionName={selectedSession.name}
+                attendeeCount={checkedIn}
+                vglOnly={selectedSession.vglOnly}
+              />
+            </div>
+          )}
+
+          {showRegistered && classBreakdown.length > 0 && (
+            <details className="group border-t border-gray-100 text-sm">
+              <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-gray-600 hover:text-gray-900 [&::-webkit-details-marker]:hidden">
+                Registered by class{batchName ? ` in ${batchName}` : ""}
+                <ChevronDownIcon className="size-4 transition-transform group-open:rotate-180" />
+              </summary>
+              <ul className="px-4 pb-3">
+                {classBreakdown.map(({ label, total }) => (
+                  <li key={label} className="flex justify-between gap-3 py-1 text-gray-700">
+                    <span>{label}</span>
+                    <span className="font-medium text-gray-900 tabular-nums">{total}</span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </section>
+
+        {selectedSession && selectedSession.vglOnly && (
+          <section id="search-participant" className="flex scroll-mt-4 flex-col gap-3">
+            <div className="flex items-center gap-2 px-1">
+              <h3 className="text-base font-semibold text-gray-900">Check in VG leaders</h3>
+              <Tag tone="amber">Active VGLs only</Tag>
+            </div>
+            <VglCheckIn
+              key={selectedSession.id}
+              sessionId={selectedSession.id}
+              sessionName={selectedSession.name}
+              confirmBeforeCheckIn={confirmBeforeCheckIn}
+            />
+          </section>
+        )}
+
+        {selectedSession && !selectedSession.vglOnly && !selectedSession.allowsWalkIn && (
+          <section id="search-participant" aria-label={`Check in for ${selectedSession.name}`} className="scroll-mt-4">
+            <ParticipantSearch
+              key={selectedSession.id}
+              sessionId={selectedSession.id}
+              sessionName={selectedSession.name}
+              isVictoryDay={selectedSession.isVictoryDay}
+              requiresVictoryDay={selectedSession.requiresVictoryDay}
+              initialQ={selectedSession.id === initialSelectedId ? initialQ : undefined}
+              qrCheckin={qrCheckin}
+              victoryDayAllowAllClasses={victoryDayAllowAllClasses}
+              autoOpenQrScanner={autoOpenQrScanner}
+              confirmBeforeCheckIn={confirmBeforeCheckIn}
+              showTableNumber={showTableNumber}
+              autoCheckin={autoCheckin}
+              autoCheckin915={autoCheckin915}
+              offlineCheckin={offlineCheckin}
+              checkinTimeoutFallback={checkinTimeoutFallback}
+            />
+          </section>
+        )}
+
+        {selectedSession && !selectedSession.vglOnly && selectedSession.allowsWalkIn && (
+          <section className="flex flex-col gap-3">
+            <h3 className="px-1 text-base font-semibold text-gray-900">Add a walk-in</h3>
+            <WalkInForm sessionId={selectedSession.id} newDatePicker={newDatePicker ?? false} offlineCheckin={offlineCheckin} />
+          </section>
+        )}
+
+        {open && (
+          <SessionPickerSheet
+            sessions={sessions}
+            selectedId={selectedId}
+            batchName={batchName}
+            attendeeCounts={attendeeCounts}
+            onSelect={handleSelect}
+            onClose={() => setOpen(false)}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <>

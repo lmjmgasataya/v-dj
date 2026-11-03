@@ -129,6 +129,8 @@ Role checks: `session.role === "developer"` for developer-only pages. `!!session
 
 **Event links require an up-to-date profile** — `/vg-portal/events/[id]` sends a VG leader whose live update period isn't "updated" (saved this period and 100% complete, `getLiveUpdateStatus()` in `src/lib/vgLeaderProfile.ts`) to `/vg-portal/profile?callbackUrl=<event page>`; saving the profile there (`updateOwnProfile`) continues to the event once it's complete, otherwise back to the profile.
 
+**Redesigned UI behind flags** — the new look (DESIGN.md) ships per portal behind a `new_ui_*` flag, listed in the "New UI (redesign)" group of `FLAG_GROUPS`; the old UI stays the default until its flag is on. A page in the new look wraps its content in `data-new-ui`, and shared components (`src/components/form.tsx` `inputCls`/`selectCls`/`Section`/`Field`/radios/checkboxes, `Breadcrumbs`, the VG leader/discipler autocompletes) carry `new-ui:` classes (a custom variant in `globals.css`) that only apply inside it — add new-look styles that way rather than forking a shared component. `/admin` also uses `useNewCheckinUi()` (`src/app/admin/ui/`) where its markup differs.
+
 **Path alias:** `@/*` maps to `src/*`.
 
 ### Environment variables

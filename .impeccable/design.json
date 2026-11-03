@@ -1,0 +1,606 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-03T02:58:49Z",
+  "title": "Design System: Discipleship Journey",
+  "extensions": {
+    "colorMeta": {
+      "victory-blue": {
+        "role": "primary",
+        "displayName": "Victory Blue",
+        "tonalRamp": [
+          "#001f44",
+          "#00336E",
+          "#003578",
+          "#00428E",
+          "#3368a5",
+          "#7fa0c6",
+          "#ccd9e8",
+          "#f2f6f9"
+        ]
+      },
+      "victory-blue-deep": {
+        "role": "primary",
+        "displayName": "Deep Victory Blue",
+        "tonalRamp": [
+          "#001f44",
+          "#00336E",
+          "#003578",
+          "#00428E",
+          "#3368a5",
+          "#7fa0c6",
+          "#ccd9e8",
+          "#f2f6f9"
+        ]
+      },
+      "victory-blue-ink": {
+        "role": "primary",
+        "displayName": "Victory Blue Ink",
+        "tonalRamp": [
+          "#001f44",
+          "#00336E",
+          "#003578",
+          "#00428E",
+          "#3368a5",
+          "#7fa0c6",
+          "#ccd9e8",
+          "#f2f6f9"
+        ]
+      },
+      "ground": {
+        "role": "neutral",
+        "displayName": "Cool Ground",
+        "tonalRamp": [
+          "#111827",
+          "#1f2937",
+          "#374151",
+          "#4b5563",
+          "#6b7280",
+          "#9ca3af",
+          "#d1d5db",
+          "#f3f4f6"
+        ],
+        "canonical": "Tailwind gray-50"
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "White Surface",
+        "tonalRamp": [
+          "#111827",
+          "#1f2937",
+          "#374151",
+          "#4b5563",
+          "#6b7280",
+          "#9ca3af",
+          "#d1d5db",
+          "#f3f4f6"
+        ],
+        "canonical": "white"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "tonalRamp": [
+          "#111827",
+          "#1f2937",
+          "#374151",
+          "#4b5563",
+          "#6b7280",
+          "#9ca3af",
+          "#d1d5db",
+          "#f3f4f6"
+        ],
+        "canonical": "Tailwind gray-900"
+      },
+      "ink-secondary": {
+        "role": "neutral",
+        "displayName": "Secondary Ink",
+        "tonalRamp": [
+          "#111827",
+          "#1f2937",
+          "#374151",
+          "#4b5563",
+          "#6b7280",
+          "#9ca3af",
+          "#d1d5db",
+          "#f3f4f6"
+        ],
+        "canonical": "Tailwind gray-600"
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "tonalRamp": [
+          "#111827",
+          "#1f2937",
+          "#374151",
+          "#4b5563",
+          "#6b7280",
+          "#9ca3af",
+          "#d1d5db",
+          "#f3f4f6"
+        ],
+        "canonical": "Tailwind gray-500"
+      },
+      "control-stroke": {
+        "role": "neutral",
+        "displayName": "Control Stroke",
+        "tonalRamp": [
+          "#111827",
+          "#1f2937",
+          "#374151",
+          "#4b5563",
+          "#6b7280",
+          "#9ca3af",
+          "#d1d5db",
+          "#f3f4f6"
+        ],
+        "canonical": "Tailwind gray-300"
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "tonalRamp": [
+          "#111827",
+          "#1f2937",
+          "#374151",
+          "#4b5563",
+          "#6b7280",
+          "#9ca3af",
+          "#d1d5db",
+          "#f3f4f6"
+        ],
+        "canonical": "Tailwind gray-200"
+      },
+      "fill-muted": {
+        "role": "neutral",
+        "displayName": "Muted Fill",
+        "tonalRamp": [
+          "#111827",
+          "#1f2937",
+          "#374151",
+          "#4b5563",
+          "#6b7280",
+          "#9ca3af",
+          "#d1d5db",
+          "#f3f4f6"
+        ],
+        "canonical": "Tailwind gray-100"
+      },
+      "on-time": {
+        "role": "status",
+        "displayName": "On-time",
+        "tonalRamp": [
+          "#14532d",
+          "#166534",
+          "#15803d",
+          "#16a34a",
+          "#22c55e",
+          "#86efac",
+          "#dcfce7",
+          "#f0fdf4"
+        ],
+        "canonical": "Tailwind green-600"
+      },
+      "on-time-ink": {
+        "role": "status",
+        "displayName": "On-time Ink",
+        "tonalRamp": [
+          "#14532d",
+          "#166534",
+          "#15803d",
+          "#16a34a",
+          "#22c55e",
+          "#86efac",
+          "#dcfce7",
+          "#f0fdf4"
+        ],
+        "canonical": "Tailwind green-800"
+      },
+      "on-time-tint": {
+        "role": "status",
+        "displayName": "On-time Tint",
+        "tonalRamp": [
+          "#14532d",
+          "#166534",
+          "#15803d",
+          "#16a34a",
+          "#22c55e",
+          "#86efac",
+          "#dcfce7",
+          "#f0fdf4"
+        ],
+        "canonical": "Tailwind green-50"
+      },
+      "late": {
+        "role": "status",
+        "displayName": "Late",
+        "tonalRamp": [
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#d97706",
+          "#f59e0b",
+          "#fcd34d",
+          "#fef3c7",
+          "#fffbeb"
+        ],
+        "canonical": "Tailwind amber-600 (dot uses amber-500)"
+      },
+      "late-ink": {
+        "role": "status",
+        "displayName": "Late Ink",
+        "tonalRamp": [
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#d97706",
+          "#f59e0b",
+          "#fcd34d",
+          "#fef3c7",
+          "#fffbeb"
+        ],
+        "canonical": "Tailwind amber-800"
+      },
+      "late-tint": {
+        "role": "status",
+        "displayName": "Late Tint",
+        "tonalRamp": [
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#d97706",
+          "#f59e0b",
+          "#fcd34d",
+          "#fef3c7",
+          "#fffbeb"
+        ],
+        "canonical": "Tailwind amber-50"
+      },
+      "absent": {
+        "role": "status",
+        "displayName": "Absent",
+        "tonalRamp": [
+          "#7f1d1d",
+          "#991b1b",
+          "#b91c1c",
+          "#dc2626",
+          "#ef4444",
+          "#fca5a5",
+          "#fee2e2",
+          "#fef2f2"
+        ],
+        "canonical": "Tailwind red-600"
+      },
+      "absent-ink": {
+        "role": "status",
+        "displayName": "Absent Ink",
+        "tonalRamp": [
+          "#7f1d1d",
+          "#991b1b",
+          "#b91c1c",
+          "#dc2626",
+          "#ef4444",
+          "#fca5a5",
+          "#fee2e2",
+          "#fef2f2"
+        ],
+        "canonical": "Tailwind red-800"
+      },
+      "absent-tint": {
+        "role": "status",
+        "displayName": "Absent Tint",
+        "tonalRamp": [
+          "#7f1d1d",
+          "#991b1b",
+          "#b91c1c",
+          "#dc2626",
+          "#ef4444",
+          "#fca5a5",
+          "#fee2e2",
+          "#fef2f2"
+        ],
+        "canonical": "Tailwind red-50"
+      },
+      "sync": {
+        "role": "status",
+        "displayName": "Waiting to sync",
+        "tonalRamp": [
+          "#0f172a",
+          "#1e293b",
+          "#334155",
+          "#475569",
+          "#64748b",
+          "#94a3b8",
+          "#e2e8f0",
+          "#f1f5f9"
+        ],
+        "canonical": "Tailwind slate-600"
+      },
+      "sync-ink": {
+        "role": "status",
+        "displayName": "Waiting to sync Ink",
+        "tonalRamp": [
+          "#0f172a",
+          "#1e293b",
+          "#334155",
+          "#475569",
+          "#64748b",
+          "#94a3b8",
+          "#e2e8f0",
+          "#f1f5f9"
+        ],
+        "canonical": "Tailwind slate-800"
+      },
+      "sync-tint": {
+        "role": "status",
+        "displayName": "Waiting to sync Tint",
+        "tonalRamp": [
+          "#0f172a",
+          "#1e293b",
+          "#334155",
+          "#475569",
+          "#64748b",
+          "#94a3b8",
+          "#e2e8f0",
+          "#f1f5f9"
+        ],
+        "canonical": "Tailwind slate-100"
+      },
+      "destructive": {
+        "role": "status",
+        "displayName": "Destructive",
+        "tonalRamp": [
+          "#7f1d1d",
+          "#991b1b",
+          "#b91c1c",
+          "#dc2626",
+          "#ef4444",
+          "#fca5a5",
+          "#fee2e2",
+          "#fef2f2"
+        ],
+        "canonical": "Tailwind red-700"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Table number on the check-in result; tabular."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page title; also the live checked-in count (tabular, leading-none)."
+      },
+      "title-sheet": {
+        "displayName": "Sheet Title",
+        "purpose": "Person's name and question titles in sheets."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Selected session name, sheet headers, result status word."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Inputs and phone-size button labels; 16px to avoid mobile zoom."
+      },
+      "body-sm": {
+        "displayName": "Body Small",
+        "purpose": "Row details, dates, helper text, desktop button labels."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Status pills, tags, small count lines."
+      }
+    },
+    "shadows": [
+      {
+        "name": "surface-rest",
+        "value": "0 1px 2px rgba(15,23,42,0.05)",
+        "purpose": "Session card hairline under its gray-200 ring."
+      },
+      {
+        "name": "scan-lift",
+        "value": "0 1px 2px rgba(0,66,142,0.3)",
+        "purpose": "Blue-tinted hairline under the Scan ID card button."
+      },
+      {
+        "name": "segment-selected",
+        "value": "0 1px 2px rgba(0,0,0,0.05)",
+        "purpose": "Selected segmented-control option."
+      },
+      {
+        "name": "popover",
+        "value": "0 12px 32px rgba(15,23,42,0.16)",
+        "purpose": "Settings menu."
+      },
+      {
+        "name": "sheet",
+        "value": "0 -8px 32px rgba(15,23,42,0.18)",
+        "purpose": "Bottom sheet on phones."
+      },
+      {
+        "name": "dialog",
+        "value": "0 16px 48px rgba(15,23,42,0.22)",
+        "purpose": "Sheet as a centered dialog from 640px."
+      },
+      {
+        "name": "backdrop",
+        "value": "rgba(3,7,18,0.5)",
+        "purpose": "Scrim behind sheets and dialogs (gray-950 at 50%)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-expo",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Shared easing for sheet entry and result mark."
+      },
+      {
+        "name": "sheet-in",
+        "value": "240ms; translateY(24px) opacity 0.4 to none",
+        "purpose": "Sheets and dialogs rising into place."
+      },
+      {
+        "name": "result-pop",
+        "value": "320ms, 60ms delay, backwards fill; scale(0.82) to none",
+        "purpose": "Result disc landing once, visible on the first frame."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation: none",
+        "purpose": "Both animations are disabled under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      }
+    ],
+    "scope": "Introduced on /admin behind the new_ui_checkin feature flag; intended to extend app-wide behind per-portal flags. Other surfaces and /admin with the flag off still use the older indigo-accented look, which is not this system. SiteHeader is outside this system."
+  },
+  "components": [
+    {
+      "name": "Scan Button",
+      "kind": "button",
+      "refersTo": "button-scan",
+      "description": "The one full-width 56px primary action on the check-in screen.",
+      "html": "<button class=\"ds-btn-scan\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 7V5a2 2 0 0 1 2-2h2\"/><path d=\"M17 3h2a2 2 0 0 1 2 2v2\"/><path d=\"M21 17v2a2 2 0 0 1-2 2h-2\"/><path d=\"M7 21H5a2 2 0 0 1-2-2v-2\"/><path d=\"M7 12h10\"/></svg>Scan ID card</button>",
+      "css": ".ds-btn-scan { font-family: Geist, ui-sans-serif, system-ui, sans-serif; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; height: 56px; border: none; border-radius: 12px; background: #00428E; color: #fff; font-size: 16px; font-weight: 600; box-shadow: 0 1px 2px rgba(0,66,142,0.3); cursor: pointer; transition: background-color 150ms; } .ds-btn-scan:hover { background: #003578; } .ds-btn-scan:focus-visible { outline: 2px solid #00428E; outline-offset: 2px; }"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Check in, OK and other confirming actions.",
+      "html": "<button class=\"ds-btn-primary\">Check in</button>",
+      "css": ".ds-btn-primary { font-family: Geist, ui-sans-serif, system-ui, sans-serif; height: 48px; padding: 0 24px; border: none; border-radius: 12px; background: #00428E; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; transition: background-color 150ms; } .ds-btn-primary:hover { background: #003578; } .ds-btn-primary:focus-visible { outline: 2px solid #00428E; outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Search, See list, Stop: white with an inset gray ring.",
+      "html": "<button class=\"ds-btn-secondary\">Search</button>",
+      "css": ".ds-btn-secondary { font-family: Geist, ui-sans-serif, system-ui, sans-serif; height: 48px; padding: 0 16px; border: none; border-radius: 12px; background: #fff; color: #1f2937; font-size: 14px; font-weight: 600; box-shadow: inset 0 0 0 1px #d1d5db; cursor: pointer; } .ds-btn-secondary:hover { background: #f9fafb; } .ds-btn-secondary:focus-visible { outline: 2px solid #00428E; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost and Destructive Buttons",
+      "kind": "button",
+      "refersTo": "button-destructive",
+      "description": "Sheet action pair for removing a check-in.",
+      "html": "<div class=\"ds-pair\"><button class=\"ds-btn-ghost\">Keep check-in</button><button class=\"ds-btn-danger\">Remove check-in</button></div>",
+      "css": ".ds-pair { display: flex; gap: 8px; justify-content: flex-end; } .ds-btn-ghost, .ds-btn-danger { font-family: Geist, ui-sans-serif, system-ui, sans-serif; height: 48px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; } .ds-btn-ghost { padding: 0 20px; background: transparent; color: #374151; } .ds-btn-ghost:hover { background: #f3f4f6; } .ds-btn-danger { padding: 0 24px; background: #b91c1c; color: #fff; } .ds-btn-danger:hover { background: #991b1b; } .ds-btn-ghost:focus-visible { outline: 2px solid #00428E; outline-offset: 2px; } .ds-btn-danger:focus-visible { outline: 2px solid #b91c1c; outline-offset: 2px; }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "48px field with a leading search icon; also the target a hardware scanner types into.",
+      "html": "<label class=\"ds-search\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m20 20-3.5-3.5\"/></svg><input type=\"search\" placeholder=\"Name or mobile number\" aria-label=\"Search participants\"></label>",
+      "css": ".ds-search { position: relative; display: block; } .ds-search svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #6b7280; pointer-events: none; } .ds-search input { font-family: Geist, ui-sans-serif, system-ui, sans-serif; width: 100%; height: 48px; padding: 0 12px 0 44px; border: 1px solid #d1d5db; border-radius: 12px; background: #fff; color: #111827; font-size: 16px; box-sizing: border-box; } .ds-search input::placeholder { color: #6b7280; } .ds-search input:focus { outline: none; border-color: #00428E; box-shadow: 0 0 0 2px rgba(0,66,142,0.2); }"
+    },
+    {
+      "name": "Status Pills",
+      "kind": "chip",
+      "refersTo": "status-pill-on-time",
+      "description": "Check-in status as a word with its color, never color alone.",
+      "html": "<div class=\"ds-pills\"><span class=\"ds-pill ds-ok\"><i></i>On-time</span><span class=\"ds-pill ds-late\"><i></i>Late</span><span class=\"ds-pill ds-abs\"><i></i>Absent</span><span class=\"ds-pill ds-sync\">Waiting to sync</span></div>",
+      "css": ".ds-pills { display: flex; gap: 8px; flex-wrap: wrap; } .ds-pill { font-family: Geist, ui-sans-serif, system-ui, sans-serif; display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 500; line-height: 16px; } .ds-pill i { width: 6px; height: 6px; border-radius: 9999px; } .ds-ok { background: #f0fdf4; color: #166534; box-shadow: inset 0 0 0 1px rgba(22,163,74,0.25); } .ds-ok i { background: #16a34a; } .ds-late { background: #fffbeb; color: #92400e; box-shadow: inset 0 0 0 1px rgba(217,119,6,0.3); } .ds-late i { background: #f59e0b; } .ds-abs { background: #fef2f2; color: #991b1b; box-shadow: inset 0 0 0 1px rgba(220,38,38,0.25); } .ds-abs i { background: #dc2626; } .ds-sync { background: #f1f5f9; color: #1e293b; padding: 4px 12px; }"
+    },
+    {
+      "name": "Tags",
+      "kind": "chip",
+      "refersTo": "tag",
+      "description": "Session and participant facts: Today, Victory Day, VGLs only, Walk-ins.",
+      "html": "<div class=\"ds-tags\"><span class=\"ds-tag ds-tag-blue\">Today</span><span class=\"ds-tag\">Victory Day</span><span class=\"ds-tag ds-tag-amber\">VGLs only</span></div>",
+      "css": ".ds-tags { display: flex; gap: 4px; } .ds-tag { font-family: Geist, ui-sans-serif, system-ui, sans-serif; display: inline-flex; padding: 2px 6px; border-radius: 6px; font-size: 12px; font-weight: 500; background: #f3f4f6; color: #374151; } .ds-tag-blue { background: rgba(0,66,142,0.1); color: #00428E; } .ds-tag-amber { background: #fffbeb; color: #92400e; box-shadow: inset 0 0 0 1px rgba(217,119,6,0.25); }"
+    },
+    {
+      "name": "Result List",
+      "kind": "card",
+      "refersTo": "list-surface",
+      "description": "One white surface with thin dividers; each row has name, details and a status or action.",
+      "html": "<ul class=\"ds-list\"><li><div><b>Dela Cruz, Maria Angelica S.</b><span>Class B · 0917 555 0142</span></div><div class=\"ds-right\"><span class=\"ds-pill-sm\">On-time</span><small>Table 7 · 8:51 AM</small></div></li><li><div><b>Dela Cruz, Paolo</b><span>Class A · 0998 555 0110</span></div><button class=\"ds-row-btn\">Check in</button></li></ul>",
+      "css": ".ds-list { font-family: Geist, ui-sans-serif, system-ui, sans-serif; list-style: none; margin: 0; padding: 0; background: #fff; border-radius: 16px; box-shadow: 0 0 0 1px #e5e7eb; overflow: hidden; } .ds-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; } .ds-list li + li { border-top: 1px solid #e5e7eb; } .ds-list b { display: block; font-weight: 500; color: #111827; } .ds-list span { font-size: 14px; color: #4b5563; } .ds-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; } .ds-right small { font-size: 12px; color: #4b5563; font-variant-numeric: tabular-nums; } .ds-pill-sm { font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 9999px; background: #f0fdf4; color: #166534; box-shadow: inset 0 0 0 1px rgba(22,163,74,0.25); } .ds-row-btn { height: 44px; padding: 0 16px; border: none; border-radius: 12px; background: #00428E; color: #fff; font: 600 14px/1 Geist, system-ui, sans-serif; cursor: pointer; } .ds-row-btn:hover { background: #003578; } .ds-row-btn:focus-visible { outline: 2px solid #00428E; outline-offset: 2px; }"
+    },
+    {
+      "name": "Status Segmented Control",
+      "kind": "custom",
+      "refersTo": "segmented",
+      "description": "On-time / Late / Absent picker in the confirm sheet.",
+      "html": "<div class=\"ds-seg\" role=\"radiogroup\" aria-label=\"Status\"><button role=\"radio\" aria-checked=\"true\" class=\"ds-on\">On-time</button><button role=\"radio\" aria-checked=\"false\">Late</button><button role=\"radio\" aria-checked=\"false\">Absent</button></div>",
+      "css": ".ds-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 12px; background: #f3f4f6; } .ds-seg button { font-family: Geist, ui-sans-serif, system-ui, sans-serif; height: 40px; border: none; border-radius: 8px; background: transparent; color: #4b5563; font-size: 14px; font-weight: 600; cursor: pointer; transition: color 150ms; } .ds-seg button:hover { color: #111827; } .ds-seg button:focus-visible { outline: 2px solid #00428E; outline-offset: 2px; } .ds-seg .ds-on { background: #fff; color: #166534; box-shadow: 0 1px 2px rgba(0,0,0,0.05), 0 0 0 1px rgba(22,163,74,0.3); }"
+    },
+    {
+      "name": "Check-in Result Sheet",
+      "kind": "custom",
+      "refersTo": "sheet",
+      "description": "Bottom sheet with the status disc, word, name and table number.",
+      "html": "<div class=\"ds-sheet\"><div class=\"ds-handle\"></div><div class=\"ds-disc\"><svg viewBox=\"0 0 24 24\" width=\"36\" height=\"36\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></div><p class=\"ds-word\">On-time</p><h3>You&rsquo;re checked in, Paolo!</h3><div class=\"ds-table\"><span>Table</span><strong>7</strong></div><button class=\"ds-ok-btn\">OK <span>(10)</span></button></div>",
+      "css": "@keyframes ds-sheet-in { from { transform: translateY(24px); opacity: 0.4; } to { transform: none; opacity: 1; } } @keyframes ds-pop { from { transform: scale(0.82); } to { transform: none; } } .ds-sheet { font-family: Geist, ui-sans-serif, system-ui, sans-serif; max-width: 384px; padding: 8px 20px 20px; background: #fff; border-radius: 16px 16px 0 0; box-shadow: 0 -8px 32px rgba(15,23,42,0.18); text-align: center; animation: ds-sheet-in 240ms cubic-bezier(0.16,1,0.3,1); } .ds-handle { width: 40px; height: 4px; margin: 0 auto 16px; border-radius: 9999px; background: #d1d5db; } .ds-disc { display: flex; align-items: center; justify-content: center; width: 64px; height: 64px; margin: 0 auto; border-radius: 9999px; background: #16a34a; color: #fff; animation: ds-pop 320ms cubic-bezier(0.16,1,0.3,1) 60ms backwards; } .ds-word { margin: 12px 0 0; font-size: 18px; font-weight: 600; color: #166534; } .ds-sheet h3 { margin: 4px 0 0; font-size: 20px; font-weight: 600; color: #111827; } .ds-table { margin-top: 20px; padding: 16px 0; border-radius: 12px; background: #f9fafb; box-shadow: inset 0 0 0 1px #e5e7eb; } .ds-table span { display: block; font-size: 14px; font-weight: 500; color: #4b5563; } .ds-table strong { display: block; font-size: 60px; line-height: 1.25; font-weight: 600; color: #00428E; font-variant-numeric: tabular-nums; } .ds-ok-btn { margin-top: 20px; width: 100%; height: 48px; border: none; border-radius: 12px; background: #00428E; color: #fff; font: 600 16px/1 Geist, system-ui, sans-serif; cursor: pointer; } .ds-ok-btn span { font-weight: 400; color: rgba(255,255,255,0.75); font-variant-numeric: tabular-nums; } .ds-ok-btn:hover { background: #003578; } .ds-ok-btn:focus-visible { outline: 2px solid #00428E; outline-offset: 2px; } @media (prefers-reduced-motion: reduce) { .ds-sheet, .ds-disc { animation: none; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Door App",
+    "overview": "A clean mobile check-in app, played straight. The system is the familiar category standard (the kind of screen Planning Center Check-Ins or Luma's event check-in would ship) built for a volunteer holding a low-end Android phone at the church door with a queue waiting. White surfaces sit on a cool gray ground, Victory blue is the only brand color, and status is always a colored word, never color alone. Nothing is themed; the polish comes from careful spacing, generous touch targets, tabular numerals and calm, quick motion.\n\n**Scope, plainly.** This system was introduced on the check-in screen (`/admin`), where it renders only while the `new_ui_checkin` feature flag is on, and it is meant to extend app-wide over time (registration, the VGL Portal, reports), each behind its own flag. Today nothing else follows it: the rest of the app, and `/admin` itself with the flag off, still use the older indigo-accented look of bordered cards and numbered step badges. That older look is not this system and should not be copied into new surfaces. The shared app header (`SiteHeader`) sits above every page but is outside this system and is not described here.\n\nDensity is moderate: one column, max 672px wide, 16px between blocks, list rows of about 64px. The first screen is the job: which session, how many are in, the Scan button, the search field, results.",
+    "keyCharacteristics": [
+      "White surfaces on a cool gray-50 ground; Victory blue for primary actions, the selected session and focus.",
+      "Status as color plus word: On-time green, Late amber, Absent red, Waiting to sync slate.",
+      "One list surface with thin dividers, not a card per row.",
+      "Bottom sheets on phones, centered dialogs from 640px up.",
+      "Geist throughout, tabular numerals on every count, time and table number.",
+      "Drawn line icons on one 24px grid, 2px stroke; no emoji."
+    ],
+    "rules": [
+      {
+        "name": "The One Blue Rule",
+        "body": "Victory blue is the only brand color. No indigo, no second accent. Green, amber, red and slate belong to status and are never decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Word-With-Color Rule",
+        "body": "Every status shows its word (\"On-time\", \"Late\", \"Absent\", \"Waiting to sync\") next to its color. A colored dot or disc alone never carries meaning.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Figures Rule",
+        "body": "Counts, times, table numbers and row indexes use tabular numerals so they don't jitter as they change.",
+        "section": "typography"
+      },
+      {
+        "name": "The No Eyebrow Rule",
+        "body": "Labels sit in sentence case at normal tracking. Uppercase letter-spaced kickers are not part of this system.",
+        "section": "typography"
+      },
+      {
+        "name": "The Thumb Rule",
+        "body": "On phones every tappable control is at least 44px tall; primary actions are 48px; the Scan button is 56px and full width.",
+        "section": "layout"
+      },
+      {
+        "name": "The Float-Only Shadow Rule",
+        "body": "Resting content is separated by rings and tone. Shadows larger than a hairline belong only to layers that float over the page.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** keep Victory blue the only brand color, on primary actions, the selected session and focus.",
+      "**Do** show every check-in status as its word plus its color: On-time green, Late amber, Absent red, Waiting to sync slate.",
+      "**Do** put list rows in one white 16px-rounded surface with thin dividers.",
+      "**Do** make phone controls at least 44px tall, primary actions 48px, and the Scan button 56px full width.",
+      "**Do** use tabular numerals for counts, times and table numbers.",
+      "**Do** use bottom sheets on phones and centered dialogs from 640px, rising with the 240ms exponential ease-out.",
+      "**Do** use the 2px-stroke line icon set.",
+      "**Do** put new redesigned surfaces behind their own feature flag, next to the old UI."
+    ],
+    "donts": [
+      "**Don't** reuse the older indigo-accented look (numbered step badges, indigo stat boxes, a bordered card per step) in surfaces built on this system.",
+      "**Don't** wrap each list row in its own card.",
+      "**Don't** open a modal on top of a modal; one sheet at a time.",
+      "**Don't** use emoji or glyph characters as icons.",
+      "**Don't** use uppercase letter-spaced eyebrows or kickers above titles.",
+      "**Don't** use green, amber, red or slate for decoration; they mean status."
+    ]
+  }
+}

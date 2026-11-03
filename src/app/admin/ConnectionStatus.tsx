@@ -1,6 +1,7 @@
 "use client";
 
 import { useConnectionQuality, type ConnectionQuality } from "@/lib/useConnectionQuality";
+import { useNewCheckinUi } from "./ui/NewCheckinUi";
 
 const CONFIG: Record<ConnectionQuality, { label: string; dot: string; text: string }> = {
   strong: { label: "Strong", dot: "bg-green-500", text: "text-gray-500" },
@@ -11,6 +12,20 @@ const CONFIG: Record<ConnectionQuality, { label: string; dot: string; text: stri
 export function ConnectionStatus() {
   const quality = useConnectionQuality(true);
   const { label, dot, text } = CONFIG[quality];
+  const newUi = useNewCheckinUi();
+
+  if (newUi) {
+    return (
+      <div
+        role="status"
+        title="Connection to server"
+        className={`flex h-11 shrink-0 items-center gap-2 rounded-xl bg-white px-3 text-sm font-medium ring-1 ring-inset ring-gray-300 ${quality === "strong" ? "text-gray-700" : text}`}
+      >
+        <span className={`inline-block size-2 rounded-full ${dot}`} aria-hidden="true" />
+        {label}
+      </div>
+    );
+  }
 
   return (
     <div

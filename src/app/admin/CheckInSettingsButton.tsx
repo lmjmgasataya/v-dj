@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { setCheckinFlag } from "./actions";
+import { useNewCheckinUi } from "./ui/NewCheckinUi";
 
 const CHECKIN_SETTINGS = [
   {
@@ -35,6 +36,7 @@ const CHECKIN_SETTINGS = [
 export function CheckInSettingsButton({ flags }: { flags: Record<string, boolean> }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const newUi = useNewCheckinUi();
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -51,14 +53,19 @@ export function CheckInSettingsButton({ flags }: { flags: Record<string, boolean
         onClick={() => setOpen((v) => !v)}
         title="Check-in settings"
         aria-label="Check-in settings"
-        className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition text-sm font-medium"
+        aria-expanded={open}
+        className={newUi
+          ? "flex size-11 items-center justify-center rounded-xl bg-white text-gray-600 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 hover:text-gray-900"
+          : "flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition text-sm font-medium"}
       >
         <GearIcon />
-        Settings
+        {!newUi && "Settings"}
       </button>
 
       {open && (
-        <div className="absolute z-50 top-full right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+        <div className={newUi
+          ? "absolute z-50 top-full right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white ring-1 ring-gray-200 rounded-2xl shadow-[0_12px_32px_rgba(15,23,42,0.16)] overflow-hidden"
+          : "absolute z-50 top-full right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden"}>
           <div className="px-4 py-3 border-b border-gray-100">
             <p className="text-sm font-semibold text-gray-800">Check-in Settings</p>
           </div>

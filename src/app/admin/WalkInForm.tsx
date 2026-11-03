@@ -7,6 +7,9 @@ import { DatePickerField } from "@/components/DatePickerField";
 import { MobileNumberInput } from "@/components/MobileNumberInput";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
+import { useNewCheckinUi } from "./ui/NewCheckinUi";
+import { Notice } from "./ui/ConfirmCheckInSheet";
+import { Spinner } from "./ui/icons";
 
 export function WalkInForm({ sessionId, newDatePicker, offlineCheckin = false }: { sessionId: number; newDatePicker: boolean; offlineCheckin?: boolean }) {
   const [pending, startTransition] = useTransition();
@@ -14,6 +17,7 @@ export function WalkInForm({ sessionId, newDatePicker, offlineCheckin = false }:
   const toast = useToast();
   const onlineStatus = useOnlineStatus();
   const isOnline = !offlineCheckin || onlineStatus;
+  const newUi = useNewCheckinUi();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -50,13 +54,19 @@ export function WalkInForm({ sessionId, newDatePicker, offlineCheckin = false }:
       <form
         key={formKey}
         onSubmit={handleSubmit}
-        className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4"
+        className={newUi
+          ? "grid grid-cols-1 gap-x-6 gap-y-4 rounded-2xl bg-white p-4 ring-1 ring-gray-200 sm:grid-cols-2 sm:p-6"
+          : "bg-white rounded-xl border border-gray-200 shadow-sm p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4"}
       >
-        {!isOnline && (
+        {!isOnline && (newUi ? (
+          <div className="sm:col-span-2">
+            <Notice tone="warn">Adding a walk-in needs an internet connection.</Notice>
+          </div>
+        ) : (
           <div className="sm:col-span-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
             Walk-in registration requires an internet connection.
           </div>
-        )}
+        ))}
         <Field label="Last Name" required>
           <input name="lastName" required className={inputCls} />
         </Field>
@@ -115,13 +125,24 @@ export function WalkInForm({ sessionId, newDatePicker, offlineCheckin = false }:
           <textarea name="remarks" rows={2} placeholder="e.g. arrived late, missed first 30 minutes" className={inputCls + " resize-none"} />
         </Field>
         <div className="sm:col-span-2 flex justify-end">
-          <button
-            type="submit"
-            disabled={pending || !isOnline}
-            className="bg-[#00428E] hover:bg-[#003578] disabled:opacity-50 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition"
-          >
-            {pending ? "Adding..." : "Add Walk-in"}
-          </button>
+          {newUi ? (
+            <button
+              type="submit"
+              disabled={pending || !isOnline}
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#00428E] px-6 text-base font-semibold text-white hover:bg-[#003578] disabled:opacity-50 sm:h-11 sm:w-auto sm:text-sm"
+            >
+              {pending && <Spinner className="size-4" />}
+              {pending ? "Adding…" : "Add walk-in and check in"}
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={pending || !isOnline}
+              className="bg-[#00428E] hover:bg-[#003578] disabled:opacity-50 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition"
+            >
+              {pending ? "Adding..." : "Add Walk-in"}
+            </button>
+          )}
         </div>
       </form>
     </div>

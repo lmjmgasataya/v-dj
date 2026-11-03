@@ -9,6 +9,11 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { CheckInStatusPicker } from "./CheckInStatusPicker";
 import { CheckInSuccessModal } from "./CheckInSuccessModal";
 import { ClaimedCompletedBadge } from "./ClaimedCompletedBadge";
+import { useNewCheckinUi } from "./ui/NewCheckinUi";
+import { ConfirmCheckInSheet } from "./ui/ConfirmCheckInSheet";
+import { StatusPill } from "./ui/StatusPill";
+import { SearchIcon, Spinner } from "./ui/icons";
+import { ConfirmRemoveSheet } from "./ui/ConfirmRemoveSheet";
 
 const MAX_RESULTS = 50;
 
@@ -25,11 +30,13 @@ export function VglCheckIn({
   const [roster, setRoster] = useState<VglRosterEntry[] | null>(null);
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<VglRosterEntry | null>(null);
+  const [undoEntry, setUndoEntry] = useState<VglRosterEntry | null>(null);
   const [status, setStatus] = useState<CheckInStatus>("On-time");
   const [remarks, setRemarks] = useState("");
   const [success, setSuccess] = useState<{ firstName: string; lastName: string; status: CheckInStatus } | null>(null);
   const [pending, startTransition] = useTransition();
   const toast = useToast();
+  const newUi = useNewCheckinUi();
 
   function reload() {
     startTransition(async () => {
@@ -64,10 +71,19 @@ export function VglCheckIn({
   }
 
   function handleUndo(entry: VglRosterEntry) {
+    if (newUi) {
+      setUndoEntry(entry);
+      return;
+    }
     if (!confirm(`Remove check-in of ${entry.lastName}, ${entry.firstName} for "${sessionName}"?`)) return;
+    removeEntryCheckIn(entry);
+  }
+
+  function removeEntryCheckIn(entry: VglRosterEntry) {
     startTransition(async () => {
       await removeVglCheckIn(entry.id, sessionId);
       setRoster(await getVglCheckinRoster(sessionId));
+      setUndoEntry(null);
     });
   }
 
@@ -79,6 +95,122 @@ export function VglCheckIn({
   });
   const shown = matches.slice(0, MAX_RESULTS);
   const checkedInCount = (roster ?? []).filter((r) => r.checkInId != null && r.checkInStatus !== "Absent").length;
+
+  const successModal = success && (
+    <CheckInSuccessModal
+      firstName={success.firstName}
+      lastName={success.lastName}
+      tableNumber={null}
+      showTable={false}
+      status={success.status}
+      onDismiss={() => setSuccess(null)}
+    />
+  );
+
+  if (newUi) {
+    return (
+      <>
+        <div className="flex flex-col gap-1.5">
+          <label className="relative">
+            <span className="sr-only">Search VG leader by name or mobile number</span>
+            <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-gray-500" />
+            <input
+              type="search"
+              enterKeyHint="search"
+              autoComplete="off"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search VG leader by name or mobile number"
+              className="h-12 w-full rounded-xl border border-gray-300 bg-white pr-3 pl-11 text-base text-gray-900 placeholder:text-gray-500 focus:border-[#00428E] focus:outline-none focus:ring-2 focus:ring-[#00428E]/20"
+            />
+          </label>
+          {roster && (
+            <p className="px-1 text-sm text-gray-600">
+              <span className="tabular-nums">{checkedInCount}</span> of <span className="tabular-nums">{roster.length}</span> active VG leaders checked in
+            </p>
+          )}
+        </div>
+
+        {roster === null ? (
+          <div className="flex items-center gap-2 px-1 text-sm text-gray-600"><Spinner className="size-4" />Loading VG leaders…</div>
+        ) : matches.length === 0 ? (
+          <div className="rounded-2xl bg-white px-4 py-6 text-center ring-1 ring-gray-200">
+            <p className="font-medium text-gray-900">{query ? `No active VG leader matches “${q.trim()}”` : "No active VG leaders found"}</p>
+            {query && <p className="mt-1 text-sm text-gray-600">Try their last name, nickname or mobile number.</p>}
+          </div>
+        ) : (
+          <ul className="divide-y divide-gray-200 overflow-hidden rounded-2xl bg-white ring-1 ring-gray-200">
+            {shown.map((r) => {
+              const isCheckedIn = r.checkInId != null;
+              const subtitle = [r.nickname && `“${r.nickname}”`, r.mobileNumber, r.serviceAttending].filter(Boolean).join(" · ");
+              return (
+                <li key={r.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium text-gray-900">
+                        {r.lastName}, {r.firstName}{r.middleInitial ? ` ${r.middleInitial}.` : ""}
+                      </p>
+                      {r.claimedAndCompleted && <ClaimedCompletedBadge />}
+                    </div>
+                    {subtitle && <p className="truncate text-sm text-gray-600">{subtitle}</p>}
+                    {isCheckedIn && r.checkInRemarks && <p className="mt-1 text-sm text-amber-800">{r.checkInRemarks}</p>}
+                  </div>
+                  {isCheckedIn ? (
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      {r.checkInStatus && <StatusPill status={r.checkInStatus} />}
+                      <button
+                        onClick={() => handleUndo(r)}
+                        disabled={pending}
+                        className="-mr-2 -mb-2.5 h-11 rounded-lg px-2 text-sm font-medium text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-[#00428E] disabled:opacity-50"
+                      >
+                        Undo
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => openConfirm(r)}
+                      disabled={pending}
+                      className="h-11 shrink-0 rounded-xl bg-[#00428E] px-4 text-sm font-semibold text-white hover:bg-[#003578] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00428E] disabled:opacity-50"
+                    >
+                      Check in
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {matches.length > MAX_RESULTS && (
+          <p className="px-1 text-sm text-gray-600">Showing {MAX_RESULTS} of {matches.length}. Type to narrow it down.</p>
+        )}
+
+        {selected && (
+          <ConfirmCheckInSheet
+            name={`${selected.lastName}, ${selected.firstName}`}
+            detail={sessionName}
+            status={status}
+            onStatusChange={setStatus}
+            remarks={remarks}
+            onRemarksChange={setRemarks}
+            remarksPlaceholder=""
+            pending={pending}
+            onCancel={() => setSelected(null)}
+            onConfirm={() => submit(selected, status, remarks)}
+          />
+        )}
+        {undoEntry && (
+          <ConfirmRemoveSheet
+            name={`${undoEntry.firstName} ${undoEntry.lastName}`}
+            sessionName={sessionName}
+            pending={pending}
+            onCancel={() => setUndoEntry(null)}
+            onConfirm={() => removeEntryCheckIn(undoEntry)}
+          />
+        )}
+        {successModal}
+      </>
+    );
+  }
 
   return (
     <>
@@ -191,16 +323,7 @@ export function VglCheckIn({
         </div>
       )}
 
-      {success && (
-        <CheckInSuccessModal
-          firstName={success.firstName}
-          lastName={success.lastName}
-          tableNumber={null}
-          showTable={false}
-          status={success.status}
-          onDismiss={() => setSuccess(null)}
-        />
-      )}
+      {successModal}
     </>
   );
 }

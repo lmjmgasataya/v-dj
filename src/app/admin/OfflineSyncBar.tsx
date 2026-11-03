@@ -5,6 +5,8 @@ import { checkInByQr, revalidateAfterOfflineSync } from "./actions";
 import { listPending, removePending, PENDING_CHANGED_EVENT, type PendingCheckIn } from "@/lib/offlineStore";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useNewCheckinUi } from "./ui/NewCheckinUi";
+import { CheckIcon, CloudUploadIcon, Spinner } from "./ui/icons";
 
 export function OfflineSyncBar() {
   const isOnline = useOnlineStatus();
@@ -107,6 +109,22 @@ export function OfflineSyncBar() {
 }
 
 function Banner({ tone, children }: { tone: "warn" | "info" | "success"; children: React.ReactNode }) {
+  const newUi = useNewCheckinUi();
+  if (newUi) {
+    const cls =
+      tone === "warn"
+        ? "bg-amber-50 text-amber-900 ring-amber-600/25"
+        : tone === "info"
+        ? "bg-[#00428E]/5 text-[#00336E] ring-[#00428E]/20"
+        : "bg-green-50 text-green-900 ring-green-600/25";
+    return (
+      <div role="status" className={`flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium ring-1 ring-inset ${cls}`}>
+        {tone === "warn" ? <CloudUploadIcon className="size-5 text-amber-700" /> : tone === "info" ? <Spinner className="size-4" /> : <CheckIcon className="size-5 text-green-700" />}
+        <p>{children}</p>
+      </div>
+    );
+  }
+
   const toneCls =
     tone === "warn"
       ? "bg-amber-50 border-amber-200 text-amber-800"

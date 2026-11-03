@@ -1,8 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { checkInStatusBgClass, checkInStatusTextClass } from "@/lib/checkinStatus";
 import type { CheckInStatus } from "@/db/schema";
+import { useNewCheckinUi } from "./ui/NewCheckinUi";
+import { Sheet, SheetBody } from "./ui/Sheet";
+import { CheckIcon, CloudUploadIcon } from "./ui/icons";
+
+// New UI: the result reads at arm's length — full-strength status color plus the status word.
+const RESULT_DISC: Record<CheckInStatus, string> = { "On-time": "bg-green-600", Late: "bg-amber-600", Absent: "bg-red-600" };
+const RESULT_WORD: Record<CheckInStatus, string> = { "On-time": "text-green-800", Late: "text-amber-800", Absent: "text-red-700" };
 
 const AUTO_DISMISS_SECONDS = 10;
 
@@ -26,6 +33,8 @@ export function CheckInSuccessModal({
   onDismiss: () => void;
 }) {
   const [secondsLeft, setSecondsLeft] = useState(AUTO_DISMISS_SECONDS);
+  const newUi = useNewCheckinUi();
+  const titleId = useId();
 
   useEffect(() => {
     if (secondsLeft <= 0) {
@@ -46,6 +55,53 @@ export function CheckInSuccessModal({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onDismiss]);
+
+  if (newUi) {
+    return (
+      <Sheet labelledBy={titleId} onClose={onDismiss} dismissOnBackdrop>
+        <SheetBody className="flex flex-col items-center text-center">
+          <div className={`flex size-16 items-center justify-center rounded-full text-white animate-result-pop ${alreadyCheckedIn ? "bg-[#00428E]" : RESULT_DISC[status]}`}>
+            <CheckIcon className="size-9" />
+          </div>
+          {!alreadyCheckedIn && (
+            <p className={`mt-3 text-lg font-semibold ${RESULT_WORD[status]}`}>{status}</p>
+          )}
+          <h3 id={titleId} className={`${alreadyCheckedIn ? "mt-4" : "mt-1"} text-xl font-semibold text-balance text-gray-900`}>
+            {alreadyCheckedIn ? `${firstName} is already checked in` : `You’re checked in, ${firstName}!`}
+          </h3>
+          <p className="mt-1 text-sm text-gray-600">
+            {lastName} &middot; {alreadyCheckedIn ? "No need to check in again" : "Welcome!"}
+          </p>
+
+          {pendingSync && (
+            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-800">
+              <CloudUploadIcon className="size-3.5 text-slate-600" />
+              Saved offline. Will sync when back online.
+            </p>
+          )}
+
+          {showTable && (
+            <div className="mt-5 w-full rounded-xl bg-gray-50 py-4 ring-1 ring-inset ring-gray-200">
+              <p className="text-sm font-medium text-gray-600">Table</p>
+              {pendingSync ? (
+                <p className="mt-1 text-lg font-semibold text-slate-700">Assigned after sync</p>
+              ) : (
+                <p className="text-6xl leading-tight font-semibold tabular-nums text-[#00428E]">{tableNumber ?? "—"}</p>
+              )}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="mt-5 h-12 w-full rounded-xl bg-[#00428E] text-base font-semibold text-white hover:bg-[#003578]"
+          >
+            OK <span className="font-normal tabular-nums text-white/75">({secondsLeft})</span>
+          </button>
+        </SheetBody>
+      </Sheet>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

@@ -14,6 +14,11 @@ import { enqueueCheckIn, removePending } from "@/lib/offlineStore";
 import { raceWithTimeout, SLOW_CHECKIN_TIMEOUT_MS } from "@/lib/raceWithTimeout";
 import type { CheckInStatus } from "@/db/schema";
 import type { CheckinRosterEntry } from "./actions";
+import { useNewCheckinUi } from "./ui/NewCheckinUi";
+import { ConfirmCheckInSheet } from "./ui/ConfirmCheckInSheet";
+import { StatusPill, Tag } from "./ui/StatusPill";
+import { LockIcon, Spinner } from "./ui/icons";
+import { ConfirmRemoveSheet } from "./ui/ConfirmRemoveSheet";
 
 interface ParticipantWithStatus {
   id: number;
@@ -43,10 +48,12 @@ type RosterUpdate = (participantId: number, patch: Partial<CheckinRosterEntry>) 
 function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, onRosterUpdate, confirmBeforeCheckIn = true, showTableNumber = true, autoCheckin = false, autoCheckin915 = false, offlineCheckin = false, checkinTimeoutFallback = false }: { p: ParticipantWithStatus; sessionId: number; isVictoryDay: boolean; requiresVictoryDay: boolean; onAction?: () => void; onRosterUpdate?: RosterUpdate; confirmBeforeCheckIn?: boolean; showTableNumber?: boolean; autoCheckin?: boolean; autoCheckin915?: boolean; offlineCheckin?: boolean; checkinTimeoutFallback?: boolean }) {
   const [pending, startTransition] = useTransition();
   const [showModal, setShowModal] = useState(false);
+  const [confirmUndo, setConfirmUndo] = useState(false);
   const [remarks, setRemarks] = useState("");
   const [status, setStatus] = useState<CheckInStatus>("On-time");
   const [successInfo, setSuccessInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null; status: CheckInStatus; pendingSync?: boolean } | null>(null);
   const toast = useToast();
+  const newUi = useNewCheckinUi();
   const onlineStatus = useOnlineStatus();
   const isOnline = !offlineCheckin || onlineStatus;
   const isCheckedIn = p.checkInId != null || !!p.alreadyCheckedIn;
@@ -151,6 +158,32 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
     submitCheckIn(remarks, status);
   }
 
+  function handleUndoClick() {
+    if (newUi) {
+      setConfirmUndo(true);
+      return;
+    }
+    if (!confirm(`Remove check-in for ${toTitleCase(p.firstName)} ${toTitleCase(p.lastName)}?`)) return;
+    removeThisCheckIn();
+  }
+
+  function removeThisCheckIn() {
+    startTransition(async () => {
+      await removeCheckIn(p.id, sessionId);
+      toast.show("Check-in removed.");
+      onRosterUpdate?.(p.id, {
+        alreadyCheckedIn: false,
+        checkInId: null,
+        tableNumber: null,
+        checkedInAt: null,
+        checkInStatus: null,
+        checkInRemarks: null,
+      });
+      setConfirmUndo(false);
+      onAction?.();
+    });
+  }
+
   function handleCheckInClick() {
     if (autoCheckin && isOnTimeWindow()) {
       submitCheckIn("", "On-time");
@@ -166,6 +199,97 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
     } else {
       submitCheckIn("");
     }
+  }
+
+  const fullName = `${toTitleCase(p.lastName)}, ${toTitleCase(p.firstName)}${p.middleInitial ? ` ${toTitleCase(p.middleInitial)}.` : ""}`;
+  const successModal = successInfo && (
+    <CheckInSuccessModal
+      firstName={successInfo.firstName}
+      lastName={successInfo.lastName}
+      tableNumber={successInfo.tableNumber}
+      status={successInfo.status}
+      pendingSync={successInfo.pendingSync}
+      showTable={showTableNumber}
+      onDismiss={() => setSuccessInfo(null)}
+    />
+  );
+
+  if (newUi) {
+    const vd = p.victoryDate ?? p.victoryDayDate;
+    const meta = [p.registrationFee ? `Class ${p.registrationFee}` : null, p.mobileNumber, p.lifestage].filter(Boolean).join(" · ");
+    return (
+      <li className="flex items-center gap-3 px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-medium text-gray-900 capitalize">{fullName}</p>
+          {meta && <p className="truncate text-sm text-gray-600">{meta}</p>}
+          {vd && (
+            <div className="mt-1">
+              <Tag tone={isIncomplete ? "amber" : "gray"}>
+                Victory Day {vd}{isIncomplete ? ` (${p.victoryDayCount}/${p.totalVictoryDaySessions})` : ""}
+              </Tag>
+            </div>
+          )}
+          {isCheckedIn && p.checkInRemarks && <p className="mt-1 text-sm text-amber-800">Remarks: {p.checkInRemarks}</p>}
+        </div>
+
+        {isCheckedIn ? (
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            {p.checkInStatus ? <StatusPill status={p.checkInStatus} /> : <span className="text-xs font-semibold text-green-800">Checked in</span>}
+            <p className="text-xs text-gray-600 tabular-nums">
+              {p.tableNumber ? <span className="font-semibold text-gray-900">Table {p.tableNumber}</span> : "No table"}
+              {p.checkedInAt && (
+                <> · {new Date(p.checkedInAt).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Manila" })}</>
+              )}
+            </p>
+            <button
+              onClick={handleUndoClick}
+              disabled={pending}
+              className="-mr-2 -mb-2.5 h-11 rounded-lg px-2 text-sm font-medium text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-[#00428E] disabled:opacity-50"
+            >
+              Undo
+            </button>
+          </div>
+        ) : blocked ? (
+          <span className="flex shrink-0 items-center gap-1 text-xs text-gray-600">
+            <LockIcon className="size-3.5" />
+            {isIncomplete ? `Victory Day ${p.victoryDayCount}/${p.totalVictoryDaySessions}` : "No Victory Day yet"}
+          </span>
+        ) : (
+          <button
+            onClick={handleCheckInClick}
+            disabled={pending}
+            className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-[#00428E] px-4 text-sm font-semibold text-white hover:bg-[#003578] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00428E] disabled:opacity-50"
+          >
+            {pending && <Spinner className="size-4" />}
+            Check in
+          </button>
+        )}
+
+        {showModal && (
+          <ConfirmCheckInSheet
+            name={fullName}
+            detail={p.registrationFee ? `Class ${p.registrationFee}` : undefined}
+            offline={!isOnline}
+            status={status}
+            onStatusChange={setStatus}
+            remarks={remarks}
+            onRemarksChange={setRemarks}
+            pending={pending}
+            onCancel={() => { setShowModal(false); setRemarks(""); }}
+            onConfirm={handleConfirmCheckIn}
+          />
+        )}
+        {confirmUndo && (
+          <ConfirmRemoveSheet
+            name={`${toTitleCase(p.firstName)} ${toTitleCase(p.lastName)}`}
+            pending={pending}
+            onCancel={() => setConfirmUndo(false)}
+            onConfirm={removeThisCheckIn}
+          />
+        )}
+        {successModal}
+      </li>
+    );
   }
 
   return (
@@ -231,22 +355,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
                 )}
               </div>
               <button
-                onClick={() => {
-                  if (!confirm(`Remove check-in for ${toTitleCase(p.firstName)} ${toTitleCase(p.lastName)}?`)) return;
-                  startTransition(async () => {
-                    await removeCheckIn(p.id, sessionId);
-                    toast.show("Check-in removed.");
-                    onRosterUpdate?.(p.id, {
-                      alreadyCheckedIn: false,
-                      checkInId: null,
-                      tableNumber: null,
-                      checkedInAt: null,
-                      checkInStatus: null,
-                      checkInRemarks: null,
-                    });
-                    onAction?.();
-                  });
-                }}
+                onClick={handleUndoClick}
                 disabled={pending}
                 className="text-xs text-red-500 hover:text-red-700 underline disabled:opacity-50"
               >
@@ -319,17 +428,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
         </div>
       )}
 
-      {successInfo && (
-        <CheckInSuccessModal
-          firstName={successInfo.firstName}
-          lastName={successInfo.lastName}
-          tableNumber={successInfo.tableNumber}
-          status={successInfo.status}
-          pendingSync={successInfo.pendingSync}
-          showTable={showTableNumber}
-          onDismiss={() => setSuccessInfo(null)}
-        />
-      )}
+      {successModal}
     </>
   );
 }
@@ -363,6 +462,34 @@ export function SessionCheckInList({
   offlineCheckin?: boolean;
   checkinTimeoutFallback?: boolean;
 }) {
+  const newUi = useNewCheckinUi();
+  if (newUi) {
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between px-1">
+          <p className="text-sm text-gray-600">
+            {participants.length} result{participants.length !== 1 ? "s" : ""}
+          </p>
+          {searchQuery && (
+            <Link
+              href={`/report?q=${encodeURIComponent(searchQuery)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded text-sm font-medium text-[#00428E] underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00428E]"
+            >
+              View attendance
+            </Link>
+          )}
+        </div>
+        <ul className="divide-y divide-gray-200 overflow-hidden rounded-2xl bg-white ring-1 ring-gray-200">
+          {participants.map((p) => (
+            <CheckInRow key={p.id} p={p} sessionId={sessionId} isVictoryDay={isVictoryDay} requiresVictoryDay={requiresVictoryDay} onAction={onAction} onRosterUpdate={onRosterUpdate} confirmBeforeCheckIn={confirmBeforeCheckIn} showTableNumber={showTableNumber} autoCheckin={autoCheckin} autoCheckin915={autoCheckin915} offlineCheckin={offlineCheckin} checkinTimeoutFallback={checkinTimeoutFallback} />
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-3">

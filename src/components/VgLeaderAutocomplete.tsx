@@ -30,9 +30,9 @@ export function VgLeaderAutocomplete({ options, onSelect }: Props) {
 
   return (
     <div className="sm:col-span-2 relative">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label className="block text-sm font-medium text-gray-700 mb-1 new-ui:mb-1.5 new-ui:text-gray-800">
         Search existing VG Leader
-        <span className="ml-2 text-xs font-normal text-gray-400">(type to autofill fields below)</span>
+        <span className="ml-2 text-xs font-normal text-gray-400 new-ui:text-gray-500">(type to autofill fields below)</span>
       </label>
       <input
         type="text"
@@ -44,16 +44,16 @@ export function VgLeaderAutocomplete({ options, onSelect }: Props) {
         autoComplete="off"
       />
       {open && (
-        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden new-ui:rounded-xl new-ui:border-0 new-ui:shadow-[0_12px_32px_rgba(15,23,42,0.16)] new-ui:ring-1 new-ui:ring-gray-200">
           {results.map((v) => (
             <button
               key={v.id}
               type="button"
               onMouseDown={() => handleSelect(v)}
-              className="w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 transition border-b border-gray-100 last:border-0"
+              className="w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 transition border-b border-gray-100 last:border-0 new-ui:hover:bg-[#00428E]/5 new-ui:focus-visible:bg-[#00428E]/5 new-ui:focus-visible:outline-none"
             >
               <p className="font-medium text-gray-900">{v.lastName}, {v.firstName}{v.nickname ? ` (${v.nickname})` : ""}</p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-500 mt-0.5 new-ui:text-gray-600">
                 {v.mobileNumber}{v.facebookMessengerName ? ` · ${v.facebookMessengerName}` : ""}
               </p>
             </button>

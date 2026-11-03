@@ -11,6 +11,10 @@ import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { enqueueCheckIn, removePending } from "@/lib/offlineStore";
 import { raceWithTimeout, SLOW_CHECKIN_TIMEOUT_MS } from "@/lib/raceWithTimeout";
 import type { CheckInStatus, CheckInMethod } from "@/db/schema";
+import { useNewCheckinUi } from "./ui/NewCheckinUi";
+import { Sheet, SheetBody } from "./ui/Sheet";
+import { ConfirmCheckInSheet } from "./ui/ConfirmCheckInSheet";
+import { AlertIcon, CloseIcon, ScanIcon, Spinner } from "./ui/icons";
 
 export const QR_PREFIX = "dj:participant:";
 const CONTAINER_ID = "qr-scanner-container";
@@ -107,6 +111,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
 ) {
   const onlineStatus = useOnlineStatus();
   const isOnline = !offlineCheckin || onlineStatus;
+  const newUi = useNewCheckinUi();
   const [status, setStatus] = useState<Status>(autoOpen ? "scanning" : "idle");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState<PendingParticipant | null>(null);
@@ -491,6 +496,118 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     setMessage("");
   }
 
+  const resultModals = (
+    <>
+      {successInfo && (
+        <CheckInSuccessModal
+          key={resultSeq}
+          firstName={successInfo.firstName}
+          lastName={successInfo.lastName}
+          tableNumber={successInfo.tableNumber}
+          status={successInfo.status}
+          pendingSync={successInfo.pendingSync}
+          showTable={showTableNumber}
+          onDismiss={handleDismissSuccess}
+        />
+      )}
+
+      {alreadyInfo && (
+        <CheckInSuccessModal
+          key={resultSeq}
+          firstName={alreadyInfo.firstName}
+          lastName={alreadyInfo.lastName}
+          tableNumber={alreadyInfo.tableNumber}
+          showTable={showTableNumber}
+          alreadyCheckedIn
+          onDismiss={handleDismissAlready}
+        />
+      )}
+    </>
+  );
+
+  if (newUi) {
+    const victoryDayRestricted = !!pending && isVictoryDay && !allowAllClasses && !VICTORY_DAY_ALLOWED_CLASSES.includes(pending.registrationFee ?? "");
+    const orientationRestricted = !!pending && !!isOrientation && !ORIENTATION_ALLOWED_CLASSES.includes(pending.registrationFee ?? "");
+    const restriction = orientationRestricted
+      ? "Only Class A and B participants are allowed to check in for Orientation."
+      : victoryDayRestricted
+      ? "Only Class A and B participants are allowed to check in for Victory Day sessions."
+      : pending?.victoryDayBlockReason ?? null;
+
+    return (
+      <>
+        <div className="flex flex-col gap-2">
+          <div
+            id={CONTAINER_ID}
+            className={
+              status === "scanning"
+                ? `overflow-hidden rounded-xl bg-gray-900 [&_video]:block [&_video]:w-full ${mirrored ? "[&_video]:-scale-x-100" : ""}`
+                : "hidden"
+            }
+          />
+
+          {status === "idle" && (
+            <button
+              type="button"
+              onClick={() => setStatus("scanning")}
+              className="flex h-14 w-full items-center justify-center gap-2.5 rounded-xl bg-[#00428E] text-base font-semibold text-white shadow-[0_1px_2px_rgba(0,66,142,0.3)] hover:bg-[#003578] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00428E]"
+            >
+              <ScanIcon className="size-6" />
+              Scan ID card
+            </button>
+          )}
+
+          {status === "scanning" && (
+            <button
+              type="button"
+              onClick={reset}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+            >
+              <CloseIcon className="size-4" />
+              Stop camera
+            </button>
+          )}
+
+          {status === "error" && (
+            <div role="alert" className="flex items-start gap-3 rounded-xl bg-red-50 px-4 py-3 ring-1 ring-inset ring-red-600/20">
+              <AlertIcon className="mt-0.5 size-5 text-red-700" />
+              <p className="flex-1 text-sm text-red-900">{message}</p>
+              <button type="button" onClick={reset} className="shrink-0 text-sm font-semibold text-red-800 underline underline-offset-2">
+                Try again
+              </button>
+            </div>
+          )}
+        </div>
+
+        {status === "loading" && (
+          <Sheet labelledBy="qr-loading-label">
+            <SheetBody className="flex items-center gap-3">
+              <Spinner className="size-6 text-[#00428E]" />
+              <p id="qr-loading-label" className="text-base text-gray-700">{loadingLabel}</p>
+            </SheetBody>
+          </Sheet>
+        )}
+
+        {status === "confirming" && pending && (
+          <ConfirmCheckInSheet
+            name={`${pending.lastName}, ${pending.firstName}`}
+            detail={`Class ${classLabel(pending.registrationFee)}`}
+            offline={!isOnline}
+            restriction={restriction}
+            status={checkInStatus}
+            onStatusChange={setCheckInStatus}
+            remarks={remarks}
+            onRemarksChange={setRemarks}
+            onCancel={handleCancel}
+            onConfirm={handleConfirm}
+          />
+        )}
+
+        {resultModals}
+      </>
+    );
+  }
+
   return (
     <>
       <div className="flex flex-col gap-3">
@@ -612,30 +729,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
         );
       })()}
 
-      {successInfo && (
-        <CheckInSuccessModal
-          key={resultSeq}
-          firstName={successInfo.firstName}
-          lastName={successInfo.lastName}
-          tableNumber={successInfo.tableNumber}
-          status={successInfo.status}
-          pendingSync={successInfo.pendingSync}
-          showTable={showTableNumber}
-          onDismiss={handleDismissSuccess}
-        />
-      )}
-
-      {alreadyInfo && (
-        <CheckInSuccessModal
-          key={resultSeq}
-          firstName={alreadyInfo.firstName}
-          lastName={alreadyInfo.lastName}
-          tableNumber={alreadyInfo.tableNumber}
-          showTable={showTableNumber}
-          alreadyCheckedIn
-          onDismiss={handleDismissAlready}
-        />
-      )}
+      {resultModals}
     </>
   );
 });

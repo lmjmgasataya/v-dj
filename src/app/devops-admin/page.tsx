@@ -59,6 +59,14 @@ const FLAG_GROUPS: { title: string; flags: Record<string, string> }[] = [
       new_date_picker: "New date picker (calendar popover) — registration, participant, session and event forms",
     },
   },
+  {
+    // One flag per portal/surface for the redesign (see DESIGN.md); the current UI stays until its flag is on.
+    title: "New UI (redesign)",
+    flags: {
+      new_ui_checkin: "Check-in — redesigned /admin check-in screen",
+      new_ui_register: "Registration — redesigned /register form and success page",
+    },
+  },
 ];
 
 const KNOWN_FLAGS = new Set(FLAG_GROUPS.flatMap((g) => Object.keys(g.flags)));

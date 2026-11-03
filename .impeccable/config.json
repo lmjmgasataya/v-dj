@@ -1,0 +1,62 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/assigned.html"
+        ],
+        "createdAt": "2026-11-03T02:07:06.961Z",
+        "reason": "Claude: throwaway decision-round sketch; full-bleed list rows and camera area are intentional and the page skeletonizes them"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-transit.html"
+        ],
+        "createdAt": "2026-11-03T02:07:06.969Z",
+        "reason": "Claude: throwaway decision-round sketch; full-bleed list rows and camera area are intentional and the page skeletonizes them"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/assigned.html"
+        ],
+        "createdAt": "2026-11-03T02:59:41.804Z",
+        "reason": "Claude: decision-round sketch of an alternative direction; its fonts intentionally differ from the chosen DESIGN.md system"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/model-pick.html"
+        ],
+        "createdAt": "2026-11-03T02:59:41.811Z",
+        "reason": "Claude: decision-round sketch of an alternative direction; its fonts intentionally differ from the chosen DESIGN.md system"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-transit.html"
+        ],
+        "createdAt": "2026-11-03T02:59:41.820Z",
+        "reason": "Claude: decision-round sketch of an alternative direction; its fonts intentionally differ from the chosen DESIGN.md system"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/canon.html"
+        ],
+        "createdAt": "2026-11-03T02:59:41.828Z",
+        "reason": "Claude: decision-round sketch of an alternative direction; its fonts intentionally differ from the chosen DESIGN.md system"
+      }
+    ]
+  }
+}

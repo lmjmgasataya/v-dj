@@ -27,6 +27,7 @@ export default async function RegisterPage() {
       vgLeaderAutocomplete={flagMap["autocomplete_vg_leaders"] ?? true}
       disciplerAutocomplete={flagMap["autocomplete_disciplers"] ?? true}
       newDatePicker={flagMap["new_date_picker"] ?? false}
+      newUi={flagMap["new_ui_register"] ?? false}
       activeBatch={
         activeBatch
           ? { name: activeBatch.name, classDates: `${formatBatchDate(activeBatch.classStartDate)} – ${formatBatchDate(activeBatch.classEndDate)}` }

@@ -34,7 +34,9 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   const lockedServiceRawValues =
     session?.role === "lead_pastor" ? rawServiceValues(session?.timeService) : undefined;
   const attendees = await listEventRegisteredAttendees(eventId, event.audience, lockedServiceRawValues);
-  const checkedInCount = attendees.filter((a) => a.checkInId).length;
+  const registered = attendees.filter((a) => !a.isWalkIn);
+  const checkedInCount = registered.filter((a) => a.checkInId).length;
+  const walkInCount = attendees.length - registered.length;
 
   const isDeveloper = session?.role === "developer";
   const dateStr = new Date(event.eventDate + "T00:00:00").toLocaleDateString("en-PH", {
@@ -110,7 +112,8 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         <div className="bg-indigo-50 border-b border-indigo-100 px-6 py-3 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-indigo-800 uppercase tracking-wide">Registered vs Checked In</h3>
           <span className="text-sm font-semibold text-indigo-800">
-            {checkedInCount} / {attendees.length}
+            {checkedInCount} / {registered.length}
+            {walkInCount > 0 && <span className="font-normal"> · {walkInCount} walk-in{walkInCount === 1 ? "" : "s"}</span>}
           </span>
         </div>
         {attendees.length === 0 ? (
@@ -121,6 +124,8 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
               <thead>
                 <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
                   <th className="px-6 py-2.5">Name</th>
+                  <th className="px-6 py-2.5">Mobile</th>
+                  <th className="px-6 py-2.5">Service</th>
                   <th className="px-6 py-2.5">Type</th>
                   <th className="px-6 py-2.5">Registered</th>
                   <th className="px-6 py-2.5">Checked In</th>
@@ -138,13 +143,19 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
                         </p>
                       )}
                     </td>
+                    <td className="px-6 py-3 font-mono text-xs text-gray-500 whitespace-nowrap">{a.mobileNumber ?? "—"}</td>
+                    <td className="px-6 py-3 text-gray-500 whitespace-nowrap">{a.service ?? "—"}</td>
                     <td className="px-6 py-3">
                       <span className="text-xs font-medium bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
                         {TYPE_LABEL[a.attendeeType] ?? a.attendeeType}
                       </span>
                     </td>
                     <td className="px-6 py-3">
-                      <span className="text-xs font-medium bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Yes</span>
+                      {a.isWalkIn ? (
+                        <span className="text-xs font-medium bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full">Walk-in</span>
+                      ) : (
+                        <span className="text-xs font-medium bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Yes</span>
+                      )}
                     </td>
                     <td className="px-6 py-3">
                       {a.checkedInAt ? (

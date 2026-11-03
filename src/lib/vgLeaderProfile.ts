@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { victoryGroupLeaders, victoryGroups } from "@/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { computeProfileCompleted, computeProfileProgress } from "@/lib/profileCompleteness";
 import { getProfileUpdateQuarters, type QuarterCardStatus } from "@/lib/vgQuarters";
 import { getQuarterOptions } from "@/lib/vgQuarterFlags";
@@ -52,4 +52,28 @@ export async function getLiveUpdateStatus(vgLeaderId: number): Promise<QuarterCa
   const { percent } = computeProfileProgress(leader, activeGroups.length > 0);
   const live = getProfileUpdateQuarters(leader.updatedAt, percent, quarterOptions).find((q) => q.live);
   return live?.status ?? (percent === 100 ? "updated" : "incomplete");
+}
+
+/** getLiveUpdateStatus for many leaders at once, with the same rule — for lists like event walk-ins. */
+export async function getLiveUpdateStatuses(vgLeaderIds: number[]): Promise<Map<number, QuarterCardStatus>> {
+  if (vgLeaderIds.length === 0) return new Map();
+  const [leaders, activeGroups, quarterOptions] = await Promise.all([
+    db.select().from(victoryGroupLeaders).where(inArray(victoryGroupLeaders.id, vgLeaderIds)),
+    db
+      .select({ vgLeaderId: victoryGroups.vgLeaderId })
+      .from(victoryGroups)
+      .where(
+        and(inArray(victoryGroups.vgLeaderId, vgLeaderIds), eq(victoryGroups.isActive, true), isNull(victoryGroups.deletedAt))
+      ),
+    getQuarterOptions(),
+  ]);
+  const withActiveGroup = new Set(activeGroups.map((g) => g.vgLeaderId));
+
+  const statuses = new Map<number, QuarterCardStatus>();
+  for (const leader of leaders) {
+    const { percent } = computeProfileProgress(leader, withActiveGroup.has(leader.id));
+    const live = getProfileUpdateQuarters(leader.updatedAt, percent, quarterOptions).find((q) => q.live);
+    statuses.set(leader.id, live?.status ?? (percent === 100 ? "updated" : "incomplete"));
+  }
+  return statuses;
 }

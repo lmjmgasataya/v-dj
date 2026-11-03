@@ -1,9 +1,10 @@
 import { after } from "next/server";
 import { db } from "@/db";
 import { autoJourneySteps, batches, checkIns, classSessions, participants, sessionVglCheckIns, victoryGroupLeaders } from "@/db/schema";
-import { and, desc, eq, inArray, isNull, like, ne, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, like, ne, notInArray, sql } from "drizzle-orm";
 import { areSimilarNames, createLeaderMatcher, normalizeName } from "@/lib/vgLeaderMatch";
-import { AUTO_JOURNEY_STEPS } from "@/components/form";
+import { AUTO_JOURNEY_STEPS, VICTORY_DAY_STEP } from "@/components/form";
+import { todayPH } from "@/lib/date";
 
 const [SPIRITUAL_FOUNDATIONS, MAKING_DISCIPLES, EMPOWERING_LEADERS] = AUTO_JOURNEY_STEPS;
 
@@ -13,29 +14,46 @@ function classKey(name: string): string {
 }
 
 /**
- * The value to save when a VG leader submits their own profile: the steps they checked, minus
- * the automatic ones, plus whichever automatic ones were already on record. Done in SQL so a
- * sync landing at the same moment isn't lost.
+ * The value to save when a profile form is submitted: the steps checked, minus the `locked` ones,
+ * plus whichever locked ones were already on record. A VG leader's own profile locks every
+ * automatic step; the developer edit page locks only DJ_PORTAL_ONLY_STEPS. Done in SQL so a sync
+ * landing at the same moment isn't lost.
  */
-export function ownJourneyStepsSql(submitted: string[]) {
-  const own = submitted.filter((s) => !AUTO_JOURNEY_STEPS.includes(s)).join(",") || null;
+export function ownJourneyStepsSql(submitted: string[], locked: readonly string[] = AUTO_JOURNEY_STEPS) {
+  const own = submitted.filter((s) => !locked.includes(s)).join(",") || null;
   const col = victoryGroupLeaders.discipleshipJourneyCompleted;
-  const autoSteps = sql`array[${sql.join(AUTO_JOURNEY_STEPS.map((s) => sql`${s}::text`), sql`, `)}]`;
-  return sql<string | null>`nullif(concat_ws(',', ${own}::text, (select string_agg(s, ',') from unnest(string_to_array(coalesce(${col}, ''), ',')) as s where s = any(${autoSteps}))), '')`;
+  const lockedSteps = sql`array[${sql.join(locked.map((s) => sql`${s}::text`), sql`, `)}]`;
+  return sql<string | null>`nullif(concat_ws(',', ${own}::text, (select string_agg(s, ',') from unnest(string_to_array(coalesce(${col}, ''), ',')) as s where s = any(${lockedSteps}))), '')`;
 }
 
 type JourneyLink = { vgLeaderId: number; participantId?: number; classSessionId?: number };
 
+type ClassAttendance = {
+  vgLeaderId: number;
+  /** The record they last attended under (their newest one if they never came) — the link's source. */
+  participantId: number;
+  /** The classes they need, each with whether they attended it — on any of their records, in any batch. */
+  required: { name: string; sessionDate: string; attended: boolean }[];
+};
+
 /**
- * Participants who attended every session of their batch whose name starts with `step`
- * (Spiritual Foundations, Making Disciples) — the same rule as "Attended all" on the batch
- * attendance report (fee categories C/D skip the Victory Day ones). A class missed and made up
- * in a later batch's session of the same name counts. Matched to a VG leader by mobile number,
- * then by name — and the names have to agree either way.
+ * Each VG leader's attendance at the classes whose name starts with `step` — only the Victory Day
+ * ones when `victoryDay` is set, otherwise all but those. So Spiritual Foundations Day 1 (the
+ * Victory Day sessions) is the Victory Day step and Day 2 to Day 10 are Spiritual Foundations,
+ * whatever the fee category. Participant records are matched to a leader by mobile number, then by
+ * name — and the names have to agree either way. A leader's records are combined: a class counts
+ * once attended in any batch, whether made up under the same record or under a new registration
+ * in a later batch. One entry per leader matched to at least one record.
  */
-async function batchClassLinks(step: string): Promise<JourneyLink[]> {
+async function batchClassAttendance(step: string, { victoryDay = false } = {}): Promise<ClassAttendance[]> {
   const allSessions = await db
-    .select({ id: classSessions.id, name: classSessions.name, batchId: classSessions.batchId, isVictoryDay: classSessions.isVictoryDay })
+    .select({
+      id: classSessions.id,
+      name: classSessions.name,
+      sessionDate: classSessions.sessionDate,
+      batchId: classSessions.batchId,
+      isVictoryDay: classSessions.isVictoryDay,
+    })
     .from(classSessions)
     .where(like(classSessions.name, `${step}%`));
   const sessions = allSessions.filter((s) => s.batchId != null);
@@ -50,7 +68,6 @@ async function batchClassLinks(step: string): Promise<JourneyLink[]> {
         firstName: participants.firstName,
         mobileNumber: participants.mobileNumber,
         batchId: participants.batchId,
-        registrationFee: participants.registrationFee,
       })
       .from(participants)
       .where(and(isNull(participants.deletedAt), eq(participants.isWalkIn, false), inArray(participants.batchId, batchIds)))
@@ -70,22 +87,91 @@ async function batchClassLinks(step: string): Promise<JourneyLink[]> {
       .where(isNull(victoryGroupLeaders.deletedAt)),
   ]);
 
-  const classOf = new Map(allSessions.map((s) => [s.id, classKey(s.name)]));
-  const present = new Set(attended.map((c) => `${c.participantId}|${classOf.get(c.classSessionId)}`));
+  const sessionById = new Map(allSessions.map((s) => [s.id, s]));
+  // Classes each participant record attended (any batch's session), and when they last came.
+  const attendedClasses = new Map<number, Set<string>>();
+  const lastAttended = new Map<number, string>();
+  for (const c of attended) {
+    const session = sessionById.get(c.classSessionId)!;
+    attendedClasses.set(c.participantId, (attendedClasses.get(c.participantId) ?? new Set()).add(classKey(session.name)));
+    if (session.sessionDate > (lastAttended.get(c.participantId) ?? "")) lastAttended.set(c.participantId, session.sessionDate);
+  }
+
   const match = createLeaderMatcher(leaders);
-  // First (oldest) participant record per leader, if they somehow finished in more than one batch.
-  const links = new Map<number, JourneyLink>();
+  type Combined = { participantId: number; lastAttended: string; classes: Map<string, { name: string; sessionDate: string; attended: boolean }> };
+  const byLeader = new Map<number, Combined>();
+  // Oldest record first, so a later batch's session dates replace an earlier one's.
   for (const p of registrants) {
-    const skipsVictoryDay = p.registrationFee === "C" || p.registrationFee === "D";
-    const required = sessions.filter((s) => s.batchId === p.batchId && !(skipsVictoryDay && s.isVictoryDay));
-    if (required.length === 0 || !required.every((s) => present.has(`${p.id}|${classKey(s.name)}`))) continue;
+    const required = sessions.filter((s) => s.batchId === p.batchId && s.isVictoryDay === victoryDay);
+    if (required.length === 0) continue;
     const found = match(p);
     // A shared family phone matches the wrong person by mobile alone — the name must agree too.
-    if (found && areSimilarNames(found.leader, p) && !links.has(found.leader.id)) {
-      links.set(found.leader.id, { vgLeaderId: found.leader.id, participantId: p.id });
+    if (!found || !areSimilarNames(found.leader, p)) continue;
+
+    const entry = byLeader.get(found.leader.id) ?? { participantId: p.id, lastAttended: "", classes: new Map() };
+    const came = lastAttended.get(p.id) ?? "";
+    if (came >= entry.lastAttended) Object.assign(entry, { participantId: p.id, lastAttended: came });
+    const mine = attendedClasses.get(p.id);
+    for (const s of required) {
+      const key = classKey(s.name);
+      const wasAttended = entry.classes.get(key)?.attended ?? false;
+      entry.classes.set(key, { name: s.name, sessionDate: s.sessionDate, attended: wasAttended || !!mine?.has(key) });
     }
+    byLeader.set(found.leader.id, entry);
   }
-  return [...links.values()];
+
+  return [...byLeader].map(([vgLeaderId, e]) => ({
+    vgLeaderId,
+    participantId: e.participantId,
+    required: [...e.classes.values()],
+  }));
+}
+
+/** Leaders who attended every required class — see batchClassAttendance. */
+async function batchClassLinks(step: string, opts: { victoryDay?: boolean } = {}): Promise<JourneyLink[]> {
+  return (await batchClassAttendance(step, opts))
+    .filter((a) => a.required.every((s) => s.attended))
+    .map((a) => ({ vgLeaderId: a.vgLeaderId, participantId: a.participantId }));
+}
+
+export interface SpiritualFoundationsProgress {
+  attended: number;
+  total: number;
+  /** e.g. "Attended 6 of 9 sessions (Day 2 to Day 10). Missed: Day 4, Day 7. Coming up: Day 10." */
+  note: string;
+}
+
+/**
+ * For each leader who attended some of Spiritual Foundations Day 2 to Day 10 but not all, how far
+ * they got across all their participant records and batches, keyed by VG leader id. Leaders who finished it, never came, or aren't matched to a
+ * participant record aren't in the map.
+ */
+export async function getSpiritualFoundationsProgress(): Promise<Map<number, SpiritualFoundationsProgress>> {
+  const today = todayPH();
+  const label = (name: string) => name.slice(SPIRITUAL_FOUNDATIONS.length).trim() || name;
+  const result = new Map<number, SpiritualFoundationsProgress>();
+  for (const { vgLeaderId, required } of await batchClassAttendance(SPIRITUAL_FOUNDATIONS)) {
+    const attended = required.filter((s) => s.attended).length;
+    if (attended === 0 || attended === required.length) continue;
+
+    const notAttended = required.filter((s) => !s.attended);
+    const missed = notAttended.filter((s) => s.sessionDate <= today).map((s) => label(s.name));
+    const upcoming = notAttended.filter((s) => s.sessionDate > today).map((s) => label(s.name));
+    const note = [
+      `Attended ${attended} of ${required.length} sessions (Day 2 to Day 10).`,
+      missed.length > 0 && `Missed: ${missed.join(", ")}.`,
+      upcoming.length > 0 && `Coming up: ${upcoming.join(", ")}.`,
+    ]
+      .filter(Boolean)
+      .join(" ");
+    result.set(vgLeaderId, { attended, total: required.length, note });
+  }
+  return result;
+}
+
+/** One leader's getSpiritualFoundationsProgress note, or null. */
+export async function getSpiritualFoundationsProgressNote(vgLeaderId: number): Promise<string | null> {
+  return (await getSpiritualFoundationsProgress()).get(vgLeaderId)?.note ?? null;
 }
 
 /** VG leaders checked in (On-time or Late) to an Empowering Leaders VGL-only session — their earliest one. */
@@ -120,6 +206,47 @@ async function addJourneyStep(step: string, leaderIds: number[]): Promise<number
     )
     .returning({ id: victoryGroupLeaders.id });
   return updated.length;
+}
+
+/**
+ * Takes `step` off every leader not in `keepLeaderIds` (non-empty), in one statement like addJourneyStep.
+ * Leaves updatedAt alone.
+ */
+async function removeJourneyStep(step: string, keepLeaderIds: number[]): Promise<number> {
+  const col = victoryGroupLeaders.discipleshipJourneyCompleted;
+  const updated = await db
+    .update(victoryGroupLeaders)
+    .set({ discipleshipJourneyCompleted: sql`nullif(array_to_string(array_remove(string_to_array(${col}, ','), ${step}::text), ','), '')` })
+    .where(
+      and(
+        isNull(victoryGroupLeaders.deletedAt),
+        notInArray(victoryGroupLeaders.id, keepLeaderIds),
+        sql`${step}::text = any(string_to_array(coalesce(${col}, ''), ','))`
+      )
+    )
+    .returning({ id: victoryGroupLeaders.id });
+  return updated.length;
+}
+
+/**
+ * A DJ_PORTAL_ONLY_STEPS step: checked for exactly the leaders the DJ Portal links today, whatever
+ * was answered by hand. Records new links, drops recorded links that no longer hold (e.g. the
+ * participant record was deleted), adds the step for every linked leader — even one a developer
+ * unchecked — and removes it from everyone else. Returns how many leaders gained and lost it.
+ */
+async function overrideJourneyStep(step: string, links: JourneyLink[]): Promise<{ added: number; removed: number }> {
+  // No links at all means no matching sessions (renamed classes?), not that nobody finished —
+  // don't wipe the step from every leader over it.
+  if (links.length === 0) return { added: 0, removed: 0 };
+  const leaderIds = links.map((l) => l.vgLeaderId);
+  const newlyLinked = await recordAndAddJourneyStep(step, links);
+  const [, removed] = await Promise.all([
+    db
+      .delete(autoJourneySteps)
+      .where(and(eq(autoJourneySteps.step, step), notInArray(autoJourneySteps.vgLeaderId, leaderIds))),
+    removeJourneyStep(step, leaderIds),
+  ]);
+  return { added: newlyLinked + (await addJourneyStep(step, leaderIds)), removed };
 }
 
 /**
@@ -162,23 +289,39 @@ async function recordAndAddJourneyStep(step: string, links: JourneyLink[]): Prom
 }
 
 /**
- * Marks Spiritual Foundations, Making Disciples and Empowering Leaders done on the VG leaders who
- * completed them in the Discipleship Journey Portal, and records where each came from
- * (autoJourneySteps). Only ever adds a step, never removes one — leaders who took a class before
- * the portal existed keep what they checked. Returns how many leaders gained each step.
+ * Marks Victory Day, Spiritual Foundations, Making Disciples and Empowering Leaders done on the VG
+ * leaders who completed them in the Discipleship Journey Portal, and records where each came from
+ * (autoJourneySteps). Victory Day, Making Disciples and Empowering Leaders are only ever added,
+ * never removed — a manual check (e.g. from before the portal existed) stays. Spiritual
+ * Foundations (DJ_PORTAL_ONLY_STEPS) follows the portal exactly: it's also removed from leaders the
+ * portal doesn't link. Returns how many leaders gained each step (and lost Spiritual Foundations).
  */
-export async function syncJourneyStepsFromDjPortal(): Promise<{ spiritualFoundations: number; makingDisciples: number; empoweringLeaders: number }> {
-  const [sfLinks, mdLinks, elLinks] = await Promise.all([
+export async function syncJourneyStepsFromDjPortal(): Promise<{
+  victoryDay: number;
+  spiritualFoundations: number;
+  spiritualFoundationsRemoved: number;
+  makingDisciples: number;
+  empoweringLeaders: number;
+}> {
+  const [vdLinks, sfLinks, mdLinks, elLinks] = await Promise.all([
+    batchClassLinks(SPIRITUAL_FOUNDATIONS, { victoryDay: true }),
     batchClassLinks(SPIRITUAL_FOUNDATIONS),
     batchClassLinks(MAKING_DISCIPLES),
     empoweringLeadersLinks(),
   ]);
-  const [spiritualFoundations, makingDisciples, empoweringLeaders] = await Promise.all([
-    recordAndAddJourneyStep(SPIRITUAL_FOUNDATIONS, sfLinks),
+  const [victoryDay, sf, makingDisciples, empoweringLeaders] = await Promise.all([
+    recordAndAddJourneyStep(VICTORY_DAY_STEP, vdLinks),
+    overrideJourneyStep(SPIRITUAL_FOUNDATIONS, sfLinks),
     recordAndAddJourneyStep(MAKING_DISCIPLES, mdLinks),
     recordAndAddJourneyStep(EMPOWERING_LEADERS, elLinks),
   ]);
-  return { spiritualFoundations, makingDisciples, empoweringLeaders };
+  return {
+    victoryDay,
+    spiritualFoundations: sf.added,
+    spiritualFoundationsRemoved: sf.removed,
+    makingDisciples,
+    empoweringLeaders,
+  };
 }
 
 export interface AutoJourneyLink {

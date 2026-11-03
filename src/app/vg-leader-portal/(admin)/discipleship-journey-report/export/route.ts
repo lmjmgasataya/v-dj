@@ -14,7 +14,7 @@ export async function GET() {
   }
 
   const rows = await getDiscipleshipJourneyRows(session);
-  const header = ["Name", "Service", ...DISCIPLESHIP_JOURNEY_STEPS, "L113 Graduate"];
+  const header = ["Name", "Service", ...DISCIPLESHIP_JOURNEY_STEPS, "L113 Graduate", "Spiritual Foundations Progress"];
   const ws = XLSX.utils.aoa_to_sheet([
     header,
     ...rows.map((r) => [
@@ -22,9 +22,10 @@ export async function GET() {
       r.service,
       ...DISCIPLESHIP_JOURNEY_STEPS.map((step) => (r.steps[step] ? "Yes" : "")),
       leadership113Label(r.leadership113) ?? "Not set",
+      r.sfProgress?.note ?? "",
     ]),
   ]);
-  ws["!cols"] = [{ wch: 32 }, { wch: 22 }, ...DISCIPLESHIP_JOURNEY_STEPS.map((s) => ({ wch: Math.max(10, s.length + 2) })), { wch: 14 }];
+  ws["!cols"] = [{ wch: 32 }, { wch: 22 }, ...DISCIPLESHIP_JOURNEY_STEPS.map((s) => ({ wch: Math.max(10, s.length + 2) })), { wch: 14 }, { wch: 70 }];
   ws["!autofilter"] = { ref: `A1:${XLSX.utils.encode_col(header.length - 1)}${rows.length + 1}` };
 
   const wb = XLSX.utils.book_new();

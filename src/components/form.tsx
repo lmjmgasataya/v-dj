@@ -24,9 +24,66 @@ export const DISCIPLESHIP_JOURNEY_STEPS = [
 
 /**
  * Steps the Discipleship Journey Portal marks done from attendance (src/lib/djPortalJourney.ts).
- * VG leaders can't check these on their own profile; developers still can on the leader edit page.
+ * VG leaders can't check these on their own profile; developers still can on the leader edit page,
+ * except for DJ_PORTAL_ONLY_STEPS.
  */
 export const AUTO_JOURNEY_STEPS: readonly string[] = ["Spiritual Foundations", "Making Disciples", "Empowering Leaders"];
+
+/**
+ * Automatic steps the Discipleship Journey Portal alone decides: the sync checks them for leaders
+ * who completed them there and unchecks them for everyone else, overriding any manual answer.
+ * Nobody can tick them by hand, developers included.
+ */
+export const DJ_PORTAL_ONLY_STEPS: readonly string[] = ["Spiritual Foundations"];
+
+/**
+ * Checked by the sync from attendance at the Victory Day sessions (Spiritual Foundations Day 1),
+ * but unlike AUTO_JOURNEY_STEPS anyone can still check it by hand — either way counts.
+ */
+export const VICTORY_DAY_STEP = "Victory Weekend/Victory Day";
+
+/** Every step the Discipleship Journey Portal can mark, in journey order — for reports. */
+export const DJ_PORTAL_LINKED_STEPS: readonly string[] = [VICTORY_DAY_STEP, ...AUTO_JOURNEY_STEPS];
+
+/**
+ * A journey step the Discipleship Journey Portal marks from attendance — shown, not editable. The
+ * hidden input keeps it in the form data so the "at least one step" check and the review count it;
+ * the server keeps whatever is on record regardless.
+ */
+export function AutoJourneyStep({ step, done, note }: { step: string; done: boolean; note?: string | null }) {
+  const row = (
+    <div className="flex items-center gap-2.5 cursor-not-allowed" title="Marked automatically from the Discipleship Journey Portal">
+      {done && <input type="hidden" name="discipleshipJourneyCompleted" value={step} />}
+      <span
+        className={`relative flex-shrink-0 w-4 h-4 rounded border-2 ${done ? "border-gray-400 bg-gray-400" : "border-gray-200 bg-gray-50"}`}
+      >
+        {done && (
+          <svg
+            className="absolute inset-0 m-auto w-2.5 h-2.5 text-white"
+            viewBox="0 0 12 12"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="1.5,6 4.5,9 10.5,3" />
+          </svg>
+        )}
+      </span>
+      <span className="text-sm text-gray-500 select-none leading-snug">
+        {step} <span className="text-xs text-gray-400">(automatic)</span>
+      </span>
+    </div>
+  );
+  if (!note) return row;
+  return (
+    <div className="flex flex-col gap-0.5">
+      {row}
+      <p className="ml-6.5 text-xs text-amber-700">{note}</p>
+    </div>
+  );
+}
 
 export const SERVICE_OPTIONS = [
   "9AM - Mandurriao",

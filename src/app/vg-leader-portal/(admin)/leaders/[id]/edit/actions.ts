@@ -10,6 +10,8 @@ import { recomputeProfileCompleted } from "@/lib/vgLeaderProfile";
 import { resolveLeadershipGroupMembers, replaceLeadershipGroupMembers } from "@/lib/leadershipGroupMembers";
 import { MOBILE_NUMBER_REGEX } from "@/lib/phone";
 import { parseLeadership113 } from "@/lib/leadership113";
+import { ownJourneyStepsSql } from "@/lib/djPortalJourney";
+import { DJ_PORTAL_ONLY_STEPS } from "@/components/form";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
 
@@ -35,7 +37,7 @@ export async function updateVGLeader(id: number, formData: FormData) {
       lifestage: (formData.get("lifestage") as Lifestage) || null,
       serviceAttending: (formData.get("serviceAttending") as string) || null,
       facebookMessengerName: (formData.get("facebookMessengerName") as string) || null,
-      discipleshipJourneyCompleted: formData.getAll("discipleshipJourneyCompleted").join(",") || null,
+      discipleshipJourneyCompleted: ownJourneyStepsSql(formData.getAll("discipleshipJourneyCompleted") as string[], DJ_PORTAL_ONLY_STEPS),
       graduateOfLeadership113: parseLeadership113(formData.get("graduateOfLeadership113")),
       ...ownVgLeader,
       startedLeadingVg: (formData.get("startedLeadingVg") as (typeof startedLeadingVgEnum.enumValues)[number]) || null,

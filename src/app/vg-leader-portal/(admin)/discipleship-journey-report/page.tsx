@@ -1,4 +1,4 @@
-import { AUTO_JOURNEY_STEPS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
+import { DJ_PORTAL_LINKED_STEPS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
 import { getSession } from "@/lib/auth";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { DiscipleshipJourneyTable } from "./DiscipleshipJourneyTable";
@@ -33,6 +33,10 @@ export default async function DiscipleshipJourneyReportPage() {
           <div>
             <h3 className="font-semibold text-gray-800">Discipleship Journey Steps Completed</h3>
             <p className="text-xs text-gray-400 mt-0.5">Which Discipleship Journey steps each claimed VG leader has completed, and whether they graduated from Leadership 113.</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              <span className="font-medium bg-amber-100 text-amber-700 px-1.5 rounded-full">7/9</span> under Spiritual Foundations: attended 7 of the 9
+              sessions (Day 2 to Day 10) so far — hover to see which ones they missed.
+            </p>
           </div>
           {rows.length > 0 && (
             <a
@@ -56,12 +60,12 @@ export default async function DiscipleshipJourneyReportPage() {
         <div className="px-6 py-4 border-b border-gray-100">
           <h3 className="font-semibold text-gray-800">Marked from the Discipleship Journey Portal ({autoLinks.length})</h3>
           <p className="text-xs text-gray-400 mt-0.5">
-            VG leaders who completed Spiritual Foundations, Making Disciples or Empowering Leaders in the Discipleship Journey Portal.
+            VG leaders who completed Victory Day, Spiritual Foundations, Making Disciples or Empowering Leaders in the Discipleship Journey Portal.
             {" "}{autoAdded} checked automatically · {autoLinks.length - autoAdded} had already checked it themselves.
           </p>
         </div>
         {autoLinks.length > 0 ? (
-          <AutoJourneyLinksTable links={autoLinks} steps={AUTO_JOURNEY_STEPS} />
+          <AutoJourneyLinksTable links={autoLinks} steps={DJ_PORTAL_LINKED_STEPS} />
         ) : (
           <p className="px-6 py-4 text-sm text-gray-500">
             Nothing yet — this fills in after check-ins and the nightly sync.

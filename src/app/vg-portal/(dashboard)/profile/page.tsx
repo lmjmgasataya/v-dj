@@ -11,6 +11,7 @@ import { getVgLeaderOptions } from "@/lib/vgLeaderOptions";
 import { eventCallbackPath, getEventNameForCallback } from "@/lib/eventLink";
 import Link from "next/link";
 import { ProfileForm } from "../ProfileForm";
+import { getSpiritualFoundationsProgressNote } from "@/lib/djPortalJourney";
 
 export const metadata: Metadata = {
   title: "My Victory Group — Victory Iloilo",
@@ -31,7 +32,7 @@ export default async function VgPortalProfilePage({
 
   const vgLeaderId = session.vgLeaderId;
 
-  const [[leader], groups, quarterOptions, vgLeaderOptions, eventName] = await Promise.all([
+  const [[leader], groups, quarterOptions, vgLeaderOptions, eventName, sfProgressNote] = await Promise.all([
     db.select().from(victoryGroupLeaders).where(eq(victoryGroupLeaders.id, vgLeaderId)).limit(1),
     db
       .select()
@@ -41,6 +42,7 @@ export default async function VgPortalProfilePage({
     getQuarterOptions(),
     getVgLeaderOptions(),
     getEventNameForCallback(eventPath),
+    getSpiritualFoundationsProgressNote(vgLeaderId),
   ]);
 
   if (!leader) redirect("/login");
@@ -161,6 +163,7 @@ export default async function VgPortalProfilePage({
         groups={groups}
         internsByGroup={internsByGroup}
         callbackUrl={eventPath}
+        sfProgressNote={sfProgressNote}
       />
     </>
   );

@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
-import { getAutoJourneyLinks } from "@/lib/djPortalJourney";
+import { getAutoJourneyLinks, getSpiritualFoundationsProgressNote } from "@/lib/djPortalJourney";
 import { getProfileFreshness, FRESHNESS_BADGE_CLASS } from "@/lib/vgLeaderStatus";
 import { leadership113Label } from "@/lib/leadership113";
 import { getSession } from "@/lib/auth";
@@ -140,9 +140,11 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
   }
 
   const completedSteps = (leader.discipleshipJourneyCompleted ?? "").split(",").filter(Boolean);
-  const autoLinkByStep = new Map(
-    (await getAutoJourneyLinks({ vgLeaderIds: [leader.id] })).map((l) => [l.step, l])
-  );
+  const [autoLinks, sfProgressNote] = await Promise.all([
+    getAutoJourneyLinks({ vgLeaderIds: [leader.id] }),
+    getSpiritualFoundationsProgressNote(leader.id),
+  ]);
+  const autoLinkByStep = new Map(autoLinks.map((l) => [l.step, l]));
   const freshness = getProfileFreshness(leader.updatedAt);
 
   const lglMembers = leader.isLeadershipGroupLeader
@@ -410,6 +412,9 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
                       {autoLink.source}
                       {autoLink.participantName && ` · as participant ${autoLink.participantName}`}
                     </p>
+                  )}
+                  {s === "Spiritual Foundations" && !done && sfProgressNote && (
+                    <p className="ml-6 text-xs text-amber-700">{sfProgressNote}</p>
                   )}
                 </div>
               );

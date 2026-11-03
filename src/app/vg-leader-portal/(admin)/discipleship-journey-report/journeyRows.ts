@@ -6,6 +6,7 @@ import type { SessionPayload } from "@/lib/auth";
 import { rawServiceValues } from "@/lib/timeService";
 import { NOT_SET_SERVICE } from "@/lib/vglProfileNotCompleted";
 import type { DiscipleshipJourneyRow } from "./DiscipleshipJourneyTable";
+import { getSpiritualFoundationsProgress } from "@/lib/djPortalJourney";
 
 const SERVICE_ORDER: string[] = [...SERVICE_OPTIONS, NOT_SET_SERVICE];
 
@@ -17,7 +18,7 @@ const SERVICE_ORDER: string[] = [...SERVICE_OPTIONS, NOT_SET_SERVICE];
 export async function getDiscipleshipJourneyRows(session: SessionPayload | null): Promise<DiscipleshipJourneyRow[]> {
   const lockedServiceRawValues = session?.role === "lead_pastor" ? rawServiceValues(session?.timeService) : undefined;
 
-  const [allLeaders, claimedAccounts] = await Promise.all([
+  const [allLeaders, claimedAccounts, sfProgress] = await Promise.all([
     db
       .select()
       .from(victoryGroupLeaders)
@@ -31,6 +32,7 @@ export async function getDiscipleshipJourneyRows(session: SessionPayload | null)
       .select({ vgLeaderId: users.vgLeaderId })
       .from(users)
       .where(eq(users.role, "vg_leader")),
+    getSpiritualFoundationsProgress(),
   ]);
 
   const claimedIds = new Set(claimedAccounts.map((a) => a.vgLeaderId));
@@ -48,6 +50,7 @@ export async function getDiscipleshipJourneyRows(session: SessionPayload | null)
         serviceRank: rank === -1 ? SERVICE_ORDER.length : rank,
         leadership113: l.graduateOfLeadership113,
         steps: Object.fromEntries(DISCIPLESHIP_JOURNEY_STEPS.map((step) => [step, completed.has(step)])),
+        sfProgress: completed.has("Spiritual Foundations") ? null : (sfProgress.get(l.id) ?? null),
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));

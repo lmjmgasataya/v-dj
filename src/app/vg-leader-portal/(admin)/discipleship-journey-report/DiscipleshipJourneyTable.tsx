@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Leadership113Status } from "@/lib/leadership113";
+import type { SpiritualFoundationsProgress } from "@/lib/djPortalJourney";
 
 const LEADERSHIP_113_SORT: Record<Leadership113Status, number> = { no: 1, ongoing: 2, yes: 3 };
 
@@ -14,6 +15,8 @@ export interface DiscipleshipJourneyRow {
   serviceRank: number;
   leadership113: Leadership113Status | null;
   steps: Record<string, boolean>;
+  /** Spiritual Foundations not done but partly attended (getSpiritualFoundationsProgress). */
+  sfProgress: SpiritualFoundationsProgress | null;
 }
 
 type SortKey = "name" | "service" | "leadership113" | `step:${string}`;
@@ -48,7 +51,9 @@ export function DiscipleshipJourneyTable({
     if (key === "service") return r.serviceRank;
     if (key === "leadership113") return r.leadership113 == null ? 0 : LEADERSHIP_113_SORT[r.leadership113];
     const step = key.slice("step:".length);
-    return r.steps[step] ? 1 : 0;
+    if (r.steps[step]) return 1;
+    // Partly attended sorts between done and not started.
+    return step === "Spiritual Foundations" && r.sfProgress ? r.sfProgress.attended / (r.sfProgress.total + 1) : 0;
   }
 
   const sorted = [...rows].sort((a, b) => {
@@ -134,6 +139,13 @@ export function DiscipleshipJourneyTable({
               <td key={step} className="px-4 py-2.5 text-center">
                 {r.steps[step] ? (
                   <span className="text-green-600 font-semibold">✓</span>
+                ) : step === "Spiritual Foundations" && r.sfProgress ? (
+                  <span
+                    title={r.sfProgress.note}
+                    className="cursor-help text-xs font-medium bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full whitespace-nowrap"
+                  >
+                    {r.sfProgress.attended}/{r.sfProgress.total}
+                  </span>
                 ) : (
                   <span className="text-gray-300">—</span>
                 )}

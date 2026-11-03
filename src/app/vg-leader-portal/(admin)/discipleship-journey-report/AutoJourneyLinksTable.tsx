@@ -7,6 +7,7 @@ import type { AutoJourneyLink } from "@/lib/djPortalJourney";
 type ResultFilter = "all" | "auto" | "already";
 
 const STEP_PILL: Record<string, string> = {
+  "Victory Weekend/Victory Day": "bg-sky-100 text-sky-700",
   "Spiritual Foundations": "bg-purple-100 text-purple-700",
   "Making Disciples": "bg-teal-100 text-teal-700",
   "Empowering Leaders": "bg-amber-100 text-amber-700",

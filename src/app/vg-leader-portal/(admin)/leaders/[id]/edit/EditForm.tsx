@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { updateVGLeader } from "./actions";
-import { Field, Section, CheckboxOption, RadioOption, inputCls, selectCls, SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
+import { Field, Section, CheckboxOption, RadioOption, inputCls, selectCls, SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS, DJ_PORTAL_ONLY_STEPS, AutoJourneyStep } from "@/components/form";
 import { OwnVgLeaderField } from "@/components/OwnVgLeaderField";
 import { MobileNumberInput } from "@/components/MobileNumberInput";
 import { LeadershipGroupMembersField, type MemberRowValue } from "@/components/LeadershipGroupMembersField";
@@ -287,11 +287,16 @@ export function EditForm({
             <p className="text-sm font-medium text-gray-700 -mb-1">
               Steps Completed <span className="text-red-500">*</span>
             </p>
-            {DISCIPLESHIP_JOURNEY_STEPS.map((journeyStep) => (
-              <CheckboxOption key={journeyStep} name="discipleshipJourneyCompleted" value={journeyStep} defaultChecked={completedSteps.includes(journeyStep)}>
-                {journeyStep}
-              </CheckboxOption>
-            ))}
+            {DISCIPLESHIP_JOURNEY_STEPS.map((journeyStep) =>
+              DJ_PORTAL_ONLY_STEPS.includes(journeyStep) ? (
+                <AutoJourneyStep key={journeyStep} step={journeyStep} done={completedSteps.includes(journeyStep)} />
+              ) : (
+                <CheckboxOption key={journeyStep} name="discipleshipJourneyCompleted" value={journeyStep} defaultChecked={completedSteps.includes(journeyStep)}>
+                  {journeyStep}
+                </CheckboxOption>
+              )
+            )}
+            <p className="text-xs text-gray-400">Spiritual Foundations comes only from the Discipleship Journey Portal&apos;s attendance.</p>
           </div>
           <Field label="Graduate of Leadership 113?" className="sm:col-span-2" required>
             <select name="graduateOfLeadership113" defaultValue={leader.graduateOfLeadership113 ?? ""} className={selectCls}>

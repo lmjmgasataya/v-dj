@@ -16,7 +16,7 @@ export default async function DisciplersListPage() {
           <h3 className="font-semibold text-gray-800">Disciplers</h3>
           <span className="text-xs text-gray-400">{disciplers.length}</span>
         </div>
-        <VgLeadersTable rows={disciplers} enableMerge canEdit={isDeveloper} />
+        <VgLeadersTable rows={disciplers} enableMerge canEdit={isDeveloper} exportName="disciplers" />
       </div>
     </div>
   );

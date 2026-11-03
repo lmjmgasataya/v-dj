@@ -23,8 +23,6 @@ const GraphCanvas = dynamic(() => import("./GraphCanvas"), {
 });
 
 const EDGE_KINDS = Object.keys(EDGE_STYLE) as GraphEdgeKind[];
-// Participant links start unticked, so the graph opens on the leader network.
-const OFF_BY_DEFAULT: GraphEdgeKind[] = ["participantVgl", "participantDiscipler"];
 const PROFILE_STATUSES = Object.keys(PROFILE_STYLE) as ProfileStatus[];
 
 // A copy of `set` with `k` switched on or off.
@@ -47,15 +45,11 @@ function freshNode(n: GraphNode): GraphNode {
 const OUTGOING: Record<GraphEdgeKind, string> = {
   lgl: "Leads in their Leadership Group",
   vgLeader: "Is the VG Leader of",
-  participantVgl: "VG Leader of participants",
-  participantDiscipler: "Disciples participants",
   intern: "Interns in their Victory Groups",
 };
 const INCOMING: Record<GraphEdgeKind, string> = {
   lgl: "Leadership Group Leader",
   vgLeader: "Their VG Leader",
-  participantVgl: "Their VG Leader",
-  participantDiscipler: "Their Discipler",
   intern: "Their VG Leader",
 };
 
@@ -82,9 +76,7 @@ function findPerson(people: GraphNode[], query: string, nameOf: (n: GraphNode) =
 }
 
 export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: GraphNode[]; links: GraphLink[] }) {
-  const [edgeKinds, setEdgeKinds] = useState<Set<GraphEdgeKind>>(
-    () => new Set(EDGE_KINDS.filter((k) => !OFF_BY_DEFAULT.includes(k))),
-  );
+  const [edgeKinds, setEdgeKinds] = useState<Set<GraphEdgeKind>>(() => new Set(EDGE_KINDS));
   const [hideUnconnected, setHideUnconnected] = useState(true);
   const [hideDisciplerOnly, setHideDisciplerOnly] = useState(true);
   const [pickedId, setPickedId] = useState<string | null>(null);
@@ -234,7 +226,7 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
   }
 
   const counts = useMemo(() => {
-    const c = { leader: 0, participant: 0, intern: 0, unclaimed: 0, incomplete: 0 };
+    const c = { leader: 0, intern: 0, unclaimed: 0, incomplete: 0 };
     for (const n of nodes) {
       c[n.kind] += 1;
       if (n.profileStatus) c[n.profileStatus] += 1;
@@ -334,7 +326,7 @@ export function NetworkGraph({ nodes: allNodes, links: allLinks }: { nodes: Grap
           Hide disciplers who aren&apos;t VG leaders ({disciplerOnlyIds.size})
         </label>
         <span className="ml-auto text-gray-400">
-          {counts.leader} leaders · {counts.participant} participants · {counts.intern} interns · {links.length} links
+          {counts.leader} leaders · {counts.intern} interns · {links.length} links
         </span>
       </div>
 

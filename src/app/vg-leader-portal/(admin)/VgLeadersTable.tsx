@@ -63,15 +63,22 @@ function sortIcon(col: SortKey, currentSort: SortKey, currentDir: SortDir) {
   return currentDir === "asc" ? " ↑" : " ↓";
 }
 
+function portalLabel(l: VgLeaderRow): string {
+  return l.pinReset ? "Claimed · PIN reset" : l.claimed ? "Claimed" : "Not claimed";
+}
+
 export function VgLeadersTable({
   rows,
   enableMerge,
   canEdit,
+  exportName,
 }: {
   rows: VgLeaderRow[];
   enableMerge?: boolean;
   /** Off for lead_pastor: read-only list, no Reset PIN / Edit / Merge. */
   canEdit: boolean;
+  /** Start of the Excel file's name, e.g. "vg_leaders". */
+  exportName: string;
 }) {
   const [q, setQ] = useState("");
   const [profileFilter, setProfileFilter] = useState<ProfileFilter>("all");
@@ -80,6 +87,7 @@ export function VgLeadersTable({
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [selected, setSelected] = useState<number[]>([]);
   const [merging, setMerging] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const showMerge = enableMerge && canEdit;
 
   function toggleSelected(id: number) {
@@ -119,6 +127,37 @@ export function VgLeadersTable({
     return sortDir === "asc" ? cmp : -cmp;
   });
 
+  // Exports exactly what's on screen: current search, filters and sort.
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const XLSX = await import("xlsx");
+      const sheet = XLSX.utils.aoa_to_sheet([
+        ["Last Name", "First Name", "Nickname", "Mobile", "Service", "Portal Account", "Profile", "Active Groups", "Participants"],
+        ...sorted.map((l) => [
+          toTitleCase(l.lastName),
+          toTitleCase(l.firstName),
+          l.nickname ?? "",
+          l.mobileNumber ?? "",
+          l.serviceAttending ?? "",
+          portalLabel(l),
+          l.profileCompleted ? "Complete" : "Incomplete",
+          l.activeGroups,
+          l.participants.length,
+        ]),
+      ]);
+      sheet["!cols"] = [{ wch: 20 }, { wch: 24 }, { wch: 16 }, { wch: 14 }, { wch: 20 }, { wch: 20 }, { wch: 12 }, { wch: 14 }, { wch: 12 }];
+      sheet["!autofilter"] = { ref: `A1:I${sorted.length + 1}` };
+      const book = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(book, sheet, "VG Leaders");
+      const parts = [exportName, serviceFilter, profileFilter !== "all" ? `profile_${profileFilter}` : "", query ? "search" : ""];
+      const fileName = parts.filter(Boolean).join("_").replace(/[^\w-]+/g, "_");
+      XLSX.writeFile(book, `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap gap-2 px-6 pt-4">
@@ -147,6 +186,14 @@ export function VgLeadersTable({
             <option key={ts} value={ts}>{ts}</option>
           ))}
         </select>
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={exporting || sorted.length === 0}
+          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {exporting ? "Exporting…" : `⬇ Export Excel (${sorted.length})`}
+        </button>
         {showMerge && selected.length === 2 && (
           <button
             type="button"
@@ -265,7 +312,7 @@ export function VgLeadersTable({
                             : "bg-gray-100 text-gray-500"
                       }`}
                     >
-                      {l.pinReset ? "Claimed · PIN reset" : l.claimed ? "Claimed" : "Not claimed"}
+                      {portalLabel(l)}
                     </span>
                   </td>
                   <td className="px-4 py-2.5">

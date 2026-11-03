@@ -27,7 +27,7 @@ export default async function VgLeadersListPage() {
             )}
           </div>
         </div>
-        <VgLeadersTable rows={vgLeaders} canEdit={isDeveloper} />
+        <VgLeadersTable rows={vgLeaders} canEdit={isDeveloper} exportName="vg_leaders" />
       </div>
     </div>
   );

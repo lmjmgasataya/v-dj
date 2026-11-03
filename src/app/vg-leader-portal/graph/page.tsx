@@ -15,8 +15,8 @@ export const metadata: Metadata = {
 };
 
 /**
- * The whole VG leader network as a zoomable graph: leaders, the participants and interns under
- * them, and every link between them. Developer-only (also gated in src/proxy.ts); linked from
+ * The whole VG leader network as a zoomable graph: leaders, the interns under them, and every
+ * link between them. Participants aren't drawn — only used to spot discipler-only leaders. Developer-only (also gated in src/proxy.ts); linked from
  * the VG Leader Portal hub as a Beta card.
  */
 export default async function ConnectionsGraphPage() {
@@ -38,14 +38,7 @@ export default async function ConnectionsGraphPage() {
       .where(isNull(victoryGroupLeaders.deletedAt)),
     db.select({ leaderId: leadershipGroupMembers.leaderId, memberId: leadershipGroupMembers.memberVgLeaderId }).from(leadershipGroupMembers),
     db
-      .select({
-        id: participants.id,
-        lastName: participants.lastName,
-        firstName: participants.firstName,
-        vgLeaderId: participants.vgLeaderId,
-        disciplerId: participants.disciplerId,
-        serviceAttending: participants.serviceAttending,
-      })
+      .select({ vgLeaderId: participants.vgLeaderId, disciplerId: participants.disciplerId })
       .from(participants)
       .where(and(isNull(participants.deletedAt), or(isNotNull(participants.vgLeaderId), isNotNull(participants.disciplerId)))),
     db
@@ -84,18 +77,6 @@ export default async function ConnectionsGraphPage() {
 
   for (const l of leaders) link(l.ownVgLeaderId, L(l.id), "vgLeader");
   for (const r of lglRows) if (leaderIds.has(r.memberId)) link(r.leaderId, L(r.memberId), "lgl");
-  for (const p of participantRows) {
-    const id = `p:${p.id}`;
-    nodes.push({
-      id,
-      kind: "participant",
-      ...names(p),
-      href: `/participants/${p.id}`,
-      service: p.serviceAttending,
-    });
-    link(p.vgLeaderId, id, "participantVgl");
-    link(p.disciplerId, id, "participantDiscipler");
-  }
   for (const i of internRows) {
     const id = `i:${i.id}`;
     nodes.push({ id, kind: "intern", ...names(i) });
@@ -105,8 +86,12 @@ export default async function ConnectionsGraphPage() {
   // A leader row that participants only name as their discipler — not anyone's VG leader, no
   // Victory Group of their own, not an LGL. The graph can hide these (on by default).
   const actsAsVgl = new Set<string>(vgOwnerRows.map((r) => L(r.vgLeaderId)));
+  for (const l of links) actsAsVgl.add(l.source);
   const disciples = new Set<string>();
-  for (const l of links) (l.kind === "participantDiscipler" ? disciples : actsAsVgl).add(l.source);
+  for (const p of participantRows) {
+    if (p.vgLeaderId != null) actsAsVgl.add(L(p.vgLeaderId));
+    if (p.disciplerId != null) disciples.add(L(p.disciplerId));
+  }
   for (const n of nodes) {
     if (n.kind === "leader" && !n.isLgl && disciples.has(n.id) && !actsAsVgl.has(n.id)) n.isDisciplerOnly = true;
   }

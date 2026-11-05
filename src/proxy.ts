@@ -109,6 +109,7 @@ export default async function proxy(request: NextRequest) {
   }
 }
 
+// Static files and the connection ping skip the proxy — each run counts as a function invocation.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/ping|sw\\.js|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico)$).*)"],
 };

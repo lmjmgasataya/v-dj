@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from "react";
 export type ConnectionQuality = "strong" | "unstable" | "offline";
 type PingResult = "ok" | "slow" | "fail";
 
-const PING_INTERVAL_MS = 12000;
+// Every ping is a server invocation, so ping sparsely and not at all while the tab is hidden
+const PING_INTERVAL_MS = 30000;
 const PING_TIMEOUT_MS = 4000;
 const UNSTABLE_LATENCY_MS = 1500;
 const HISTORY_SIZE = 3;
@@ -27,6 +28,7 @@ export function useConnectionQuality(enabled: boolean): ConnectionQuality {
 
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    let inFlight = false;
 
     function record(result: PingResult) {
       history.current = [...history.current, result].slice(-HISTORY_SIZE);
@@ -44,6 +46,10 @@ export function useConnectionQuality(enabled: boolean): ConnectionQuality {
     }
 
     async function ping() {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      // Hidden: stop the loop; becoming visible again restarts it
+      if (inFlight || document.visibilityState === "hidden") return;
       if (!navigator.onLine) {
         record("fail");
         classify();
@@ -54,6 +60,7 @@ export function useConnectionQuality(enabled: boolean): ConnectionQuality {
       const started = performance.now();
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), PING_TIMEOUT_MS);
+      inFlight = true;
       try {
         const res = await fetch("/api/ping", { cache: "no-store", signal: controller.signal });
         const elapsed = performance.now() - started;
@@ -64,6 +71,7 @@ export function useConnectionQuality(enabled: boolean): ConnectionQuality {
         record("fail");
       } finally {
         clearTimeout(timeout);
+        inFlight = false;
       }
       classify();
       schedule();
@@ -82,12 +90,14 @@ export function useConnectionQuality(enabled: boolean): ConnectionQuality {
     void ping();
     window.addEventListener("offline", handleOffline);
     window.addEventListener("online", ping);
+    document.addEventListener("visibilitychange", ping);
 
     return () => {
       cancelled = true;
       if (timer) clearTimeout(timer);
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("online", ping);
+      document.removeEventListener("visibilitychange", ping);
     };
   }, [enabled]);
 

@@ -398,9 +398,25 @@ export async function getAutoJourneyLinks(opts: { vgLeaderIds?: number[]; servic
   });
 }
 
-/** Runs the sync after the check-in response is sent, so it never slows check-in down. */
+// A full sync recomputes every leader, so a busy check-in desk would run it on every scan. Within one
+// server instance, check-ins less than this apart share one run, started this long after the last.
+const SYNC_MIN_GAP_MS = 2 * 60 * 1000;
+let lastSyncAt = 0;
+let syncQueued = false;
+
+/**
+ * Runs the sync after the check-in response is sent, so it never slows check-in down. Check-ins
+ * during the wait join the queued run instead of starting their own (waiting costs no CPU).
+ */
 export function syncJourneyStepsAfterResponse() {
-  after(() =>
-    syncJourneyStepsFromDjPortal().catch((err) => console.error("Discipleship Journey step sync failed:", err))
-  );
+  after(async () => {
+    if (syncQueued) return;
+    syncQueued = true;
+    const wait = lastSyncAt + SYNC_MIN_GAP_MS - Date.now();
+    if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+    // Check-ins from here on need the next run — this one may already have read past them
+    syncQueued = false;
+    lastSyncAt = Date.now();
+    await syncJourneyStepsFromDjPortal().catch((err) => console.error("Discipleship Journey step sync failed:", err));
+  });
 }

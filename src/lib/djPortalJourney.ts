@@ -36,16 +36,39 @@ type ClassAttendance = {
   required: { name: string; sessionDate: string; attended: boolean }[];
 };
 
+type Leader = { id: number; lastName: string; firstName: string; mobileNumber: string | null };
+
+function loadLeaders(): Promise<Leader[]> {
+  return db
+    .select({
+      id: victoryGroupLeaders.id,
+      lastName: victoryGroupLeaders.lastName,
+      firstName: victoryGroupLeaders.firstName,
+      mobileNumber: victoryGroupLeaders.mobileNumber,
+    })
+    .from(victoryGroupLeaders)
+    .where(isNull(victoryGroupLeaders.deletedAt));
+}
+
+/** `victoryDay`: the step's Victory Day sessions; `rest`: all but those. */
+type StepAttendance = Record<"victoryDay" | "rest", ClassAttendance[]>;
+
 /**
- * Each VG leader's attendance at the classes whose name starts with `step` — only the Victory Day
- * ones when `victoryDay` is set, otherwise all but those. So Spiritual Foundations Day 1 (the
- * Victory Day sessions) is the Victory Day step and Day 2 to Day 10 are Spiritual Foundations,
- * whatever the fee category. Participant records are matched to a leader by mobile number, then by
- * name — and the names have to agree either way. A leader's records are combined: a class counts
- * once attended in any batch, whether made up under the same record or under a new registration
- * in a later batch. One entry per leader matched to at least one record.
+ * Each VG leader's attendance at the classes whose name starts with `step`, split into the Victory
+ * Day sessions and all but those. So Spiritual Foundations Day 1 (the Victory Day sessions) is the
+ * Victory Day step and Day 2 to Day 10 are Spiritual Foundations, whatever the fee category.
+ * Participant records are matched to a leader by mobile number, then by name — and the names have
+ * to agree either way. A leader's records are combined: a class counts once attended in any batch,
+ * whether made up under the same record or under a new registration in a later batch. One entry
+ * per leader matched to at least one record. Matching is the costly part, so both splits come out
+ * of one pass; `leaders` lets a sync share one load across steps, and `onlyLeaderId` skips every
+ * record that can't be that leader's.
  */
-async function batchClassAttendance(step: string, { victoryDay = false } = {}): Promise<ClassAttendance[]> {
+async function batchClassAttendance(
+  step: string,
+  opts: { leaders?: Leader[]; onlyLeaderId?: number } = {}
+): Promise<StepAttendance> {
+  const none: StepAttendance = { victoryDay: [], rest: [] };
   const allSessions = await db
     .select({
       id: classSessions.id,
@@ -57,7 +80,7 @@ async function batchClassAttendance(step: string, { victoryDay = false } = {}): 
     .from(classSessions)
     .where(like(classSessions.name, `${step}%`));
   const sessions = allSessions.filter((s) => s.batchId != null);
-  if (sessions.length === 0) return [];
+  if (sessions.length === 0) return none;
 
   const batchIds = [...new Set(sessions.map((s) => s.batchId!))];
   const [registrants, attended, leaders] = await Promise.all([
@@ -76,16 +99,16 @@ async function batchClassAttendance(step: string, { victoryDay = false } = {}): 
       .select({ participantId: checkIns.participantId, classSessionId: checkIns.classSessionId })
       .from(checkIns)
       .where(and(inArray(checkIns.classSessionId, allSessions.map((s) => s.id)), ne(checkIns.status, "Absent"))),
-    db
-      .select({
-        id: victoryGroupLeaders.id,
-        lastName: victoryGroupLeaders.lastName,
-        firstName: victoryGroupLeaders.firstName,
-        mobileNumber: victoryGroupLeaders.mobileNumber,
-      })
-      .from(victoryGroupLeaders)
-      .where(isNull(victoryGroupLeaders.deletedAt)),
+    opts.leaders ?? loadLeaders(),
   ]);
+
+  // areSimilarNames below requires the same last name, so for one leader that's a cheap pre-filter.
+  let onlyLastName: string | null = null;
+  if (opts.onlyLeaderId != null) {
+    const leader = leaders.find((l) => l.id === opts.onlyLeaderId);
+    if (!leader) return none;
+    onlyLastName = normalizeName(leader.lastName);
+  }
 
   const sessionById = new Map(allSessions.map((s) => [s.id, s]));
   // Classes each participant record attended (any batch's session), and when they last came.
@@ -97,39 +120,51 @@ async function batchClassAttendance(step: string, { victoryDay = false } = {}): 
     if (session.sessionDate > (lastAttended.get(c.participantId) ?? "")) lastAttended.set(c.participantId, session.sessionDate);
   }
 
+  // The sessions each batch's registrants need, per split.
+  const requiredByBatch = new Map<number, Record<keyof StepAttendance, typeof sessions>>();
+  for (const s of sessions) {
+    const required = requiredByBatch.get(s.batchId!) ?? { victoryDay: [], rest: [] };
+    required[s.isVictoryDay ? "victoryDay" : "rest"].push(s);
+    requiredByBatch.set(s.batchId!, required);
+  }
+
   const match = createLeaderMatcher(leaders);
   type Combined = { participantId: number; lastAttended: string; classes: Map<string, { name: string; sessionDate: string; attended: boolean }> };
-  const byLeader = new Map<number, Combined>();
+  const byLeader: Record<keyof StepAttendance, Map<number, Combined>> = { victoryDay: new Map(), rest: new Map() };
   // Oldest record first, so a later batch's session dates replace an earlier one's.
   for (const p of registrants) {
-    const required = sessions.filter((s) => s.batchId === p.batchId && s.isVictoryDay === victoryDay);
-    if (required.length === 0) continue;
+    const requiredBySplit = requiredByBatch.get(p.batchId!);
+    if (!requiredBySplit) continue;
+    if (onlyLastName != null && normalizeName(p.lastName) !== onlyLastName) continue;
     const found = match(p);
     // A shared family phone matches the wrong person by mobile alone — the name must agree too.
     if (!found || !areSimilarNames(found.leader, p)) continue;
+    if (opts.onlyLeaderId != null && found.leader.id !== opts.onlyLeaderId) continue;
 
-    const entry = byLeader.get(found.leader.id) ?? { participantId: p.id, lastAttended: "", classes: new Map() };
     const came = lastAttended.get(p.id) ?? "";
-    if (came >= entry.lastAttended) Object.assign(entry, { participantId: p.id, lastAttended: came });
     const mine = attendedClasses.get(p.id);
-    for (const s of required) {
-      const key = classKey(s.name);
-      const wasAttended = entry.classes.get(key)?.attended ?? false;
-      entry.classes.set(key, { name: s.name, sessionDate: s.sessionDate, attended: wasAttended || !!mine?.has(key) });
+    for (const split of ["victoryDay", "rest"] as const) {
+      const required = requiredBySplit[split];
+      if (required.length === 0) continue;
+      const entry = byLeader[split].get(found.leader.id) ?? { participantId: p.id, lastAttended: "", classes: new Map() };
+      if (came >= entry.lastAttended) Object.assign(entry, { participantId: p.id, lastAttended: came });
+      for (const s of required) {
+        const key = classKey(s.name);
+        const wasAttended = entry.classes.get(key)?.attended ?? false;
+        entry.classes.set(key, { name: s.name, sessionDate: s.sessionDate, attended: wasAttended || !!mine?.has(key) });
+      }
+      byLeader[split].set(found.leader.id, entry);
     }
-    byLeader.set(found.leader.id, entry);
   }
 
-  return [...byLeader].map(([vgLeaderId, e]) => ({
-    vgLeaderId,
-    participantId: e.participantId,
-    required: [...e.classes.values()],
-  }));
+  const toList = (m: Map<number, Combined>): ClassAttendance[] =>
+    [...m].map(([vgLeaderId, e]) => ({ vgLeaderId, participantId: e.participantId, required: [...e.classes.values()] }));
+  return { victoryDay: toList(byLeader.victoryDay), rest: toList(byLeader.rest) };
 }
 
 /** Leaders who attended every required class — see batchClassAttendance. */
-async function batchClassLinks(step: string, opts: { victoryDay?: boolean } = {}): Promise<JourneyLink[]> {
-  return (await batchClassAttendance(step, opts))
+function completedLinks(attendance: ClassAttendance[]): JourneyLink[] {
+  return attendance
     .filter((a) => a.required.every((s) => s.attended))
     .map((a) => ({ vgLeaderId: a.vgLeaderId, participantId: a.participantId }));
 }
@@ -144,13 +179,13 @@ export interface SpiritualFoundationsProgress {
 /**
  * For each leader who attended some of Spiritual Foundations Day 2 to Day 10 but not all, how far
  * they got across all their participant records and batches, keyed by VG leader id. Leaders who finished it, never came, or aren't matched to a
- * participant record aren't in the map.
+ * participant record aren't in the map. `onlyLeaderId` limits it to that one leader.
  */
-export async function getSpiritualFoundationsProgress(): Promise<Map<number, SpiritualFoundationsProgress>> {
+export async function getSpiritualFoundationsProgress(onlyLeaderId?: number): Promise<Map<number, SpiritualFoundationsProgress>> {
   const today = todayPH();
   const label = (name: string) => name.slice(SPIRITUAL_FOUNDATIONS.length).trim() || name;
   const result = new Map<number, SpiritualFoundationsProgress>();
-  for (const { vgLeaderId, required } of await batchClassAttendance(SPIRITUAL_FOUNDATIONS)) {
+  for (const { vgLeaderId, required } of (await batchClassAttendance(SPIRITUAL_FOUNDATIONS, { onlyLeaderId })).rest) {
     const attended = required.filter((s) => s.attended).length;
     if (attended === 0 || attended === required.length) continue;
 
@@ -171,7 +206,7 @@ export async function getSpiritualFoundationsProgress(): Promise<Map<number, Spi
 
 /** One leader's getSpiritualFoundationsProgress note, or null. */
 export async function getSpiritualFoundationsProgressNote(vgLeaderId: number): Promise<string | null> {
-  return (await getSpiritualFoundationsProgress()).get(vgLeaderId)?.note ?? null;
+  return (await getSpiritualFoundationsProgress(vgLeaderId)).get(vgLeaderId)?.note ?? null;
 }
 
 /** VG leaders checked in (On-time or Late) to an Empowering Leaders VGL-only session — their earliest one. */
@@ -303,12 +338,16 @@ export async function syncJourneyStepsFromDjPortal(): Promise<{
   makingDisciples: number;
   empoweringLeaders: number;
 }> {
-  const [vdLinks, sfLinks, mdLinks, elLinks] = await Promise.all([
-    batchClassLinks(SPIRITUAL_FOUNDATIONS, { victoryDay: true }),
-    batchClassLinks(SPIRITUAL_FOUNDATIONS),
-    batchClassLinks(MAKING_DISCIPLES),
+  // Victory Day is Spiritual Foundations' Victory Day split, so it shares that pass.
+  const leaders = await loadLeaders();
+  const [sfAttendance, mdAttendance, elLinks] = await Promise.all([
+    batchClassAttendance(SPIRITUAL_FOUNDATIONS, { leaders }),
+    batchClassAttendance(MAKING_DISCIPLES, { leaders }),
     empoweringLeadersLinks(),
   ]);
+  const vdLinks = completedLinks(sfAttendance.victoryDay);
+  const sfLinks = completedLinks(sfAttendance.rest);
+  const mdLinks = completedLinks(mdAttendance.rest);
   const [victoryDay, sf, makingDisciples, empoweringLeaders] = await Promise.all([
     recordAndAddJourneyStep(VICTORY_DAY_STEP, vdLinks),
     overrideJourneyStep(SPIRITUAL_FOUNDATIONS, sfLinks),

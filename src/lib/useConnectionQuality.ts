@@ -6,7 +6,7 @@ export type ConnectionQuality = "strong" | "unstable" | "offline";
 type PingResult = "ok" | "slow" | "fail";
 
 // Every ping is a server invocation, so ping sparsely and not at all while the tab is hidden
-const PING_INTERVAL_MS = 30000;
+const PING_INTERVAL_MS = 60000;
 const PING_TIMEOUT_MS = 4000;
 const UNSTABLE_LATENCY_MS = 1500;
 const HISTORY_SIZE = 3;

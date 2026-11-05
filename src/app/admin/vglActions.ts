@@ -2,9 +2,8 @@
 
 import { db } from "@/db";
 import { classSessions, sessionVglCheckIns, victoryGroupLeaders, type CheckInStatus } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, count, eq, ne } from "drizzle-orm";
 import { getActiveVgLeaderIds } from "@/lib/vgSnapshotCompute";
-import { revalidatePath } from "next/cache";
 import { syncJourneyStepsAfterResponse } from "@/lib/djPortalJourney";
 import { getSession } from "@/lib/auth";
 import { checkInStatusForDate } from "@/lib/date";
@@ -14,6 +13,15 @@ import { toTitleCase } from "@/lib/text";
 async function canCheckIn() {
   const session = await getSession();
   return !!session && session.role !== "vg_leader";
+}
+
+/** The session's "checked in" count on /admin — returned instead of revalidating it, like countAttendees in actions.ts. */
+async function countVglAttendees(classSessionId: number): Promise<number> {
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(sessionVglCheckIns)
+    .where(and(eq(sessionVglCheckIns.classSessionId, classSessionId), ne(sessionVglCheckIns.status, "Absent")));
+  return total;
 }
 
 async function isVglOnlySession(classSessionId: number) {
@@ -89,7 +97,7 @@ export async function checkInVgl(
   classSessionId: number,
   remarks?: string,
   status?: CheckInStatus
-): Promise<{ error: string } | { success: true; firstName: string; lastName: string; status: CheckInStatus }> {
+): Promise<{ error: string } | { success: true; firstName: string; lastName: string; status: CheckInStatus; attendeeCount: number }> {
   if (!(await canCheckIn())) return { error: "Not authorized" };
 
   const [vglOnly, [leader]] = await Promise.all([
@@ -119,16 +127,19 @@ export async function checkInVgl(
     .onConflictDoNothing();
   syncJourneyStepsAfterResponse();
 
-  revalidatePath("/admin");
-  revalidatePath("/sessions");
-  return { success: true, firstName: toTitleCase(leader.firstName), lastName: toTitleCase(leader.lastName), status: finalStatus };
+  return {
+    success: true,
+    firstName: toTitleCase(leader.firstName),
+    lastName: toTitleCase(leader.lastName),
+    status: finalStatus,
+    attendeeCount: await countVglAttendees(classSessionId),
+  };
 }
 
-export async function removeVglCheckIn(vgLeaderId: number, classSessionId: number) {
+export async function removeVglCheckIn(vgLeaderId: number, classSessionId: number): Promise<{ attendeeCount: number } | undefined> {
   if (!(await canCheckIn())) return;
   await db
     .delete(sessionVglCheckIns)
     .where(and(eq(sessionVglCheckIns.vgLeaderId, vgLeaderId), eq(sessionVglCheckIns.classSessionId, classSessionId)));
-  revalidatePath("/admin");
-  revalidatePath("/sessions");
+  return { attendeeCount: await countVglAttendees(classSessionId) };
 }

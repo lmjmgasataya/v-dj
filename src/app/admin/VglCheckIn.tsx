@@ -14,6 +14,7 @@ import { ConfirmCheckInSheet } from "./ui/ConfirmCheckInSheet";
 import { StatusPill } from "./ui/StatusPill";
 import { SearchIcon, Spinner } from "./ui/icons";
 import { ConfirmRemoveSheet } from "./ui/ConfirmRemoveSheet";
+import { useSetAttendeeCount } from "./AttendeeCounts";
 
 const MAX_RESULTS = 50;
 
@@ -36,6 +37,7 @@ export function VglCheckIn({
   const [success, setSuccess] = useState<{ firstName: string; lastName: string; status: CheckInStatus } | null>(null);
   const [pending, startTransition] = useTransition();
   const toast = useToast();
+  const setAttendeeCount = useSetAttendeeCount();
   const newUi = useNewCheckinUi();
 
   function reload() {
@@ -64,6 +66,7 @@ export function VglCheckIn({
         toast.show(result.error, "error");
         return;
       }
+      setAttendeeCount(sessionId, result.attendeeCount);
       setSuccess({ firstName: result.firstName, lastName: result.lastName, status: result.status });
       setQ("");
       setRoster(await getVglCheckinRoster(sessionId));
@@ -81,7 +84,8 @@ export function VglCheckIn({
 
   function removeEntryCheckIn(entry: VglRosterEntry) {
     startTransition(async () => {
-      await removeVglCheckIn(entry.id, sessionId);
+      const removed = await removeVglCheckIn(entry.id, sessionId);
+      if (removed) setAttendeeCount(sessionId, removed.attendeeCount);
       setRoster(await getVglCheckinRoster(sessionId));
       setUndoEntry(null);
     });

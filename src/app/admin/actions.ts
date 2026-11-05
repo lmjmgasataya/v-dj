@@ -46,6 +46,19 @@ export async function setCheckinFlag(key: CheckinSettingsFlagKey, enabled: boole
   await toastRedirectBack("Setting updated.");
 }
 
+/**
+ * The session's "checked in" count on /admin (Absent doesn't count). Check-in changes return it
+ * instead of calling revalidatePath, which would re-render the whole page on every check-in;
+ * /sessions and /participants are dynamic, so they're fresh on the next visit anyway.
+ */
+async function countAttendees(classSessionId: number): Promise<number> {
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(checkIns)
+    .where(and(eq(checkIns.classSessionId, classSessionId), ne(checkIns.status, "Absent")));
+  return total;
+}
+
 const VGL_ONLY_BLOCK_REASON = "This session is for active VG leaders only";
 
 // Also the gate for VGL-only sessions and for the session's batch: every participant
@@ -116,7 +129,7 @@ export async function checkInParticipant(
   classSessionId: number,
   remarks?: string,
   status?: CheckInStatus
-): Promise<{ error: string } | { success: true; tableNumber: number | null }> {
+): Promise<{ error: string } | { success: true; tableNumber: number | null; attendeeCount: number }> {
   // assignTableNumber is a pure read (no reservation), so it's safe to run it
   // speculatively alongside the eligibility checks instead of waiting for
   // them first — worst case it's an extra read that goes unused if blocked.
@@ -133,9 +146,7 @@ export async function checkInParticipant(
     .values({ participantId, classSessionId, remarks: remarks || null, tableNumber, status: status ?? checkInStatusForDate(new Date()), method: "Search" })
     .onConflictDoNothing();
   syncJourneyStepsAfterResponse();
-  revalidatePath("/admin");
-  revalidatePath("/sessions");
-  return { success: true, tableNumber };
+  return { success: true, tableNumber, attendeeCount: await countAttendees(classSessionId) };
 }
 
 export async function lookupParticipantForQr(
@@ -193,7 +204,7 @@ export async function checkInByQr(
   method: CheckInMethod = "QR Reader",
   skipRevalidate = false,
 ): Promise<
-  | { firstName: string; lastName: string; alreadyCheckedIn: boolean; tableNumber: number | null }
+  | { firstName: string; lastName: string; alreadyCheckedIn: boolean; tableNumber: number | null; attendeeCount?: number }
   | { error: string }
 > {
   // Every branch below except the final row lookup is a pure read with no
@@ -231,18 +242,15 @@ export async function checkInByQr(
 
   const tableNumber = tableEnabled ? tableNumberIfEnabled : null;
   await db.insert(checkIns).values({ participantId, classSessionId, remarks: remarks || null, tableNumber, status: status ?? checkInStatusForDate(new Date()), method }).onConflictDoNothing();
-  if (!skipRevalidate) {
-    syncJourneyStepsAfterResponse();
-    revalidatePath("/admin");
-    revalidatePath("/sessions");
-  }
+  if (skipRevalidate) return { firstName, lastName, alreadyCheckedIn: false, tableNumber };
 
-  return { firstName, lastName, alreadyCheckedIn: false, tableNumber };
+  syncJourneyStepsAfterResponse();
+  return { firstName, lastName, alreadyCheckedIn: false, tableNumber, attendeeCount: await countAttendees(classSessionId) };
 }
 
 // Replaying a batch of queued offline check-ins calls checkInByQr with
-// skipRevalidate so each one doesn't push a live full-page refresh to
-// whoever's viewing /admin — revalidate once here after the whole batch.
+// skipRevalidate so each one doesn't sync the journey steps or count the
+// session — sync, and refresh /admin's counts, once here after the whole batch.
 export async function revalidateAfterOfflineSync() {
   syncJourneyStepsAfterResponse();
   revalidatePath("/admin");
@@ -385,12 +393,11 @@ export async function getCheckinRoster(
   });
 }
 
-export async function removeCheckIn(participantId: number, classSessionId: number) {
+export async function removeCheckIn(participantId: number, classSessionId: number): Promise<{ attendeeCount: number }> {
   await db
     .delete(checkIns)
     .where(and(eq(checkIns.participantId, participantId), eq(checkIns.classSessionId, classSessionId)));
-  revalidatePath("/admin");
-  revalidatePath("/sessions");
+  return { attendeeCount: await countAttendees(classSessionId) };
 }
 
 export async function getSessionCheckIns(sessionId: number) {
@@ -572,9 +579,5 @@ export async function addWalkIn(classSessionId: number, formData: FormData) {
   const tableNumber = (await isTableAssignmentEnabled()) ? await assignTableNumber(classSessionId) : null;
   await db.insert(checkIns).values({ participantId: inserted.id, classSessionId, remarks, tableNumber, status: checkInStatusForDate(new Date()), method: "Walk-in" }).onConflictDoNothing();
 
-  revalidatePath("/admin");
-  revalidatePath("/participants");
-  revalidatePath("/sessions");
-
-  return { tableNumber };
+  return { tableNumber, attendeeCount: await countAttendees(classSessionId) };
 }

@@ -22,8 +22,8 @@ export default async function AdminPage({
   const sessionId = session ? parseInt(session, 10) : null;
 
   // featureFlags doesn't depend on the default batch, so fetch it alongside
-  // instead of after — this page re-renders on every check-in via
-  // revalidatePath, so shaving a round trip here matters.
+  // instead of after. (Check-ins don't re-render this page — they return the
+  // session's new count instead; see AttendeeCounts.)
   const [defaultBatch, flags] = await Promise.all([
     db
       .select()

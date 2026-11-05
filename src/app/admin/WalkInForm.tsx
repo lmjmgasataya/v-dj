@@ -10,11 +10,13 @@ import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { useNewCheckinUi } from "./ui/NewCheckinUi";
 import { Notice } from "./ui/ConfirmCheckInSheet";
 import { Spinner } from "./ui/icons";
+import { useSetAttendeeCount } from "./AttendeeCounts";
 
 export function WalkInForm({ sessionId, newDatePicker, offlineCheckin = false }: { sessionId: number; newDatePicker: boolean; offlineCheckin?: boolean }) {
   const [pending, startTransition] = useTransition();
   const [formKey, setFormKey] = useState(0);
   const toast = useToast();
+  const setAttendeeCount = useSetAttendeeCount();
   const onlineStatus = useOnlineStatus();
   const isOnline = !offlineCheckin || onlineStatus;
   const newUi = useNewCheckinUi();
@@ -38,6 +40,7 @@ export function WalkInForm({ sessionId, newDatePicker, offlineCheckin = false }:
         return;
       }
       setFormKey((k) => k + 1);
+      setAttendeeCount(sessionId, result.attendeeCount);
       toast.show(
         <>
           Walk-in participant has been added —{" "}

@@ -15,6 +15,7 @@ import { useNewCheckinUi } from "./ui/NewCheckinUi";
 import { Sheet, SheetBody } from "./ui/Sheet";
 import { ConfirmCheckInSheet } from "./ui/ConfirmCheckInSheet";
 import { AlertIcon, CloseIcon, ScanIcon, Spinner } from "./ui/icons";
+import { useSetAttendeeCount } from "./AttendeeCounts";
 
 export const QR_PREFIX = "dj:participant:";
 const CONTAINER_ID = "qr-scanner-container";
@@ -112,6 +113,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
   const onlineStatus = useOnlineStatus();
   const isOnline = !offlineCheckin || onlineStatus;
   const newUi = useNewCheckinUi();
+  const setAttendeeCount = useSetAttendeeCount();
   const [status, setStatus] = useState<Status>(autoOpen ? "scanning" : "idle");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState<PendingParticipant | null>(null);
@@ -252,6 +254,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
       presentSuccess({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber, status: statusOverride ?? checkInStatusForDate(new Date()) });
       onCheckInRef.current?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: false, tableNumber: result.tableNumber });
       onRosterUpdate?.(participantId, { alreadyCheckedIn: true, tableNumber: result.tableNumber });
+      if (result.attendeeCount != null) setAttendeeCount(sessionId, result.attendeeCount);
     }
     setPending(null);
     setRemarks("");

@@ -19,6 +19,7 @@ import { ConfirmCheckInSheet } from "./ui/ConfirmCheckInSheet";
 import { StatusPill, Tag } from "./ui/StatusPill";
 import { LockIcon, Spinner } from "./ui/icons";
 import { ConfirmRemoveSheet } from "./ui/ConfirmRemoveSheet";
+import { useSetAttendeeCount } from "./AttendeeCounts";
 
 interface ParticipantWithStatus {
   id: number;
@@ -53,6 +54,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
   const [status, setStatus] = useState<CheckInStatus>("On-time");
   const [successInfo, setSuccessInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null; status: CheckInStatus; pendingSync?: boolean } | null>(null);
   const toast = useToast();
+  const setAttendeeCount = useSetAttendeeCount();
   const newUi = useNewCheckinUi();
   const onlineStatus = useOnlineStatus();
   const isOnline = !offlineCheckin || onlineStatus;
@@ -136,6 +138,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
         toast.show(result.error, "error");
       } else {
         const resolvedStatus = statusOverride ?? checkInStatusForDate(new Date());
+        setAttendeeCount(sessionId, result.attendeeCount);
         setSuccessInfo({
           firstName: toTitleCase(p.firstName),
           lastName: toTitleCase(p.lastName),
@@ -169,7 +172,8 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
 
   function removeThisCheckIn() {
     startTransition(async () => {
-      await removeCheckIn(p.id, sessionId);
+      const { attendeeCount } = await removeCheckIn(p.id, sessionId);
+      setAttendeeCount(sessionId, attendeeCount);
       toast.show("Check-in removed.");
       onRosterUpdate?.(p.id, {
         alreadyCheckedIn: false,

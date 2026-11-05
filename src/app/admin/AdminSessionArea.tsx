@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import type { ClassSession } from "@/db/schema";
 import { SessionAttendeesModal } from "./SessionAttendeesModal";
 import { ParticipantSearch } from "./ParticipantSearch";
@@ -11,12 +11,13 @@ import { useNewCheckinUi } from "./ui/NewCheckinUi";
 import { SessionPickerSheet, SessionTags, formatSessionDate } from "./ui/SessionPickerSheet";
 import { ChevronDownIcon } from "./ui/icons";
 import { Tag } from "./ui/StatusPill";
+import { SetAttendeeCountProvider } from "./AttendeeCounts";
 
 export function AdminSessionArea({
   sessions,
   initialSelectedId,
   batchName,
-  attendeeCounts,
+  attendeeCounts: serverAttendeeCounts,
   initialQ,
   qrCheckin,
   victoryDayAllowAllClasses,
@@ -62,6 +63,18 @@ export function AdminSessionArea({
   // page reload, which is exactly what this is meant to avoid.
   const [selectedId, setSelectedId] = useState<number | null>(initialSelectedId);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Check-ins report the new count (see AttendeeCounts) rather than re-rendering the page; a
+  // server render that does happen (e.g. after a settings change) brings fresh counts again.
+  const [attendeeCounts, setAttendeeCounts] = useState(serverAttendeeCounts);
+  const [lastServerCounts, setLastServerCounts] = useState(serverAttendeeCounts);
+  if (serverAttendeeCounts !== lastServerCounts) {
+    setLastServerCounts(serverAttendeeCounts);
+    setAttendeeCounts(serverAttendeeCounts);
+  }
+  const setAttendeeCount = useCallback(
+    (sessionId: number, count: number) => setAttendeeCounts((counts) => ({ ...counts, [sessionId]: count })),
+    []
+  );
 
   const selectedSession = sessions.find((s) => s.id === selectedId) ?? null;
 
@@ -96,7 +109,7 @@ export function AdminSessionArea({
     // The batch's registered count only means something next to a regular class's roster.
     const showRegistered = !!selectedSession && !selectedSession.vglOnly && !selectedSession.allowsWalkIn && registeredCount != null;
     return (
-      <>
+      <SetAttendeeCountProvider value={setAttendeeCount}>
         <section className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)] ring-1 ring-gray-200">
           <button
             type="button"
@@ -220,12 +233,12 @@ export function AdminSessionArea({
             onClose={() => setOpen(false)}
           />
         )}
-      </>
+      </SetAttendeeCountProvider>
     );
   }
 
   return (
-    <>
+    <SetAttendeeCountProvider value={setAttendeeCount}>
       {/* Step 1: Select session */}
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5 flex flex-col gap-3">
         <div className="flex items-center justify-between gap-2">
@@ -347,6 +360,6 @@ export function AdminSessionArea({
           <WalkInForm sessionId={selectedSession.id} newDatePicker={newDatePicker ?? false} offlineCheckin={offlineCheckin} />
         </div>
       )}
-    </>
+    </SetAttendeeCountProvider>
   );
 }

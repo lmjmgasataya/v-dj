@@ -46,7 +46,9 @@ export function CheckInPanel({ participant, sessions, checkIns, hasVictoryDay }:
 
   function handleUndo(sessionId: number, sessionName: string) {
     if (!confirm(`Remove check-in for "${sessionName}"?\n\nThis will unlock the session and the participant will need to be checked in again.`)) return;
-    startTransition(() => removeCheckIn(participant.id, sessionId));
+    startTransition(async () => {
+      await removeCheckIn(participant.id, sessionId);
+    });
   }
 
   return (

@@ -7,7 +7,7 @@ import { getSession } from "@/lib/auth";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { listEventRegisteredAttendees } from "../../check-in/actions";
 import { RemoveInternButton } from "./RemoveInternButton";
-import { isRegistrationClosed } from "@/lib/date";
+import { isRegistrationClosed, isEventDone } from "@/lib/date";
 import { rawServiceValues } from "@/lib/timeService";
 import { EVENT_AUDIENCE_LABEL, formatEventTimeRange } from "@/lib/eventAudience";
 
@@ -47,7 +47,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
     timeZone: "Asia/Manila",
   });
   const timeStr = formatEventTimeRange(event.startTime, event.endTime);
-  const registrationClosed = isRegistrationClosed(event.registrationDeadline);
+  const registrationClosed = isRegistrationClosed(event);
   const deadlineStr = event.registrationDeadline
     ? new Date(event.registrationDeadline + "T00:00:00").toLocaleDateString("en-PH", {
         month: "long",
@@ -73,10 +73,10 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
           <div className="flex items-center gap-2 mt-1">
             <span
               className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                event.isDone ? "bg-gray-100 text-gray-500" : "bg-green-100 text-green-700"
+                isEventDone(event) ? "bg-gray-100 text-gray-500" : "bg-green-100 text-green-700"
               }`}
             >
-              {event.isDone ? "Done" : "Upcoming"}
+              {isEventDone(event) ? "Done" : "Upcoming"}
             </span>
             {event.audience.map((a) => (
               <span key={a} className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">

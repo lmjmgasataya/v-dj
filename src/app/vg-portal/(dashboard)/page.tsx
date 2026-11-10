@@ -1,13 +1,13 @@
 import { db } from "@/db";
 import { victoryGroupLeaders, victoryGroups, events, eventRegistrations } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, gte } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeProfileProgress } from "@/lib/profileCompleteness";
 import { getProfileUpdateQuarters, QUARTER_STATUS_BADGE, QUARTER_STATUS_LABEL } from "@/lib/vgQuarters";
 import { getQuarterOptions } from "@/lib/vgQuarterFlags";
-import { isRegistrationClosed } from "@/lib/date";
+import { isRegistrationClosed, todayPH } from "@/lib/date";
 import { EVENT_AUDIENCE_LABEL, formatEventTimeRange, isEventOpenToLeader } from "@/lib/eventAudience";
 import { ProfileFreshnessBanner } from "./ProfileFreshnessBanner";
 
@@ -37,6 +37,7 @@ export default async function VgPortalDashboardPage() {
         endTime: events.endTime,
         audience: events.audience,
         registrationDeadline: events.registrationDeadline,
+        isDone: events.isDone,
         // At most one row per event: event_registrations is unique on (event_id, vg_leader_id).
         willAttend: eventRegistrations.willAttend,
       })
@@ -45,7 +46,8 @@ export default async function VgPortalDashboardPage() {
         eventRegistrations,
         and(eq(eventRegistrations.eventId, events.id), eq(eventRegistrations.vgLeaderId, vgLeaderId))
       )
-      .where(and(isNull(events.deletedAt), eq(events.isDone, false)))
+      // Not done: neither ticked nor past its date (isEventDone).
+      .where(and(isNull(events.deletedAt), eq(events.isDone, false), gte(events.eventDate, todayPH())))
       .orderBy(events.eventDate),
   ]);
 
@@ -77,7 +79,7 @@ export default async function VgPortalDashboardPage() {
               });
               const timeStr = formatEventTimeRange(e.startTime, e.endTime);
               const registered = regByEvent.get(e.id);
-              const registrationClosed = isRegistrationClosed(e.registrationDeadline);
+              const registrationClosed = isRegistrationClosed(e);
 
               const content = (
                 <>

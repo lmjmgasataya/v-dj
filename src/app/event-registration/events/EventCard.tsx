@@ -1,5 +1,6 @@
 "use client";
 
+import { isEventDone } from "@/lib/date";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { EventDoneCheckbox } from "./EventDoneCheckbox";
@@ -33,6 +34,9 @@ export function EventCard({ event: e }: { event: EventRow }) {
     timeZone: "Asia/Manila",
   });
   const timeStr = formatEventTimeRange(e.startTime, e.endTime);
+  const done = isEventDone(e);
+  // Past its date: done whatever the checkbox says, so the checkbox can't make it upcoming again.
+  const past = done && !e.isDone;
 
   async function handleCopyLink(kind: "vg_leader" | "intern") {
     setCopying(kind);
@@ -54,7 +58,7 @@ export function EventCard({ event: e }: { event: EventRow }) {
       className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm cursor-pointer hover:border-indigo-300 hover:shadow-md transition"
     >
       <div onClick={(ev) => ev.stopPropagation()}>
-        <EventDoneCheckbox id={e.id} name={e.name} isDone={e.isDone} />
+        <EventDoneCheckbox id={e.id} name={e.name} isDone={done} disabled={past} />
       </div>
       <div className="flex-1 flex items-center justify-between min-w-0">
         <div className="flex flex-col gap-1 min-w-0">
@@ -62,10 +66,10 @@ export function EventCard({ event: e }: { event: EventRow }) {
             <span className="font-semibold text-gray-900">{e.name}</span>
             <span
               className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                e.isDone ? "bg-gray-100 text-gray-500" : "bg-green-100 text-green-700"
+                done ? "bg-gray-100 text-gray-500" : "bg-green-100 text-green-700"
               }`}
             >
-              {e.isDone ? "Done" : "Upcoming"}
+              {done ? "Done" : "Upcoming"}
             </span>
             {e.audience.map((a) => (
               <span key={a} className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">

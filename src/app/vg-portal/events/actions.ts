@@ -16,7 +16,7 @@ export async function registerForEvent(eventId: number, formData: FormData) {
 
   const [[event], [leader]] = await Promise.all([
     db
-      .select({ registrationDeadline: events.registrationDeadline, audience: events.audience })
+      .select({ registrationDeadline: events.registrationDeadline, isDone: events.isDone, eventDate: events.eventDate, audience: events.audience })
       .from(events)
       .where(eq(events.id, eventId))
       .limit(1),
@@ -26,7 +26,7 @@ export async function registerForEvent(eventId: number, formData: FormData) {
       .where(eq(victoryGroupLeaders.id, vgLeaderId))
       .limit(1),
   ]);
-  if (!event || isRegistrationClosed(event.registrationDeadline)) return;
+  if (!event || isRegistrationClosed(event)) return;
   if (!isEventOpenToLeader(event.audience, leader?.isLeadershipGroupLeader ?? false)) return;
 
   const willAttend = formData.get("willAttend") === "true";

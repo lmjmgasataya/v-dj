@@ -41,7 +41,7 @@ export default async function EventRegistrationPage({ params }: { params: Promis
     getLiveUpdateStatus(vgLeaderId),
   ]);
   const openToLeader = isEventOpenToLeader(event.audience, leader?.isLeadershipGroupLeader ?? false);
-  const registrationClosed = isRegistrationClosed(event.registrationDeadline);
+  const registrationClosed = isRegistrationClosed(event);
 
   // Leaders confirm attendance only with an up-to-date profile: updated this period and 100%
   // complete. Saving the profile brings them back here (updateOwnProfile).

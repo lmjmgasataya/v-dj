@@ -1,5 +1,6 @@
 "use server";
 
+import { isEventDone } from "@/lib/date";
 import { db } from "@/db";
 import {
   events,
@@ -231,11 +232,11 @@ async function canCheckIn(): Promise<boolean> {
 
 async function getOpenEvent(eventId: number) {
   const [event] = await db
-    .select({ audience: events.audience, isDone: events.isDone })
+    .select({ audience: events.audience, isDone: events.isDone, eventDate: events.eventDate })
     .from(events)
     .where(and(eq(events.id, eventId), isNull(events.deletedAt)))
     .limit(1);
-  return event && !event.isDone && hasLeaderAudience(event.audience) ? event : null;
+  return event && !isEventDone(event) && hasLeaderAudience(event.audience) ? event : null;
 }
 
 /**

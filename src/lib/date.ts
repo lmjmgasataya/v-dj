@@ -6,9 +6,20 @@ export function todayPH(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: TZ });
 }
 
-/** Registration is open through the deadline date itself; closed starting the day after. */
-export function isRegistrationClosed(registrationDeadline: string | null): boolean {
-  return registrationDeadline != null && todayPH() > registrationDeadline;
+/**
+ * An event is done once it's ticked as done, or from the day after its date — so a past event
+ * nobody ticked doesn't stay "Upcoming", in check-in, or open for registration.
+ */
+export function isEventDone(event: { isDone: boolean; eventDate: string }): boolean {
+  return event.isDone || todayPH() > event.eventDate;
+}
+
+/**
+ * Registration is open through the deadline date itself (closed starting the day after), and
+ * never once the event is done.
+ */
+export function isRegistrationClosed(event: { registrationDeadline: string | null; isDone: boolean; eventDate: string }): boolean {
+  return (event.registrationDeadline != null && todayPH() > event.registrationDeadline) || isEventDone(event);
 }
 
 export function currentYearPH(): number {

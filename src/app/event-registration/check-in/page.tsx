@@ -1,6 +1,7 @@
+import { todayPH } from "@/lib/date";
 import { db } from "@/db";
 import { events, featureFlags } from "@/db/schema";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, sql, gte } from "drizzle-orm";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { EventCheckInArea } from "./EventCheckInArea";
 
@@ -9,7 +10,8 @@ export default async function EventCheckInPage() {
     db
       .select({ id: events.id, name: events.name, eventDate: events.eventDate, audience: events.audience })
       .from(events)
-      .where(and(isNull(events.deletedAt), eq(events.isDone, false)))
+      // Not done: neither ticked nor past its date (isEventDone).
+      .where(and(isNull(events.deletedAt), eq(events.isDone, false), gte(events.eventDate, todayPH())))
       .orderBy(sql`${events.eventDate} desc`),
     db.select({ enabled: featureFlags.enabled }).from(featureFlags).where(eq(featureFlags.key, "event_checkin_nametag")).limit(1),
   ]);

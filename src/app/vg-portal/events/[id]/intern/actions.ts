@@ -17,11 +17,11 @@ export async function getInternEventRegistration(eventId: number, internId: numb
 
 export async function registerInternForEvent(eventId: number, internId: number, willAttend: boolean) {
   const [event] = await db
-    .select({ registrationDeadline: events.registrationDeadline })
+    .select({ registrationDeadline: events.registrationDeadline, isDone: events.isDone, eventDate: events.eventDate })
     .from(events)
     .where(eq(events.id, eventId))
     .limit(1);
-  if (isRegistrationClosed(event?.registrationDeadline ?? null)) return;
+  if (!event || isRegistrationClosed(event)) return;
 
   await db
     .insert(internEventRegistrations)

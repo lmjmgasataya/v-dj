@@ -1,6 +1,7 @@
+import { todayPH } from "@/lib/date";
 import { db } from "@/db";
 import { events, smsApiKeys, smsMessageTemplates } from "@/db/schema";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, gte } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -14,7 +15,8 @@ export default async function EventSmsReminderPage() {
     db
       .select({ id: events.id, name: events.name, eventDate: events.eventDate, audience: events.audience })
       .from(events)
-      .where(and(isNull(events.deletedAt), eq(events.isDone, false)))
+      // Not done: neither ticked nor past its date (isEventDone).
+      .where(and(isNull(events.deletedAt), eq(events.isDone, false), gte(events.eventDate, todayPH())))
       .orderBy(desc(events.eventDate)),
     db
       .select({ id: smsMessageTemplates.id, title: smsMessageTemplates.title, message: smsMessageTemplates.message })

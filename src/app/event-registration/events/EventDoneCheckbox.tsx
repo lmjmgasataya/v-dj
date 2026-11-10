@@ -3,7 +3,18 @@
 import { useState, useTransition } from "react";
 import { toggleEventDone } from "./actions";
 
-export function EventDoneCheckbox({ id, name, isDone }: { id: number; name: string; isDone: boolean }) {
+export function EventDoneCheckbox({
+  id,
+  name,
+  isDone,
+  disabled = false,
+}: {
+  id: number;
+  name: string;
+  isDone: boolean;
+  /** Past its date: done automatically, so there's nothing to toggle. */
+  disabled?: boolean;
+}) {
   const [checked, setChecked] = useState(isDone);
   const [pending, startTransition] = useTransition();
 
@@ -19,8 +30,8 @@ export function EventDoneCheckbox({ id, name, isDone }: { id: number; name: stri
       type="checkbox"
       checked={checked}
       onChange={handleChange}
-      disabled={pending}
-      title={checked ? "Mark as upcoming" : "Mark as done"}
+      disabled={pending || disabled}
+      title={disabled ? "Done — the event date has passed" : checked ? "Mark as upcoming" : "Mark as done"}
       className="w-5 h-5 rounded border-gray-300 text-[#00428E] focus:ring-indigo-400 shrink-0 cursor-pointer disabled:opacity-50"
     />
   );

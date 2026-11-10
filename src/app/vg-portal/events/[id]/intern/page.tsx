@@ -24,7 +24,7 @@ export default async function InternEventRegistrationPage({ params }: { params: 
     year: "numeric",
     timeZone: "Asia/Manila",
   });
-  const registrationClosed = isRegistrationClosed(event.registrationDeadline);
+  const registrationClosed = isRegistrationClosed(event);
   const deadlineStr = event.registrationDeadline
     ? new Date(event.registrationDeadline + "T00:00:00").toLocaleDateString("en-PH", {
         month: "long",

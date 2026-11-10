@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { hasLeaderAudience, type EventAudience } from "@/lib/eventAudience";
+import { formatNametagDate, nametagFor, printNameTag, type NameTagPerson } from "@/lib/nametag";
 import {
   listEventRegisteredAttendees,
   listEventWalkInCandidates,
@@ -14,6 +15,8 @@ import {
   type EventCheckInRow,
   type WalkInCandidate,
 } from "./actions";
+import { NameTagPanel, PrintTagButton, useAutoPrint } from "./NameTagPanel";
+import { matchesNameQuery } from "@/lib/vgLeaderSearch";
 
 interface EventOption {
   id: number;
@@ -34,16 +37,33 @@ const TYPE_LABEL: Record<EventAudience, string> = {
 
 const MAX_RESULTS = 20;
 
+/** "Last, First" with the nickname after it, as the door team knows many people by it. */
+function AttendeeName({ name, nickname }: { name: string; nickname: string | null }) {
+  const nick = nickname?.trim();
+  return (
+    <>
+      {name}
+      {nick && <span className="font-normal text-gray-500"> &ldquo;{nick}&rdquo;</span>}
+    </>
+  );
+}
+
 function AttendeeSearch({
   eventId,
   audience,
   onChange,
   refreshKey,
+  onCheckedIn,
+  onPrint,
 }: {
   eventId: number;
   audience: EventAudience[];
   onChange: () => void;
   refreshKey: number;
+  /** Called after a successful check-in when name tags are on. */
+  onCheckedIn?: (person: NameTagPerson) => void;
+  /** Reprint a tag for someone already checked in. */
+  onPrint?: (person: NameTagPerson) => void;
 }) {
   const [q, setQ] = useState("");
   const [attendees, setAttendees] = useState<EventSearchResult[]>([]);
@@ -51,9 +71,7 @@ function AttendeeSearch({
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const results = q.trim()
-    ? attendees.filter((r) => r.attendeeName.toLowerCase().includes(q.trim().toLowerCase()))
-    : attendees;
+  const results = q.trim() ? attendees.filter((r) => matchesNameQuery(r, q)) : attendees;
   // A long list is slow to scroll on a phone at the door; search finds anyone past the first ones.
   const shown = results.slice(0, MAX_RESULTS);
 
@@ -87,6 +105,7 @@ function AttendeeSearch({
       return;
     }
     setAttendees((prev) => prev.map((x) => (x.key === r.key ? { ...x, checkInId: res.checkInId } : x)));
+    onCheckedIn?.(nametagFor(r));
     onChange();
   }
 
@@ -104,7 +123,7 @@ function AttendeeSearch({
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Search by name..."
+        placeholder="Search by name or nickname..."
         className={inputCls}
       />
       {error && <p className="text-xs text-red-500">{error}</p>}
@@ -120,7 +139,9 @@ function AttendeeSearch({
             <div key={r.key} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-2.5">
               <div className="flex items-center gap-2">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{r.attendeeName}</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    <AttendeeName name={r.attendeeName} nickname={r.nickname} />
+                  </p>
                   {r.service && <p className="text-xs text-gray-400">{r.service}</p>}
                 </div>
                 <span className="text-xs font-medium bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full shrink-0">
@@ -133,6 +154,7 @@ function AttendeeSearch({
               {r.checkInId ? (
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-xs font-medium bg-green-100 text-green-700 px-2.5 py-1 rounded-full">Checked In</span>
+                  {onPrint && <PrintTagButton onClick={() => onPrint(nametagFor(r))} />}
                   <button
                     onClick={() => handleUndo(r)}
                     disabled={pendingKey === r.key}
@@ -154,7 +176,7 @@ function AttendeeSearch({
           ))}
           {results.length > shown.length && (
             <p className="text-xs text-gray-400 text-center pt-1">
-              Showing {shown.length} of {results.length}. Search by name to find someone else.
+              Showing {shown.length} of {results.length}. Search by name or nickname to find someone else.
             </p>
           )}
         </div>
@@ -167,7 +189,17 @@ function AttendeeSearch({
  * Check-in for VG leaders who didn't register. Only leaders with an updated profile (saved this
  * update period and 100% complete) can be checked in; the server checks again.
  */
-function WalkInSearch({ eventId, onChange, refreshKey }: { eventId: number; onChange: () => void; refreshKey: number }) {
+function WalkInSearch({
+  eventId,
+  onChange,
+  refreshKey,
+  onCheckedIn,
+}: {
+  eventId: number;
+  onChange: () => void;
+  refreshKey: number;
+  onCheckedIn?: (person: NameTagPerson) => void;
+}) {
   const [q, setQ] = useState("");
   const [candidates, setCandidates] = useState<WalkInCandidate[] | null>(null);
   const [pendingId, setPendingId] = useState<number | null>(null);
@@ -185,11 +217,9 @@ function WalkInSearch({ eventId, onChange, refreshKey }: { eventId: number; onCh
     };
   }, [eventId, refreshKey]);
 
-  const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const hasQuery = q.trim().length > 0;
   const matches =
-    words.length === 0 || !candidates
-      ? []
-      : candidates.filter((c) => words.every((w) => c.attendeeName.toLowerCase().includes(w))).slice(0, MAX_RESULTS);
+    !hasQuery || !candidates ? [] : candidates.filter((c) => matchesNameQuery(c, q)).slice(0, MAX_RESULTS);
 
   async function handleCheckIn(c: WalkInCandidate) {
     setPendingId(c.vgLeaderId);
@@ -202,6 +232,7 @@ function WalkInSearch({ eventId, onChange, refreshKey }: { eventId: number; onCh
     }
     setCandidates((prev) => prev?.filter((x) => x.vgLeaderId !== c.vgLeaderId) ?? null);
     setQ("");
+    onCheckedIn?.(nametagFor(c));
     onChange();
   }
 
@@ -214,11 +245,11 @@ function WalkInSearch({ eventId, onChange, refreshKey }: { eventId: number; onCh
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Search VG leaders by name..."
+        placeholder="Search VG leaders by name or nickname..."
         className={inputCls}
       />
       {error && <p className="text-xs text-red-500">{error}</p>}
-      {words.length === 0 ? null : candidates === null ? (
+      {!hasQuery ? null : candidates === null ? (
         <p className="text-sm text-gray-400 py-2">Loading VG leaders...</p>
       ) : matches.length === 0 ? (
         <p className="text-sm text-gray-400 py-2">No VG leader by that name who isn&apos;t registered or checked in already.</p>
@@ -227,7 +258,9 @@ function WalkInSearch({ eventId, onChange, refreshKey }: { eventId: number; onCh
           {matches.map((c) => (
             <div key={c.vgLeaderId} className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5">
               <div>
-                <p className="text-sm font-medium text-gray-900">{c.attendeeName}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  <AttendeeName name={c.attendeeName} nickname={c.nickname} />
+                </p>
                 {c.service && <p className="text-xs text-gray-400">{c.service}</p>}
               </div>
               {c.profileUpdated ? (
@@ -251,12 +284,14 @@ function WalkInSearch({ eventId, onChange, refreshKey }: { eventId: number; onCh
   );
 }
 
-export function EventCheckInArea({ events }: { events: EventOption[] }) {
+export function EventCheckInArea({ events, nametagsEnabled }: { events: EventOption[]; nametagsEnabled: boolean }) {
   const [eventId, setEventId] = useState<number | null>(null);
   const [checkedIn, setCheckedIn] = useState<EventCheckInRow[]>([]);
   const [undoingId, setUndoingId] = useState<number | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [, startTransition] = useTransition();
+  const [autoPrint, setAutoPrint] = useAutoPrint();
+  const [lastTag, setLastTag] = useState<NameTagPerson | null>(null);
 
   const selectedEvent = events.find((e) => e.id === eventId) ?? null;
 
@@ -270,7 +305,29 @@ export function EventCheckInArea({ events }: { events: EventOption[] }) {
   function handleEventChange(id: number) {
     setEventId(id);
     setCheckedIn([]);
+    setLastTag(null);
     refreshCheckIns(id);
+  }
+
+  function noteTag(person: NameTagPerson) {
+    setLastTag(person);
+    if (autoPrint && selectedEvent) {
+      printNameTag({
+        eventName: selectedEvent.name,
+        eventDate: formatNametagDate(selectedEvent.eventDate),
+        ...person,
+      });
+    }
+  }
+
+  function reprint(person: NameTagPerson) {
+    if (!selectedEvent) return;
+    setLastTag(person);
+    printNameTag({
+      eventName: selectedEvent.name,
+      eventDate: formatNametagDate(selectedEvent.eventDate),
+      ...person,
+    });
   }
 
   async function handleUndo(id: number) {
@@ -304,6 +361,16 @@ export function EventCheckInArea({ events }: { events: EventOption[] }) {
 
       {!selectedEvent && <p className="text-sm text-gray-400">Select an event to see who registered.</p>}
 
+      {selectedEvent && nametagsEnabled && (
+        <NameTagPanel
+          eventName={selectedEvent.name}
+          eventDate={formatNametagDate(selectedEvent.eventDate)}
+          autoPrint={autoPrint}
+          onAutoPrintChange={setAutoPrint}
+          lastTag={lastTag}
+        />
+      )}
+
       {selectedEvent && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
           <AttendeeSearch
@@ -312,6 +379,8 @@ export function EventCheckInArea({ events }: { events: EventOption[] }) {
             audience={selectedEvent.audience}
             onChange={() => refreshCheckIns(selectedEvent.id)}
             refreshKey={refreshKey}
+            onCheckedIn={nametagsEnabled ? noteTag : undefined}
+            onPrint={nametagsEnabled ? reprint : undefined}
           />
         </div>
       )}
@@ -323,6 +392,7 @@ export function EventCheckInArea({ events }: { events: EventOption[] }) {
             eventId={selectedEvent.id}
             onChange={() => refreshCheckIns(selectedEvent.id)}
             refreshKey={refreshKey}
+            onCheckedIn={nametagsEnabled ? noteTag : undefined}
           />
         </div>
       )}
@@ -340,7 +410,9 @@ export function EventCheckInArea({ events }: { events: EventOption[] }) {
               {checkedIn.map((c) => (
                 <li key={c.id} className="px-6 py-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-900">{c.attendeeName}</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      <AttendeeName name={c.attendeeName} nickname={c.nickname} />
+                    </span>
                     <span className="text-xs font-medium bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
                       {TYPE_LABEL[c.attendeeType]}
                     </span>
@@ -349,6 +421,7 @@ export function EventCheckInArea({ events }: { events: EventOption[] }) {
                     <span className="text-xs text-gray-400">
                       {new Date(c.checkedInAt).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Manila" })}
                     </span>
+                    {nametagsEnabled && <PrintTagButton onClick={() => reprint(nametagFor(c))} />}
                     <button
                       onClick={() => handleUndo(c.id)}
                       disabled={undoingId === c.id}

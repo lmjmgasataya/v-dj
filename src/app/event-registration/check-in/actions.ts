@@ -25,6 +25,9 @@ export interface EventSearchResult {
   vgLeaderId: number | null;
   internId: number | null;
   attendeeName: string;
+  firstName: string;
+  lastName: string;
+  nickname: string | null;
   mobileNumber: string | null;
   /** The leader's service; for an intern, their VG leader's. */
   service: string | null;
@@ -39,6 +42,9 @@ export interface EventSearchResult {
 export interface WalkInCandidate {
   vgLeaderId: number;
   attendeeName: string;
+  firstName: string;
+  lastName: string;
+  nickname: string | null;
   service: string | null;
   /** Saved this update period and 100% complete — required to check in as a walk-in. */
   profileUpdated: boolean;
@@ -48,7 +54,20 @@ export interface EventCheckInRow {
   id: number;
   attendeeType: Audience;
   attendeeName: string;
+  firstName: string;
+  lastName: string;
+  nickname: string | null;
   checkedInAt: Date;
+}
+
+/** Stored check-in names are "Last, First". Used when the person row is gone. */
+function splitStoredName(attendeeName: string) {
+  const comma = attendeeName.indexOf(",");
+  if (comma === -1) return { lastName: attendeeName.trim(), firstName: "" };
+  return {
+    lastName: attendeeName.slice(0, comma).trim(),
+    firstName: attendeeName.slice(comma + 1).trim(),
+  };
 }
 
 async function listRegisteredVgLeaders(eventId: number, serviceRawValues?: string[]): Promise<EventSearchResult[]> {
@@ -57,6 +76,7 @@ async function listRegisteredVgLeaders(eventId: number, serviceRawValues?: strin
       id: victoryGroupLeaders.id,
       lastName: victoryGroupLeaders.lastName,
       firstName: victoryGroupLeaders.firstName,
+      nickname: victoryGroupLeaders.nickname,
       mobileNumber: victoryGroupLeaders.mobileNumber,
       service: victoryGroupLeaders.serviceAttending,
       checkInId: eventCheckIns.id,
@@ -84,6 +104,9 @@ async function listRegisteredVgLeaders(eventId: number, serviceRawValues?: strin
     vgLeaderId: r.id,
     internId: null,
     attendeeName: `${r.lastName}, ${r.firstName}`,
+    firstName: r.firstName,
+    lastName: r.lastName,
+    nickname: r.nickname,
     mobileNumber: r.mobileNumber,
     service: r.service,
     checkInId: r.checkInId,
@@ -100,6 +123,7 @@ async function listWalkInVgLeaders(eventId: number, serviceRawValues?: string[])
       id: victoryGroupLeaders.id,
       lastName: victoryGroupLeaders.lastName,
       firstName: victoryGroupLeaders.firstName,
+      nickname: victoryGroupLeaders.nickname,
       mobileNumber: victoryGroupLeaders.mobileNumber,
       service: victoryGroupLeaders.serviceAttending,
       checkInId: eventCheckIns.id,
@@ -130,6 +154,9 @@ async function listWalkInVgLeaders(eventId: number, serviceRawValues?: string[])
     vgLeaderId: r.id,
     internId: null,
     attendeeName: `${r.lastName}, ${r.firstName}`,
+    firstName: r.firstName,
+    lastName: r.lastName,
+    nickname: r.nickname,
     mobileNumber: r.mobileNumber,
     service: r.service,
     checkInId: r.checkInId,
@@ -170,6 +197,9 @@ async function listRegisteredInterns(eventId: number, serviceRawValues?: string[
     vgLeaderId: null,
     internId: r.id,
     attendeeName: `${r.lastName}, ${r.firstName}`,
+    firstName: r.firstName,
+    lastName: r.lastName,
+    nickname: null,
     mobileNumber: null,
     service: r.service,
     checkInId: r.checkInId,
@@ -222,6 +252,7 @@ export async function listEventWalkInCandidates(eventId: number): Promise<WalkIn
       id: victoryGroupLeaders.id,
       lastName: victoryGroupLeaders.lastName,
       firstName: victoryGroupLeaders.firstName,
+      nickname: victoryGroupLeaders.nickname,
       service: victoryGroupLeaders.serviceAttending,
       isLeadershipGroupLeader: victoryGroupLeaders.isLeadershipGroupLeader,
     })
@@ -243,6 +274,9 @@ export async function listEventWalkInCandidates(eventId: number): Promise<WalkIn
   return open.map((r) => ({
     vgLeaderId: r.id,
     attendeeName: `${r.lastName}, ${r.firstName}`,
+    firstName: r.firstName,
+    lastName: r.lastName,
+    nickname: r.nickname,
     service: r.service,
     profileUpdated: statuses.get(r.id) === "updated",
   }));
@@ -351,9 +385,28 @@ export async function listEventCheckIns(eventId: number): Promise<EventCheckInRo
       attendeeType: eventCheckIns.attendeeType,
       attendeeName: eventCheckIns.attendeeName,
       checkedInAt: eventCheckIns.checkedInAt,
+      leaderFirst: victoryGroupLeaders.firstName,
+      leaderLast: victoryGroupLeaders.lastName,
+      leaderNickname: victoryGroupLeaders.nickname,
+      internFirst: interns.firstName,
+      internLast: interns.lastName,
     })
     .from(eventCheckIns)
+    .leftJoin(victoryGroupLeaders, eq(eventCheckIns.vgLeaderId, victoryGroupLeaders.id))
+    .leftJoin(interns, eq(eventCheckIns.internId, interns.id))
     .where(eq(eventCheckIns.eventId, eventId))
     .orderBy(sql`${eventCheckIns.checkedInAt} desc`);
-  return rows;
+
+  return rows.map((r) => {
+    const stored = splitStoredName(r.attendeeName);
+    return {
+      id: r.id,
+      attendeeType: r.attendeeType,
+      attendeeName: r.attendeeName,
+      firstName: r.leaderFirst ?? r.internFirst ?? stored.firstName,
+      lastName: r.leaderLast ?? r.internLast ?? stored.lastName,
+      nickname: r.leaderNickname,
+      checkedInAt: r.checkedInAt,
+    };
+  });
 }

@@ -51,6 +51,7 @@ const FLAG_GROUPS: { title: string; flags: Record<string, string> }[] = [
     title: "Event Registration",
     flags: {
       event_registration: "Event Registration (show on home page)",
+      event_checkin_nametag: "Event check-in — print a 90×60 mm name tag when checking someone in",
     },
   },
   {

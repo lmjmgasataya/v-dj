@@ -21,15 +21,13 @@ export default async function SessionsPage({
   const isDeveloper = session?.role === "developer";
   const isLeadPastor = session?.role === "lead_pastor";
 
-  // For a lead_pastor, resolve their time service to the exact participant ids in it up
-  // front, so the join below can be scoped without changing left-join semantics (sessions
-  // with zero matching check-ins still need to show up with a count of 0, not disappear).
-  let lockedParticipantIds: number[] | undefined;
+  // For a lead_pastor, scope the join to participants in their time service, as a subquery
+  // in the join condition — keeps left-join semantics (sessions with zero matching check-ins
+  // still show up with a count of 0) without a separate round trip for the ids.
   const lockedServiceRawValues = isLeadPastor ? rawServiceValues(session?.timeService) : undefined;
-  if (lockedServiceRawValues) {
-    const rows = await db.select({ id: participants.id }).from(participants).where(inArray(participants.serviceAttending, lockedServiceRawValues));
-    lockedParticipantIds = rows.map((r) => r.id);
-  }
+  const lockedParticipantIds = lockedServiceRawValues
+    ? db.select({ id: participants.id }).from(participants).where(inArray(participants.serviceAttending, lockedServiceRawValues))
+    : undefined;
 
   const [allBatches, rawSessions, vglCounts] = await Promise.all([
     db.select({ id: batches.id, name: batches.name }).from(batches).orderBy(batches.classStartDate),

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { db } from "@/db";
 import { victoryGroupLeaders, victoryGroups, interns, leadershipGroupMembers } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { computeProfileProgress } from "@/lib/profileCompleteness";
 import { getProfileUpdateQuarters, QUARTER_STATUS_BADGE, QUARTER_STATUS_LABEL } from "@/lib/vgQuarters";
@@ -32,8 +32,20 @@ export default async function VgPortalProfilePage({
 
   const vgLeaderId = session.vgLeaderId;
 
-  const [[leader], groups, quarterOptions, vgLeaderOptions, eventName, sfProgressNote] = await Promise.all([
-    db.select().from(victoryGroupLeaders).where(eq(victoryGroupLeaders.id, vgLeaderId)).limit(1),
+  // .execute() gives one real promise: a Drizzle query builder re-runs its query on every .then.
+  const leaderQuery = db.select().from(victoryGroupLeaders).where(eq(victoryGroupLeaders.id, vgLeaderId)).limit(1).execute();
+  // The Spiritual Foundations progress note scans the participants and check-ins tables, so
+  // it's skipped when the step is already checked — the note is only for partial attendance.
+  const sfProgressNoteQuery = leaderQuery.then(([l]) =>
+    l && !(l.discipleshipJourneyCompleted ?? "").split(",").includes("Spiritual Foundations")
+      ? getSpiritualFoundationsProgressNote(vgLeaderId)
+      : null
+  );
+
+  // Everything in one wave, including the leader's interns (joined through their groups)
+  // and Leadership Group members, which only need the leader id.
+  const [[leader], groups, quarterOptions, vgLeaderOptions, eventName, sfProgressNote, internRows, lglMemberRows] = await Promise.all([
+    leaderQuery,
     db
       .select()
       .from(victoryGroups)
@@ -42,15 +54,25 @@ export default async function VgPortalProfilePage({
     getQuarterOptions(),
     getVgLeaderOptions(),
     getEventNameForCallback(eventPath),
-    getSpiritualFoundationsProgressNote(vgLeaderId),
+    sfProgressNoteQuery,
+    db
+      .select({ victoryGroupId: interns.victoryGroupId, lastName: interns.lastName, firstName: interns.firstName })
+      .from(interns)
+      .innerJoin(victoryGroups, eq(interns.victoryGroupId, victoryGroups.id))
+      .where(and(eq(victoryGroups.vgLeaderId, vgLeaderId), isNull(victoryGroups.deletedAt), isNull(interns.deletedAt))),
+    db
+      .select({
+        id: victoryGroupLeaders.id,
+        lastName: victoryGroupLeaders.lastName,
+        firstName: victoryGroupLeaders.firstName,
+      })
+      .from(leadershipGroupMembers)
+      .innerJoin(victoryGroupLeaders, eq(leadershipGroupMembers.memberVgLeaderId, victoryGroupLeaders.id))
+      .where(eq(leadershipGroupMembers.leaderId, vgLeaderId)),
   ]);
 
   if (!leader) redirect("/login");
 
-  const groupIds = groups.map((g) => g.id);
-  const internRows = groupIds.length
-    ? await db.select().from(interns).where(and(inArray(interns.victoryGroupId, groupIds), isNull(interns.deletedAt)))
-    : [];
   const internsByGroup: Record<number, { lastName: string; firstName: string }[]> = {};
   for (const i of internRows) {
     (internsByGroup[i.victoryGroupId] ??= []).push({ lastName: i.lastName, firstName: i.firstName });
@@ -89,16 +111,6 @@ export default async function VgPortalProfilePage({
         {submitSteps} again.
       </p>
     ) : null;
-
-  const lglMemberRows = await db
-    .select({
-      id: victoryGroupLeaders.id,
-      lastName: victoryGroupLeaders.lastName,
-      firstName: victoryGroupLeaders.firstName,
-    })
-    .from(leadershipGroupMembers)
-    .innerJoin(victoryGroupLeaders, eq(leadershipGroupMembers.memberVgLeaderId, victoryGroupLeaders.id))
-    .where(eq(leadershipGroupMembers.leaderId, vgLeaderId));
 
   return (
     <>

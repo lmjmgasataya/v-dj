@@ -22,18 +22,22 @@ export default async function AttendancePerBatchPage({
 
   const { batch: batchParam } = await searchParams;
 
-  const allBatches = await db
+  // At most two waves: the batch list (only awaited first when there's no ?batch= and the
+  // default has to be found), then sessions, registrants and check-ins together — check-ins
+  // filtered by a subquery on the batch's sessions instead of waiting for their ids.
+  const allBatchesQuery = db
     .select({ id: batches.id, name: batches.name, isDefault: batches.isDefault })
     .from(batches)
-    .orderBy(batches.createdAt);
+    .orderBy(batches.createdAt)
+    .execute();
+  const selectedBatchId = batchParam
+    ? parseInt(batchParam, 10)
+    : await allBatchesQuery.then((all) => (all.find((b) => b.isDefault) ?? all[0])?.id ?? null);
 
-  const defaultBatch = allBatches.find((b) => b.isDefault) ?? allBatches[0] ?? null;
-  const selectedBatchId = batchParam ? parseInt(batchParam, 10) : (defaultBatch?.id ?? null);
-  const selectedBatch = allBatches.find((b) => b.id === selectedBatchId) ?? null;
-
-  const sessions =
+  const [allBatches, sessions, registrantRows, allCheckIns] = await Promise.all([
+    allBatchesQuery,
     selectedBatchId !== null
-      ? await db
+      ? db
           .select({
             id: classSessions.id,
             name: classSessions.name,
@@ -43,37 +47,44 @@ export default async function AttendancePerBatchPage({
           .from(classSessions)
           .where(eq(classSessions.batchId, selectedBatchId))
           .orderBy(classSessions.sessionDate, classSessions.id)
-      : [];
-
-  const [registrants, allCheckIns] =
-    selectedBatchId !== null && sessions.length > 0
-      ? await Promise.all([
-          db
-            .select({
-              id: participants.id,
-              lastName: participants.lastName,
-              firstName: participants.firstName,
-              middleInitial: participants.middleInitial,
-              registrationFee: participants.registrationFee,
-              victoryDate: participants.victoryDate,
-              serviceAttending: participants.serviceAttending,
-            })
-            .from(participants)
-            .where(
-              and(
-                isNull(participants.deletedAt),
-                eq(participants.isWalkIn, false),
-                eq(participants.batchId, selectedBatchId),
-                lockedServiceRawValues ? inArray(participants.serviceAttending, lockedServiceRawValues) : undefined
-              )
+      : [],
+    selectedBatchId !== null
+      ? db
+          .select({
+            id: participants.id,
+            lastName: participants.lastName,
+            firstName: participants.firstName,
+            middleInitial: participants.middleInitial,
+            registrationFee: participants.registrationFee,
+            victoryDate: participants.victoryDate,
+            serviceAttending: participants.serviceAttending,
+          })
+          .from(participants)
+          .where(
+            and(
+              isNull(participants.deletedAt),
+              eq(participants.isWalkIn, false),
+              eq(participants.batchId, selectedBatchId),
+              lockedServiceRawValues ? inArray(participants.serviceAttending, lockedServiceRawValues) : undefined
             )
-            .orderBy(participants.lastName, participants.firstName),
-          db
-            .select({ participantId: checkIns.participantId, classSessionId: checkIns.classSessionId, status: checkIns.status })
-            .from(checkIns)
-            .where(inArray(checkIns.classSessionId, sessions.map((s) => s.id))),
-        ])
-      : [[], []];
+          )
+          .orderBy(participants.lastName, participants.firstName)
+      : [],
+    selectedBatchId !== null
+      ? db
+          .select({ participantId: checkIns.participantId, classSessionId: checkIns.classSessionId, status: checkIns.status })
+          .from(checkIns)
+          .where(
+            inArray(
+              checkIns.classSessionId,
+              db.select({ id: classSessions.id }).from(classSessions).where(eq(classSessions.batchId, selectedBatchId))
+            )
+          )
+      : [],
+  ]);
+  const selectedBatch = allBatches.find((b) => b.id === selectedBatchId) ?? null;
+  // As before: a batch with no sessions shows no registrants.
+  const registrants = sessions.length > 0 ? registrantRows : [];
 
   const statusByParticipant = new Map<number, Record<number, string>>();
   for (const c of allCheckIns) {

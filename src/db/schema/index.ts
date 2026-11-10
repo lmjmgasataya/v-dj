@@ -83,14 +83,22 @@ export const victoryGroupLeaders = pgTable("victory_group_leaders", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
-}, (t) => [unique().on(t.lastName, t.firstName, t.mobileNumber)]);
+}, (t) => [
+  unique().on(t.lastName, t.firstName, t.mobileNumber),
+  // FK lookups: a leader's own VG leader (connections, merges, leader delete).
+  index("victory_group_leaders_own_vg_leader_id_idx").on(t.ownVgLeaderId),
+]);
 
 export const leadershipGroupMembers = pgTable("leadership_group_members", {
   id: serial("id").primaryKey(),
   leaderId: integer("leader_id").references(() => victoryGroupLeaders.id).notNull(),
   memberVgLeaderId: integer("member_vg_leader_id").references(() => victoryGroupLeaders.id).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (t) => [unique().on(t.leaderId, t.memberVgLeaderId)]);
+}, (t) => [
+  unique().on(t.leaderId, t.memberVgLeaderId),
+  // The unique index leads with leader_id; this covers lookups/deletes by member.
+  index("leadership_group_members_member_idx").on(t.memberVgLeaderId),
+]);
 
 export const victoryGroups = pgTable("victory_groups", {
   id: serial("id").primaryKey(),
@@ -109,7 +117,10 @@ export const victoryGroups = pgTable("victory_groups", {
   type: groupTypeEnum("type").default("victory_group").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
-});
+}, (t) => [
+  // A leader's groups: every VG portal page, profile completeness, live update status.
+  index("victory_groups_vg_leader_id_idx").on(t.vgLeaderId),
+]);
 
 export const interns = pgTable("interns", {
   id: serial("id").primaryKey(),
@@ -118,7 +129,7 @@ export const interns = pgTable("interns", {
   firstName: text("first_name").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
-});
+}, (t) => [index("interns_victory_group_id_idx").on(t.victoryGroupId)]);
 
 export const batches = pgTable("batches", {
   id: serial("id").primaryKey(),
@@ -163,6 +174,9 @@ export const participants = pgTable("participants", {
 }, (t) => [
   index("participants_report_idx").on(t.deletedAt, t.isWalkIn, t.createdAt),
   index("participants_batch_id_idx").on(t.batchId),
+  // Participants of a VG leader / discipler: leader profile, leader lists, merges, leader deletes.
+  index("participants_vg_leader_id_idx").on(t.vgLeaderId),
+  index("participants_discipler_id_idx").on(t.disciplerId),
 ]);
 
 export const classSessions = pgTable("class_sessions", {
@@ -265,6 +279,9 @@ export const eventCheckIns = pgTable(
       .on(t.eventId, t.internId)
       .where(sql`${t.internId} is not null`),
     index("event_check_ins_event_id_idx").on(t.eventId),
+    // The partial unique indexes lead with event_id; these cover lookups by person (merges, deletes).
+    index("event_check_ins_vg_leader_id_idx").on(t.vgLeaderId),
+    index("event_check_ins_intern_id_idx").on(t.internId),
   ]
 );
 
@@ -278,7 +295,11 @@ export const eventRegistrations = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (t) => [unique().on(t.eventId, t.vgLeaderId)]
+  (t) => [
+    unique().on(t.eventId, t.vgLeaderId),
+    // A leader's registrations (VG portal dashboard, merges); the unique index leads with event_id.
+    index("event_registrations_vg_leader_id_idx").on(t.vgLeaderId),
+  ]
 );
 
 // Interns register themselves for events, independent of their VG leader's own registration.
@@ -292,7 +313,10 @@ export const internEventRegistrations = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (t) => [unique().on(t.eventId, t.internId)]
+  (t) => [
+    unique().on(t.eventId, t.internId),
+    index("intern_event_registrations_intern_id_idx").on(t.internId),
+  ]
 );
 
 export const roleEnum = pgEnum("user_role", ["admin_volunteer", "developer", "vg_leader", "lead_pastor"]);
@@ -320,7 +344,11 @@ export const loginLogs = pgTable("login_logs", {
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
   loggedAt: timestamp("logged_at").defaultNow().notNull(),
-});
+}, (t) => [
+  // Latest-first list on /devops-admin/login-logs, and user deletes.
+  index("login_logs_logged_at_idx").on(t.loggedAt.desc()),
+  index("login_logs_user_id_idx").on(t.userId),
+]);
 
 export const featureFlags = pgTable("feature_flags", {
   key: text("key").primaryKey(),
@@ -384,7 +412,11 @@ export const smsLogs = pgTable("sms_logs", {
   status: text("status").notNull(),
   participantId: integer("participant_id").references(() => participants.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => [
+  // Participant deletes (ON DELETE SET NULL), and the SMS queue / purge by date.
+  index("sms_logs_participant_id_idx").on(t.participantId),
+  index("sms_logs_created_at_idx").on(t.createdAt),
+]);
 
 // Respondents of a quarterly update collected outside the portal (e.g. the Q2 2026 Google Form).
 // Matched to victoryGroupLeaders by mobile number / name at report time, so no FK to keep in sync on merges.
@@ -412,7 +444,12 @@ export const autoJourneySteps = pgTable("auto_journey_steps", {
   // The leader had already checked the step themselves, so the sync didn't add it.
   wasAlreadyChecked: boolean("was_already_checked").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (t) => [unique().on(t.vgLeaderId, t.step)]);
+}, (t) => [
+  unique().on(t.vgLeaderId, t.step),
+  // ON DELETE SET NULL from participants / class_sessions.
+  index("auto_journey_steps_participant_id_idx").on(t.participantId),
+  index("auto_journey_steps_class_session_id_idx").on(t.classSessionId),
+]);
 
 export type Participant = typeof participants.$inferSelect;
 export type ClassSession = typeof classSessions.$inferSelect;

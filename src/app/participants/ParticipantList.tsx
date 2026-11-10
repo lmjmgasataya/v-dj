@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { participants, victoryGroupLeaders, checkIns, classSessions } from "@/db/schema";
-import { ilike, or, isNull, isNotNull, and, count, eq, inArray, getTableColumns, desc, ne } from "drizzle-orm";
+import { ilike, or, isNull, isNotNull, and, count, eq, inArray, getTableColumns, desc } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
 import { ParticipantTable } from "./ParticipantTable";
@@ -101,7 +101,9 @@ export async function ParticipantList({
         : undefined,
   );
 
-  const [rows, [{ total }]] = await Promise.all([
+  // Victory Day totals and the leader list don't depend on the page's rows, so they load
+  // alongside them instead of in a second wave.
+  const [rows, [{ total }], victoryDayTotals, leaders] = await Promise.all([
     db
       .select({ ...getTableColumns(participants), ...extraCols })
       .from(participants)
@@ -113,37 +115,6 @@ export async function ParticipantList({
       .offset(offset),
 
     db.select({ total: count() }).from(participants).where(baseWhere),
-  ]);
-
-  const participantIds = rows.map((r) => r.id);
-
-  const [attendanceList, absenceList, victoryDayTotals, leaders] = await Promise.all([
-    participantIds.length > 0
-      ? db
-          .select({
-            participantId: checkIns.participantId,
-            sessionName: classSessions.name,
-            sessionDate: classSessions.sessionDate,
-            isVictoryDay: classSessions.isVictoryDay,
-          })
-          .from(checkIns)
-          .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
-          .where(and(inArray(checkIns.participantId, participantIds), ne(checkIns.status, "Absent")))
-          .orderBy(classSessions.sessionDate)
-      : Promise.resolve([]),
-
-    participantIds.length > 0
-      ? db
-          .select({
-            participantId: checkIns.participantId,
-            sessionName: classSessions.name,
-            sessionDate: classSessions.sessionDate,
-          })
-          .from(checkIns)
-          .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
-          .where(and(inArray(checkIns.participantId, participantIds), eq(checkIns.status, "Absent")))
-          .orderBy(classSessions.sessionDate)
-      : Promise.resolve([]),
 
     getVictoryDayTotalsByBatch(),
 
@@ -157,6 +128,27 @@ export async function ParticipantList({
       .from(victoryGroupLeaders)
       .where(isNull(victoryGroupLeaders.deletedAt)),
   ]);
+
+  const participantIds = rows.map((r) => r.id);
+
+  // One query for the page's check-ins; split into attended / Absent (15+ min late) in JS.
+  const checkInList =
+    participantIds.length > 0
+      ? await db
+          .select({
+            participantId: checkIns.participantId,
+            sessionName: classSessions.name,
+            sessionDate: classSessions.sessionDate,
+            isVictoryDay: classSessions.isVictoryDay,
+            status: checkIns.status,
+          })
+          .from(checkIns)
+          .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
+          .where(inArray(checkIns.participantId, participantIds))
+          .orderBy(classSessions.sessionDate)
+      : [];
+  const attendanceList = checkInList.filter((row) => row.status !== "Absent");
+  const absenceList = checkInList.filter((row) => row.status === "Absent");
 
   // Participants who are already VG leaders: same mobile number AND a similar name. Neither is
   // enough alone — families share phones, and different people share names.

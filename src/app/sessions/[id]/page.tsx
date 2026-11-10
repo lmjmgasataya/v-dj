@@ -25,7 +25,13 @@ export default async function SessionDetailPage({
   const isLeadPastor = authSession?.role === "lead_pastor";
   const lockedServiceRawValues = isLeadPastor ? rawServiceValues(authSession?.timeService) : undefined;
 
-  const [[session], attendees, vglAttendees] = await Promise.all([
+  // Victory Day check-ins of this session's attendees load in the same wave, via a subquery
+  // on the session's check-ins, instead of a second wave keyed on the attendee ids.
+  const sessionParticipantIds = db
+    .select({ id: checkIns.participantId })
+    .from(checkIns)
+    .where(eq(checkIns.classSessionId, sessionId));
+  const [[session], attendees, vglAttendees, victoryCheckIns, victoryDayTotals] = await Promise.all([
     db
       .select()
       .from(classSessions)
@@ -105,6 +111,15 @@ export default async function SessionDetailPage({
         )
       )
       .orderBy(sessionVglCheckIns.checkedInAt),
+
+    db
+      .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
+      .from(checkIns)
+      .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
+      .where(and(inArray(checkIns.participantId, sessionParticipantIds), eq(classSessions.isVictoryDay, true), ne(checkIns.status, "Absent")))
+      .orderBy(classSessions.sessionDate),
+
+    getVictoryDayTotalsByBatch(),
   ]);
 
   if (!session) notFound();
@@ -125,20 +140,6 @@ export default async function SessionDetailPage({
       </SessionDetailLayout>
     );
   }
-
-  const participantIds = attendees.map((a) => a.participantId);
-
-  const [victoryCheckIns, victoryDayTotals] = await Promise.all([
-    participantIds.length > 0
-      ? db
-          .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
-          .from(checkIns)
-          .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
-          .where(and(inArray(checkIns.participantId, participantIds), eq(classSessions.isVictoryDay, true), ne(checkIns.status, "Absent")))
-      : Promise.resolve([]),
-
-    getVictoryDayTotalsByBatch(),
-  ]);
 
   const victoryDayMap: Record<number, string> = {};
   const victoryCountMap: Record<number, number> = {};

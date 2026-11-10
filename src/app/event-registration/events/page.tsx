@@ -16,26 +16,21 @@ export default async function EventsPage() {
     ? inArray(victoryGroupLeaders.serviceAttending, lockedServiceRawValues)
     : undefined;
 
-  // For lead_pastor, resolve their time service to concrete VG-leader and intern ids up
-  // front (interns are attributed via their Victory Group's leader), so the check-in
-  // count's join can restrict on both eventCheckIns.vgLeaderId and .internId without a
-  // raw SQL subquery.
-  let lockedVgLeaderIds: number[] | undefined;
-  let lockedInternIds: number[] | undefined;
-  if (isLeadPastor) {
-    const rawValues = rawServiceValues(session?.timeService);
-    const [vglRows, internRows] = await Promise.all([
-      db.select({ id: victoryGroupLeaders.id }).from(victoryGroupLeaders).where(inArray(victoryGroupLeaders.serviceAttending, rawValues)),
-      db
+  // For lead_pastor, the check-in count's join is restricted to VG leaders and interns
+  // (attributed via their Victory Group's leader) in their time service — as subqueries in
+  // the join condition, rather than a separate round trip to collect the ids first.
+  const lockedRawValues = isLeadPastor ? rawServiceValues(session?.timeService) : undefined;
+  const lockedVgLeaderIds = lockedRawValues
+    ? db.select({ id: victoryGroupLeaders.id }).from(victoryGroupLeaders).where(inArray(victoryGroupLeaders.serviceAttending, lockedRawValues))
+    : undefined;
+  const lockedInternIds = lockedRawValues
+    ? db
         .select({ id: interns.id })
         .from(interns)
         .innerJoin(victoryGroups, eq(interns.victoryGroupId, victoryGroups.id))
         .innerJoin(victoryGroupLeaders, eq(victoryGroups.vgLeaderId, victoryGroupLeaders.id))
-        .where(inArray(victoryGroupLeaders.serviceAttending, rawValues)),
-    ]);
-    lockedVgLeaderIds = vglRows.map((r) => r.id);
-    lockedInternIds = internRows.map((r) => r.id);
-  }
+        .where(inArray(victoryGroupLeaders.serviceAttending, lockedRawValues))
+    : undefined;
 
   const [rows, vglRegCounts, internRegCounts] = await Promise.all([
     db

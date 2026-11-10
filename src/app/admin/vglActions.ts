@@ -100,7 +100,8 @@ export async function checkInVgl(
 ): Promise<{ error: string } | { success: true; firstName: string; lastName: string; status: CheckInStatus; attendeeCount: number }> {
   if (!(await canCheckIn())) return { error: "Not authorized" };
 
-  const [vglOnly, [leader]] = await Promise.all([
+  // The active-leader list is loaded in the same wave rather than after the other two.
+  const [vglOnly, [leader], activeIds] = await Promise.all([
     isVglOnlySession(classSessionId),
     db
       .select({
@@ -112,11 +113,12 @@ export async function checkInVgl(
       .from(victoryGroupLeaders)
       .where(eq(victoryGroupLeaders.id, vgLeaderId))
       .limit(1),
+    getActiveVgLeaderIds(),
   ]);
 
   if (!vglOnly) return { error: "This session is not a VG leaders only session" };
   if (!leader || leader.deletedAt) return { error: "VG leader not found" };
-  if (!leader.isActive || !(await getActiveVgLeaderIds()).has(vgLeaderId)) {
+  if (!leader.isActive || !activeIds.has(vgLeaderId)) {
     return { error: "Only active VG leaders with a completed profile can check in to this session" };
   }
 

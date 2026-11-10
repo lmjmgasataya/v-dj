@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { events } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { cache } from "react";
 
 const EVENT_PAGE_PATH = /^\/vg-portal\/events\/([^/?#]+)$/;
 
@@ -9,8 +10,11 @@ export function eventCallbackPath(callbackUrl: string | null | undefined): strin
   return callbackUrl && EVENT_PAGE_PATH.test(callbackUrl) ? callbackUrl : null;
 }
 
-/** The event's name when `callbackUrl` is an event registration page. */
-export async function getEventNameForCallback(callbackUrl: string | null | undefined): Promise<string | null> {
+/**
+ * The event's name when `callbackUrl` is an event registration page. Wrapped in React `cache()`
+ * so generateMetadata and the page share one query per request.
+ */
+export const getEventNameForCallback = cache(async (callbackUrl: string | null | undefined): Promise<string | null> => {
   const param = callbackUrl?.match(EVENT_PAGE_PATH)?.[1];
   if (!param) return null;
   const isNumeric = /^\d+$/.test(param);
@@ -20,4 +24,4 @@ export async function getEventNameForCallback(callbackUrl: string | null | undef
     .where(isNumeric ? eq(events.id, Number(param)) : eq(events.shareToken, param))
     .limit(1);
   return event?.name ?? null;
-}
+});

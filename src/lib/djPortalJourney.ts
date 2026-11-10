@@ -47,7 +47,9 @@ function loadLeaders(): Promise<Leader[]> {
       mobileNumber: victoryGroupLeaders.mobileNumber,
     })
     .from(victoryGroupLeaders)
-    .where(isNull(victoryGroupLeaders.deletedAt));
+    .where(isNull(victoryGroupLeaders.deletedAt))
+    // A real promise, so a shared pending load runs once (a query builder re-runs on every .then).
+    .execute();
 }
 
 /** `victoryDay`: the step's Victory Day sessions; `rest`: all but those. */
@@ -66,7 +68,9 @@ type StepAttendance = Record<"victoryDay" | "rest", ClassAttendance[]>;
  */
 async function batchClassAttendance(
   step: string,
-  opts: { leaders?: Leader[]; onlyLeaderId?: number } = {}
+  // `leaders` may be a pending load: it's only needed after the sessions query, so a sync can
+  // start it alongside instead of first.
+  opts: { leaders?: Leader[] | Promise<Leader[]>; onlyLeaderId?: number } = {}
 ): Promise<StepAttendance> {
   const none: StepAttendance = { victoryDay: [], rest: [] };
   const allSessions = await db
@@ -338,8 +342,12 @@ export async function syncJourneyStepsFromDjPortal(): Promise<{
   makingDisciples: number;
   empoweringLeaders: number;
 }> {
-  // Victory Day is Spiritual Foundations' Victory Day split, so it shares that pass.
-  const leaders = await loadLeaders();
+  // Victory Day is Spiritual Foundations' Victory Day split, so it shares that pass. The leader
+  // load is shared by both passes and runs alongside their session queries.
+  const leaders = loadLeaders();
+  // The passes attach to it only after their session queries; this keeps an early failure from
+  // counting as an unhandled rejection (the passes still see the error).
+  leaders.catch(() => {});
   const [sfAttendance, mdAttendance, elLinks] = await Promise.all([
     batchClassAttendance(SPIRITUAL_FOUNDATIONS, { leaders }),
     batchClassAttendance(MAKING_DISCIPLES, { leaders }),

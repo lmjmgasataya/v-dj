@@ -1,13 +1,13 @@
 import { db } from "@/db";
 import { victoryGroupLeaders, victoryGroups, users, participants } from "@/db/schema";
-import { and, asc, eq, isNull, inArray, or } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, or } from "drizzle-orm";
 import type { VgLeaderRow } from "./VgLeadersTable";
 import type { ParticipantsCellEntry } from "@/components/ParticipantsCell";
 import { areSimilarNames, normalizeName } from "@/lib/vgLeaderMatch";
 import { formatPersonName } from "@/lib/text";
 
 export async function getVgLeaderRows(): Promise<VgLeaderRow[]> {
-  const [leaders, activeGroups, accounts] = await Promise.all([
+  const [leaders, activeGroups, accounts, affiliatedParticipants] = await Promise.all([
     db
       .select()
       .from(victoryGroupLeaders)
@@ -21,6 +21,14 @@ export async function getVgLeaderRows(): Promise<VgLeaderRow[]> {
       .select({ id: users.id, vgLeaderId: users.vgLeaderId, pinHash: users.pinHash })
       .from(users)
       .where(eq(users.role, "vg_leader")),
+    // Every participant linked to a leader, filtered to non-deleted leaders below
+    // (leaderIdSet) — in the first wave, instead of a second one with every leader id as an
+    // IN list (twice).
+    db
+      .select({ id: participants.id, lastName: participants.lastName, firstName: participants.firstName, vgLeaderId: participants.vgLeaderId, disciplerId: participants.disciplerId })
+      .from(participants)
+      .where(and(isNull(participants.deletedAt), or(isNotNull(participants.vgLeaderId), isNotNull(participants.disciplerId))))
+      .orderBy(asc(participants.lastName)),
   ]);
 
   const groupCountByLeader = new Map<number, number>();
@@ -32,16 +40,6 @@ export async function getVgLeaderRows(): Promise<VgLeaderRow[]> {
   );
 
   const leaderIds = leaders.map((l) => l.id);
-  const affiliatedParticipants = leaderIds.length > 0
-    ? await db
-        .select({ id: participants.id, lastName: participants.lastName, firstName: participants.firstName, vgLeaderId: participants.vgLeaderId, disciplerId: participants.disciplerId })
-        .from(participants)
-        .where(and(
-          isNull(participants.deletedAt),
-          or(inArray(participants.vgLeaderId, leaderIds), inArray(participants.disciplerId, leaderIds))
-        ))
-        .orderBy(asc(participants.lastName))
-    : [];
 
   const participantsByLeader: Record<number, ParticipantsCellEntry[]> = {};
   const leaderIdSet = new Set(leaderIds);

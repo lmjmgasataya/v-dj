@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getCheckinRoster } from "./actions";
+import { getCheckinRosters } from "./actions";
 import { saveRosterSnapshot, loadRosterSnapshot } from "@/lib/offlineStore";
 import { ORIENTATION_SESSION_NAME } from "@/lib/constants";
 import type { ClassSession } from "@/db/schema";
 
 type RosterStatus = "idle" | "prefetching" | "ready";
+
+// Rosters per server action: enough to cut the action queue, small enough to keep each response modest.
+const PREFETCH_CHUNK = 4;
 
 /**
  * Quietly caches every session's check-in roster to localStorage, not just
@@ -59,14 +62,25 @@ export function RosterPrefetcher({ sessions, victoryDayAllowAllClasses, qrChecki
     setProgress({ done: 0, total: missing.length });
 
     async function prefetchAll() {
-      for (const session of missing) {
+      // A few sessions per server action, built in parallel on the server. Server actions
+      // run one at a time per page, so fewer, shorter-queued calls let a volunteer's
+      // check-in through sooner than one call per session did.
+      for (let i = 0; i < missing.length; i += PREFETCH_CHUNK) {
         if (cancelled) return;
-        const isOrientation = session.name === ORIENTATION_SESSION_NAME;
+        const chunk = missing.slice(i, i + PREFETCH_CHUNK);
         try {
-          const rows = await getCheckinRoster(session.id, session.isVictoryDay, session.requiresVictoryDay, victoryDayAllowAllClasses, isOrientation);
+          const rosters = await getCheckinRosters(
+            chunk.map((session) => ({
+              sessionId: session.id,
+              isVictoryDay: session.isVictoryDay,
+              requiresVictoryDay: session.requiresVictoryDay,
+              isOrientation: session.name === ORIENTATION_SESSION_NAME,
+            })),
+            victoryDayAllowAllClasses
+          );
           if (cancelled) return;
-          saveRosterSnapshot(session.id, rows);
-          setProgress((p) => ({ ...p, done: p.done + 1 }));
+          for (const session of chunk) saveRosterSnapshot(session.id, rosters[session.id] ?? []);
+          setProgress((p) => ({ ...p, done: p.done + chunk.length }));
         } catch {
           // offline mid-prefetch (or a transient query failure) — stop here;
           // whatever's cached so far still stands, and the rest will be

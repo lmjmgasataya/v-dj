@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { participants, victoryGroupLeaders, batches, type lifestageEnum } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { toTitleCase } from "@/lib/text";
@@ -17,14 +17,15 @@ async function upsertVgLeader(
   mobileNumber: string,
   messengerName: string | null,
 ): Promise<number> {
-  await db.insert(victoryGroupLeaders).values({ lastName, firstName, mobileNumber, facebookMessengerName: messengerName, registeredMode: "participant_registration" }).onConflictDoUpdate({
-    target: [victoryGroupLeaders.lastName, victoryGroupLeaders.firstName, victoryGroupLeaders.mobileNumber],
-    set: { facebookMessengerName: messengerName },
-  });
+  // ON CONFLICT DO UPDATE returns the row whether it was inserted or updated, so no follow-up select.
   const [v] = await db
-    .select({ id: victoryGroupLeaders.id })
-    .from(victoryGroupLeaders)
-    .where(and(eq(victoryGroupLeaders.lastName, lastName), eq(victoryGroupLeaders.firstName, firstName), eq(victoryGroupLeaders.mobileNumber, mobileNumber)));
+    .insert(victoryGroupLeaders)
+    .values({ lastName, firstName, mobileNumber, facebookMessengerName: messengerName, registeredMode: "participant_registration" })
+    .onConflictDoUpdate({
+      target: [victoryGroupLeaders.lastName, victoryGroupLeaders.firstName, victoryGroupLeaders.mobileNumber],
+      set: { facebookMessengerName: messengerName },
+    })
+    .returning({ id: victoryGroupLeaders.id });
   return v.id;
 }
 
@@ -47,8 +48,8 @@ export async function registerParticipant(formData: FormData) {
   const previousChurch =
     previousChurchRaw === "Others" ? previousChurchOther : previousChurchRaw;
 
-  let disciplerId: number | null = null;
-  let vgLeaderId: number | null = null;
+  // Validated first, then the leader upsert and the default-batch lookup run together.
+  let leaderToUpsert: { role: "vgLeader" | "discipler"; args: Parameters<typeof upsertVgLeader> } | null = null;
 
   if (showVgLeader) {
     const vgLastName = toTitleCase(formData.get("vgLeaderLastName") as string);
@@ -58,12 +59,10 @@ export async function registerParticipant(formData: FormData) {
       throw new Error("Invalid VG leader mobile number format.");
     }
     if (vgLastName && vgFirstName && vgMobile) {
-      vgLeaderId = await upsertVgLeader(
-        vgLastName,
-        vgFirstName,
-        vgMobile,
-        (formData.get("vgLeaderMessengerName") as string) || null,
-      );
+      leaderToUpsert = {
+        role: "vgLeader",
+        args: [vgLastName, vgFirstName, vgMobile, (formData.get("vgLeaderMessengerName") as string) || null],
+      };
     }
   } else {
     const discLastName = toTitleCase(formData.get("disciplerLastName") as string);
@@ -73,21 +72,24 @@ export async function registerParticipant(formData: FormData) {
       throw new Error("Invalid discipler mobile number format.");
     }
     if (discLastName && discFirstName && discMobile) {
-      disciplerId = await upsertVgLeader(
-        discLastName,
-        discFirstName,
-        discMobile,
-        (formData.get("disciplerMessengerName") as string) || null,
-      );
+      leaderToUpsert = {
+        role: "discipler",
+        args: [discLastName, discFirstName, discMobile, (formData.get("disciplerMessengerName") as string) || null],
+      };
     }
   }
 
-  const defaultBatch = await db
-    .select({ id: batches.id })
-    .from(batches)
-    .where(eq(batches.isDefault, true))
-    .limit(1)
-    .then((rows) => rows[0] ?? null);
+  const [leaderId, defaultBatch] = await Promise.all([
+    leaderToUpsert ? upsertVgLeader(...leaderToUpsert.args) : Promise.resolve(null),
+    db
+      .select({ id: batches.id })
+      .from(batches)
+      .where(eq(batches.isDefault, true))
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
+  ]);
+  const vgLeaderId = leaderToUpsert?.role === "vgLeader" ? leaderId : null;
+  const disciplerId = leaderToUpsert?.role === "discipler" ? leaderId : null;
 
   const [newParticipant] = await db.insert(participants).values({
     lastName: toTitleCase(formData.get("lastName") as string),

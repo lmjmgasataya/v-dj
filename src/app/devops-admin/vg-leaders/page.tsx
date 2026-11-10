@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { victoryGroupLeaders, participants } from "@/db/schema";
-import { asc, inArray, isNull, and, or } from "drizzle-orm";
+import { asc, isNull, and, or, isNotNull } from "drizzle-orm";
 import { createVgLeader, deleteVgLeader } from "./actions";
 import { ConfirmDeleteButton } from "../ConfirmDeleteButton";
 import { ParticipantsCell, type ParticipantsCellEntry } from "@/components/ParticipantsCell";
@@ -10,20 +10,18 @@ import { MobileNumberInput } from "@/components/MobileNumberInput";
 const input = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400";
 
 export default async function VgLeadersPage() {
-  const rows = await db.select().from(victoryGroupLeaders).orderBy(asc(victoryGroupLeaders.lastName));
+  // Both in one wave: participants linked to any leader, filtered to active leaders below
+  // (activeIdSet) — instead of a second query with every active id as an IN list (twice).
+  const [rows, affiliatedParticipants] = await Promise.all([
+    db.select().from(victoryGroupLeaders).orderBy(asc(victoryGroupLeaders.lastName)),
+    db
+      .select({ id: participants.id, lastName: participants.lastName, firstName: participants.firstName, vgLeaderId: participants.vgLeaderId, disciplerId: participants.disciplerId })
+      .from(participants)
+      .where(and(isNull(participants.deletedAt), or(isNotNull(participants.vgLeaderId), isNotNull(participants.disciplerId))))
+      .orderBy(asc(participants.lastName)),
+  ]);
   const active = rows.filter((r) => !r.deletedAt);
   const activeIds = active.map((v) => v.id);
-
-  const affiliatedParticipants = active.length > 0
-    ? await db
-        .select({ id: participants.id, lastName: participants.lastName, firstName: participants.firstName, vgLeaderId: participants.vgLeaderId, disciplerId: participants.disciplerId })
-        .from(participants)
-        .where(and(
-          isNull(participants.deletedAt),
-          or(inArray(participants.vgLeaderId, activeIds), inArray(participants.disciplerId, activeIds))
-        ))
-        .orderBy(asc(participants.lastName))
-    : [];
 
   const participantsByLeader: Record<number, ParticipantsCellEntry[]> = {};
   const activeIdSet = new Set(activeIds);

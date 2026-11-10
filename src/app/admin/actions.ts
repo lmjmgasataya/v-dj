@@ -295,8 +295,20 @@ export async function getCheckinRoster(
   allowAllClasses = false,
   isOrientation = false
 ): Promise<CheckinRosterEntry[]> {
-  const session = await getSessionBatchScope(sessionId);
-  const rows = await db
+  // Two waves instead of three: the session scope and Victory Day totals load together, then
+  // the roster and its Victory Day check-ins load together (the latter filtered by the same
+  // roster condition as a subquery, instead of sending every roster id back as an IN list).
+  const [session, victoryDayTotals] = await Promise.all([getSessionBatchScope(sessionId), getVictoryDayTotalsByBatch()]);
+  const rosterWhere = and(
+    isNull(participants.deletedAt),
+    session ? eligibleForSession(session) : undefined,
+    isVictoryDay && !allowAllClasses ? notInArray(participants.registrationFee, ["C", "D"]) : undefined,
+    isOrientation ? inArray(participants.registrationFee, ORIENTATION_ALLOWED_CLASSES) : undefined
+  );
+  const rosterIds = db.select({ id: participants.id }).from(participants).where(rosterWhere);
+
+  const [rows, victoryCheckIns] = await Promise.all([
+    db
     .select({
       id: participants.id,
       batchId: participants.batchId,
@@ -318,27 +330,17 @@ export async function getCheckinRoster(
     })
     .from(participants)
     .leftJoin(checkIns, and(eq(checkIns.participantId, participants.id), eq(checkIns.classSessionId, sessionId)))
-    .where(
-      and(
-        isNull(participants.deletedAt),
-        session ? eligibleForSession(session) : undefined,
-        isVictoryDay && !allowAllClasses ? notInArray(participants.registrationFee, ["C", "D"]) : undefined,
-        isOrientation ? inArray(participants.registrationFee, ORIENTATION_ALLOWED_CLASSES) : undefined
-      )
-    );
-
-  if (rows.length === 0) return [];
-
-  const ids = rows.map((r) => r.id);
-
-  const [victoryDayTotals, victoryCheckIns] = await Promise.all([
-    getVictoryDayTotalsByBatch(),
+    .where(rosterWhere),
     db
       .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
       .from(checkIns)
       .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
-      .where(and(inArray(checkIns.participantId, ids), eq(classSessions.isVictoryDay, true), ne(checkIns.status, "Absent"))),
+      .where(and(inArray(checkIns.participantId, rosterIds), eq(classSessions.isVictoryDay, true), ne(checkIns.status, "Absent")))
+      // Earliest first, so victoryDayDate below is the first Victory Day attended.
+      .orderBy(classSessions.sessionDate),
   ]);
+
+  if (rows.length === 0) return [];
 
   const victoryDayDateMap: Record<number, string> = {};
   const victoryAttendanceCount: Record<number, number> = {};
@@ -398,6 +400,21 @@ export async function removeCheckIn(participantId: number, classSessionId: numbe
     .delete(checkIns)
     .where(and(eq(checkIns.participantId, participantId), eq(checkIns.classSessionId, classSessionId)));
   return { attendeeCount: await countAttendees(classSessionId) };
+}
+
+/**
+ * Several sessions' rosters in one server action, built in parallel. The browser sends server
+ * actions one at a time, so RosterPrefetcher fetching rosters one call per session kept a
+ * volunteer's check-in waiting behind every one of them; batching cuts that queue.
+ */
+export async function getCheckinRosters(
+  requests: { sessionId: number; isVictoryDay: boolean; requiresVictoryDay: boolean; isOrientation: boolean }[],
+  allowAllClasses = false
+): Promise<Record<number, CheckinRosterEntry[]>> {
+  const rosters = await Promise.all(
+    requests.map((r) => getCheckinRoster(r.sessionId, r.isVictoryDay, r.requiresVictoryDay, allowAllClasses, r.isOrientation))
+  );
+  return Object.fromEntries(requests.map((r, i) => [r.sessionId, rosters[i]]));
 }
 
 export async function getSessionCheckIns(sessionId: number) {

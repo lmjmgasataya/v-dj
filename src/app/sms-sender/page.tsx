@@ -12,14 +12,13 @@ export default async function SmsSenderPage() {
   const session = await getSession();
   if (!session || session.role !== "developer") redirect("/");
 
-  const smsSenderFlag = await db
-    .select({ enabled: featureFlags.enabled })
-    .from(featureFlags)
-    .where(eq(featureFlags.key, "sms_sender"))
-    .then((r) => r[0]);
-  if (!smsSenderFlag?.enabled) redirect("/");
-
-  const [batchList, templateList, defaultKey] = await Promise.all([
+  // The flag is read in the same wave as the page data (nothing renders until it's checked).
+  const [smsSenderFlag, batchList, templateList, defaultKey] = await Promise.all([
+    db
+      .select({ enabled: featureFlags.enabled })
+      .from(featureFlags)
+      .where(eq(featureFlags.key, "sms_sender"))
+      .then((r) => r[0]),
     db
       .select({
         id: batches.id,
@@ -44,6 +43,7 @@ export default async function SmsSenderPage() {
       .limit(1)
       .then((r) => r[0] ?? null),
   ]);
+  if (!smsSenderFlag?.enabled) redirect("/");
 
   return (
     <div className="max-w-3xl mx-auto flex flex-col gap-6 py-8 px-4">

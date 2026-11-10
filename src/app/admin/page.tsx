@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { classSessions, checkIns, participants, featureFlags, batches, sessionVglCheckIns } from "@/db/schema";
-import { and, count, eq, inArray, isNull, ne } from "drizzle-orm";
+import { and, count, eq, isNull, ne, sql } from "drizzle-orm";
 import { FEE_CATEGORIES } from "@/components/form";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { AdminSessionArea } from "./AdminSessionArea";
@@ -21,10 +21,15 @@ export default async function AdminPage({
   const { session, q: initialQ = "" } = await searchParams;
   const sessionId = session ? parseInt(session, 10) : null;
 
-  // featureFlags doesn't depend on the default batch, so fetch it alongside
-  // instead of after. (Check-ins don't re-render this page — they return the
-  // session's new count instead; see AttendeeCounts.)
-  const [defaultBatch, flags] = await Promise.all([
+  // Everything loads in one wave: the default batch is resolved inside each query
+  // (`inDefaultBatch`) instead of being fetched first. (Check-ins don't re-render this
+  // page — they return the session's new count instead; see AttendeeCounts.)
+  const defaultBatchId = sql`(select ${batches.id} from ${batches} where ${batches.isDefault} limit 1)`;
+  // A session/participant in the default batch — or every one when no batch is the default.
+  const inDefaultBatch = (batchIdCol: typeof classSessions.batchId) =>
+    sql`${batchIdCol} is not distinct from coalesce(${defaultBatchId}, ${batchIdCol})`;
+
+  const [defaultBatch, flags, sessions, feeBreakdown, attendeeCountRows, vglAttendeeCountRows] = await Promise.all([
     db
       .select()
       .from(batches)
@@ -32,58 +37,45 @@ export default async function AdminPage({
       .limit(1)
       .then((rows) => rows[0] ?? null),
     db.select().from(featureFlags),
-  ]);
-
-  const [sessions, feeBreakdown] = await Promise.all([
-    defaultBatch
-      ? db
-          .select()
-          .from(classSessions)
-          .where(eq(classSessions.batchId, defaultBatch.id))
-          .orderBy(classSessions.sessionDate)
-      : db.select().from(classSessions).orderBy(classSessions.sessionDate),
-
-    defaultBatch
-      ? db
-          .select({ fee: participants.registrationFee, total: count() })
-          .from(participants)
-          .where(
-            and(
-              isNull(participants.deletedAt),
-              eq(participants.isWalkIn, false),
-              eq(participants.batchId, defaultBatch.id)
-            )
-          )
-          .groupBy(participants.registrationFee)
-          .orderBy(participants.registrationFee)
-      : [],
+    db.select().from(classSessions).where(inDefaultBatch(classSessions.batchId)).orderBy(classSessions.sessionDate),
+    // No default batch → no rows (batch_id = null matches nothing), as before.
+    db
+      .select({ fee: participants.registrationFee, total: count() })
+      .from(participants)
+      .where(
+        and(
+          isNull(participants.deletedAt),
+          eq(participants.isWalkIn, false),
+          sql`${participants.batchId} = ${defaultBatchId}`
+        )
+      )
+      .groupBy(participants.registrationFee)
+      .orderBy(participants.registrationFee),
+    // Fetched for every session up front (instead of just the selected one) so switching
+    // sessions client-side never needs a server round trip — required for the session
+    // picker to keep working offline (see AdminSessionArea).
+    db
+      .select({ sessionId: checkIns.classSessionId, total: count() })
+      .from(checkIns)
+      .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
+      .where(
+        and(inDefaultBatch(classSessions.batchId), eq(classSessions.vglOnly, false), ne(checkIns.status, "Absent"))
+      )
+      .groupBy(checkIns.classSessionId),
+    db
+      .select({ sessionId: sessionVglCheckIns.classSessionId, total: count() })
+      .from(sessionVglCheckIns)
+      .innerJoin(classSessions, eq(sessionVglCheckIns.classSessionId, classSessions.id))
+      .where(
+        and(inDefaultBatch(classSessions.batchId), eq(classSessions.vglOnly, true), ne(sessionVglCheckIns.status, "Absent"))
+      )
+      .groupBy(sessionVglCheckIns.classSessionId),
   ]);
 
   const flagMap = Object.fromEntries(flags.map((f) => [f.key, f.enabled]));
 
   const registeredCount = feeBreakdown.reduce((s, r) => s + r.total, 0);
 
-  // Fetched for every session up front (instead of just the selected one) so
-  // switching sessions client-side never needs a server round trip — required
-  // for the session picker to keep working offline (see AdminSessionArea).
-  const participantSessionIds = sessions.filter((s) => !s.vglOnly).map((s) => s.id);
-  const vglSessionIds = sessions.filter((s) => s.vglOnly).map((s) => s.id);
-  const [attendeeCountRows, vglAttendeeCountRows] = await Promise.all([
-    participantSessionIds.length
-      ? db
-          .select({ sessionId: checkIns.classSessionId, total: count() })
-          .from(checkIns)
-          .where(and(inArray(checkIns.classSessionId, participantSessionIds), ne(checkIns.status, "Absent")))
-          .groupBy(checkIns.classSessionId)
-      : [],
-    vglSessionIds.length
-      ? db
-          .select({ sessionId: sessionVglCheckIns.classSessionId, total: count() })
-          .from(sessionVglCheckIns)
-          .where(and(inArray(sessionVglCheckIns.classSessionId, vglSessionIds), ne(sessionVglCheckIns.status, "Absent")))
-          .groupBy(sessionVglCheckIns.classSessionId)
-      : [],
-  ]);
   const attendeeCounts = Object.fromEntries([...attendeeCountRows, ...vglAttendeeCountRows].map((r) => [r.sessionId, r.total]));
 
   const sessionAreaProps = {

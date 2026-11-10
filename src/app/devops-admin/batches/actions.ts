@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { batches } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -16,15 +16,18 @@ async function requireDeveloper() {
 export async function createBatch(formData: FormData) {
   await requireDeveloper();
   const isDefault = formData.get("isDefault") === "on";
-  if (isDefault) {
-    await db.update(batches).set({ isDefault: false });
-  }
-  await db.insert(batches).values({
-    name: formData.get("name") as string,
-    classStartDate: formData.get("classStartDate") as string,
-    classEndDate: formData.get("classEndDate") as string,
-    registrationStartDate: (formData.get("registrationStartDate") as string) || null,
-    isDefault,
+  // In a transaction, so a new default batch replaces the old one atomically.
+  await db.transaction(async (tx) => {
+    if (isDefault) {
+      await tx.update(batches).set({ isDefault: false });
+    }
+    await tx.insert(batches).values({
+      name: formData.get("name") as string,
+      classStartDate: formData.get("classStartDate") as string,
+      classEndDate: formData.get("classEndDate") as string,
+      registrationStartDate: (formData.get("registrationStartDate") as string) || null,
+      isDefault,
+    });
   });
   revalidatePath("/devops-admin/batches");
   await toastRedirectBack("Batch created.");
@@ -53,8 +56,9 @@ export async function deleteBatch(formData: FormData) {
 export async function setDefaultBatch(formData: FormData) {
   await requireDeveloper();
   const id = Number(formData.get("id"));
-  await db.update(batches).set({ isDefault: false });
-  await db.update(batches).set({ isDefault: true }).where(eq(batches.id, id));
+  // One statement, so there's never a moment with no default batch (registration and
+  // /admin read it).
+  await db.update(batches).set({ isDefault: sql`(${batches.id} = ${id})` });
   revalidatePath("/devops-admin/batches");
   await toastRedirectBack("Default batch updated.");
 }

@@ -29,10 +29,10 @@ export default async function ParticipantsPage({
 
   const activeWhere = and(isNull(participants.deletedAt), searchFilter);
 
-  const [{ total }] = await db.select({ total: count() }).from(participants).where(activeWhere);
-  const totalPages = Math.ceil(total / PAGE_SIZE);
-
-  const rows = await db
+  // Count, page and archived list are independent — one wave instead of three.
+  const [[{ total }], rows, archived] = await Promise.all([
+    db.select({ total: count() }).from(participants).where(activeWhere),
+    db
     .select({
       id: participants.id,
       lastName: participants.lastName,
@@ -45,9 +45,8 @@ export default async function ParticipantsPage({
     .where(activeWhere)
     .orderBy(desc(participants.createdAt))
     .limit(PAGE_SIZE)
-    .offset(offset);
-
-  const archived = await db
+    .offset(offset),
+    db
     .select({
       id: participants.id,
       lastName: participants.lastName,
@@ -57,7 +56,9 @@ export default async function ParticipantsPage({
     .from(participants)
     .where(isNotNull(participants.deletedAt))
     .orderBy(desc(participants.createdAt))
-    .limit(50);
+    .limit(50),
+  ]);
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   function buildHref(p: number) {
     const params = new URLSearchParams();

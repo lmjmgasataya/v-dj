@@ -20,7 +20,12 @@ export async function GET(request: Request) {
   const aId = searchParams.get("a") && !isLiveA ? parseInt(searchParams.get("a")!, 10) : null;
   const bId = searchParams.get("b") ? parseInt(searchParams.get("b")!, 10) : null;
 
-  const snapshots = await db.select().from(vgReportSnapshots).orderBy(desc(vgReportSnapshots.asOfDate));
+  // Snapshots (a few per year), convergence and L113 rows are independent: one wave.
+  const [snapshots, convergenceRows, leadership113Rows] = await Promise.all([
+    db.select().from(vgReportSnapshots).orderBy(desc(vgReportSnapshots.asOfDate)),
+    db.select().from(vgConvergenceAttendance).orderBy(asc(vgConvergenceAttendance.eventDate)),
+    db.select().from(leadership113Batches).orderBy(asc(leadership113Batches.id)),
+  ]);
   const primaryRow = isLiveA ? null : ((aId != null ? snapshots.find((s) => s.id === aId) : null) ?? snapshots[0]);
   if (!isLiveA && !primaryRow) return new Response("No snapshots to export.", { status: 404 });
   const compareRow = bId != null ? snapshots.find((s) => s.id === bId) ?? null : null;
@@ -38,11 +43,6 @@ export async function GET(request: Request) {
   const compare: QuarterlyPdfSnapshot | null = compareRow
     ? { label: compareRow.label, asOfDate: compareRow.asOfDate, data: compareRow.data as VgSnapshotData }
     : null;
-
-  const [convergenceRows, leadership113Rows] = await Promise.all([
-    db.select().from(vgConvergenceAttendance).orderBy(asc(vgConvergenceAttendance.eventDate)),
-    db.select().from(leadership113Batches).orderBy(asc(leadership113Batches.id)),
-  ]);
 
   const buffer = await renderToBuffer(
     QuarterlyReportDocument({

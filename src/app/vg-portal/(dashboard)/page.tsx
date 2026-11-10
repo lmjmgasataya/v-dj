@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { victoryGroupLeaders, victoryGroups, events, eventRegistrations } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeProfileProgress } from "@/lib/profileCompleteness";
@@ -17,7 +17,9 @@ export default async function VgPortalDashboardPage() {
 
   const vgLeaderId = session.vgLeaderId;
 
-  const [[leader], groups, quarterOptions] = await Promise.all([
+  // One wave: open events (with this leader's own registration joined on) don't depend on
+  // the leader row — only the audience filter below does.
+  const [[leader], groups, quarterOptions, eventRows] = await Promise.all([
     db.select().from(victoryGroupLeaders).where(eq(victoryGroupLeaders.id, vgLeaderId)).limit(1),
     db
       .select()
@@ -25,16 +27,7 @@ export default async function VgPortalDashboardPage() {
       .where(and(eq(victoryGroups.vgLeaderId, vgLeaderId), isNull(victoryGroups.deletedAt)))
       .orderBy(victoryGroups.createdAt),
     getQuarterOptions(),
-  ]);
-
-  if (!leader) redirect("/login");
-
-  const hasActiveGroup = groups.some((g) => g.isActive);
-  const { percent } = computeProfileProgress(leader, hasActiveGroup);
-  const quarters = getProfileUpdateQuarters(leader.updatedAt, percent, quarterOptions);
-
-  const upcomingEvents = (
-    await db
+    db
       .select({
         id: events.id,
         name: events.name,
@@ -44,20 +37,30 @@ export default async function VgPortalDashboardPage() {
         endTime: events.endTime,
         audience: events.audience,
         registrationDeadline: events.registrationDeadline,
+        // At most one row per event: event_registrations is unique on (event_id, vg_leader_id).
+        willAttend: eventRegistrations.willAttend,
       })
       .from(events)
+      .leftJoin(
+        eventRegistrations,
+        and(eq(eventRegistrations.eventId, events.id), eq(eventRegistrations.vgLeaderId, vgLeaderId))
+      )
       .where(and(isNull(events.deletedAt), eq(events.isDone, false)))
-      .orderBy(events.eventDate)
-  ).filter((e) => isEventOpenToLeader(e.audience, leader.isLeadershipGroupLeader));
+      .orderBy(events.eventDate),
+  ]);
 
-  const eventIds = upcomingEvents.map((e) => e.id);
-  const myRegs = eventIds.length
-    ? await db
-        .select({ eventId: eventRegistrations.eventId, willAttend: eventRegistrations.willAttend })
-        .from(eventRegistrations)
-        .where(and(inArray(eventRegistrations.eventId, eventIds), eq(eventRegistrations.vgLeaderId, vgLeaderId)))
-    : [];
-  const regByEvent = new Map(myRegs.map((r) => [r.eventId, r.willAttend]));
+  if (!leader) redirect("/login");
+
+  const hasActiveGroup = groups.some((g) => g.isActive);
+  const { percent } = computeProfileProgress(leader, hasActiveGroup);
+  const quarters = getProfileUpdateQuarters(leader.updatedAt, percent, quarterOptions);
+
+  const upcomingEvents = eventRows
+    .filter((e) => isEventOpenToLeader(e.audience, leader.isLeadershipGroupLeader))
+    .map(({ willAttend: _willAttend, ...event }) => event);
+  const regByEvent = new Map(
+    eventRows.filter((e) => e.willAttend !== null).map((e) => [e.id, e.willAttend as boolean])
+  );
 
   return (
     <>

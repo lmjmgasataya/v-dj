@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { getVgLeaderMergeCandidates, mergeVgLeaders, type VgLeaderMergeCandidate } from "./mergeActions";
 import { leadership113Label } from "@/lib/leadership113";
+import { startedLeadingLabel } from "@/lib/startedLeading";
 
 const FIELD_LABELS: [keyof VgLeaderMergeCandidate, string][] = [
   ["middleInitial", "Middle Initial"],
@@ -19,8 +20,9 @@ const FIELD_LABELS: [keyof VgLeaderMergeCandidate, string][] = [
   ["startedLeadingVg", "Started Leading VG"],
 ];
 
-function displayValue(v: unknown, key?: keyof VgLeaderMergeCandidate): string {
+function displayValue(v: unknown, key?: keyof VgLeaderMergeCandidate, rec?: VgLeaderMergeCandidate): string {
   if (v === null || v === undefined || v === "") return "—";
+  if (key === "startedLeadingVg" && rec) return startedLeadingLabel(String(v), rec.startedLeadingVgYear) ?? String(v);
   if (key === "graduateOfLeadership113") return leadership113Label(String(v)) ?? String(v);
   if (typeof v === "boolean") return v ? "Yes" : "No";
   return String(v);
@@ -121,13 +123,14 @@ export function MergeVgLeadersModal({ idA, idB, onClose }: { idA: number; idB: n
                   {FIELD_LABELS.map(([key, label]) => {
                     const keep = records.find((r) => r.id === keepId)!;
                     const drop = records.find((r) => r.id !== keepId)!;
-                    const merged = isBlank(keep[key]) && !isBlank(drop[key]) ? drop[key] : keep[key];
+                    const mergedFrom = isBlank(keep[key]) && !isBlank(drop[key]) ? drop : keep;
+                    const merged = mergedFrom[key];
                     return (
                       <tr key={key}>
                         <td className="px-3 py-2 text-gray-500">{label}</td>
-                        <td className="px-3 py-2 text-gray-700">{displayValue(keep[key], key)}</td>
-                        <td className="px-3 py-2 text-gray-400">{displayValue(drop[key], key)}</td>
-                        <td className="px-3 py-2 font-medium text-gray-900">{displayValue(merged, key)}</td>
+                        <td className="px-3 py-2 text-gray-700">{displayValue(keep[key], key, keep)}</td>
+                        <td className="px-3 py-2 text-gray-400">{displayValue(drop[key], key, drop)}</td>
+                        <td className="px-3 py-2 font-medium text-gray-900">{displayValue(merged, key, mergedFrom)}</td>
                       </tr>
                     );
                   })}

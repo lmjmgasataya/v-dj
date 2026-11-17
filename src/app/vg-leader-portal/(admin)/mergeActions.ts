@@ -48,7 +48,9 @@ const MERGE_FIELDS = [
   "graduateOfLeadership113",
   "ownVgLeaderName",
   "ownVgLeaderId",
+  // Kept together: both blank or both set.
   "startedLeadingVg",
+  "startedLeadingVgYear",
 ] as const;
 
 function isBlank(v: unknown) {

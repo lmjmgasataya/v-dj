@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { startedLeadingAsOf, startedLeadingLabel } from "@/lib/startedLeading";
 import Link from "next/link";
 import { updateVGLeader } from "./actions";
 import { Field, Section, CheckboxOption, RadioOption, inputCls, selectCls, SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS, DJ_PORTAL_ONLY_STEPS, AutoJourneyStep } from "@/components/form";
@@ -52,6 +53,9 @@ export function EditForm({
   const completedSteps = (leader.discipleshipJourneyCompleted ?? "").split(",").filter(Boolean);
   const [ownVgLeaderLastName, ownVgLeaderFirstName] = (leader.ownVgLeaderName ?? "").split(",").map((s) => s.trim());
   const [isLGL, setIsLGL] = useState(leader.isLeadershipGroupLeader);
+  // Answers carry forward: a "this year" from an earlier year shows as "before this year" now.
+  const startedLeadingNow = startedLeadingAsOf(leader.startedLeadingVg, leader.startedLeadingVgYear);
+  const carriedOver = leader.startedLeadingVgYear != null && startedLeadingNow != null && leader.startedLeadingVg !== startedLeadingNow;
   const [step, setStep] = useState<"form" | "review">("form");
   const [captured, setCaptured] = useState<Record<string, string | string[]>>({});
 
@@ -254,14 +258,17 @@ export function EditForm({
                 name="startedLeadingVg"
                 value="before_this_year"
                 label="I started leading before this year"
-                defaultChecked={leader.startedLeadingVg === "before_this_year"}
+                defaultChecked={startedLeadingNow === "before_this_year"}
               />
               <RadioOption
                 name="startedLeadingVg"
                 value="this_year"
                 label="I started leading this year"
-                defaultChecked={leader.startedLeadingVg === "this_year"}
+                defaultChecked={startedLeadingNow === "this_year"}
               />
+              {carriedOver && (
+                <p className="text-xs text-gray-500">On record: {startedLeadingLabel(leader.startedLeadingVg, leader.startedLeadingVgYear)}</p>
+              )}
             </div>
           </div>
           <div className="sm:col-span-2 border-t border-gray-100 pt-3">

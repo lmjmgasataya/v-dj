@@ -1,4 +1,5 @@
 import { db } from "@/db";
+import { startedLeadingLabel } from "@/lib/startedLeading";
 import { victoryGroupLeaders, victoryGroups, interns, users, leadershipGroupMembers } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { isQuarterlyActive } from "@/lib/vgLeaderStatus";
@@ -6,7 +7,6 @@ import { getLiveQuarter, getProfileUpdateQuarters } from "@/lib/vgQuarters";
 import { getQuarterOptions } from "@/lib/vgQuarterFlags";
 import { computeProfileProgress, type LeaderProfileFields } from "@/lib/profileCompleteness";
 import { leadership113Label } from "@/lib/leadership113";
-import { currentYearPH } from "@/lib/date";
 import {
   SERVICE_BUCKETS,
   serviceToBucket,
@@ -107,6 +107,7 @@ export async function computeVgSnapshotCounts(): Promise<
         facebookMessengerName: victoryGroupLeaders.facebookMessengerName,
         ownVgLeaderName: victoryGroupLeaders.ownVgLeaderName,
         startedLeadingVg: victoryGroupLeaders.startedLeadingVg,
+        startedLeadingVgYear: victoryGroupLeaders.startedLeadingVgYear,
         discipleshipJourneyCompleted: victoryGroupLeaders.discipleshipJourneyCompleted,
         graduateOfLeadership113: victoryGroupLeaders.graduateOfLeadership113,
       })
@@ -288,11 +289,6 @@ export async function computeVgSnapshotCounts(): Promise<
       if (!member) continue;
       membersByLgl.set(m.leaderId, [...(membersByLgl.get(m.leaderId) ?? []), `${member.firstName} ${member.lastName}`]);
     }
-    const year = currentYearPH();
-    const startedLabel: Record<string, string> = {
-      before_this_year: `Before ${year}`,
-      this_year: `Started leading in ${year}`,
-    };
 
     return Array.from(ids)
       .map((id) => leaderById.get(id))
@@ -300,7 +296,7 @@ export async function computeVgSnapshotCounts(): Promise<
       .sort((a, b) => a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName))
       .map((l) => ({
         id: l.id,
-        startedLeading: l.startedLeadingVg ? (startedLabel[l.startedLeadingVg] ?? l.startedLeadingVg) : "",
+        startedLeading: startedLeadingLabel(l.startedLeadingVg, l.startedLeadingVgYear) ?? "",
         lastName: l.lastName,
         firstName: l.firstName,
         nickname: l.nickname ?? "",

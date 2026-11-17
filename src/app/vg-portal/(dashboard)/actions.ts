@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/db";
+import { startedLeadingVgSet } from "@/lib/startedLeadingSave";
 import {
   victoryGroups,
   victoryGroupLeaders,
@@ -8,7 +9,6 @@ import {
   type dayOfWeekEnum,
   type vgFrequencyEnum,
   type lifestageEnum,
-  type startedLeadingVgEnum,
   type groupTypeEnum,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -136,7 +136,7 @@ export async function updateOwnProfile(formData: FormData) {
       discipleshipJourneyCompleted: ownJourneyStepsSql(formData.getAll("discipleshipJourneyCompleted") as string[]),
       graduateOfLeadership113: parseLeadership113(formData.get("graduateOfLeadership113")),
       ...ownVgLeader,
-      startedLeadingVg: (formData.get("startedLeadingVg") as (typeof startedLeadingVgEnum.enumValues)[number]) || null,
+      ...startedLeadingVgSet(formData.get("startedLeadingVg")),
       isLeadershipGroupLeader,
       updatedAt: new Date(),
     })

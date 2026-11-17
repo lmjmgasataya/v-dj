@@ -7,6 +7,8 @@ import { SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS } from "@/components/form";
 import { HorizontalBarChart, AgeChart } from "../Charts";
 import { computeProfileProgress } from "@/lib/profileCompleteness";
 import { getLiveQuarter, getProfileUpdateQuarters } from "@/lib/vgQuarters";
+import { startedLeadingYear } from "@/lib/startedLeading";
+import { currentYearPH } from "@/lib/date";
 import { getQuarterOptions } from "@/lib/vgQuarterFlags";
 import { leadership113Label } from "@/lib/leadership113";
 import { getSession } from "@/lib/auth";
@@ -64,7 +66,12 @@ function ageBucket(age: number | null): string | null {
   return "60+";
 }
 
-export default async function VgLeaderReportPage() {
+export default async function VgLeaderReportPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ startedYear?: string }>;
+}) {
+  const { startedYear: startedYearParam } = await searchParams;
   const authSession = await getSession();
   const lockedServiceRawValues =
     authSession?.role === "lead_pastor" ? rawServiceValues(authSession?.timeService) : undefined;
@@ -362,9 +369,16 @@ export default async function VgLeaderReportPage() {
 
   const notCompletedRemarkCounts = countRemarks(notCompletedRows);
 
-  // Recognize VG leaders who started leading this year.
+  // Recognize VG leaders who started leading in a year (this year by default). Answers are saved
+  // with the year they were given, so each year's new leaders stay listed under that year.
+  const thisYear = currentYearPH();
+  const startedYears = [
+    ...new Set([thisYear, ...allLeaders.map((l) => startedLeadingYear(l.startedLeadingVg, l.startedLeadingVgYear)).filter((y): y is number => y != null)]),
+  ].sort((a, b) => b - a);
+  const parsedStartedYear = parseInt(startedYearParam ?? "", 10);
+  const startedYear = startedYears.includes(parsedStartedYear) ? parsedStartedYear : thisYear;
   const newLeaders = allLeaders
-    .filter((l) => l.startedLeadingVg === "this_year")
+    .filter((l) => startedLeadingYear(l.startedLeadingVg, l.startedLeadingVgYear) === startedYear)
     .map((l) => ({
       id: l.id,
       name: `${l.lastName}, ${l.firstName}`,
@@ -426,7 +440,7 @@ export default async function VgLeaderReportPage() {
       : []),
     { id: "profile-not-completed", label: "Profile Not Yet Completed", count: notCompletedRows.length },
     { id: "quarterly-status", label: `Profile Update Status${liveQuarter ? ` — ${liveQuarter.label}` : ""}` },
-    { id: "new-leaders", label: "Started Leading This Year", count: newLeaders.length },
+    { id: "new-leaders", label: `Started Leading in ${startedYear}`, count: newLeaders.length },
     { id: "leadership-group-leaders", label: "Leadership Group Leaders", count: leadershipGroupLeaders.length },
     {
       id: "charts",
@@ -581,15 +595,38 @@ export default async function VgLeaderReportPage() {
 
       <div id="new-leaders" className="scroll-mt-20 lg:scroll-mt-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
-          <h3 className="font-semibold text-gray-800">Started Leading This Year ({newLeaders.length})</h3>
-          <p className="text-xs text-gray-400 mt-0.5">New VG leaders to recognize.</p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="font-semibold text-gray-800">
+              Started Leading in {startedYear} ({newLeaders.length})
+            </h3>
+            {startedYears.length > 1 && (
+              <div className="flex gap-1" role="group" aria-label="Year">
+                {startedYears.map((y) => (
+                  <Link
+                    key={y}
+                    href={y === thisYear ? "?#new-leaders" : `?startedYear=${y}#new-leaders`}
+                    scroll={false}
+                    aria-current={y === startedYear ? "true" : undefined}
+                    className={`rounded-md px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${
+                      y === startedYear
+                        ? "bg-indigo-50 text-indigo-700 ring-indigo-300"
+                        : "bg-white text-gray-600 ring-gray-200 hover:text-gray-900"
+                    }`}
+                  >
+                    {y}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-gray-400 mt-0.5">New VG leaders to recognize — those who answered &ldquo;I started leading this year&rdquo; in {startedYear}.</p>
         </div>
         {newLeaders.length > 0 ? (
           <div className="overflow-x-auto">
             <NewLeadersTable rows={newLeaders} />
           </div>
         ) : (
-          <p className="px-6 py-4 text-sm text-gray-500">No new VG leaders this year yet.</p>
+          <p className="px-6 py-4 text-sm text-gray-500">No new VG leaders in {startedYear} yet.</p>
         )}
       </div>
 

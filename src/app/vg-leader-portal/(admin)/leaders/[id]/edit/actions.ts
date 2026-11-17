@@ -1,7 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { victoryGroupLeaders, type lifestageEnum, type startedLeadingVgEnum } from "@/db/schema";
+import { victoryGroupLeaders, type lifestageEnum } from "@/db/schema";
+import { startedLeadingVgSet } from "@/lib/startedLeadingSave";
 import { eq } from "drizzle-orm";
 import { toastRedirect } from "@/lib/toast";
 import { toTitleCase } from "@/lib/text";
@@ -40,7 +41,7 @@ export async function updateVGLeader(id: number, formData: FormData) {
       discipleshipJourneyCompleted: ownJourneyStepsSql(formData.getAll("discipleshipJourneyCompleted") as string[], DJ_PORTAL_ONLY_STEPS),
       graduateOfLeadership113: parseLeadership113(formData.get("graduateOfLeadership113")),
       ...ownVgLeader,
-      startedLeadingVg: (formData.get("startedLeadingVg") as (typeof startedLeadingVgEnum.enumValues)[number]) || null,
+      ...startedLeadingVgSet(formData.get("startedLeadingVg")),
       isLeadershipGroupLeader,
       updatedAt: new Date(),
     })

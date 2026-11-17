@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { startedLeadingAsOf, startedLeadingLabel } from "@/lib/startedLeading";
 import { updateOwnProfile } from "./actions";
 import { Field, Section, CheckboxOption, RadioOption, inputCls, selectCls, SERVICE_OPTIONS, DISCIPLESHIP_JOURNEY_STEPS, AUTO_JOURNEY_STEPS, AutoJourneyStep } from "@/components/form";
 import { OwnVgLeaderField } from "@/components/OwnVgLeaderField";
@@ -59,6 +60,9 @@ export function ProfileForm({
   const { percent, missing } = computeProfileProgress(leader, hasActiveGroup);
   const [ownVgLeaderLastName, ownVgLeaderFirstName] = (leader.ownVgLeaderName ?? "").split(",").map((s) => s.trim());
   const [isLGL, setIsLGL] = useState(leader.isLeadershipGroupLeader);
+  // Answers carry forward: a "this year" from an earlier year shows as "before this year" now.
+  const startedLeadingNow = startedLeadingAsOf(leader.startedLeadingVg, leader.startedLeadingVgYear);
+  const carriedOver = leader.startedLeadingVgYear != null && startedLeadingNow != null && leader.startedLeadingVg !== startedLeadingNow;
 
   const [step, setStep] = useState<"form" | "review">("form");
   const [captured, setCaptured] = useState<Record<string, string | string[]>>({});
@@ -263,15 +267,18 @@ export function ProfileForm({
                   value="before_this_year"
                   label="I started leading before this year"
                   required
-                  defaultChecked={leader.startedLeadingVg === "before_this_year"}
+                  defaultChecked={startedLeadingNow === "before_this_year"}
                 />
                 <RadioOption
                   name="startedLeadingVg"
                   value="this_year"
                   label="I started leading this year"
                   required
-                  defaultChecked={leader.startedLeadingVg === "this_year"}
+                  defaultChecked={startedLeadingNow === "this_year"}
                 />
+                {carriedOver && (
+                  <p className="text-xs text-gray-500">On record: {startedLeadingLabel(leader.startedLeadingVg, leader.startedLeadingVgYear)}</p>
+                )}
               </div>
             </div>
             <div className="sm:col-span-2 border-t border-gray-100 pt-3">

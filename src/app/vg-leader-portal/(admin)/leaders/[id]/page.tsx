@@ -1,4 +1,5 @@
 import { db } from "@/db";
+import { startedLeadingLabel } from "@/lib/startedLeading";
 import { victoryGroupLeaders, victoryGroups, interns, leadershipGroupMembers, participants, users, type VictoryGroup } from "@/db/schema";
 import { eq, isNull, ne, and, inArray } from "drizzle-orm";
 import { areSimilarNames } from "@/lib/vgLeaderMatch";
@@ -355,13 +356,7 @@ export default async function VGLeaderProfilePage({ params }: { params: Promise<
         <dl className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
           <Row
             label="Started Leading a Victory Group"
-            value={
-              leader.startedLeadingVg === "before_this_year"
-                ? "Before this year"
-                : leader.startedLeadingVg === "this_year"
-                  ? "This year"
-                  : null
-            }
+            value={startedLeadingLabel(leader.startedLeadingVg, leader.startedLeadingVgYear)}
           />
           <Row label="Leadership Group Leader?" value={leader.isLeadershipGroupLeader ? "Yes" : "No"} />
           {leader.isLeadershipGroupLeader && (

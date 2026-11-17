@@ -76,6 +76,8 @@ export const victoryGroupLeaders = pgTable("victory_group_leaders", {
   ownVgLeaderName: text("own_vg_leader_name"),
   ownVgLeaderId: integer("own_vg_leader_id").references((): AnyPgColumn => victoryGroupLeaders.id),
   startedLeadingVg: startedLeadingVgEnum("started_leading_vg"),
+  /** The year `startedLeadingVg` was answered in — "this year" / "before this year" are relative to it. */
+  startedLeadingVgYear: integer("started_leading_vg_year"),
   isLeadershipGroupLeader: boolean("is_leadership_group_leader").default(false).notNull(),
   profileCompleted: boolean("profile_completed").default(false).notNull(),
   isActive: boolean("is_active").default(true).notNull(),

@@ -40,6 +40,8 @@ export interface Attendee {
   tableNumber: number | null;
   status: CheckInStatus;
   method: CheckInMethod;
+  /** Their own batch, when they're from another batch making up this class. */
+  makeUpFromBatch: string | null;
 }
 
 type SortKey = "name" | "checkedInAt" | "victoryDay" | "tableNumber";
@@ -183,7 +185,17 @@ export function AttendeeList({ attendees }: { attendees: Attendee[] }) {
                     <tr key={a.checkInId}>
                       <td className="px-3 py-3 text-xs text-gray-400 font-mono">{i + 1}</td>
                       <td className="px-3 py-3">
-                        <p className="font-semibold text-gray-900 capitalize">{fullName}</p>
+                        <p className="font-semibold text-gray-900 capitalize">
+                          {fullName}
+                          {a.makeUpFromBatch && (
+                            <span
+                              title={`Registered in ${a.makeUpFromBatch} — counts toward that batch's attendance`}
+                              className="ml-2 align-middle text-[11px] font-medium normal-case px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 whitespace-nowrap"
+                            >
+                              Make-up · {a.makeUpFromBatch}
+                            </span>
+                          )}
+                        </p>
                         {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
                         {a.remarks && (
                           <p className="text-xs text-amber-700 italic mt-0.5">{a.remarks}</p>

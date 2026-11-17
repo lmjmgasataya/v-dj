@@ -26,3 +26,15 @@ export function Tag({ children, tone = "gray" }: { children: React.ReactNode; to
   }[tone];
   return <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium ${cls}`}>{children}</span>;
 }
+
+/** Someone from an earlier batch making up this class — it counts toward their own batch. */
+export function MakeUpTag({ batch }: { batch: string }) {
+  return (
+    <span
+      title={`Registered in ${batch}. This check-in counts toward that batch's attendance.`}
+      className="inline-flex items-center rounded-md bg-sky-50 px-1.5 py-0.5 text-xs font-medium whitespace-nowrap text-sky-800 ring-1 ring-inset ring-sky-600/25"
+    >
+      Make-up · {batch}
+    </span>
+  );
+}

@@ -7,7 +7,7 @@ import { toTitleCase } from "@/lib/text";
 import { checkInStatusBadgeClass } from "@/lib/checkinStatus";
 import { useNewCheckinUi } from "./ui/NewCheckinUi";
 import { Sheet } from "./ui/Sheet";
-import { StatusPill, Tag } from "./ui/StatusPill";
+import { MakeUpTag, StatusPill, Tag } from "./ui/StatusPill";
 import { CloseIcon, RefreshIcon, UsersIcon } from "./ui/icons";
 
 type CheckIn = Omit<Awaited<ReturnType<typeof getSessionCheckIns>>[number], "victoryDayDate"> & { victoryDayDate: string | null };
@@ -34,6 +34,7 @@ async function loadVglCheckIns(sessionId: number): Promise<CheckIn[]> {
       victoryDayCount: 0,
       totalVictoryDaySessions: 0,
       completedVictoryDay: true,
+      makeUpFromBatch: null,
     }));
 }
 
@@ -157,6 +158,7 @@ export function SessionAttendeesModal({
                             <StatusPill status={c.status} />
                             {!vglOnly && <Tag>{c.tableNumber ? `Table ${c.tableNumber}` : "No table"}</Tag>}
                             {vd && <Tag tone={isIncomplete ? "amber" : "gray"}>Victory Day {vd}{isIncomplete ? ` (${c.victoryDayCount}/${c.totalVictoryDaySessions})` : ""}</Tag>}
+                            {c.makeUpFromBatch && <MakeUpTag batch={c.makeUpFromBatch} />}
                           </div>
                           {c.remarks && <p className="mt-1 text-sm text-amber-800">{c.remarks}</p>}
                         </div>
@@ -271,6 +273,7 @@ export function SessionAttendeesModal({
                                   </span>
                                 );
                               })()}
+                              {c.makeUpFromBatch && <MakeUpTag batch={c.makeUpFromBatch} />}
                             </div>
                             {c.remarks && (
                               <p className="text-xs text-amber-700 italic mt-0.5">{c.remarks}</p>

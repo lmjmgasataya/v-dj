@@ -21,6 +21,7 @@ export function CheckInSuccessModal({
   status = "On-time",
   alreadyCheckedIn = false,
   pendingSync = false,
+  makeUpFromBatch = null,
   onDismiss,
 }: {
   firstName: string;
@@ -30,6 +31,8 @@ export function CheckInSuccessModal({
   status?: CheckInStatus;
   alreadyCheckedIn?: boolean;
   pendingSync?: boolean;
+  /** Their own batch when this is a make-up class from an earlier batch. */
+  makeUpFromBatch?: string | null;
   onDismiss: () => void;
 }) {
   const [secondsLeft, setSecondsLeft] = useState(AUTO_DISMISS_SECONDS);
@@ -73,6 +76,12 @@ export function CheckInSuccessModal({
             {lastName} &middot; {alreadyCheckedIn ? "No need to check in again" : "Welcome!"}
           </p>
 
+          {makeUpFromBatch && (
+            <p className="mt-3 rounded-full bg-sky-50 px-3 py-1 text-xs font-medium text-sky-800 ring-1 ring-inset ring-sky-600/25">
+              Make-up class &middot; counts for {makeUpFromBatch}
+            </p>
+          )}
+
           {pendingSync && (
             <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-800">
               <CloudUploadIcon className="size-3.5 text-slate-600" />
@@ -115,6 +124,12 @@ export function CheckInSuccessModal({
         <p className="text-sm text-gray-500">
           {lastName} &middot; {alreadyCheckedIn ? "No need to check in again" : "Welcome!"}
         </p>
+
+        {makeUpFromBatch && (
+          <p className="mt-3 text-xs font-medium text-sky-800 bg-sky-50 border border-sky-200 rounded-full px-3 py-1">
+            Make-up class &middot; counts for {makeUpFromBatch}
+          </p>
+        )}
 
         {pendingSync && (
           <p className="mt-3 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-3 py-1">

@@ -7,7 +7,7 @@ import { toTitleCase } from "@/lib/text";
 import { ORIENTATION_ALLOWED_CLASSES } from "@/lib/constants";
 import { assignTableNumber } from "@/lib/tables";
 import { MOBILE_NUMBER_REGEX } from "@/lib/phone";
-import { eligibleForSession, getBatchBlockReason, getSessionBatchScope, getVictoryDayTotalsByBatch, victoryDayTotalFor } from "@/lib/batchCheckIn";
+import { eligibleForSession, getBatchBlockReason, getSessionBatchScope, getVictoryDayTotalsByBatch, makeUpFromBatchSql, victoryDayTotalFor } from "@/lib/batchCheckIn";
 
 type Lifestage = (typeof lifestageEnum.enumValues)[number];
 import { and, count, eq, ilike, inArray, isNull, ne, notInArray, or } from "drizzle-orm";
@@ -160,6 +160,7 @@ export async function lookupParticipantForQr(
       registrationFee: string | null;
       victoryDayBlockReason: string | null;
       tableNumber: number | null;
+      makeUpFromBatch: string | null;
     }
   | { error: string }
 > {
@@ -175,9 +176,11 @@ export async function lookupParticipantForQr(
         victoryDate: participants.victoryDate,
         checkInId: checkIns.id,
         tableNumber: checkIns.tableNumber,
+        makeUpFromBatch: makeUpFromBatchSql(classSessionId),
       })
       .from(participants)
       .leftJoin(checkIns, and(eq(checkIns.participantId, participants.id), eq(checkIns.classSessionId, classSessionId)))
+      .leftJoin(batches, eq(participants.batchId, batches.id))
       .where(and(eq(participants.id, participantId), isNull(participants.deletedAt)))
       .limit(1),
     getVictoryDayBlockReason(participantId, classSessionId),
@@ -193,6 +196,7 @@ export async function lookupParticipantForQr(
     registrationFee: row.registrationFee,
     tableNumber: row.tableNumber,
     victoryDayBlockReason: alreadyCheckedIn ? null : blockReason,
+    makeUpFromBatch: row.makeUpFromBatch,
   };
 }
 
@@ -204,7 +208,7 @@ export async function checkInByQr(
   method: CheckInMethod = "QR Reader",
   skipRevalidate = false,
 ): Promise<
-  | { firstName: string; lastName: string; alreadyCheckedIn: boolean; tableNumber: number | null; attendeeCount?: number }
+  | { firstName: string; lastName: string; alreadyCheckedIn: boolean; tableNumber: number | null; makeUpFromBatch: string | null; attendeeCount?: number }
   | { error: string }
 > {
   // Every branch below except the final row lookup is a pure read with no
@@ -219,9 +223,11 @@ export async function checkInByQr(
         lastName: participants.lastName,
         checkInId: checkIns.id,
         tableNumber: checkIns.tableNumber,
+        makeUpFromBatch: makeUpFromBatchSql(classSessionId),
       })
       .from(participants)
       .leftJoin(checkIns, and(eq(checkIns.participantId, participants.id), eq(checkIns.classSessionId, classSessionId)))
+      .leftJoin(batches, eq(participants.batchId, batches.id))
       .where(and(eq(participants.id, participantId), isNull(participants.deletedAt)))
       .limit(1),
     isTableAssignmentEnabled(),
@@ -233,19 +239,20 @@ export async function checkInByQr(
 
   const firstName = toTitleCase(row.firstName);
   const lastName = toTitleCase(row.lastName);
+  const { makeUpFromBatch } = row;
 
   if (row.checkInId != null) {
-    return { firstName, lastName, alreadyCheckedIn: true, tableNumber: row.tableNumber };
+    return { firstName, lastName, alreadyCheckedIn: true, tableNumber: row.tableNumber, makeUpFromBatch };
   }
 
   if (blockReason) return { error: blockReason };
 
   const tableNumber = tableEnabled ? tableNumberIfEnabled : null;
   await db.insert(checkIns).values({ participantId, classSessionId, remarks: remarks || null, tableNumber, status: status ?? checkInStatusForDate(new Date()), method }).onConflictDoNothing();
-  if (skipRevalidate) return { firstName, lastName, alreadyCheckedIn: false, tableNumber };
+  if (skipRevalidate) return { firstName, lastName, alreadyCheckedIn: false, tableNumber, makeUpFromBatch };
 
   syncJourneyStepsAfterResponse();
-  return { firstName, lastName, alreadyCheckedIn: false, tableNumber, attendeeCount: await countAttendees(classSessionId) };
+  return { firstName, lastName, alreadyCheckedIn: false, tableNumber, makeUpFromBatch, attendeeCount: await countAttendees(classSessionId) };
 }
 
 // Replaying a batch of queued offline check-ins calls checkInByQr with
@@ -280,6 +287,8 @@ export interface CheckinRosterEntry {
   completedVictoryDay: boolean;
   alreadyCheckedIn: boolean;
   victoryDayBlockReason: string | null;
+  /** Their own (earlier) batch when they're making up this class from another batch. */
+  makeUpFromBatch: string | null;
 }
 
 /**
@@ -327,9 +336,11 @@ export async function getCheckinRoster(
       checkInRemarks: checkIns.remarks,
       checkInStatus: checkIns.status,
       tableNumber: checkIns.tableNumber,
+      makeUpFromBatch: makeUpFromBatchSql(sessionId),
     })
     .from(participants)
     .leftJoin(checkIns, and(eq(checkIns.participantId, participants.id), eq(checkIns.classSessionId, sessionId)))
+    .leftJoin(batches, eq(participants.batchId, batches.id))
     .where(rosterWhere),
     db
       .select({ participantId: checkIns.participantId, sessionDate: classSessions.sessionDate })
@@ -391,6 +402,7 @@ export async function getCheckinRoster(
       completedVictoryDay,
       alreadyCheckedIn,
       victoryDayBlockReason,
+      makeUpFromBatch: r.makeUpFromBatch,
     };
   });
 }
@@ -431,9 +443,11 @@ export async function getSessionCheckIns(sessionId: number) {
       remarks: checkIns.remarks,
       tableNumber: checkIns.tableNumber,
       status: checkIns.status,
+      makeUpFromBatch: makeUpFromBatchSql(sessionId),
     })
     .from(checkIns)
     .innerJoin(participants, eq(checkIns.participantId, participants.id))
+    .leftJoin(batches, eq(participants.batchId, batches.id))
     .where(eq(checkIns.classSessionId, sessionId))
     .orderBy(checkIns.checkedInAt);
 
@@ -492,6 +506,7 @@ export async function searchParticipants(sessionId: number, q: string, isVictory
       checkInRemarks: checkIns.remarks,
       tableNumber: checkIns.tableNumber,
       checkInStatus: checkIns.status,
+      makeUpFromBatch: makeUpFromBatchSql(sessionId),
     })
     .from(participants)
     .leftJoin(
@@ -501,6 +516,7 @@ export async function searchParticipants(sessionId: number, q: string, isVictory
         eq(checkIns.classSessionId, sessionId)
       )
     )
+    .leftJoin(batches, eq(participants.batchId, batches.id))
     .where(
       and(
         isNull(participants.deletedAt),

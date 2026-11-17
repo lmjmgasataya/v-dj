@@ -16,7 +16,7 @@ import type { CheckInStatus } from "@/db/schema";
 import type { CheckinRosterEntry } from "./actions";
 import { useNewCheckinUi } from "./ui/NewCheckinUi";
 import { ConfirmCheckInSheet } from "./ui/ConfirmCheckInSheet";
-import { StatusPill, Tag } from "./ui/StatusPill";
+import { MakeUpTag, StatusPill, Tag } from "./ui/StatusPill";
 import { LockIcon, Spinner } from "./ui/icons";
 import { ConfirmRemoveSheet } from "./ui/ConfirmRemoveSheet";
 import { useSetAttendeeCount } from "./AttendeeCounts";
@@ -42,6 +42,8 @@ interface ParticipantWithStatus {
   checkInStatus: CheckInStatus | null;
   tableNumber: number | null;
   alreadyCheckedIn?: boolean;
+  /** Their own batch when they're from an earlier batch making up this class. */
+  makeUpFromBatch?: string | null;
 }
 
 type RosterUpdate = (participantId: number, patch: Partial<CheckinRosterEntry>) => void;
@@ -213,6 +215,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
       tableNumber={successInfo.tableNumber}
       status={successInfo.status}
       pendingSync={successInfo.pendingSync}
+      makeUpFromBatch={p.makeUpFromBatch}
       showTable={showTableNumber}
       onDismiss={() => setSuccessInfo(null)}
     />
@@ -226,11 +229,14 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium text-gray-900 capitalize">{fullName}</p>
           {meta && <p className="truncate text-sm text-gray-600">{meta}</p>}
-          {vd && (
-            <div className="mt-1">
-              <Tag tone={isIncomplete ? "amber" : "gray"}>
-                Victory Day {vd}{isIncomplete ? ` (${p.victoryDayCount}/${p.totalVictoryDaySessions})` : ""}
-              </Tag>
+          {(vd || p.makeUpFromBatch) && (
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {vd && (
+                <Tag tone={isIncomplete ? "amber" : "gray"}>
+                  Victory Day {vd}{isIncomplete ? ` (${p.victoryDayCount}/${p.totalVictoryDaySessions})` : ""}
+                </Tag>
+              )}
+              {p.makeUpFromBatch && <MakeUpTag batch={p.makeUpFromBatch} />}
             </div>
           )}
           {isCheckedIn && p.checkInRemarks && <p className="mt-1 text-sm text-amber-800">Remarks: {p.checkInRemarks}</p>}
@@ -272,7 +278,7 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
         {showModal && (
           <ConfirmCheckInSheet
             name={fullName}
-            detail={p.registrationFee ? `Class ${p.registrationFee}` : undefined}
+            detail={[p.registrationFee ? `Class ${p.registrationFee}` : null, p.makeUpFromBatch ? `Make-up from ${p.makeUpFromBatch}` : null].filter(Boolean).join(" · ") || undefined}
             offline={!isOnline}
             status={status}
             onStatusChange={setStatus}
@@ -331,6 +337,11 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
               </span>
             );
           })()}
+          {p.makeUpFromBatch && (
+            <span className="inline-block mt-1 ml-1 first:ml-0">
+              <MakeUpTag batch={p.makeUpFromBatch} />
+            </span>
+          )}
           {isCheckedIn && p.checkInRemarks && (
             <p className="text-xs text-amber-700 mt-1 italic">Remarks: {p.checkInRemarks}</p>
           )}
@@ -390,6 +401,11 @@ function CheckInRow({ p, sessionId, isVictoryDay, requiresVictoryDay, onAction, 
               <p className="text-sm text-gray-600 mt-0.5 capitalize">
                 {toTitleCase(p.lastName)}, {toTitleCase(p.firstName)}{p.middleInitial ? ` ${toTitleCase(p.middleInitial)}.` : ""}
               </p>
+              {p.makeUpFromBatch && (
+                <div className="mt-1.5">
+                  <MakeUpTag batch={p.makeUpFromBatch} />
+                </div>
+              )}
             </div>
             {!isOnline && (
               <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">

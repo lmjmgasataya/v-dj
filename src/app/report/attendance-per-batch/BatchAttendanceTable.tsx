@@ -17,6 +17,13 @@ export interface BatchAttendanceRow {
   skipsVictoryDay: boolean;
   victoryDate: string | null;
   statuses: Record<number, string>;
+  /** Sessions of this batch missed (or Absent) here but attended in another batch's same-named session. */
+  madeUp: Record<number, MadeUp>;
+}
+
+export interface MadeUp {
+  batchName: string;
+  sessionDate: string;
 }
 
 type Completion = "all" | "complete" | "incomplete";
@@ -29,6 +36,15 @@ const COMPLETION_OPTIONS: { value: Completion; label: string }[] = [
 
 function isPresent(status: string | undefined) {
   return status != null && status !== "Absent";
+}
+
+/** Present here, or made up in another batch — both count as attended. */
+function hasAttended(row: BatchAttendanceRow, s: BatchSession) {
+  return isPresent(row.statuses[s.id]) || row.madeUp[s.id] != null;
+}
+
+function madeUpLabel(m: MadeUp) {
+  return `Made up in ${m.batchName} (${shortSessionDate(m.sessionDate)})`;
 }
 
 function sessionLabel(s: BatchSession) {
@@ -123,6 +139,26 @@ function StatusCell({ row, session }: { row: BatchAttendanceRow; session: BatchS
       </svg>
     );
   }
+  const madeUp = row.madeUp[session.id];
+  if (madeUp) {
+    const title = (status === "Absent" ? "Absent here · " : "") + madeUpLabel(madeUp);
+    return (
+      <span title={title} className="inline-flex flex-col items-center cursor-default leading-none">
+        <svg
+          className="w-4 h-4 text-sky-600"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={6}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M5 13l4 4L19 7" />
+        </svg>
+        <span className="mt-0.5 text-[9px] font-semibold text-sky-700 whitespace-nowrap">{madeUp.batchName}</span>
+      </span>
+    );
+  }
   if (status === "Absent") {
     return (
       <span title="Absent" className="inline-flex items-center justify-center cursor-default">
@@ -187,7 +223,7 @@ export function BatchAttendanceTable({
     () =>
       rows.map((r) => {
         const applicable = r.skipsVictoryDay ? visibleSessions.filter((s) => !s.isVictoryDay) : visibleSessions;
-        const attended = applicable.filter((s) => isPresent(r.statuses[s.id])).length;
+        const attended = applicable.filter((s) => hasAttended(r, s)).length;
         return { row: r, attended, applicable: applicable.length, complete: attended === applicable.length };
       }),
     [rows, visibleSessions]
@@ -214,7 +250,11 @@ export function BatchAttendanceTable({
         const record: Record<string, string> = { Participant: row.name, Service: row.service };
         for (const s of visibleSessions) {
           const status = row.statuses[s.id];
-          record[sessionLabel(s)] = status ?? (row.skipsVictoryDay && s.isVictoryDay ? "Victory Day done" : "");
+          const madeUp = row.madeUp[s.id];
+          record[sessionLabel(s)] =
+            !isPresent(status) && madeUp
+              ? madeUpLabel(madeUp)
+              : (status ?? (row.skipsVictoryDay && s.isVictoryDay ? "Victory Day done" : ""));
         }
         record.Total = `${attended}/${applicable}`;
         record["Attended All"] = complete ? "Yes" : "No";
@@ -292,6 +332,12 @@ export function BatchAttendanceTable({
         {visibleSessions.length} session{visibleSessions.length !== 1 ? "s" : ""}
         {excluded.size > 0 ? ` (${excluded.size} excluded)` : ""} · showing {filtered.length}
       </p>
+      {rows.some((r) => Object.keys(r.madeUp).length > 0) && (
+        <p className="-mt-2 text-xs text-gray-500">
+          <span className="font-semibold text-sky-700">Blue check</span> = missed or marked absent here, made up in a
+          later batch&rsquo;s class (batch shown underneath, hover for the date). Counts as attended.
+        </p>
+      )}
 
       {visibleSessions.length === 0 ? (
         <p className="text-sm text-gray-400">All sessions are excluded.</p>

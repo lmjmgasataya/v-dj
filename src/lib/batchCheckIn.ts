@@ -2,6 +2,11 @@ import { db } from "@/db";
 import { batches, checkIns, classSessions, participants } from "@/db/schema";
 import { and, count, eq, exists, inArray, isNotNull, lt, ne, notExists, or, sql, type SQL } from "drizzle-orm";
 
+/** Classes repeat every batch under the same names; compare them ignoring case and spacing. */
+export function classKey(name: string): string {
+  return name.trim().toLowerCase();
+}
+
 export type SessionBatchScope = {
   id: number;
   name: string;
@@ -40,6 +45,14 @@ export function eligibleForSession(session: SessionBatchScope): SQL | undefined 
     exists(checkedInHere),
     and(inArray(participants.batchId, earlierBatchIds), notExists(attendedSameClass(session))),
   );
+}
+
+/**
+ * The participant's own batch name when it isn't the session's batch — they're making up a class
+ * from an earlier batch — else null. The query must left-join `batches` on `participants.batchId`.
+ */
+export function makeUpFromBatchSql(sessionId: number) {
+  return sql<string | null>`case when ${participants.batchId} <> (select ${classSessions.batchId} from ${classSessions} where ${classSessions.id} = ${sessionId}) then coalesce(${batches.name}, 'another batch') end`;
 }
 
 /** A non-Absent check-in to another session with the same class name (case/space-insensitive). */

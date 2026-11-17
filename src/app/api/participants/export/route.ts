@@ -9,7 +9,8 @@ import { rawServiceValues } from "@/lib/timeService";
 
 const disciplerLeaders = alias(victoryGroupLeaders, "discipler_leaders");
 
-type AttendanceEntry = { date: string; remarks: string | null; absent: boolean };
+/** `madeUpIn`: the other batch whose session it was, when not the participant's own batch. */
+type AttendanceEntry = { date: string; remarks: string | null; absent: boolean; madeUpIn: string | null };
 
 function classKey(name: string): string {
   return name.trim().toLowerCase();
@@ -27,7 +28,16 @@ function uniqueByClass<T extends { name: string }>(sessions: T[]): T[] {
 
 /** participantId → class name → earliest check-in, preferring one that isn't Absent. */
 function attendanceByClass(
-  rows: { participantId: number; sessionName: string; sessionDate: string; remarks: string | null; status: string }[]
+  rows: {
+    participantId: number;
+    sessionName: string;
+    sessionDate: string;
+    remarks: string | null;
+    status: string;
+    sessionBatchId: number | null;
+    sessionBatchName: string | null;
+  }[],
+  batchOf: Map<number, number | null>
 ): Map<number, Map<string, AttendanceEntry>> {
   const map = new Map<number, Map<string, AttendanceEntry>>();
   for (const a of rows) {
@@ -35,7 +45,9 @@ function attendanceByClass(
     const byClass = map.get(a.participantId)!;
     const existing = byClass.get(classKey(a.sessionName));
     if (!existing || (existing.absent && a.status !== "Absent")) {
-      byClass.set(classKey(a.sessionName), { date: a.sessionDate, remarks: a.remarks, absent: a.status === "Absent" });
+      const madeUpIn =
+        a.sessionBatchId != null && a.sessionBatchId !== batchOf.get(a.participantId) ? (a.sessionBatchName ?? "another batch") : null;
+      byClass.set(classKey(a.sessionName), { date: a.sessionDate, remarks: a.remarks, absent: a.status === "Absent", madeUpIn });
     }
   }
   return map;
@@ -106,9 +118,12 @@ export async function GET(request: Request) {
             sessionDate: classSessions.sessionDate,
             remarks: checkIns.remarks,
             status: checkIns.status,
+            sessionBatchId: classSessions.batchId,
+            sessionBatchName: batches.name,
           })
           .from(checkIns)
           .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
+          .leftJoin(batches, eq(classSessions.batchId, batches.id))
           .where(
             and(
               inArray(checkIns.participantId, participantIds),
@@ -126,9 +141,12 @@ export async function GET(request: Request) {
             sessionDate: classSessions.sessionDate,
             remarks: checkIns.remarks,
             status: checkIns.status,
+            sessionBatchId: classSessions.batchId,
+            sessionBatchName: batches.name,
           })
           .from(checkIns)
           .innerJoin(classSessions, eq(checkIns.classSessionId, classSessions.id))
+          .leftJoin(batches, eq(classSessions.batchId, batches.id))
           .where(
             and(
               inArray(checkIns.participantId, participantIds),
@@ -139,8 +157,9 @@ export async function GET(request: Request) {
       : Promise.resolve([]),
   ]);
 
-  const attendanceMap = attendanceByClass(attendance);
-  const victoryAttendanceMap = attendanceByClass(victoryAttendance);
+  const batchOf = new Map(rows.map((r) => [r.id, r.batchId]));
+  const attendanceMap = attendanceByClass(attendance, batchOf);
+  const victoryAttendanceMap = attendanceByClass(victoryAttendance, batchOf);
 
   const formatDate = (date: string) =>
     new Date(date + "T00:00:00").toLocaleDateString("en-PH", {
@@ -151,8 +170,11 @@ export async function GET(request: Request) {
     });
 
   // A check-in marked Absent (15+ min late) isn't attendance — same as the attendance reports.
+  // A make-up in another batch's session fills the class, noted with that batch.
   const cell = (entry: AttendanceEntry) =>
-    (entry.absent ? "Absent" : formatDate(entry.date)) + (entry.remarks ? ` (${entry.remarks})` : "");
+    (entry.absent ? "Absent" : formatDate(entry.date)) +
+    (entry.madeUpIn && !entry.absent ? ` (made up in ${entry.madeUpIn})` : "") +
+    (entry.remarks ? ` (${entry.remarks})` : "");
 
   const data = rows.map((p, i) => {
     const attended = attendanceMap.get(p.id) ?? new Map<string, AttendanceEntry>();

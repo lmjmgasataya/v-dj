@@ -6,6 +6,7 @@ import { FEE_CATEGORIES } from "@/components/form";
 import { ORIENTATION_ALLOWED_CLASSES } from "@/lib/constants";
 import { CheckInSuccessModal } from "./CheckInSuccessModal";
 import { CheckInStatusPicker } from "./CheckInStatusPicker";
+import { MakeUpTag } from "./ui/StatusPill";
 import { checkInStatusForDate, isOnTimeWindow, isWithinLateCutoff } from "@/lib/date";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { enqueueCheckIn, removePending } from "@/lib/offlineStore";
@@ -31,6 +32,9 @@ function parseParticipantId(text: string): number | null {
   return isNaN(n) ? null : n;
 }
 
+type ResultInfo = { firstName: string; lastName: string; tableNumber: number | null; makeUpFromBatch?: string | null };
+type SuccessInfo = ResultInfo & { status: CheckInStatus; pendingSync?: boolean };
+
 type Status = "idle" | "scanning" | "confirming" | "loading" | "error";
 
 interface PendingParticipant {
@@ -39,6 +43,8 @@ interface PendingParticipant {
   lastName: string;
   registrationFee: string | null;
   victoryDayBlockReason: string | null;
+  /** Their own batch when they're from an earlier batch making up this class. */
+  makeUpFromBatch: string | null;
   method: CheckInMethod;
 }
 
@@ -120,8 +126,8 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
   const [remarks, setRemarks] = useState("");
   const [checkInStatus, setCheckInStatus] = useState<CheckInStatus>("On-time");
   const [mirrored, setMirrored] = useState(false);
-  const [successInfo, setSuccessInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null; status: CheckInStatus; pendingSync?: boolean } | null>(null);
-  const [alreadyInfo, setAlreadyInfo] = useState<{ firstName: string; lastName: string; tableNumber: number | null } | null>(null);
+  const [successInfo, setSuccessInfo] = useState<SuccessInfo | null>(null);
+  const [alreadyInfo, setAlreadyInfo] = useState<ResultInfo | null>(null);
   // Bumped each time a new scan result is shown, so a rescan that arrives
   // while a popup is still up (e.g. the barcode-scanner flow, which no
   // longer waits for the popup to be dismissed) remounts the modal instead
@@ -156,12 +162,12 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
 
   // Replaces whatever popup is currently showing (success or already-checked-in)
   // with the new result, and forces a remount so its countdown starts fresh.
-  function presentSuccess(info: { firstName: string; lastName: string; tableNumber: number | null; status: CheckInStatus; pendingSync?: boolean }) {
+  function presentSuccess(info: SuccessInfo) {
     setAlreadyInfo(null);
     setResultSeq((s) => s + 1);
     setSuccessInfo(info);
   }
-  function presentAlready(info: { firstName: string; lastName: string; tableNumber: number | null }) {
+  function presentAlready(info: ResultInfo) {
     setSuccessInfo(null);
     setResultSeq((s) => s + 1);
     setAlreadyInfo(info);
@@ -173,7 +179,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
       if (!cached) return null;
       const queued = enqueueCheckIn({ participantId, sessionId, remarks: remarksValue || undefined, status: statusOverride, method });
       const resolvedStatus = statusOverride ?? checkInStatusForDate(new Date());
-      presentSuccess({ firstName: cached.firstName, lastName: cached.lastName, tableNumber: null, status: resolvedStatus, pendingSync: true });
+      presentSuccess({ firstName: cached.firstName, lastName: cached.lastName, tableNumber: null, status: resolvedStatus, pendingSync: true, makeUpFromBatch: cached.makeUpFromBatch });
       onCheckInRef.current?.({ lastName: cached.lastName, message: `Checked in: ${cached.lastName}, ${cached.firstName} — pending sync`, alreadyCheckedIn: false, tableNumber: null });
       onRosterUpdate?.(participantId, { alreadyCheckedIn: true, tableNumber: null, checkInStatus: resolvedStatus, checkInRemarks: remarksValue || null });
       return queued;
@@ -245,13 +251,13 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
       const displayName = `${result.lastName}, ${result.firstName}`;
       const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table assigned";
       const resultMessage = `${displayName} is already checked in — ${tableMsg}.`;
-      presentAlready({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber });
+      presentAlready({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber, makeUpFromBatch: result.makeUpFromBatch });
       onCheckInRef.current?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
       onRosterUpdate?.(participantId, { alreadyCheckedIn: true, tableNumber: result.tableNumber });
     } else {
       const tableMsg = result.tableNumber ? `Table ${result.tableNumber}` : "no table available";
       const resultMessage = `Checked in: ${result.lastName}, ${result.firstName} — ${tableMsg}`;
-      presentSuccess({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber, status: statusOverride ?? checkInStatusForDate(new Date()) });
+      presentSuccess({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber, status: statusOverride ?? checkInStatusForDate(new Date()), makeUpFromBatch: result.makeUpFromBatch });
       onCheckInRef.current?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: false, tableNumber: result.tableNumber });
       onRosterUpdate?.(participantId, { alreadyCheckedIn: true, tableNumber: result.tableNumber });
       if (result.attendeeCount != null) setAttendeeCount(sessionId, result.attendeeCount);
@@ -280,6 +286,8 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
         registrationFee: cached.registrationFee,
         victoryDayBlockReason: cached.victoryDayBlockReason,
         tableNumber: cached.tableNumber,
+        // An offline snapshot saved before this field existed won't have it.
+        makeUpFromBatch: cached.makeUpFromBatch ?? null,
       };
     } else if (!isOnline) {
       setStatus("error");
@@ -303,7 +311,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
     } else if (result.alreadyCheckedIn) {
       const displayName = `${result.lastName}, ${result.firstName}`;
       const resultMessage = `${displayName} is already checked in.`;
-      presentAlready({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber });
+      presentAlready({ firstName: result.firstName, lastName: result.lastName, tableNumber: result.tableNumber, makeUpFromBatch: result.makeUpFromBatch });
       onCheckInRef.current?.({ lastName: result.lastName, message: resultMessage, alreadyCheckedIn: true, tableNumber: result.tableNumber });
     } else {
       const victoryDayRestricted = isVictoryDay && !allowAllClasses && !VICTORY_DAY_ALLOWED_CLASSES.includes(result.registrationFee ?? "");
@@ -326,6 +334,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
           lastName: result.lastName,
           registrationFee: result.registrationFee,
           victoryDayBlockReason: result.victoryDayBlockReason,
+          makeUpFromBatch: result.makeUpFromBatch,
           method,
         });
         setStatus("confirming");
@@ -509,6 +518,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
           tableNumber={successInfo.tableNumber}
           status={successInfo.status}
           pendingSync={successInfo.pendingSync}
+          makeUpFromBatch={successInfo.makeUpFromBatch}
           showTable={showTableNumber}
           onDismiss={handleDismissSuccess}
         />
@@ -520,6 +530,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
           firstName={alreadyInfo.firstName}
           lastName={alreadyInfo.lastName}
           tableNumber={alreadyInfo.tableNumber}
+          makeUpFromBatch={alreadyInfo.makeUpFromBatch}
           showTable={showTableNumber}
           alreadyCheckedIn
           onDismiss={handleDismissAlready}
@@ -594,7 +605,7 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
         {status === "confirming" && pending && (
           <ConfirmCheckInSheet
             name={`${pending.lastName}, ${pending.firstName}`}
-            detail={`Class ${classLabel(pending.registrationFee)}`}
+            detail={`Class ${classLabel(pending.registrationFee)}${pending.makeUpFromBatch ? ` · Make-up from ${pending.makeUpFromBatch}` : ""}`}
             offline={!isOnline}
             restriction={restriction}
             status={checkInStatus}
@@ -679,6 +690,11 @@ export const QrScanner = forwardRef<QrScannerHandle, QrScannerProps>(function Qr
               <p className="text-sm font-semibold text-gray-800 mt-1">
                 {pending.lastName}, {pending.firstName} — Class {classLabel(pending.registrationFee)}
               </p>
+              {pending.makeUpFromBatch && (
+                <div className="mt-1.5">
+                  <MakeUpTag batch={pending.makeUpFromBatch} />
+                </div>
+              )}
             </div>
             {!isOnline && (
               <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">

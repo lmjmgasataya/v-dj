@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { classSessions, checkIns, participants, victoryGroupLeaders, sessionVglCheckIns, users, type ClassSession } from "@/db/schema";
+import { batches, classSessions, checkIns, participants, victoryGroupLeaders, sessionVglCheckIns, users, type ClassSession } from "@/db/schema";
 import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { notFound } from "next/navigation";
@@ -64,6 +64,7 @@ export default async function SessionDetailPage({
         disciplerMessengerName: disciplerLeaders.facebookMessengerName,
         isWalkIn: participants.isWalkIn,
         batchId: participants.batchId,
+        batchName: batches.name,
         vgLeaderLastName: victoryGroupLeaders.lastName,
         vgLeaderFirstName: victoryGroupLeaders.firstName,
         victoryDate: participants.victoryDate,
@@ -76,6 +77,7 @@ export default async function SessionDetailPage({
       .innerJoin(participants, eq(checkIns.participantId, participants.id))
       .leftJoin(disciplerLeaders, eq(participants.disciplerId, disciplerLeaders.id))
       .leftJoin(victoryGroupLeaders, eq(participants.vgLeaderId, victoryGroupLeaders.id))
+      .leftJoin(batches, eq(participants.batchId, batches.id))
       .where(
         and(
           eq(checkIns.classSessionId, sessionId),
@@ -148,10 +150,13 @@ export default async function SessionDetailPage({
     victoryCountMap[v.participantId] = (victoryCountMap[v.participantId] ?? 0) + 1;
   }
 
-  const attendeesWithVictoryDay = attendees.map(({ batchId, ...a }) => {
+  const attendeesWithVictoryDay = attendees.map(({ batchId, batchName, ...a }) => {
     const totalVictoryDaySessions = victoryDayTotalFor(victoryDayTotals, batchId);
     return {
       ...a,
+      // From another batch: making up this class; it counts toward their own batch's attendance.
+      makeUpFromBatch:
+        session.batchId != null && batchId != null && batchId !== session.batchId ? (batchName ?? "another batch") : null,
       victoryDayDate: victoryDayMap[a.participantId] ?? null,
       victoryDayCount: victoryCountMap[a.participantId] ?? 0,
       totalVictoryDaySessions,

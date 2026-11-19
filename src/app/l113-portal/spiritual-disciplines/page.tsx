@@ -5,9 +5,11 @@ import { getBatchStudents, getL113Batches, pickBatch } from "@/lib/l113Data";
 import { batchMonths, defaultBatchMonth, formatMonth, SPIRITUAL_DISCIPLINE_QUESTIONS, STUDENT_SPIRITUAL_DISCIPLINES_PATH } from "@/lib/l113";
 import { TZ, todayPH } from "@/lib/date";
 import { BatchPicker } from "@/components/BatchPicker";
+import { ConfirmDeleteButton } from "@/app/sessions/batches/ConfirmDeleteButton";
 import { Card, CardHeader, L113Header, NoBatches } from "../ui";
 import { CopyLinkButton } from "../CopyLinkButton";
 import { ParamSelect } from "../ParamSelect";
+import { deleteL113SpiritualDiscipline } from "./actions";
 
 export default async function L113SpiritualDisciplinesPage({ searchParams }: { searchParams: Promise<{ batch?: string; month?: string }> }) {
   const { batch: batchParam, month: monthParam } = await searchParams;
@@ -66,6 +68,7 @@ export default async function L113SpiritualDisciplinesPage({ searchParams }: { s
                     </th>
                   ))}
                   <th className="px-4 py-2 text-left font-medium uppercase">Submitted</th>
+                  <th className="px-4 py-2" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -88,6 +91,15 @@ export default async function L113SpiritualDisciplinesPage({ searchParams }: { s
                           <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Not yet</span>
                         )}
                       </td>
+                      <td className="px-4 py-2.5 text-right">
+                        {e && (
+                          <ConfirmDeleteButton
+                            action={deleteL113SpiritualDiscipline}
+                            hiddenFields={{ id: String(e.id) }}
+                            message={`Remove ${s.name}'s ${formatMonth(month)} entry? They can submit it again.`}
+                          />
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
@@ -101,7 +113,7 @@ export default async function L113SpiritualDisciplinesPage({ searchParams }: { s
                         {t}
                       </td>
                     ))}
-                    <td />
+                    <td colSpan={2} />
                   </tr>
                 </tfoot>
               )}

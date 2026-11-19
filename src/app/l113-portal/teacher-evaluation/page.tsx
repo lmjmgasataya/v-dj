@@ -5,9 +5,11 @@ import { asc, eq, inArray } from "drizzle-orm";
 import { getBatchSchedule, getBatchStudents, getL113Batches, pickBatch } from "@/lib/l113Data";
 import { STUDENT_TEACHER_EVALUATION_PATH, TEACHER_EVAL_FEEDBACK_QUESTION, TEACHER_EVAL_QUESTIONS } from "@/lib/l113";
 import { BatchPicker } from "@/components/BatchPicker";
+import { ConfirmDeleteButton } from "@/app/sessions/batches/ConfirmDeleteButton";
 import { Card, CardHeader, L113Header, NoBatches } from "../ui";
 import { CopyLinkButton } from "../CopyLinkButton";
 import { ParamSelect } from "../ParamSelect";
+import { deleteL113TeacherEvaluation } from "./actions";
 
 function avg(values: number[]) {
   return values.length ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2) : "—";
@@ -126,6 +128,7 @@ export default async function L113TeacherEvaluationPage({ searchParams }: { sear
                         </th>
                       ))}
                       <th className="px-4 py-2 text-left font-medium min-w-64">{TEACHER_EVAL_FEEDBACK_QUESTION}</th>
+                      <th className="px-4 py-2" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -141,6 +144,13 @@ export default async function L113TeacherEvaluationPage({ searchParams }: { sear
                           </td>
                         ))}
                         <td className="px-4 py-2.5 text-gray-600 whitespace-pre-line">{e.feedback || <span className="text-gray-300">—</span>}</td>
+                        <td className="px-4 py-2.5 text-right">
+                          <ConfirmDeleteButton
+                            action={deleteL113TeacherEvaluation}
+                            hiddenFields={{ id: String(e.id) }}
+                            message={`Remove ${firstName} ${lastName}'s evaluation for "${topic.topic}"? They can submit again.`}
+                          />
+                        </td>
                       </tr>
                     ))}
                   </tbody>

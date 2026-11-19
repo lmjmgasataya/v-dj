@@ -26,9 +26,12 @@ async function readScheduleFields(formData: FormData) {
   const isBreak = formData.get("isBreak") === "on";
   const teacherId = Number(formData.get("teacherId"));
   const remarks = String(formData.get("remarks") ?? "").trim().slice(0, 300) || null;
+  const semesterRaw = Number(formData.get("semester"));
   const dates = [...new Set(formData.getAll("classDate").map(String).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)))].sort();
   if (!topicName) return { error: "Enter the topic." } as const;
   if (dates.length === 0) return { error: "Add at least one date." } as const;
+  const semester = semesterRaw === 1 || semesterRaw === 2 ? semesterRaw : null;
+  if (!isBreak && !semester) return { error: "Pick Semester 1 or 2." } as const;
   let teacher: number | null = null;
   if (!isBreak) {
     const [row] =
@@ -38,7 +41,7 @@ async function readScheduleFields(formData: FormData) {
     if (!row) return { error: "Pick a teacher/facilitator from the list." } as const;
     teacher = row.id;
   }
-  return { topicId: await findOrCreateTopic(topicName), teacherId: teacher, isBreak, remarks, dates } as const;
+  return { topicId: await findOrCreateTopic(topicName), teacherId: teacher, isBreak, remarks, semester, dates } as const;
 }
 
 function revalidate() {

@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { l113TeacherEvaluations, l113Teachers, victoryGroupLeaders } from "@/db/schema";
 import { asc, eq, inArray } from "drizzle-orm";
 import { getBatchSchedule, getBatchStudents, getL113Batches, pickBatch } from "@/lib/l113Data";
-import { STUDENT_TEACHER_EVALUATION_PATH, TEACHER_EVAL_FEEDBACK_QUESTION, TEACHER_EVAL_QUESTIONS } from "@/lib/l113";
+import { STUDENT_TEACHER_EVALUATION_PATH, TEACHER_EVAL_QUESTIONS, TEACHER_EVAL_TEXT_QUESTIONS } from "@/lib/l113";
 import { BatchPicker } from "@/components/BatchPicker";
 import { ConfirmDeleteButton } from "@/app/sessions/batches/ConfirmDeleteButton";
 import { Card, CardHeader, L113Header, NoBatches } from "../ui";
@@ -127,7 +127,11 @@ export default async function L113TeacherEvaluationPage({ searchParams }: { sear
                           {q.label}
                         </th>
                       ))}
-                      <th className="px-4 py-2 text-left font-medium min-w-64">{TEACHER_EVAL_FEEDBACK_QUESTION}</th>
+                      {TEACHER_EVAL_TEXT_QUESTIONS.map((q) => (
+                        <th key={q.key} className="px-4 py-2 text-left font-medium min-w-56">
+                          {q.label}
+                        </th>
+                      ))}
                       <th className="px-4 py-2" />
                     </tr>
                   </thead>
@@ -143,7 +147,11 @@ export default async function L113TeacherEvaluationPage({ searchParams }: { sear
                             {e[q.key]}
                           </td>
                         ))}
-                        <td className="px-4 py-2.5 text-gray-600 whitespace-pre-line">{e.feedback || <span className="text-gray-300">—</span>}</td>
+                        {TEACHER_EVAL_TEXT_QUESTIONS.map((q) => (
+                          <td key={q.key} className="px-4 py-2.5 text-gray-600 whitespace-pre-line">
+                            {e[q.key] || <span className="text-gray-300">—</span>}
+                          </td>
+                        ))}
                         <td className="px-4 py-2.5 text-right">
                           <ConfirmDeleteButton
                             action={deleteL113TeacherEvaluation}

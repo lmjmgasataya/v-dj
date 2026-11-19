@@ -500,6 +500,8 @@ export const l113Schedules = pgTable("l113_schedules", {
   /** A break (no class): shown on the schedule, left out of check-in and evaluations. */
   isBreak: boolean("is_break").default(false).notNull(),
   remarks: text("remarks"),
+  /** 1 or 2; null only for a break between semesters. */
+  semester: integer("semester"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [index("l113_schedules_batch_id_idx").on(t.batchId), index("l113_schedules_teacher_id_idx").on(t.teacherId), index("l113_schedules_topic_id_idx").on(t.topicId)]);
 
@@ -562,7 +564,10 @@ export const l113TeacherEvaluations = pgTable("l113_teacher_evaluations", {
   preparedRating: integer("prepared_rating").notNull(),
   clarityRating: integer("clarity_rating").notNull(),
   responsivenessRating: integer("responsiveness_rating").notNull(),
-  feedback: text("feedback"),
+  /** "What did you like about the teacher or facilitator?" */
+  liked: text("liked"),
+  /** "How can the teacher/facilitator continue to improve?" */
+  improvement: text("improvement"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => [

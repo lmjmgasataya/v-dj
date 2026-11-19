@@ -16,7 +16,7 @@ export default async function L113QrCodesPage({ searchParams }: { searchParams: 
       <div className="flex items-end justify-between gap-4 print:hidden">
         <L113Header
           title="Student QR Codes"
-          description="Students scan these at L113 check-in. They can also open theirs on the VG Leader Portal. Tap a code to show it bigger."
+          description="Students scan these at L113 check-in. They can also open theirs on the VG Leader Portal. Tap a code to show it bigger, or use Save image to download it."
         />
         {students.length > 0 && <PrintButton />}
       </div>

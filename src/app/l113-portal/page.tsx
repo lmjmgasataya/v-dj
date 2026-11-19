@@ -10,7 +10,7 @@ const CARDS = [
   { href: "/l113-portal/check-in", icon: "📷", title: "Check In", text: "QR check-in with On Time / Late / Absent" },
   { href: "/l113-portal/qr-codes", icon: "🔳", title: "Student QR Codes", text: "Each student's check-in QR code" },
   { href: "/l113-portal/spiritual-disciplines", icon: "📖", title: "Spiritual Disciplines Calendar", text: "Students' monthly Bible reading, soul winning and prayer" },
-  { href: "/l113-portal/student-evaluation", icon: "📝", title: "Student Evaluation", text: "Students' scores per topic, through a shared link" },
+  { href: "/l113-portal/student-evaluation", icon: "📝", title: "Student Evaluation", text: "Scores per student and topic" },
   { href: "/l113-portal/teacher-evaluation", icon: "⭐", title: "Teacher Evaluation", text: "Students' ratings of each teacher/facilitator" },
 ];
 

@@ -1,14 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { L113StudentQr } from "@/components/L113StudentQr";
+import { useEffect, useRef, useState } from "react";
+import { L113StudentQr, downloadL113QrPng } from "@/components/L113StudentQr";
 import { matchesNameQuery } from "@/lib/vgLeaderSearch";
 import type { L113Student } from "@/lib/l113Data";
+
+const saveButton = "text-xs font-medium text-indigo-600 hover:text-indigo-800 print:hidden";
 
 export function StudentQrGrid({ batchName, students }: { batchName: string; students: L113Student[] }) {
   const [q, setQ] = useState("");
   const [enlarged, setEnlarged] = useState<L113Student | null>(null);
+  const enlargedRef = useRef<HTMLDivElement>(null);
   const shown = students.filter((s) => matchesNameQuery(s, q));
+
+  function save(s: L113Student, container: HTMLElement | null) {
+    void downloadL113QrPng(container, `${s.firstName} ${s.lastName}`, batchName);
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -34,42 +41,64 @@ export function StudentQrGrid({ batchName, students }: { batchName: string; stud
 
       {/* Printing always includes every student, whatever the search. */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 print:grid-cols-3">
-        {students.map((s) => {
-          const visible = shown.includes(s);
-          return (
+        {students.map((s) => (
+          <div
+            key={s.vgLeaderId}
+            className={`flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-white p-4 break-inside-avoid ${
+              shown.includes(s) ? "" : "hidden print:flex"
+            }`}
+          >
             <button
-              key={s.vgLeaderId}
               type="button"
               onClick={() => setEnlarged(s)}
-              className={`flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-white p-4 break-inside-avoid hover:border-indigo-400 hover:shadow-md transition ${
-                visible ? "" : "hidden print:flex"
-              }`}
+              aria-label={`Show ${s.name}'s QR code bigger`}
+              className="flex flex-col items-center gap-2 rounded-lg hover:opacity-80 transition"
             >
-              <L113StudentQr vgLeaderId={s.vgLeaderId} size={140} />
+              <span data-qr className="block">
+                <L113StudentQr vgLeaderId={s.vgLeaderId} size={140} />
+              </span>
               <span className="text-sm font-semibold text-gray-900 text-center">{s.nickname || s.firstName}</span>
               <span className="text-xs text-gray-500 text-center">{s.name}</span>
               {s.service && <span className="text-[10px] text-gray-400 text-center print:hidden">{s.service}</span>}
               <span className="text-[10px] text-gray-400 hidden print:block">{batchName}</span>
             </button>
-          );
-        })}
+            <button
+              type="button"
+              onClick={(e) => save(s, e.currentTarget.parentElement?.querySelector<HTMLElement>("[data-qr]") ?? null)}
+              className={saveButton}
+            >
+              ⬇ Save image
+            </button>
+          </div>
+        ))}
       </div>
       {shown.length === 0 && <p className="text-sm text-gray-400 print:hidden">No student matches &ldquo;{q}&rdquo;.</p>}
 
       {enlarged && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 print:hidden" onClick={() => setEnlarged(null)}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col items-center gap-3" onClick={(e) => e.stopPropagation()}>
-            <L113StudentQr vgLeaderId={enlarged.vgLeaderId} size={280} />
+            <div ref={enlargedRef}>
+              <L113StudentQr vgLeaderId={enlarged.vgLeaderId} size={280} />
+            </div>
             <p className="text-lg font-bold text-gray-900 text-center">{enlarged.name}</p>
             {enlarged.nickname && <p className="text-sm text-gray-500 -mt-2">&ldquo;{enlarged.nickname}&rdquo;</p>}
             <p className="text-xs text-gray-400">{batchName}</p>
-            <button
-              type="button"
-              onClick={() => setEnlarged(null)}
-              className="mt-2 w-full bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition"
-            >
-              Close
-            </button>
+            <div className="mt-2 grid w-full grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => save(enlarged, enlargedRef.current)}
+                className="w-full border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-semibold px-4 py-2.5 rounded-lg transition"
+              >
+                ⬇ Save image
+              </button>
+              <button
+                type="button"
+                onClick={() => setEnlarged(null)}
+                className="w-full bg-[#00428E] hover:bg-[#003578] text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

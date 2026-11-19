@@ -7,7 +7,7 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { L113StudentQr } from "@/components/L113StudentQr";
 import { getBatchSchedule } from "@/lib/l113Data";
 import { checkInStatusBadgeClass } from "@/lib/checkinStatus";
-import { formatL113Date, L113_STATUS_LABEL, STUDENT_EVALUATION_FORM_PATH, STUDENT_L113_PATH, STUDENT_SPIRITUAL_DISCIPLINES_PATH, STUDENT_TEACHER_EVALUATION_PATH } from "@/lib/l113";
+import { formatL113Date, L113_STATUS_LABEL, STUDENT_L113_PATH, STUDENT_SPIRITUAL_DISCIPLINES_PATH, STUDENT_TEACHER_EVALUATION_PATH } from "@/lib/l113";
 import { todayPH } from "@/lib/date";
 import { requireL113Student } from "./student";
 
@@ -72,13 +72,6 @@ export default async function StudentL113Page() {
           >
             <span className="font-semibold text-gray-900 text-base">⭐ Teacher Evaluation</span>
             <span className="text-sm text-gray-500">Rate the teacher/facilitator of each topic.</span>
-          </Link>
-          <Link
-            href={STUDENT_EVALUATION_FORM_PATH}
-            className="flex flex-col gap-1 rounded-xl border border-gray-200 bg-white shadow-sm p-5 hover:border-indigo-300 hover:shadow-md transition"
-          >
-            <span className="font-semibold text-gray-900 text-base">📝 Student Evaluation</span>
-            <span className="text-sm text-gray-500">Submit your score/rating for each topic.</span>
           </Link>
         </div>
       </div>

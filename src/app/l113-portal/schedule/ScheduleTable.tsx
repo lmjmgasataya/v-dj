@@ -15,6 +15,7 @@ export interface ScheduleRow {
   teacher: string;
   isBreak: boolean;
   remarks: string | null;
+  semester: number | null;
   dates: string[];
 }
 
@@ -39,7 +40,19 @@ export function ScheduleTable({
   teachers: { id: number; name: string }[];
 }) {
   const [editingId, setEditingId] = useState<number | null>(null);
-  const totalWeeks = rows.filter((r) => !r.isBreak).reduce((n, r) => n + r.dates.length, 0);
+  const classes = rows.filter((r) => !r.isBreak);
+  const totalWeeks = classes.reduce((n, r) => n + r.dates.length, 0);
+  const semesterWeeks = (sem: number) => classes.filter((r) => r.semester === sem).reduce((n, r) => n + r.dates.length, 0);
+  // A "SEMESTER n" heading goes above the first class row of each semester.
+  const headingBefore = new Map<number, number>();
+  let lastSemester: number | null = null;
+  for (const r of rows) {
+    if (r.isBreak || r.semester == null || r.semester === lastSemester) continue;
+    headingBefore.set(r.id, r.semester);
+    lastSemester = r.semester;
+  }
+  // New entries start in the semester of the last class so far.
+  const nextSemester = classes.findLast((r) => r.semester != null)?.semester ?? 1;
 
   return (
     <div className="overflow-x-auto">
@@ -55,7 +68,17 @@ export function ScheduleTable({
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, i) =>
+          {rows.map((r, i) => [
+            headingBefore.has(r.id) && (
+              <tr key={`sem-${r.id}`} className="bg-[#00428E]/5 border-b border-gray-200">
+                <td colSpan={6} className="px-3 py-2 text-xs font-bold tracking-wide text-[#00428E]">
+                  SEMESTER {headingBefore.get(r.id)}
+                  <span className="ml-2 font-medium text-gray-500">
+                    · {semesterWeeks(headingBefore.get(r.id)!)} week{semesterWeeks(headingBefore.get(r.id)!) === 1 ? "" : "s"}
+                  </span>
+                </td>
+              </tr>
+            ),
             editingId === r.id ? (
               <tr key={r.id} className="bg-indigo-50/60">
                 <td colSpan={6} className="px-3 py-3">
@@ -65,6 +88,7 @@ export function ScheduleTable({
                     initial={r}
                     topics={topics}
                     teachers={teachers}
+                    defaultSemester={r.semester ?? nextSemester}
                     submitLabel="Save"
                     onCancel={() => setEditingId(null)}
                   />
@@ -94,8 +118,8 @@ export function ScheduleTable({
                   </div>
                 </td>
               </tr>
-            )
-          )}
+            ),
+          ])}
           {rows.length === 0 && (
             <tr>
               <td colSpan={6} className="px-3 py-6 text-center text-gray-400">
@@ -118,6 +142,7 @@ export function ScheduleTable({
                 hidden={{ batchId: String(batchId) }}
                 topics={topics}
                 teachers={teachers}
+                defaultSemester={nextSemester}
                 submitLabel="Add"
               />
             </td>
@@ -134,6 +159,7 @@ function RowForm({
   initial,
   topics,
   teachers,
+  defaultSemester,
   submitLabel,
   onCancel,
 }: {
@@ -142,6 +168,7 @@ function RowForm({
   initial?: ScheduleRow;
   topics: string[];
   teachers: { id: number; name: string }[];
+  defaultSemester: number;
   submitLabel: string;
   onCancel?: () => void;
 }) {
@@ -160,7 +187,7 @@ function RowForm({
           setTeacherMissing(true);
         }
       }}
-      className="grid grid-cols-1 md:grid-cols-[2fr_1.5fr_1.5fr] gap-3"
+      className="grid grid-cols-1 md:grid-cols-[2fr_1.5fr_1.5fr_8rem] gap-3"
     >
       {Object.entries(hidden).map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
@@ -210,7 +237,20 @@ function RowForm({
         <label className="block text-xs text-gray-500 mb-1">Remarks</label>
         <input name="remarks" defaultValue={initial?.remarks ?? ""} placeholder="e.g. Feb 7 - Victory Weekend" maxLength={300} className={input} />
       </div>
-      <div className="md:col-span-3">
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">Semester</label>
+        <select
+          name="semester"
+          required={!isBreak}
+          defaultValue={initial ? (initial.semester ?? "") : defaultSemester}
+          className={input}
+        >
+          {isBreak && <option value="">None (between)</option>}
+          <option value={1}>Semester 1</option>
+          <option value={2}>Semester 2</option>
+        </select>
+      </div>
+      <div className="md:col-span-4">
         <label className="block text-xs text-gray-500 mb-1">
           Dates <span className="text-gray-400">(one per week{isBreak ? "" : "; the count is the Weeks column"})</span>
         </label>
@@ -242,7 +282,7 @@ function RowForm({
           </button>
         </div>
       </div>
-      <div className="md:col-span-3 flex items-center gap-3">
+      <div className="md:col-span-4 flex items-center gap-3">
         <SubmitButton
           label={submitLabel}
           pendingLabel="Saving…"

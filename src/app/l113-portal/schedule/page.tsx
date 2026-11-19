@@ -16,6 +16,7 @@ export default async function L113SchedulePage({ searchParams }: { searchParams:
     teacher: s.teacher,
     isBreak: s.isBreak,
     remarks: s.remarks,
+    semester: s.semester,
     dates: s.dates.map((d) => d.classDate),
   }));
 

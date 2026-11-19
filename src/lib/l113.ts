@@ -12,7 +12,6 @@ export const STUDENT_L113_PATH = "/vg-portal/l113";
  */
 export const STUDENT_SPIRITUAL_DISCIPLINES_PATH = "/l113/spiritual-disciplines";
 export const STUDENT_TEACHER_EVALUATION_PATH = "/l113/teacher-evaluation";
-export const STUDENT_EVALUATION_FORM_PATH = "/l113/student-evaluation";
 
 /** Name picker value on the public forms: "<batchId>:<vgLeaderId>". */
 export function l113StudentKey(batchId: number, vgLeaderId: number): string {
@@ -117,8 +116,11 @@ export const TEACHER_EVAL_QUESTIONS = [
   { key: "responsivenessRating", label: "The teacher/facilitator responded effectively to student’s questions and comments" },
 ] as const;
 
-export const TEACHER_EVAL_FEEDBACK_QUESTION =
-  "What did you like about the teacher or facilitator? How can he/she continue to improve?";
+/** The two required short answers after the ratings. */
+export const TEACHER_EVAL_TEXT_QUESTIONS = [
+  { key: "liked", label: "What did you like about the teacher or facilitator?" },
+  { key: "improvement", label: "How can the teacher/facilitator continue to improve?" },
+] as const;
 
 export const RATING_SCALE = [1, 2, 3, 4, 5] as const;
 export const RATING_LABEL: Record<number, string> = {

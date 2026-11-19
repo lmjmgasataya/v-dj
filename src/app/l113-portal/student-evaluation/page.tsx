@@ -3,14 +3,12 @@ import { db } from "@/db";
 import { l113StudentEvaluations } from "@/db/schema";
 import { inArray } from "drizzle-orm";
 import { getBatchSchedule, getBatchStudents, getL113Batches, pickBatch } from "@/lib/l113Data";
-import { formatL113Date, STUDENT_EVALUATION_FORM_PATH } from "@/lib/l113";
-import { TZ } from "@/lib/date";
+import { formatL113Date } from "@/lib/l113";
 import { BatchPicker } from "@/components/BatchPicker";
-import { ConfirmDeleteButton } from "@/app/sessions/batches/ConfirmDeleteButton";
-import { Card, CardHeader, L113Header, NoBatches } from "../ui";
-import { CopyLinkButton } from "../CopyLinkButton";
+import { SubmitButton } from "@/components/SubmitButton";
+import { Card, CardHeader, L113Header, NoBatches, l113PrimaryButton } from "../ui";
 import { ParamSelect } from "../ParamSelect";
-import { deleteL113StudentEvaluation } from "./actions";
+import { saveL113StudentScores } from "./actions";
 
 function pct(score: number, highest: number) {
   return `${Math.round((score / highest) * 100)}%`;
@@ -37,13 +35,11 @@ export default async function L113StudentEvaluationPage({ searchParams }: { sear
   const topic = schedule.find((s) => String(s.id) === topicParam) ?? schedule[0];
   const evalOf = (scheduleId: number, vgLeaderId: number) => evaluations.find((e) => e.scheduleId === scheduleId && e.vgLeaderId === vgLeaderId);
   const topicEvals = topic ? evaluations.filter((e) => e.scheduleId === topic.id) : [];
+  const highestDefault = topicEvals[0]?.highestPossibleScore;
 
   return (
     <>
-      <L113Header
-        title="Student Evaluation"
-        description="Students submit their score/rating through one shared link: they pick their name, the topic, then enter their score and the highest possible score."
-      />
+      <L113Header title="Student Evaluation" description="Encode each student's score or rating per topic." />
       <BatchPicker batches={batches} selectedId={batch.id} />
 
       {!topic ? (
@@ -72,59 +68,60 @@ export default async function L113StudentEvaluationPage({ searchParams }: { sear
           <Card>
             <CardHeader
               title={topic.topic}
-              subtitle={`${topic.teacher} · ${topic.dates.map((d) => formatL113Date(d.classDate)).join(", ")} · ${topicEvals.length} of ${students.length} submitted`}
-            >
-              <CopyLinkButton path={STUDENT_EVALUATION_FORM_PATH} />
-            </CardHeader>
-            {topicEvals.length > 0 ? (
+              subtitle={`${topic.teacher} · ${topic.dates.map((d) => formatL113Date(d.classDate)).join(", ")} · ${topicEvals.length} of ${students.length} scored`}
+            />
+            <form action={saveL113StudentScores} key={`${topic.id}-${topicEvals.length}-${highestDefault ?? ""}`}>
+              <input type="hidden" name="scheduleId" value={topic.id} />
+              <div className="flex flex-wrap items-end gap-3 px-6 py-4 border-b border-gray-100 bg-gray-50">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Highest Possible Score/Rating</label>
+                  <input
+                    type="number"
+                    name="highestPossibleScore"
+                    required
+                    min="0.01"
+                    step="any"
+                    defaultValue={highestDefault}
+                    className="w-40 rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  />
+                </div>
+                <SubmitButton label="Save Scores" pendingLabel="Saving…" className={l113PrimaryButton} />
+                <p className="text-xs text-gray-400">Leave a score blank to clear it.</p>
+              </div>
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
                   <tr>
                     <th className="px-4 py-2 text-left font-medium">Name of Student</th>
-                    <th className="px-4 py-2 text-right font-medium">Score/Rating</th>
-                    <th className="px-4 py-2 text-right font-medium">Highest Possible</th>
-                    <th className="px-4 py-2 text-right font-medium">%</th>
-                    <th className="px-4 py-2 text-right font-medium">Submitted</th>
-                    <th className="px-4 py-2" />
+                    <th className="px-4 py-2 text-left font-medium">Score/Rating</th>
+                    <th className="px-4 py-2 text-right font-medium">Saved</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {students.map((s) => {
                     const e = evalOf(topic.id, s.vgLeaderId);
-                    if (!e) return null;
                     return (
                       <tr key={s.vgLeaderId}>
                         <td className="px-4 py-2 text-gray-800">{s.name}</td>
-                        <td className="px-4 py-2 text-right text-gray-800">{e.score}</td>
-                        <td className="px-4 py-2 text-right text-gray-600">{e.highestPossibleScore}</td>
-                        <td className="px-4 py-2 text-right font-medium text-gray-800">{pct(e.score, e.highestPossibleScore)}</td>
-                        <td className="px-4 py-2 text-right text-xs text-gray-500">{e.updatedAt.toLocaleString("en-PH", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: TZ })}</td>
-                        <td className="px-4 py-2 text-right">
-                          <ConfirmDeleteButton
-                            action={deleteL113StudentEvaluation}
-                            hiddenFields={{ id: String(e.id) }}
-                            message={`Remove ${s.name}'s score for "${topic.topic}"? They can submit again.`}
+                        <td className="px-4 py-2">
+                          <input
+                            type="number"
+                            name={`score_${s.vgLeaderId}`}
+                            min="0"
+                            step="any"
+                            defaultValue={e?.score}
+                            aria-label={`Score of ${s.name}`}
+                            className="w-28 rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                           />
+                        </td>
+                        <td className="px-4 py-2 text-right text-xs text-gray-500">
+                          {e ? `${e.score} / ${e.highestPossibleScore} (${pct(e.score, e.highestPossibleScore)})` : "—"}
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
-            ) : (
-              <p className="px-6 py-8 text-sm text-gray-400 text-center">No scores submitted for this topic yet.</p>
-            )}
-            {topicEvals.length < students.length && (
-              <div className="px-6 py-3 border-t border-gray-100 bg-gray-50">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Not yet submitted</p>
-                <p className="text-sm text-gray-600">
-                  {students
-                    .filter((s) => !evalOf(topic.id, s.vgLeaderId))
-                    .map((s) => s.name)
-                    .join(" · ")}
-                </p>
-              </div>
-            )}
+            </form>
           </Card>
 
           <Card>

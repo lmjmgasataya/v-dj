@@ -1,0 +1,1 @@
+ALTER TABLE "l113_teacher_evaluations" DROP COLUMN "feedback";

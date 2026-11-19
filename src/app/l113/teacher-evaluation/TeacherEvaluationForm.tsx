@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Combobox } from "@/components/Combobox";
 import { SubmitButton } from "@/components/SubmitButton";
-import { RATING_LABEL, RATING_SCALE, TEACHER_EVAL_FEEDBACK_QUESTION, TEACHER_EVAL_QUESTIONS } from "@/lib/l113";
+import { RATING_LABEL, RATING_SCALE, TEACHER_EVAL_QUESTIONS, TEACHER_EVAL_TEXT_QUESTIONS } from "@/lib/l113";
 import type { L113FormStudent } from "@/lib/l113Data";
 import { saveTeacherEvaluation } from "../actions";
 import { formCard } from "../ui";
@@ -118,15 +118,20 @@ export function TeacherEvaluationForm({ batches, students, topicsByBatch, evalua
               </div>
             </fieldset>
           ))}
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm text-gray-800">{TEACHER_EVAL_FEEDBACK_QUESTION}</span>
-            <textarea
-              name="feedback"
-              rows={4}
-              maxLength={2000}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            />
-          </label>
+          {TEACHER_EVAL_TEXT_QUESTIONS.map((q) => (
+            <label key={q.key} className="flex flex-col gap-1.5">
+              <span className="text-sm text-gray-800">
+                {q.label} <span className="text-red-600">*</span>
+              </span>
+              <textarea
+                name={q.key}
+                required
+                rows={3}
+                maxLength={2000}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              />
+            </label>
+          ))}
           <SubmitButton
             label="Submit"
             pendingLabel="Submitting…"

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { l113Batches, l113Schedules, l113SpiritualDisciplines, l113StudentEvaluations, l113TeacherEvaluations } from "@/db/schema";
+import { l113Batches, l113Schedules, l113SpiritualDisciplines, l113TeacherEvaluations } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { isBatchStudent } from "@/lib/l113Data";
@@ -11,10 +11,10 @@ import {
   parseL113StudentKey,
   RATING_SCALE,
   SPIRITUAL_DISCIPLINE_QUESTIONS,
-  STUDENT_EVALUATION_FORM_PATH,
   STUDENT_SPIRITUAL_DISCIPLINES_PATH,
   STUDENT_TEACHER_EVALUATION_PATH,
   TEACHER_EVAL_QUESTIONS,
+  TEACHER_EVAL_TEXT_QUESTIONS,
 } from "@/lib/l113";
 import { toastRedirect, toastRedirectBack } from "@/lib/toast";
 
@@ -79,51 +79,22 @@ export async function saveTeacherEvaluation(formData: FormData) {
     if (!(RATING_SCALE as readonly number[]).includes(n)) return toastRedirectBack("Give a rating for every statement.", "error");
     ratings[q.key] = n;
   }
-  const feedback = String(formData.get("feedback") ?? "").trim().slice(0, 2000) || null;
+  const answers = {} as Record<(typeof TEACHER_EVAL_TEXT_QUESTIONS)[number]["key"], string>;
+  for (const q of TEACHER_EVAL_TEXT_QUESTIONS) {
+    const text = String(formData.get(q.key) ?? "").trim().slice(0, 2000);
+    if (!text) return toastRedirectBack("Answer both questions about the teacher/facilitator.", "error");
+    answers[q.key] = text;
+  }
 
   await db
     .insert(l113TeacherEvaluations)
-    .values({ scheduleId, vgLeaderId: student.vgLeaderId, teacherId, ...ratings, feedback })
+    .values({ scheduleId, vgLeaderId: student.vgLeaderId, teacherId, ...ratings, ...answers })
     .onConflictDoUpdate({
       target: [l113TeacherEvaluations.scheduleId, l113TeacherEvaluations.vgLeaderId],
-      set: { teacherId, ...ratings, feedback, updatedAt: new Date() },
+      set: { teacherId, ...ratings, ...answers, updatedAt: new Date() },
     });
   revalidatePath("/l113-portal/teacher-evaluation");
   revalidatePath(STUDENT_TEACHER_EVALUATION_PATH);
   toastRedirect(STUDENT_TEACHER_EVALUATION_PATH, "Your evaluation was submitted. Thank you!");
 }
 
-export async function saveStudentEvaluation(formData: FormData) {
-  const student = await readStudent(formData);
-  if (!student) return toastRedirectBack("Select your name from the list.", "error");
-
-  const scheduleId = Number(formData.get("scheduleId"));
-  const [schedule] = await db
-    .select({ id: l113Schedules.id })
-    .from(l113Schedules)
-    .where(and(eq(l113Schedules.id, scheduleId), eq(l113Schedules.batchId, student.batchId), eq(l113Schedules.isBreak, false)))
-    .limit(1);
-  if (!schedule) return toastRedirectBack("Select a topic of your batch.", "error");
-
-  const rawScore = String(formData.get("score") ?? "").trim();
-  const rawHighest = String(formData.get("highestPossibleScore") ?? "").trim();
-  const score = Number(rawScore);
-  const highest = Number(rawHighest);
-  if (rawHighest === "" || !Number.isFinite(highest) || highest <= 0 || highest > 100000) {
-    return toastRedirectBack("Enter the highest possible score/rating (above 0).", "error");
-  }
-  if (rawScore === "" || !Number.isFinite(score) || score < 0 || score > highest) {
-    return toastRedirectBack(`Your score/rating must be between 0 and ${highest}.`, "error");
-  }
-
-  await db
-    .insert(l113StudentEvaluations)
-    .values({ scheduleId, vgLeaderId: student.vgLeaderId, score, highestPossibleScore: highest })
-    .onConflictDoUpdate({
-      target: [l113StudentEvaluations.scheduleId, l113StudentEvaluations.vgLeaderId],
-      set: { score, highestPossibleScore: highest, updatedAt: new Date() },
-    });
-  revalidatePath("/l113-portal/student-evaluation");
-  revalidatePath(STUDENT_EVALUATION_FORM_PATH);
-  toastRedirect(STUDENT_EVALUATION_FORM_PATH, "Your score was submitted. Thank you!");
-}

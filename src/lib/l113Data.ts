@@ -74,6 +74,8 @@ export interface L113ScheduleWithDates {
   teacher: string;
   isBreak: boolean;
   remarks: string | null;
+  /** 1 or 2; null for a break between semesters. */
+  semester: number | null;
   dates: { id: number; classDate: string }[];
 }
 
@@ -91,6 +93,7 @@ export async function getBatchSchedule(batchId: number, { includeBreaks = false 
       teacher: l113Teachers.name,
       isBreak: l113Schedules.isBreak,
       remarks: l113Schedules.remarks,
+      semester: l113Schedules.semester,
     })
     .from(l113Schedules)
     .innerJoin(l113Topics, eq(l113Topics.id, l113Schedules.topicId))

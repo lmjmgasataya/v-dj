@@ -61,6 +61,9 @@ export async function getL113CandidateRows(session: SessionPayload | null): Prom
       return {
         id: l.id,
         name: `${l.lastName}, ${l.firstName}`,
+        lastName: l.lastName,
+        firstName: l.firstName,
+        nickname: l.nickname,
         service,
         serviceRank: rank === -1 ? SERVICE_ORDER.length : rank,
         doneWithJourney: true,

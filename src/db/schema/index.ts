@@ -12,6 +12,7 @@ import {
   uniqueIndex,
   index,
   jsonb,
+  doublePrecision,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { TIME_SERVICES } from "@/lib/timeService";
@@ -453,6 +454,122 @@ export const autoJourneySteps = pgTable("auto_journey_steps", {
   index("auto_journey_steps_class_session_id_idx").on(t.classSessionId),
 ]);
 
+// ─── L113 Portal (Leadership 113 classes) ────────────────────────────────────
+// Separate from `leadership113Batches`, which only holds the Snapshot Report's actual/goal counts.
+
+export const l113Batches = pgTable("l113_batches", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Students are VG leaders, added from Potential L113 Students.
+export const l113BatchStudents = pgTable("l113_batch_students", {
+  id: serial("id").primaryKey(),
+  batchId: integer("batch_id").references(() => l113Batches.id, { onDelete: "cascade" }).notNull(),
+  vgLeaderId: integer("vg_leader_id").references(() => victoryGroupLeaders.id, { onDelete: "cascade" }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(t.batchId, t.vgLeaderId),
+  index("l113_batch_students_vg_leader_id_idx").on(t.vgLeaderId),
+]);
+
+// One topic of a batch's schedule, taught on one or more dates (l113ScheduleDates).
+// Teachers/facilitators picked on the schedule (managed at /l113-portal/teachers).
+export const l113Teachers = pgTable("l113_teachers", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Topic names reused across batches; the schedule form adds a new one when typed.
+export const l113Topics = pgTable("l113_topics", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const l113Schedules = pgTable("l113_schedules", {
+  id: serial("id").primaryKey(),
+  batchId: integer("batch_id").references(() => l113Batches.id, { onDelete: "cascade" }).notNull(),
+  topicId: integer("topic_id").references(() => l113Topics.id, { onDelete: "restrict" }).notNull(),
+  /** Null only for a break row (e.g. SEM BREAK). */
+  teacherId: integer("teacher_id").references(() => l113Teachers.id, { onDelete: "restrict" }),
+  /** A break (no class): shown on the schedule, left out of check-in and evaluations. */
+  isBreak: boolean("is_break").default(false).notNull(),
+  remarks: text("remarks"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [index("l113_schedules_batch_id_idx").on(t.batchId), index("l113_schedules_teacher_id_idx").on(t.teacherId), index("l113_schedules_topic_id_idx").on(t.topicId)]);
+
+export const l113ScheduleDates = pgTable("l113_schedule_dates", {
+  id: serial("id").primaryKey(),
+  scheduleId: integer("schedule_id").references(() => l113Schedules.id, { onDelete: "cascade" }).notNull(),
+  classDate: date("class_date").notNull(),
+}, (t) => [unique().on(t.scheduleId, t.classDate)]);
+
+// Attendance per class date. No row for a past date means Absent (computed, not stored).
+export const l113CheckIns = pgTable("l113_check_ins", {
+  id: serial("id").primaryKey(),
+  scheduleDateId: integer("schedule_date_id").references(() => l113ScheduleDates.id, { onDelete: "cascade" }).notNull(),
+  vgLeaderId: integer("vg_leader_id").references(() => victoryGroupLeaders.id, { onDelete: "cascade" }).notNull(),
+  checkedInAt: timestamp("checked_in_at").defaultNow().notNull(),
+  status: checkInStatusEnum("status").notNull(),
+  method: checkInMethodEnum("method").notNull().default("Search"),
+}, (t) => [
+  unique().on(t.scheduleDateId, t.vgLeaderId),
+  index("l113_check_ins_vg_leader_id_idx").on(t.vgLeaderId),
+]);
+
+// A student's monthly report, encoded by the student on /vg-portal/l113/spiritual-disciplines.
+export const l113SpiritualDisciplines = pgTable("l113_spiritual_disciplines", {
+  id: serial("id").primaryKey(),
+  batchId: integer("batch_id").references(() => l113Batches.id, { onDelete: "cascade" }).notNull(),
+  vgLeaderId: integer("vg_leader_id").references(() => victoryGroupLeaders.id, { onDelete: "cascade" }).notNull(),
+  /** "YYYY-MM" */
+  month: text("month").notNull(),
+  chaptersRead: integer("chapters_read").notNull(),
+  daysReadFourChapters: integer("days_read_four_chapters").notNull(),
+  peopleLedToChrist: integer("people_led_to_christ").notNull(),
+  prayerMeetingsAttended: integer("prayer_meetings_attended").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(t.batchId, t.vgLeaderId, t.month),
+  index("l113_spiritual_disciplines_vg_leader_id_idx").on(t.vgLeaderId),
+]);
+
+export const l113StudentEvaluations = pgTable("l113_student_evaluations", {
+  id: serial("id").primaryKey(),
+  scheduleId: integer("schedule_id").references(() => l113Schedules.id, { onDelete: "cascade" }).notNull(),
+  vgLeaderId: integer("vg_leader_id").references(() => victoryGroupLeaders.id, { onDelete: "cascade" }).notNull(),
+  score: doublePrecision("score").notNull(),
+  highestPossibleScore: doublePrecision("highest_possible_score").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(t.scheduleId, t.vgLeaderId),
+  index("l113_student_evaluations_vg_leader_id_idx").on(t.vgLeaderId),
+]);
+
+// Encoded by the student on /vg-portal/l113/teacher-evaluation. Ratings are 1–5.
+export const l113TeacherEvaluations = pgTable("l113_teacher_evaluations", {
+  id: serial("id").primaryKey(),
+  scheduleId: integer("schedule_id").references(() => l113Schedules.id, { onDelete: "cascade" }).notNull(),
+  vgLeaderId: integer("vg_leader_id").references(() => victoryGroupLeaders.id, { onDelete: "cascade" }).notNull(),
+  /** The schedule's teacher when the evaluation was submitted. */
+  teacherId: integer("teacher_id").references(() => l113Teachers.id, { onDelete: "restrict" }).notNull(),
+  preparedRating: integer("prepared_rating").notNull(),
+  clarityRating: integer("clarity_rating").notNull(),
+  responsivenessRating: integer("responsiveness_rating").notNull(),
+  feedback: text("feedback"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  unique().on(t.scheduleId, t.vgLeaderId),
+  index("l113_teacher_evaluations_vg_leader_id_idx").on(t.vgLeaderId),
+]);
+
 export type Participant = typeof participants.$inferSelect;
 export type ClassSession = typeof classSessions.$inferSelect;
 export type CheckIn = typeof checkIns.$inferSelect;
@@ -477,3 +594,5 @@ export type Intern = typeof interns.$inferSelect;
 export type LeadershipGroupMember = typeof leadershipGroupMembers.$inferSelect;
 export type EventRegistration = typeof eventRegistrations.$inferSelect;
 export type InternEventRegistration = typeof internEventRegistrations.$inferSelect;
+export type L113Batch = typeof l113Batches.$inferSelect;
+export type L113Schedule = typeof l113Schedules.$inferSelect;

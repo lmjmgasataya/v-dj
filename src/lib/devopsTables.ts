@@ -3,7 +3,8 @@ import {
   classSessions, checkIns, sessionVglCheckIns, events, eventCheckIns, eventRegistrations,
   internEventRegistrations, users, loginLogs, featureFlags, smsMessageTemplates, smsApiKeys,
   appSettings, vgReportSnapshots, vgConvergenceAttendance, leadership113Batches, smsLogs,
-  manualQuarterResponses, autoJourneySteps,
+  manualQuarterResponses, autoJourneySteps, l113Batches, l113BatchStudents, l113Teachers, l113Topics, l113Schedules, l113ScheduleDates,
+  l113CheckIns, l113SpiritualDisciplines, l113StudentEvaluations, l113TeacherEvaluations,
 } from "@/db/schema";
 import type { PgTable } from "drizzle-orm/pg-core";
 
@@ -44,6 +45,21 @@ export const DEVOPS_TABLE_GROUPS: { portal: string; tables: DevopsTable[] }[] = 
       { key: "vg_convergence_attendance", label: "VG Convergence Attendance", table: vgConvergenceAttendance },
       { key: "manual_quarter_responses", label: "Manual Quarter Responses", table: manualQuarterResponses },
       { key: "leadership_113_batches", label: "Leadership 113 Batches", table: leadership113Batches },
+    ],
+  },
+  {
+    portal: "L113 Portal",
+    tables: [
+      { key: "l113_batches", label: "L113 Batches", table: l113Batches },
+      { key: "l113_batch_students", label: "L113 Batch Students", table: l113BatchStudents },
+      { key: "l113_teachers", label: "L113 Teachers", table: l113Teachers },
+      { key: "l113_topics", label: "L113 Topics", table: l113Topics },
+      { key: "l113_schedules", label: "L113 Schedule Topics", table: l113Schedules },
+      { key: "l113_schedule_dates", label: "L113 Schedule Dates", table: l113ScheduleDates },
+      { key: "l113_check_ins", label: "L113 Check-ins", table: l113CheckIns },
+      { key: "l113_spiritual_disciplines", label: "L113 Spiritual Disciplines", table: l113SpiritualDisciplines },
+      { key: "l113_student_evaluations", label: "L113 Student Evaluations", table: l113StudentEvaluations },
+      { key: "l113_teacher_evaluations", label: "L113 Teacher Evaluations", table: l113TeacherEvaluations },
     ],
   },
   {

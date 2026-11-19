@@ -30,6 +30,8 @@ const PUBLIC_PATHS = [
   /^\/vg-portal\/claim/,
   /^\/vg-portal\/login/,
   /^\/vg-portal\/events/,
+  // Public L113 student forms (one shared link; students pick their own name).
+  /^\/l113\//,
   /^\/api\/interns/,
   /^\/api\/keep-alive/,
   /^\/api\/cron\//,

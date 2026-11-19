@@ -414,6 +414,41 @@
       "when": 1794924034248,
       "tag": "0058_special_anthem",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1795059478320,
+      "tag": "0059_melted_impossible_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1795064431265,
+      "tag": "0060_plain_hellion",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1795064448504,
+      "tag": "0061_dizzy_falcon",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1795067052485,
+      "tag": "0062_bent_shard",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1795067061765,
+      "tag": "0063_daffy_mentallo",
+      "breakpoints": true
     }
   ]
 }

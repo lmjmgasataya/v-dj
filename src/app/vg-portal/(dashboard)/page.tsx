@@ -10,6 +10,8 @@ import { getQuarterOptions } from "@/lib/vgQuarterFlags";
 import { isRegistrationClosed, todayPH } from "@/lib/date";
 import { EVENT_AUDIENCE_LABEL, formatEventTimeRange, isEventOpenToLeader } from "@/lib/eventAudience";
 import { ProfileFreshnessBanner } from "./ProfileFreshnessBanner";
+import { getStudentBatch } from "@/lib/l113Data";
+import { STUDENT_L113_PATH } from "@/lib/l113";
 
 export default async function VgPortalDashboardPage() {
   const session = await getSession();
@@ -19,7 +21,7 @@ export default async function VgPortalDashboardPage() {
 
   // One wave: open events (with this leader's own registration joined on) don't depend on
   // the leader row — only the audience filter below does.
-  const [[leader], groups, quarterOptions, eventRows] = await Promise.all([
+  const [[leader], groups, quarterOptions, eventRows, l113Batch] = await Promise.all([
     db.select().from(victoryGroupLeaders).where(eq(victoryGroupLeaders.id, vgLeaderId)).limit(1),
     db
       .select()
@@ -49,6 +51,7 @@ export default async function VgPortalDashboardPage() {
       // Not done: neither ticked nor past its date (isEventDone).
       .where(and(isNull(events.deletedAt), eq(events.isDone, false), gte(events.eventDate, todayPH())))
       .orderBy(events.eventDate),
+    getStudentBatch(vgLeaderId),
   ]);
 
   if (!leader) redirect("/login");
@@ -66,6 +69,16 @@ export default async function VgPortalDashboardPage() {
 
   return (
     <>
+      {l113Batch && (
+        <Link
+          href={STUDENT_L113_PATH}
+          className="flex flex-col gap-1 rounded-xl border border-indigo-200 bg-indigo-50 shadow-sm p-5 hover:border-indigo-400 hover:shadow-md transition"
+        >
+          <span className="font-semibold text-gray-900 text-base">🎓 Leadership 113 · {l113Batch.name}</span>
+          <span className="text-sm text-gray-600">Your check-in QR code, schedule, Spiritual Disciplines Calendar and Teacher Evaluation.</span>
+        </Link>
+      )}
+
       {upcomingEvents.length > 0 && (
         <div>
           <p className="text-base font-semibold text-gray-700 mb-3">Upcoming Events</p>

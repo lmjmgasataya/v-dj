@@ -6,6 +6,9 @@ import Link from "next/link";
 export interface L113CandidateRow {
   id: number;
   name: string;
+  lastName: string;
+  firstName: string;
+  nickname: string | null;
   service: string;
   /** Position of `service` in the standard service order, for sorting. */
   serviceRank: number;

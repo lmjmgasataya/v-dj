@@ -39,6 +39,8 @@ export default async function L113CandidatesReportPage() {
             </p>
           </div>
           {rows.length > 0 && (
+            // A file download from a route handler, not a page — the [...missing] catch-all makes the rule think otherwise.
+            // eslint-disable-next-line @next/next/no-html-link-for-pages
             <a
               href="/l113-portal/potential-students/export"
               className="shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"

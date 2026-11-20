@@ -6,9 +6,10 @@ import { getBatchSchedule, getBatchStudents, getL113Batches, pickBatch } from "@
 import { formatL113Date } from "@/lib/l113";
 import { BatchPicker } from "@/components/BatchPicker";
 import { SubmitButton } from "@/components/SubmitButton";
-import { Card, CardHeader, L113Header, NoBatches, l113PrimaryButton } from "../ui";
+import { Card, CardHeader, ExportExcelLink, L113Header, NoBatches, l113PrimaryButton } from "../ui";
 import { ParamSelect } from "../ParamSelect";
 import { saveL113StudentScores } from "./actions";
+import { UnsavedChangesGuard } from "@/components/UnsavedChangesGuard";
 
 function pct(score: number, highest: number) {
   return `${Math.round((score / highest) * 100)}%`;
@@ -70,7 +71,12 @@ export default async function L113StudentEvaluationPage({ searchParams }: { sear
               title={topic.topic}
               subtitle={`${topic.teacher} · ${topic.dates.map((d) => formatL113Date(d.classDate)).join(", ")} · ${topicEvals.length} of ${students.length} scored`}
             />
-            <form action={saveL113StudentScores} key={`${topic.id}-${topicEvals.length}-${highestDefault ?? ""}`}>
+            <UnsavedChangesGuard
+              key={`${topic.id}-${topicEvals.length}-${highestDefault ?? ""}`}
+              message="You have unsaved scores. If you leave this page, the scores you entered will be lost."
+              notice="You have unsaved scores. Click Save Scores to keep them."
+            >
+            <form action={saveL113StudentScores}>
               <input type="hidden" name="scheduleId" value={topic.id} />
               <div className="flex flex-wrap items-end gap-3 px-6 py-4 border-b border-gray-100 bg-gray-50">
                 <div>
@@ -122,10 +128,13 @@ export default async function L113StudentEvaluationPage({ searchParams }: { sear
                 </tbody>
               </table>
             </form>
+            </UnsavedChangesGuard>
           </Card>
 
           <Card>
-            <CardHeader title="All Topics" subtitle="Score / highest possible score per topic, and each student's overall percentage." />
+            <CardHeader title="All Topics" subtitle="Score / highest possible score per topic, and each student's overall percentage.">
+              <ExportExcelLink href={`/l113-portal/student-evaluation/export?batch=${batch.id}`} />
+            </CardHeader>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-xs text-gray-500">

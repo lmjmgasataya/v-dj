@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
+import { confirmLeave } from "@/lib/unsavedChanges";
 
 interface Batch {
   id: number;
@@ -19,6 +20,7 @@ export function BatchPicker({
 
   function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const id = e.target.value;
+    if (!confirmLeave()) return;
     router.push(id ? `${pathname}?batch=${id}` : pathname);
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { confirmLeave } from "@/lib/unsavedChanges";
 
 /** A select that navigates to `${hrefPrefix}${value}` — the prefix carries the other query params. */
 export function ParamSelect({
@@ -20,7 +21,7 @@ export function ParamSelect({
       <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide shrink-0">{label}</label>
       <select
         value={value}
-        onChange={(e) => router.push(`${hrefPrefix}${encodeURIComponent(e.target.value)}`)}
+        onChange={(e) => confirmLeave() && router.push(`${hrefPrefix}${encodeURIComponent(e.target.value)}`)}
         className="min-w-0 flex-1 sm:flex-none rounded-lg border border-gray-300 px-4 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
       >
         {options.map((o) => (

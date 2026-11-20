@@ -6,7 +6,7 @@ import { batchMonths, defaultBatchMonth, formatMonth, SPIRITUAL_DISCIPLINE_QUEST
 import { TZ, todayPH } from "@/lib/date";
 import { BatchPicker } from "@/components/BatchPicker";
 import { ConfirmDeleteButton } from "@/app/sessions/batches/ConfirmDeleteButton";
-import { Card, CardHeader, L113Header, NoBatches } from "../ui";
+import { Card, CardHeader, ExportExcelLink, L113Header, NoBatches } from "../ui";
 import { CopyLinkButton } from "../CopyLinkButton";
 import { ParamSelect } from "../ParamSelect";
 import { deleteL113SpiritualDiscipline } from "./actions";
@@ -54,7 +54,10 @@ export default async function L113SpiritualDisciplinesPage({ searchParams }: { s
 
       <Card>
         <CardHeader title={`${formatMonth(month)} · ${batch.name}`} subtitle={`${entries.length} of ${students.length} students submitted`}>
-          <CopyLinkButton path={STUDENT_SPIRITUAL_DISCIPLINES_PATH} />
+          <div className="flex flex-wrap items-center gap-2">
+            <ExportExcelLink href={`/l113-portal/spiritual-disciplines/export?batch=${batch.id}`} />
+            <CopyLinkButton path={STUDENT_SPIRITUAL_DISCIPLINES_PATH} />
+          </div>
         </CardHeader>
         {students.length > 0 ? (
           <div className="overflow-x-auto">

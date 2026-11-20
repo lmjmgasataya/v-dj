@@ -48,3 +48,15 @@ export function NoBatches() {
     </Card>
   );
 }
+
+/** "⬇ Export Excel" — a file download from a route handler, so a plain <a>, not next/link. */
+export function ExportExcelLink({ href }: { href: string }) {
+  return (
+    <a
+      href={href}
+      className="shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 print:hidden"
+    >
+      ⬇ Export Excel
+    </a>
+  );
+}

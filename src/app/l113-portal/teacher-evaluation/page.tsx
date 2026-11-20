@@ -6,7 +6,7 @@ import { getBatchSchedule, getBatchStudents, getL113Batches, pickBatch } from "@
 import { STUDENT_TEACHER_EVALUATION_PATH, TEACHER_EVAL_QUESTIONS, TEACHER_EVAL_TEXT_QUESTIONS } from "@/lib/l113";
 import { BatchPicker } from "@/components/BatchPicker";
 import { ConfirmDeleteButton } from "@/app/sessions/batches/ConfirmDeleteButton";
-import { Card, CardHeader, L113Header, NoBatches } from "../ui";
+import { Card, CardHeader, ExportExcelLink, L113Header, NoBatches } from "../ui";
 import { CopyLinkButton } from "../CopyLinkButton";
 import { ParamSelect } from "../ParamSelect";
 import { deleteL113TeacherEvaluation } from "./actions";
@@ -66,7 +66,10 @@ export default async function L113TeacherEvaluationPage({ searchParams }: { sear
         <>
           <Card>
             <CardHeader title="Summary" subtitle="Average rating per question, 1 (strongly disagree) to 5 (strongly agree).">
-              <CopyLinkButton path={STUDENT_TEACHER_EVALUATION_PATH} label="Copy student link" />
+              <div className="flex flex-wrap items-center gap-2">
+                <ExportExcelLink href={`/l113-portal/teacher-evaluation/export?batch=${batch.id}`} />
+                <CopyLinkButton path={STUDENT_TEACHER_EVALUATION_PATH} label="Copy student link" />
+              </div>
             </CardHeader>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

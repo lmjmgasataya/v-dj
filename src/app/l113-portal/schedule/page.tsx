@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getBatchSchedule, getL113Batches, getL113Teachers, getL113Topics, pickBatch } from "@/lib/l113Data";
 import { BatchPicker } from "@/components/BatchPicker";
-import { Card, L113Header, NoBatches } from "../ui";
+import { Card, ExportExcelLink, L113Header, NoBatches } from "../ui";
 import { ScheduleTable, type ScheduleRow } from "./ScheduleTable";
 
 export default async function L113SchedulePage({ searchParams }: { searchParams: Promise<{ batch?: string }> }) {
@@ -31,9 +31,11 @@ export default async function L113SchedulePage({ searchParams }: { searchParams:
           <Card>
             <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-gray-100">
               <h3 className="font-semibold text-gray-800 uppercase tracking-wide">
-                Leadership 113 – {batch.name} Calendar ({batch.startDate.slice(0, 4)})
+                {/leadership\s*113/i.test(batch.name) ? "" : "Leadership 113 – "}
+                {batch.name} Calendar ({batch.startDate.slice(0, 4)})
               </h3>
-              <div className="flex gap-3 text-xs shrink-0">
+              <div className="flex items-center gap-3 text-xs shrink-0">
+                <ExportExcelLink href={`/l113-portal/schedule/export?batch=${batch.id}`} />
                 <Link href="/l113-portal/topics" className="text-indigo-600 hover:text-indigo-800">
                   Manage topics
                 </Link>
